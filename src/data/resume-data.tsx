@@ -71,7 +71,7 @@ export const RESUME_DATA = {
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Lille, France"],
       title: "Data Scientist (Engineering FLP)",
-      logo: GSKLogo,
+      logo:  MonitoLogo,
       start: "Sep 2023",
       end: "Present",
       description:
@@ -82,7 +82,7 @@ export const RESUME_DATA = {
       link: "https://liceocuneo.it/",
       badges: ["Cuneo, Italy"],
       title: "Math High School Teacher",
-      logo: LiceoLogo,
+      logo:  MonitoLogo,
       start: "Dec 2022",
       end: "Jul 2023",
       description:
@@ -93,7 +93,7 @@ export const RESUME_DATA = {
       link: "https://www.burgeonlabs.com/",
       badges: ["Geneva, Switzerland"],
       title: "Engineering Intern (EPFL Master Thesis Project)",
-      logo: BLLogo,
+      logo:  MonitoLogo,
       start: "Feb 2022",
       end: "Oct 2022",
       description:
@@ -104,7 +104,7 @@ export const RESUME_DATA = {
       link: "https://www.roche.com/",
       badges: ["Basel, Switzerland"],
       title: "Internship Programme 'Think Tank in Innovation & Sustainability'",
-      logo: RocheLogo,
+      logo:  MonitoLogo,
       start: "Jul 2021",
       end: "Oct 2021",
       description: "Oversaw the development of a customized filling machine prototype to supply drugs to patients based on individual demand. Performed hardware-software integration testing with a data-acquisition platform and facilitated fruitful incorporation of outside partners (start-ups, companies) into workflows. Within the same framework, I designed a Machine Learning model for accurate fill parameter determination in the context of Personalized Medicine solutions for drugs in the pipeline. Validating my results with various departments as well as delivering pitches to senior executives have enabled me to foster a culture of curiosity and collaboration while solving for real-world challenges in the Pharma Industry.",
