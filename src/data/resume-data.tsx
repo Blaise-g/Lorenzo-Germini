@@ -116,6 +116,7 @@ export const RESUME_DATA = {
     "Machine Learning",
     "Generative AI",
     "Git",
+    "PyTorch",
     "SQL",
     "Power BI",
     "Digital Health",
@@ -127,13 +128,24 @@ export const RESUME_DATA = {
   projects: [
     {
       title: "Anki Buddy",
-      techStack: ["Side Project", "Generative AI"],
+      techStack: ["Side Project", "Generative AI", "ChatGPT"],
       description:
         "Custom GPT for seamless memory flashcards creation and export to maximise learning retention.",
       logo: MonitoLogo,
       link: {
         label: "Anki Buddy",
         href: "https://chat.openai.com/g/g-I56djVcjg-anki-buddy",
+      },
+    },
+    {
+      title: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
+      techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
+      description:
+        "Working demo of Generative AI powered tool for extracting key takeaways from biomedical papers of interest according to a selected level of conciseness.",
+      logo: MonitoLogo,
+      link: {
+        label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
+        href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
       },
     },
   ],
