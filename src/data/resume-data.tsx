@@ -103,7 +103,7 @@ export const RESUME_DATA = {
       company: "Roche",
       link: "https://www.roche.com/",
       badges: ["Basel, Switzerland"],
-      title: "Internship Programme 'Think Tank in Innovation & Sustainability'",
+      title: "Summer Intern - 'Think Tank in Innovation & Sustainability'",
       logo:  MonitoLogo,
       start: "Jul 2021",
       end: "Oct 2021",
@@ -111,11 +111,16 @@ export const RESUME_DATA = {
     }
   ],
   skills: [
-    "Applied Data Analytics",
+    "Data Science",
     "Python",
-    "Power BI",
     "Machine Learning",
+    "Generative AI",
+    "Git",
+    "SQL",
+    "Power BI",
+    "Digital Health",
     "Pharmaceutical Manufacturing",
+    "Life Sciences",
     "Effective Communication",
     "Strong Analytical Skills",
   ],
@@ -124,7 +129,7 @@ export const RESUME_DATA = {
       title: "Anki Buddy",
       techStack: ["Side Project", "Generative AI"],
       description:
-        "Custom GPT for seamless memory flashcards creation to maximise learning retention.",
+        "Custom GPT for seamless memory flashcards creation and export to maximise learning retention.",
       logo: MonitoLogo,
       link: {
         label: "Anki Buddy",
