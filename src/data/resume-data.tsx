@@ -121,6 +121,7 @@ export const RESUME_DATA = {
     "Power BI",
     "Digital Health",
     "Pharmaceutical Manufacturing",
+    "Neuroscience",
     "Life Sciences",
     "Effective Communication",
     "Strong Analytical Skills",
