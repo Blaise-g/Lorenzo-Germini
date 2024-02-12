@@ -27,7 +27,7 @@ export const RESUME_DATA = {
   about:
     "Multidisciplinary Data Scientist passionate about making an impact for patients",
   summary:
-    "Wide breadth of knowledge in Life Sciences with a focus in the pharmaceutical sector, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to address real-world challenges effectively in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time between sports, exciting personal projects and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
+    "Wide breadth of knowledge in Life Sciences with a focus in Pharmaceutical Manufacturing & Neuroscience, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to address real-world challenges effectively in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time between sports, exciting personal projects and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorger.me",
   contact: {
