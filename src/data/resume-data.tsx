@@ -27,7 +27,7 @@ export const RESUME_DATA = {
   about:
     "Multidisciplinary Data Scientist passionate about making an impact for patients",
   summary:
-    "Wide breadth of knowledge in Life Sciences with a focus in Pharmaceutical Manufacturing & Digital Health, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to address real-world challenges effectively in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time between sports, exciting personal projects and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
+    "Wide breadth of knowledge in Life Sciences with a focus on Pharmaceutical Manufacturing & Digital Health, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to tackle real-world technical challenges in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time engaged in sports, exciting personal projects in the Generative AI space, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorger.me",
   contact: {
@@ -75,7 +75,7 @@ export const RESUME_DATA = {
       start: "Sep 2023",
       end: "Present",
       description:
-        "Spearheaded the analysis of sensor data from various clean utilities equipment, significantly streamlining the monitoring of clean water consumption. Actively involved in defining and managing the implementation strategy for the most efficient water rejection solutions, in collaboration with key stakeholders. Additionally, I am developing a user-friendly dashboard for service technicians, aimed at enhancing real-time monitoring and proactive maintenance of clean utilities equipment.",
+        "Spearheaded the analysis of sensor data from various clean utilities equipment, significantly streamlining the monitoring of clean water consumption in Vaccines manufacturing. Led the definition and management of implementation strategies for water rejection solutions, in collaboration with key stakeholders, projected to save up to 10,000 m³ of water annually. Currently developing a comprehensive analytics pipeline and user-friendly dashboard aimed at enabling service technicians and senior management to make more informed, data-driven decisions regarding clean water usage and vaccine production planning. This initiative enhances real-time monitoring and proactive maintenance of clean utilities and other critical equipment across the manufacturing site.",
     },
     {
       company: "Liceo Scientifico Cuneo",
