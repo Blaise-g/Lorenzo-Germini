@@ -69,7 +69,7 @@ export const RESUME_DATA = {
     {
       company: "GSK",
       link: "https://www.gsk.com/en-gb/home/",
-      badges: ["Lille, France"],
+      badges: ["Saint-Amand-les-Eaux, France"],
       title: "Data Scientist (Engineering FLP)",
       logo:  MonitoLogo,
       start: "Sep 2023",
