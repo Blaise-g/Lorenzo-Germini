@@ -25,7 +25,7 @@ export const RESUME_DATA = {
   location: "Lille, France, CET",
   locationLink: "https://www.google.com/maps/place/Lille",
   about:
-    "Multidisciplinary Data Scientist passionate about solving hard problems to make an impact on customers",
+    "Multidisciplinary Data Scientist passionate about solving hard problems to make an impact on patients",
   summary:
     "Wide breadth of knowledge in Life Sciences with a focus on Pharmaceutical Manufacturing & Digital Health, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to tackle real-world technical challenges in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time engaged in sports, exciting personal projects in the Generative AI space, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
