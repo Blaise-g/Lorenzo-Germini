@@ -70,12 +70,12 @@ export const RESUME_DATA = {
       company: "GSK",
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Saint-Amand-les-Eaux, France"],
-      title: "Data Scientist (Engineering FLP)",
+      title: "Data Scientist",
       logo:  MonitoLogo,
       start: "Sep 2023",
       end: "Present",
       description:
-        "Spearheaded the analysis of sensor data from various clean utilities equipment, significantly streamlining the monitoring of clean water consumption in Vaccines manufacturing. Led the definition and management of implementation strategies for water rejection solutions, in collaboration with key stakeholders, projected to save up to 10,000 m³ of water annually. Currently developing a comprehensive analytics pipeline and user-friendly dashboard aimed at enabling service technicians and senior management to make more informed, data-driven decisions regarding clean water usage and vaccine production planning. This initiative enhances real-time monitoring and proactive maintenance of clean utilities and other critical equipment across the manufacturing site.",
+        "Spearheaded the analysis of sensor data from diverse equipment using Python and SQL, resulting in a streamlined monitoring process of water consumption in Vaccines manufacturing. Led the definition and management of implementation strategies for water rejection solutions, projected to save up to 10,000 m³ of water annually demonstrating my ability to drive impactful outcomes. Currently developing a comprehensive analytics pipeline leveraging DataBricks and PowerBI designed to empower technicians and senior management in making data-driven decisions related data-driven decisions across multiple business critical activities. This initiative showcases my proficiency in translating complex data into actionable insights, driving operational efficiency and supporting the company's mission of delivering life-saving vaccines.",
     },
     {
       company: "Liceo Scientifico Cuneo",
