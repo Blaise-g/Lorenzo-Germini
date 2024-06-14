@@ -71,51 +71,45 @@ export const RESUME_DATA = {
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Saint-Amand-les-Eaux, France"],
       title: "Data Scientist",
-      logo:  MonitoLogo,
+      logo: MonitoLogo,
       start: "Sep 2023",
       end: "Present",
       description:
-        "• Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.
-        • Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.
-        • Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.
-        • Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.",
+        "• Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.\n• Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.\n• Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.\n- Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.",
     },
     {
       company: "Freelance",
       link: "https://liceocuneo.it/",
       badges: ["Cuneo, Italy"],
       title: "Teacher and Entrepreneur",
-      logo:  MonitoLogo,
+      logo: MonitoLogo,
       start: "Dec 2022",
       end: "Jul 2023",
       description:
-        "• Taught Math and Physics at my high-school alma mater, delivering graduate-level knowledge through interactive lessons and hands-on experiments. This effort inspired the next generation of students and enhanced their understanding of complex concepts.
-        • Reconnected with my hometown community, sharing my passion for STEM and fostering a renewed sense of purpose before the next chapter of my career.
-        • Built and validated a Minimum Viable Product leveraging Stable Diffusion to propose new interior designs from photos of empty spaces. Collaborated with local businesses to gain insights into user needs and market demands, though the project was eventually retired due to low traction.",
+        "• Taught Math and Physics at my high-school alma mater, delivering graduate-level knowledge through interactive lessons and hands-on experiments. This effort inspired the next generation of students and enhanced their understanding of complex concepts.\n• Reconnected with my hometown community, sharing my passion for STEM and fostering a renewed sense of purpose before the next chapter of my career.\n• Built and validated a Minimum Viable Product leveraging Stable Diffusion to propose new interior designs from photos of empty spaces. Collaborated with local businesses to gain insights into user needs and market demands, though the project was eventually retired due to low traction.",
     },
     {
       company: "Burgeon Labs",
       link: "https://www.burgeonlabs.com/",
       badges: ["Geneva, Switzerland"],
       title: "Engineering Intern (EPFL Master Thesis Project)",
-      logo:  MonitoLogo,
+      logo: MonitoLogo,
       start: "Feb 2022",
       end: "Oct 2022",
       description:
-        "• Developed a Generative AI powered tool for researching scientific literature on longevity and human health, automatically extracting evidence-based takeaways in a TLDR or extended format.
-        • Collaborated with the CEO to support the early development of the company’s first digital health product by defining product management strategies and streamlining business processes, contributing to the first partnership with renowned clinic.",
+        "• Developed a Generative AI powered tool for researching scientific literature on longevity and human health, automatically extracting evidence-based takeaways in a TLDR or extended format.\n• Collaborated with the CEO to support the early development of the company’s first digital health product by defining product management strategies and streamlining business processes, contributing to the first partnership with renowned clinic.",
     },
     {
       company: "Roche",
       link: "https://www.roche.com/",
       badges: ["Basel, Switzerland"],
       title: "Summer Intern - 'Think Tank in Innovation & Sustainability'",
-      logo:  MonitoLogo,
+      logo: MonitoLogo,
       start: "Jul 2021",
       end: "Oct 2021",
-      description: "• Oversaw development of customized filling machine prototype for personalized drug supply, performing hardware-software integration testing and facilitating the incorporation of outside partners (start-ups, companies) into workflows.
-      • Accelerated the tuning of the filling prototype by designing a Machine Learning model (gradient-boosted tree) for accurate fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to standard manual workflows used in other departments.",
-    }
+      description:
+        "• Oversaw development of customized filling machine prototype for personalized drug supply, performing hardware-software integration testing and facilitating the incorporation of outside partners (start-ups, companies) into workflows.\n• Accelerated the tuning of the filling prototype by designing a Machine Learning model (gradient-boosted tree) for accurate fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to standard manual workflows used in other departments.",
+    },
   ],
   skills: [
     "Data Science",
@@ -128,7 +122,7 @@ export const RESUME_DATA = {
     "Microsoft Power BI",
     "Digital Health",
     "Pharmaceutical Manufacturing",
-    "Life Sciences"
+    "Life Sciences",
   ],
   projects: [
     {
