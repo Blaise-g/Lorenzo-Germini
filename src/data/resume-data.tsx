@@ -27,7 +27,7 @@ export const RESUME_DATA = {
   about:
     "Data Scientist who enjoys solving complex problems to create meaningful impact on people's lives and the environment",
   summary:
-    "Wide breadth of knowledge in Life Sciences with a focus on Pharmaceutical Manufacturing & Digital Health, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to tackle real-world technical challenges in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time engaged in sports, exciting personal projects in the Generative AI space, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
+    "Wide breadth of knowledge in Life Sciences with a focus on Pharmaceutical Manufacturing & Digital Health, complemented by expertise in Data Science (Python) and Machine Learning. My interdisciplinary background and analytical acumen have enabled me to leverage complex data, working collaboratively with teams to tackle real-world technical challenges in both pharmaceutical and startup environments. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. I spend my free time engaged in sports, exciting personal projects, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking topics.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
   contact: {
@@ -75,18 +75,23 @@ export const RESUME_DATA = {
       start: "Sep 2023",
       end: "Present",
       description:
-        "Spearheaded the analysis of sensor data from diverse equipment using Python and SQL, resulting in a streamlined monitoring process of water consumption in Vaccines manufacturing. Led the definition and management of implementation strategies for water rejection solutions, projected to save up to 10,000 m³ of water annually demonstrating my ability to drive impactful outcomes. Currently developing a comprehensive analytics pipeline leveraging DataBricks and PowerBI designed to empower technicians and senior management in making data-driven decisions across multiple business critical activities. This initiative showcases my proficiency in translating complex data into actionable insights, driving operational efficiency and supporting the company's mission of delivering life-saving vaccines.",
+        "• Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.
+        • Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.
+        • Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.
+        • Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.",
     },
     {
-      company: "Liceo Scientifico Cuneo",
+      company: "Freelance",
       link: "https://liceocuneo.it/",
       badges: ["Cuneo, Italy"],
-      title: "Math High School Teacher",
+      title: "Teacher and Entrepreneur",
       logo:  MonitoLogo,
       start: "Dec 2022",
       end: "Jul 2023",
       description:
-        "After completing my MSc, I took the opportunity to pause and recharge while making an impact. I returned to my roots at my high school alma mater, teaching Math and Physics to high school students. Imparting my graduate school knowledge to inspire the next generation was tremendously rewarding. This experience allowed me to reconnect with my hometown community and share my passion for STEM before embarking on the next chapter of my career. This gap period gave me perspective and renewed purpose.",
+        "• Taught Math and Physics at my high-school alma mater, delivering graduate-level knowledge through interactive lessons and hands-on experiments. This effort inspired the next generation of students and enhanced their understanding of complex concepts.
+        • Reconnected with my hometown community, sharing my passion for STEM and fostering a renewed sense of purpose before the next chapter of my career.
+        • Built and validated a Minimum Viable Product leveraging Stable Diffusion to propose new interior designs from photos of empty spaces. Collaborated with local businesses to gain insights into user needs and market demands, though the project was eventually retired due to low traction.",
     },
     {
       company: "Burgeon Labs",
@@ -97,7 +102,8 @@ export const RESUME_DATA = {
       start: "Feb 2022",
       end: "Oct 2022",
       description:
-        "My master thesis investigates how a Natural Language Processing powered tool could be implemented to research the vast scientific literature on topics of longevity and human health and automatically extract evidence-based takeaways from relevant papers according to a selected level of conciseness. Beyond working on my thesis, I supported the early development of the company’s first digital health product alongside the CEO with a focus on product management and quantitative research.",
+        "• Developed a Generative AI powered tool for researching scientific literature on longevity and human health, automatically extracting evidence-based takeaways in a TLDR or extended format.
+        • Collaborated with the CEO to support the early development of the company’s first digital health product by defining product management strategies and streamlining business processes, contributing to the first partnership with renowned clinic.",
     },
     {
       company: "Roche",
@@ -107,7 +113,8 @@ export const RESUME_DATA = {
       logo:  MonitoLogo,
       start: "Jul 2021",
       end: "Oct 2021",
-      description: "Oversaw the development of a customized filling machine prototype to supply drugs to patients based on individual demand. Performed hardware-software integration testing with a data-acquisition platform and facilitated fruitful incorporation of outside partners (start-ups, companies) into workflows. Within the same framework, I designed a Machine Learning model for accurate fill parameter determination in the context of Personalized Medicine solutions for drugs in the pipeline. Validating my results with various departments as well as delivering pitches to senior executives have enabled me to foster a culture of curiosity and collaboration while solving for real-world challenges in the Pharma Industry.",
+      description: "• Oversaw development of customized filling machine prototype for personalized drug supply, performing hardware-software integration testing and facilitating the incorporation of outside partners (start-ups, companies) into workflows.
+      • Accelerated the tuning of the filling prototype by designing a Machine Learning model (gradient-boosted tree) for accurate fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to standard manual workflows used in other departments.",
     }
   ],
   skills: [
@@ -115,16 +122,13 @@ export const RESUME_DATA = {
     "Python",
     "Machine Learning",
     "Generative AI",
-    "Git",
+    "Data Analytics",
     "PyTorch",
     "SQL",
-    "Power BI",
+    "Microsoft Power BI",
     "Digital Health",
     "Pharmaceutical Manufacturing",
-    "Neuroscience",
-    "Life Sciences",
-    "Effective Communication",
-    "Strong Analytical Skills",
+    "Life Sciences"
   ],
   projects: [
     {
