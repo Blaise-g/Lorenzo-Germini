@@ -71,18 +71,16 @@ export const RESUME_DATA: ResumeData = {
       company: "GSK",
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Saint-Amand-les-Eaux, France"],
-      title: "Data Scientist",
+      title: "Data Scientist (Graduate Programme)",
       logo: MonitoLogo,
       start: "Sep 2023",
       end: "Present",
-      description: `
-        <ul>
-          <li>Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.</li>
-          <li>Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.</li>
-          <li>Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.</li>
-          <li>Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.</li>
-        </ul>
-      `,
+      description: [
+        "Led analysis of sensor data from various sources using Python and PowerBi to enhance water consumption monitoring, identifying inefficiencies, and initiating improvement projects.",
+        "Designed and managed strategies for water rejection solutions in clean utilities, focusing on Distillators and WFI user levels, aiming to save 10,000 m³ annually through hardware upgrades and real-time software optimization.",
+        "Created a Streamlit analytics dashboard for clean utilities equipment to monitor KPIs, enabling proactive maintenance and reducing reliance on external companies, saving costs and cutting manual data inspection time by 50%.",
+        "Exploring Generative AI-powered features in the dashboard for automatic trend presentation and interactive data exploration.",
+      ],
     },
     {
       company: "Freelance",
