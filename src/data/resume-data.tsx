@@ -83,26 +83,29 @@ export const RESUME_DATA: ResumeData = {
       ],
     },
     {
-      company: "Freelance",
+      company: "Self Employed",
       link: "https://liceocuneo.it/",
       badges: ["Cuneo, Italy"],
-      title: "Teacher and Entrepreneur",
+      title: "Teacher and Digital Freelancer",
       logo: MonitoLogo,
       start: "Dec 2022",
-      end: "Jul 2023",
-      description:
-        "• Taught Math and Physics at my high-school alma mater, delivering graduate-level knowledge through interactive lessons and hands-on experiments. This effort inspired the next generation of students and enhanced their understanding of complex concepts.\n• Reconnected with my hometown community, sharing my passion for STEM and fostering a renewed sense of purpose before the next chapter of my career.\n• Built and validated a Minimum Viable Product leveraging Stable Diffusion to propose new interior designs from photos of empty spaces. Collaborated with local businesses to gain insights into user needs and market demands, though the project was eventually retired due to low traction.",
-    },
+      end: "Aug 2023",
+      description: [
+        "Taught Math and Physics at my high-school alma mater, reconnecting with my hometown community. Shared my passion for STEM and fostered a renewed sense of purpose before the next chapter of my career.",
+        "Developed and tested a Minimum Viable Product using Stable Diffusion for generating interior designs from empty space images. Partnered with local businesses to understand user preferences and market trends, leading to the project's closure due to limited interest.",
+      ],
     {
       company: "Burgeon Labs",
       link: "https://www.burgeonlabs.com/",
       badges: ["Geneva, Switzerland"],
-      title: "Engineering Intern (EPFL Master Thesis Project)",
+      title: "Engineering Intern",
       logo: MonitoLogo,
       start: "Feb 2022",
       end: "Oct 2022",
-      description:
-        "• Developed a Generative AI powered tool for researching scientific literature on longevity and human health, automatically extracting evidence-based takeaways in a TLDR or extended format.\n• Collaborated with the CEO to support the early development of the company’s first digital health product by defining product management strategies and streamlining business processes, contributing to the first partnership with renowned clinic.",
+      description: [
+        "Developed a Generative AI tool for researching scientific literature on longevity and human health, extracting evidence-based summaries in TLDR or extended format.",
+        "Collaborated with the CEO to define product management strategies and streamline business processes for the company's first digital health product, leading to the establishment of a partnership with a renowned clinic.",
+      ],
     },
     {
       company: "Roche",
@@ -112,8 +115,10 @@ export const RESUME_DATA: ResumeData = {
       logo: MonitoLogo,
       start: "Jul 2021",
       end: "Oct 2021",
-      description:
-        "• Oversaw development of customized filling machine prototype for personalized drug supply, performing hardware-software integration testing and facilitating the incorporation of outside partners (start-ups, companies) into workflows.\n• Accelerated the tuning of the filling prototype by designing a Machine Learning model (gradient-boosted tree) for accurate fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to standard manual workflows used in other departments.",
+      description: [
+        "Managed development of customized filling machine prototype for personalized drug supply, including hardware-software integration testing and collaboration with external partners.",
+        "Improved tuning of filling prototype by creating a Machine Learning model (gradient-boosted tree) to optimize fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to manual methods used in other departments.",
+      ],
     },
   ],
   skills: [
