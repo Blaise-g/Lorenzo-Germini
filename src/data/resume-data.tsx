@@ -74,10 +74,14 @@ export const RESUME_DATA = {
       logo: MonitoLogo,
       start: "Sep 2023",
       end: "Present",
-      description: `• Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.
-• Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.
-• Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.
-• Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.`,
+      description: `
+        <ul>
+          <li>Streamlined site water consumption and rejections monitoring by spearheading the analysis of sensor data from multiple sources using Python and PowerBi, raising awareness about current inefficiencies and launching specific projects to improve them.</li>
+          <li>Defined and managed implementation strategies for water rejection solutions in clean utilities focusing on Distillators and WFI user levels, projected to save up to 10,000 m³ of water annually, by performing minor hardware upgrades and optimizing software through real-time data analysis.</li>
+          <li>Developed an analytics dashboard with Streamlit for clean utilities equipment to monitor KPIs and facilitate proactive maintenance, reducing reliance on external companies with the subsequent cost savings, and cutting time spent by technicians manually inspecting data by 50%.</li>
+          <li>Experimenting with Generative AI-powered features in the dashboard to automatically present relevant trends and chat with data for seamless data exploration.</li>
+        </ul>
+      `,
     },
     {
       company: "Freelance",
