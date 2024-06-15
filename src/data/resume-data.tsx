@@ -18,8 +18,9 @@ import {
   YearProgressLogo,
 } from "@/images/logos";
 import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons";
+import { ResumeData } from "./resume-data.types";
 
-export const RESUME_DATA = {
+export const RESUME_DATA: ResumeData = {
   name: "Lorenzo Germini",
   initials: "LG",
   location: "Lille, France, CET",
