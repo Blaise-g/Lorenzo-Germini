@@ -94,6 +94,7 @@ export const RESUME_DATA: ResumeData = {
         "Taught Math and Physics at my high-school alma mater, reconnecting with my hometown community. Shared my passion for STEM and fostered a renewed sense of purpose before the next chapter of my career.",
         "Developed and tested a Minimum Viable Product using Stable Diffusion for generating interior designs from empty space images. Partnered with local businesses to understand user preferences and market trends, leading to the project's closure due to limited interest.",
       ],
+    },
     {
       company: "Burgeon Labs",
       link: "https://www.burgeonlabs.com/",
