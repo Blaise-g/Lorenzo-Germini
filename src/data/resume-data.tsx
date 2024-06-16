@@ -26,7 +26,7 @@ export const RESUME_DATA: ResumeData = {
   location: "Lille, France, CET",
   locationLink: "https://www.google.com/maps/place/Lille",
   about:
-    "Data Scientist who enjoys solving complex problems to create meaningful impact on people's lives and the environment",
+    "Data Scientist who enjoys solving complex problems to create meaningful impact on people's lives",
   summary:
     "Results-driven Data Scientist with a solid foundation in Data Science, Analytics, and Machine Learning. My interdisciplinary background and analytical acumen make me adept at leveraging complex data to identify trends, optimize processes, and tackle real-world business challenges. I have demonstrated my ability to collaborate with cross-functional teams to deliver data-driven insights and enhance operational efficiency in fast-paced environments in both Pharma and Startup sectors. Passionate about making meaningful impacts on people's lives through technology and driven by insatiable curiosity, I continuously strive to improve my skillset and contribute to innovative projects. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
