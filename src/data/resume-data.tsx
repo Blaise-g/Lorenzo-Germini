@@ -78,8 +78,7 @@ export const RESUME_DATA: ResumeData = {
       description: [
         "Conducted comprehensive analysis of sensor data using Python and PowerBi, leading to significant improvements in water consumption monitoring and the initiation of impactful improvement projects.",
         "Developed and implemented strategies for optimizing water rejection processes in the Clean Utilities, resulting in an annual savings of 10,000 m³ through innovative hardware upgrades and real-time software solutions.",
-        "Designed and deployed a Streamlit analytics dashboard to monitor key performance indicators (KPIs), facilitating proactive maintenance and reducing dependency on external companies, cutting costs and achieving a 50% reduction in manual data inspection time.",
-        "Investigated and integrated Generative AI features to enhance data trend analysis and interactive exploration, improving data-driven decision-making.",
+        "Built a Streamlit analytics dashboard for clean utilities equipment to monitor KPIs, enabling proactive maintenance and reducing reliance on external companies. This innovation saved costs, cut manual data inspection time by 50%, and earned a silver recognition award for its impact on operational efficiency.",
       ],
     },
     {
@@ -138,6 +137,26 @@ export const RESUME_DATA: ResumeData = {
     "Startup Experience",
   ],
   projects: [
+        {
+      title: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
+      techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
+      description:
+        "Working demo of Generative AI powered tool for extracting key takeaways from biomedical papers of interest according to a selected level of conciseness.",
+      logo: MonitoLogo,
+      link: {
+        label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
+        href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
+      },
+              {
+      title: "361° Italy Website with Store Locator",
+      techStack: ["Side Project", "Generative AI", "Claude", "Node.js", "Web Development"],
+      description:
+        "Developed a website for 361° Italia showcasing running and basketball products with a store locator feature. Built from scratch using Node.js with guidance from Claude 3.5 Sonnet, completed in 2 weeks as a side project during holidays. This project provided hands-on experience in front-end development and rapid prototyping.",
+      logo: MonitoLogo,
+      link: {
+        label: "361° Italy Website with Store Locator",
+        href: "https://361italia.replit.app/",
+      },
     {
       title: "Anki Buddy",
       techStack: ["Side Project", "Generative AI", "ChatGPT"],
@@ -149,16 +168,6 @@ export const RESUME_DATA: ResumeData = {
         href: "https://chat.openai.com/g/g-I56djVcjg-anki-buddy",
       },
     },
-    {
-      title: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
-      techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
-      description:
-        "Working demo of Generative AI powered tool for extracting key takeaways from biomedical papers of interest according to a selected level of conciseness.",
-      logo: MonitoLogo,
-      link: {
-        label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
-        href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
-      },
     },
   ],
 } as const;
