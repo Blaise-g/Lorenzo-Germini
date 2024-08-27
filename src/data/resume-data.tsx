@@ -28,7 +28,7 @@ export const RESUME_DATA: ResumeData = {
   about:
     "Data Scientist who enjoys solving complex problems to create meaningful impact on people's lives",
   summary:
-    "Results-driven Data Scientist with a solid foundation in Data Science, Analytics, and Machine Learning. My interdisciplinary background and analytical acumen make me adept at leveraging complex data to identify trends, optimize processes, and tackle real-world business challenges. I have demonstrated my ability to collaborate with cross-functional teams to deliver data-driven insights and enhance operational efficiency in fast-paced environments in both Pharma and Startup sectors.                                                                                         Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
+    "Results-driven Data Scientist with a solid foundation in Data Science, Analytics, and Machine Learning. My interdisciplinary background and analytical acumen make me adept at leveraging complex data to identify trends, optimize processes, and tackle real-world business challenges. I have demonstrated my ability to collaborate with cross-functional teams to deliver data-driven insights and enhance operational efficiency in fast-paced environments in both Pharma and Startup sectors. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
   contact: {
@@ -61,7 +61,7 @@ export const RESUME_DATA: ResumeData = {
     },
     {
       school: "Swiss Federal Institute of Technology Lausanne (EPFL)",
-      degree: "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengingeering)",
+      degree: "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)",
       start: "2020",
       end: "2022",
     },
@@ -137,7 +137,7 @@ export const RESUME_DATA: ResumeData = {
     "Startup Experience",
   ],
   projects: [
-        {
+    {
       title: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
       techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
       description:
@@ -147,7 +147,8 @@ export const RESUME_DATA: ResumeData = {
         label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
         href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
       },
-              {
+    },
+    {
       title: "361° Italy Website with Store Locator",
       techStack: ["Side Project", "Generative AI", "Claude", "Node.js", "Web Development"],
       description:
@@ -157,17 +158,17 @@ export const RESUME_DATA: ResumeData = {
         label: "361° Italy Website with Store Locator",
         href: "https://361italia.replit.app/",
       },
+    },
     {
       title: "Anki Buddy",
       techStack: ["Side Project", "Generative AI", "ChatGPT"],
       description:
-        "Custom GPT for seamless memory flashcards creation and export to maximise learning retention.",
+        "Custom GPT for seamless memory flashcards creation and export to maximize learning retention.",
       logo: MonitoLogo,
       link: {
         label: "Anki Buddy",
         href: "https://chat.openai.com/g/g-I56djVcjg-anki-buddy",
       },
-    },
     },
   ],
 } as const;
