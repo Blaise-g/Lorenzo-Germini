@@ -137,6 +137,17 @@ export const RESUME_DATA: ResumeData = {
     "Startup Experience",
   ],
   projects: [
+        {
+      title: "361° Italy Website with Store Locator",
+      techStack: ["Side Project", "Generative AI", "Claude", "Node.js", "Web Development"],
+      description:
+        "Developed a website for 361° Italia showcasing running and basketball products with a store locator feature. Built from scratch using Node.js with guidance from Claude 3.5 Sonnet, completed in 2 weeks as a side project during holidays. This project provided hands-on experience in front-end development and rapid prototyping.",
+      logo: MonitoLogo,
+      link: {
+        label: "361° Italy Website with Store Locator",
+        href: "https://361italia.replit.app/",
+      },
+    },
     {
       title: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
       techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
@@ -146,17 +157,6 @@ export const RESUME_DATA: ResumeData = {
       link: {
         label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
         href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
-      },
-    },
-    {
-      title: "361° Italy Website with Store Locator",
-      techStack: ["Side Project", "Generative AI", "Claude", "Node.js", "Web Development"],
-      description:
-        "Developed a website for 361° Italia showcasing running and basketball products with a store locator feature. Built from scratch using Node.js with guidance from Claude 3.5 Sonnet, completed in 2 weeks as a side project during holidays. This project provided hands-on experience in front-end development and rapid prototyping.",
-      logo: MonitoLogo,
-      link: {
-        label: "361° Italy Website with Store Locator",
-        href: "https://361italia.replit.app/",
       },
     },
     {
