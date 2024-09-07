@@ -138,14 +138,14 @@ export const RESUME_DATA: ResumeData = {
   ],
   projects: [
         {
-      title: "361° Italy Website with Store Locator",
-      techStack: ["Side Project", "Generative AI", "Claude", "Node.js", "Web Development"],
+      title: "Kailas Italy Store Locator Website",
+      techStack: ["Side Project", "Front-end Development", "Generative AI", "Claude", "Node.js"],
       description:
-        "Developed a website for 361° Italia showcasing running and basketball products with a store locator feature. Built from scratch using Node.js with guidance from Claude 3.5 Sonnet, completed in 2 weeks as a side project during holidays. This project provided hands-on experience in front-end development and rapid prototyping.",
+        "Developed a website for Kailas Italia featuring trail running and hiking products with an integrated Store Locator. This side project was a deep dive into front-end development, starting from zero knowledge. Leveraging Node.js and guidance from Claude 3.5 Sonnet, I rapidly learned and implemented core web development concepts. Completed in just 2 weeks during holidays, this project demonstrates my ability to quickly acquire new skills, adapt to new technologies, and deliver functional web solutions. It showcases my journey from complete beginner to creating a fully functional website, highlighting my aptitude for rapid learning and practical application of newfound knowledge.",
       logo: MonitoLogo,
       link: {
-        label: "361° Italy Website with Store Locator",
-        href: "https://361italia.replit.app/",
+        label: "Kailas Italia Store Locator",
+        href: "https://kailasitalia.replit.app/",
       },
     },
     {
