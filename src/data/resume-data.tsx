@@ -67,14 +67,27 @@ export const RESUME_DATA: ResumeData = {
     },
   ],
   work: [
+        {
+      company: "GSK",
+      link: "https://www.gsk.com/en-gb/home/",
+      badges: ["Lille, France"],
+      title: "Graduate Programme - AI, Digital Twins & Intelligent Autonomous Systems",
+      logo: MonitoLogo,
+      start: "Sep 2024",
+      end: "Present",
+      description: [
+        "Analyzed anomaly descriptions and utilized time series forecasting for anomaly prediction and predictive maintenance in pharmaceutical manufacturing.",
+        "Exploring generative AI use cases, including the use of agents, to optimize production processes and enable intelligent decision-making.",
+      ],
+    },
     {
       company: "GSK",
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Saint-Amand-les-Eaux, France"],
-      title: "Data Scientist (Graduate Programme)",
+      title: "Graduate Programme - Technical Services",
       logo: MonitoLogo,
       start: "Sep 2023",
-      end: "Present",
+      end: "Aug 2023",
       description: [
         "Conducted comprehensive analysis of sensor data using Python and PowerBi, leading to significant improvements in water consumption monitoring and the initiation of impactful improvement projects.",
         "Developed and implemented strategies for optimizing water rejection processes in the Clean Utilities, resulting in an annual savings of 10,000 m³ through innovative hardware upgrades and real-time software solutions.",
@@ -134,6 +147,17 @@ export const RESUME_DATA: ResumeData = {
   ],
   projects: [
         {
+      title: "Satire Cartoons Generator",
+      techStack: ["Generative AI", "Flux Pro 1.1", "Gemini Pro 1.5", "Side Project", "Glif"],
+      description:
+        "Developed a workflow leveraging Gemini 1.5 Pro for prompt generation and Flux 1.1 Pro for high-quality, colorful image rendering to generate humorous, satirical cartoons. The Glif platform allows users to input a topic, which is then transformed into a visually engaging and satirical cartoon with minimal user effort, combining AI-driven creativity with personalized satire.",
+      logo: MonitoLogo,
+      link: {
+        label: "Satirical Cartoons Generator",
+        href: "https://glif.app/@Lorenzo_Germini/glifs/cm2bywu8x0000v8nzez96s1z0/source",
+      },
+    },
+        {
       title: "Kailas Italy Store Locator Website",
       techStack: ["Side Project", "Front-end Development", "Generative AI", "Claude", "Node.js"],
       description:
@@ -153,17 +177,6 @@ export const RESUME_DATA: ResumeData = {
       link: {
         label: "Summarize biomedical papers in a long, detailed synopsis or TLDR summary",
         href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
-      },
-    },
-    {
-      title: "Anki Buddy",
-      techStack: ["Side Project", "Generative AI", "ChatGPT"],
-      description:
-        "Custom GPT for seamless memory flashcards creation and export to maximize learning retention.",
-      logo: MonitoLogo,
-      link: {
-        label: "Anki Buddy",
-        href: "https://chat.openai.com/g/g-I56djVcjg-anki-buddy",
       },
     },
   ],
