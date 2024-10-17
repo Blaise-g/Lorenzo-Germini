@@ -147,7 +147,7 @@ export const RESUME_DATA: ResumeData = {
   ],
   projects: [
         {
-      title: "Satire Cartoons Generator",
+      title: "Satirical Cartoons Generator",
       techStack: ["Generative AI", "Flux Pro 1.1", "Gemini Pro 1.5", "Side Project", "Glif"],
       description:
         "Developed a workflow leveraging Gemini 1.5 Pro for prompt generation and Flux 1.1 Pro for high-quality, colorful image rendering to generate humorous, satirical cartoons. The Glif platform allows users to input a topic, which is then transformed into a visually engaging and satirical cartoon with minimal user effort, combining AI-driven creativity with personalized satire.",
