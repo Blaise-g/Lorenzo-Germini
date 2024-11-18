@@ -154,7 +154,7 @@ export const RESUME_DATA: ResumeData = {
       logo: MonitoLogo,
       link: {
         label: "Satirical Cartoons Generator",
-        href: "https://glif.app/@Lorenzo_Germini/glifs/cm2bywu8x0000v8nzez96s1z0/source",
+        href: "https://glif.app/@Lorenzo_Germini/glifs/cm2bywu8x0000v8nzez96s1z0",
       },
     },
         {
