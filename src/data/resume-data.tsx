@@ -25,7 +25,7 @@ export const RESUME_DATA: ResumeData = {
   initials: "LG",
   location: "Turin, Italy, CET",
   locationLink: "https://www.google.com/maps/place/Torino",
-  about: "AI Engineer who likes to build cool stuff to create meaningful impact at scale",
+  about: "AI Engineer who likes to build cool stuff to create meaningful impact for people at scale",
   summary: "Results-driven AI Engineer with a solid foundation in Generative AI and Machine Learning. My interdisciplinary background and analytical acumen enable me to transform complex data into impactful solutions that drive business value. I have demonstrated my ability to collaborate with cross-functional teams to deliver data-driven insights and create business value in fast-paced environments in both Pharma and Startup sectors. Driven by insatiable curiosity and a passion for learning, I continuously improve my skillset through dedicated self-development. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
