@@ -90,7 +90,7 @@ export const RESUME_DATA: ResumeData = {
       description: [
         "Led comprehensive analysis of multi-source sensor data for water consumption optimization, implementing Python to identify inefficiencies in Distillators and WFI systems. Designed and managed water rejection strategies projected to save 10,000 m³ annually through combined hardware upgrades and real-time software optimization.",
         "Created a Streamlit analytics dashboard for clean utilities equipment to monitor KPIs, enabling proactive maintenance and reducing reliance on external companies. This innovation saved costs, cut manual data inspection time by 50%, and earned a silver recognition award for its impact on operational efficiency.",
-        "Developed a proof-of-concept combining gpt-4-mini and PandasAI to enable natural language interactions with operational data. Built a conversational interface allowing users to query complex datasets through natural language, automatically generating relevant visualizations and data-driven insights.",
+        "Developed a proof-of-concept combining gpt-4o-mini and PandasAI to enable natural language interactions with operational data. Built a conversational interface allowing users to query complex datasets through natural language, automatically generating relevant visualizations and data-driven insights.",
       ],
     },
     {
