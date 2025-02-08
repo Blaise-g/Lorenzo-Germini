@@ -66,13 +66,28 @@ export const RESUME_DATA: ResumeData = {
   ],
   work: [
     {
+      company: "Stealth GenAI Startup",
+      link: "",
+      badges: ["Turin, Italy"],
+      title: "Founding AI Engineer",
+      logo: "",
+      start: "Nov 2024",
+      end: "Present",
+      description: [
+        "Spearheaded the development of a Generative AI-powered web application, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify) and Generative AI API layer (OpenAI & Gemini with structured outputs) from the ground up.",
+        "Engineered a robust Retrieval-Augmented Generation (RAG) application utilizing pgai, incorporating custom-built and state-of-the-art parsing pipelines to handle diverse input formats containing both machine-readable and handwritten text.",
+        "Set up LLM tracing and evaluation pipelines to enable systematic refinement of prompts, LLM outputs and RAG parameters.",
+        "Oversaw the development team in collaboration with the Product Manager, taking on a leadership role in addition to core engineering responsibilities for the MVP, and contributing significantly to product strategy.",
+      ],
+    },
+    {
       company: "GSK",
       link: "https://www.gsk.com/en-gb/home/",
       badges: ["Lille, France"],
       title: "AI Engineer - AI, Digital Twins & Intelligent Autonomous Systems",
       logo: MonitoLogo,
       start: "Aug 2024",
-      end: "Present",
+      end: "Oct 2024",
       description: [
         "Developed a POC for an anomaly detection system leveraging Sentence Transformers for semantic clustering of maintenance reports and anomaly descriptions.",
         "Implemented time series forecasting models for predictive maintenance, combining NLP insights with temporal patterns to enhance fault prediction in pharmaceutical manufacturing equipment.",
