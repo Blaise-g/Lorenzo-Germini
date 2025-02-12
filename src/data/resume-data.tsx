@@ -76,7 +76,7 @@ import {
         description: [
           "Spearheaded the development of a Generative AI-powered web application, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify) and Generative AI API layer (OpenAI & Gemini with structured outputs) from the ground up.",
           "Engineered a robust Retrieval-Augmented Generation (RAG) application utilizing pgai, incorporating custom-built and state-of-the-art parsing pipelines to handle diverse input formats containing both machine-readable and handwritten text.",
-          "Set up LLM tracing and evaluation pipelines to enable systematic refinement of prompts, LLM outputs and RAG parameters.",
+          "Set up LLM tracing (LangSmith) and evaluation pipelines to enable systematic refinement of prompts, LLM outputs and RAG parameters.",
           "Oversaw the development team in collaboration with the Product Manager, taking on a leadership role in addition to core engineering responsibilities for the MVP, and contributing significantly to product strategy.",
         ],
       },
@@ -153,9 +153,8 @@ import {
     ],
     skills: [
       "Generative AI",
-      "Large Language Models",
+      "LLMs",
       "RAG",
-      "Machine Learning",
       "Python",
       "Data Science",
       "AWS"
