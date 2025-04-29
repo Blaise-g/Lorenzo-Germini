@@ -25,7 +25,7 @@ import {
     initials: "LG",
     location: "Turin, Italy, CET",
     locationLink: "https://www.google.com/maps/place/Torino",
-    about: "AI Engineer who likes to build cool stuff to create meaningful impact for people at scale",
+    about: "Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale",
     summary: "As an AI Engineer with a generalist mindset, I excel at building impactful technology while wearing multiple hats to drive success in dynamic environments. I have a proven ability to architect and deploy cutting-edge Generative AI solutions, effectively bridging the gap between technical execution, product development, and business strategy using strong commercial intuition. My experience in both Startups and Pharma demonstrates effective cross-functional collaboration and the adaptability required to quickly fill gaps and drive projects forward. Fueled by an entrepreneurial drive, I'm passionate about leveraging a versatile skillset – combining deep tech understanding with product acumen – to navigate uncertainty and deliver tangible results from concept to scale. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
     avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
     personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
