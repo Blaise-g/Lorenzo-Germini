@@ -161,13 +161,13 @@ import {
     ],
     projects: [
       {
-        title: "Satirical Cartoons Generator",
-        techStack: ["Generative AI", "Flux Pro 1.1", "Gemini Pro 1.5", "Side Project", "Glif"],
-        description: "Developed a workflow leveraging Gemini 1.5 Pro for prompt generation and Flux 1.1 Pro for high-quality, colorful image rendering to generate humorous, satirical cartoons. The Glif platform allows users to input a topic, which is then transformed into a visually engaging and satirical cartoon with minimal user effort, combining AI-driven creativity with personalized satire.",
+        title: "Freelance AI consultancy",
+        techStack: ["Generative AI", "Commercial Acumen", "Side Project"],
+        description: "Offering AI consultancy services to small businesses, helping them leverage Generative AI to improve their operations and decision-making processes. This included providing guidance on AI implementation, training employees on AI tools, and helping them identify opportunities for AI integration. The goal was to help small businesses stay competitive in the digital age by leveraging AI to improve their operations and decision-making processes.",
         logo: MonitoLogo,
         link: {
-          label: "Satirical Cartoons Generator",
-          href: "https://glif.app/@Lorenzo_Germini/glifs/cm2bywu8x0000v8nzez96s1z0",
+          label: "Freelance AI consultancy",
+          href: "https://quadrell.replit.app/",
         },
       },
       {
