@@ -17,7 +17,18 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', 'monospace'],
+      },
       colors: {
+        brand: {
+          blue: "hsl(var(--brand-blue))",
+          'blue-light': "hsl(var(--brand-blue-light))",
+          'blue-dark': "hsl(var(--brand-blue-dark))",
+        },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

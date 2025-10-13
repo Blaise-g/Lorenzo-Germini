@@ -66,13 +66,23 @@ import {
     ],
     work: [
       {
+        company: "Complaion",
+        link: "https://www.complaion.com/",
+        badges: ["Turin, Italy"],
+        title: "AI Engineer",
+        logo: MonitoLogo,
+        start: "May 2025",
+        end: "Present",
+        description: "Building cool stuff 🫡",
+      },
+      {
         company: "Stealth GenAI Startup",
         link: "",
         badges: ["Turin, Italy"],
         title: "Founding AI Engineer",
         logo: MonitoLogo,
         start: "Nov 2024",
-        end: "Present",
+        end: "Apr 2025",
         description: [
           "Spearheaded the development of a EdTech web application product, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify, Lambda) and Generative AI API layer (OpenAI & Gemini with structured outputs) from the ground up.",
           "Engineered a robust Retrieval-Augmented Generation (RAG) application utilizing pgai, incorporating custom-built and state-of-the-art parsing pipelines to handle diverse input formats containing both machine-readable and handwritten text.",
