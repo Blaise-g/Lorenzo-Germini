@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -86,10 +87,16 @@ export default function Page() {
             </div>
           </div>
 
-          <Avatar className="size-28 border-4 border-brand-blue/20 transition-smooth hover:border-brand-blue hover:scale-105">
-            <AvatarImage alt={RESUME_DATA.name} src={RESUME_DATA.avatarUrl} />
-            <AvatarFallback>{RESUME_DATA.initials}</AvatarFallback>
-          </Avatar>
+          <div className="relative size-28 border-4 border-brand-blue/20 rounded-full transition-smooth hover:border-brand-blue hover:scale-105 overflow-hidden">
+            <Image
+              src={RESUME_DATA.avatarUrl}
+              alt={RESUME_DATA.name}
+              width={112}
+              height={112}
+              priority
+              className="object-cover"
+            />
+          </div>
         </div>
         <Section className="animate-fade-in-up animation-delay-100">
           <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">About</h2>
