@@ -1,5 +1,5 @@
-# Use the official lightweight Node.js 22 image.
-FROM node:22-slim
+# Use the official lightweight Node.js 24 image.
+FROM node:24-slim
 
 # Install bun
 RUN npm install -g bun

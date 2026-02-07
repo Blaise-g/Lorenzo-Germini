@@ -1,4 +1,3 @@
-import { StaticImageData } from "next/image";
 export type ResumeData = {
   name: string;
   initials: string;
@@ -29,7 +28,6 @@ export type ResumeData = {
     link: string;
     badges: string[];
     title: string;
-    logo: React.ComponentType<{}> | StaticImageData;
     start: string;
     end: string;
     description: string | string[];
@@ -40,7 +38,6 @@ export type ResumeData = {
     title: string;
     techStack: string[];
     description: string;
-    logo: React.ComponentType<{}> | StaticImageData;
     link?: {
       label: string;
       href: string;

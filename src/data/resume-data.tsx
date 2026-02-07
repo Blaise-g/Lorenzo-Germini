@@ -1,9 +1,3 @@
-import {
-    ConsultlyLogo,
-    JarockiMeLogo,
-    MonitoLogo,
-    ParabolLogo,
-  } from "@/images/logos";
   import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons";
   import { ResumeData } from "./resume-data.types";
   
@@ -57,7 +51,6 @@ import {
         link: "https://www.complaion.com/",
         badges: ["Turin, Italy"],
         title: "AI Engineer",
-        logo: MonitoLogo,
         start: "May 2025",
         end: "Present",
         description: [
@@ -71,7 +64,6 @@ import {
         link: "",
         badges: ["Turin, Italy"],
         title: "Founding AI Engineer",
-        logo: MonitoLogo,
         start: "Nov 2024",
         end: "Apr 2025",
         description: [
@@ -86,7 +78,6 @@ import {
         link: "https://www.gsk.com/en-gb/home/",
         badges: ["Lille, France"],
         title: "AI Engineer - AI, Digital Twins & Intelligent Autonomous Systems",
-        logo: MonitoLogo,
         start: "Aug 2024",
         end: "Oct 2024",
         description: [
@@ -100,7 +91,6 @@ import {
         link: "https://www.gsk.com/en-gb/home/",
         badges: ["Saint-Amand-les-Eaux, France"],
         title: "Data Scientist - Technical Services",
-        logo: MonitoLogo,
         start: "Sep 2023",
         end: "Jul 2024",
         description: [
@@ -114,7 +104,6 @@ import {
         link: "https://liceocuneo.it/",
         badges: ["Cuneo, Italy"],
         title: "Teacher and Digital Freelancer",
-        logo: ConsultlyLogo,
         start: "Nov 2022",
         end: "Aug 2023",
         description: [
@@ -128,7 +117,6 @@ import {
         link: "https://www.burgeonlabs.com/",
         badges: ["Geneva, Switzerland"],
         title: "Engineering Intern",
-        logo: JarockiMeLogo,
         start: "Feb 2022",
         end: "Oct 2022",
         description: [
@@ -142,7 +130,6 @@ import {
         link: "https://www.roche.com/",
         badges: ["Basel, Switzerland"],
         title: "Summer Intern - 'Think Tank in Innovation & Sustainability'",
-        logo: ParabolLogo,
         start: "Jul 2021",
         end: "Oct 2021",
         description: [
@@ -164,7 +151,6 @@ import {
         title: "Kailas Italy Store Locator Website",
         techStack: ["Side Project", "Front-end Development", "Generative AI", "Claude", "Node.js"],
         description: "Developed a website for Kailas Italia featuring trail running and hiking products with an integrated Store Locator. This side project was a deep dive into front-end development, starting from zero knowledge. Leveraging Node.js and guidance from Claude 3.5 Sonnet, I rapidly learned and implemented core web development concepts. Completed in just 2 weeks during holidays, this project demonstrates my ability to quickly acquire new skills.",
-        logo: ConsultlyLogo,
         link: {
           label: "Kailas Italia Store Locator",
           href: "https://kailasitalia.replit.app/",
@@ -174,7 +160,6 @@ import {
         title: "Biomedical Paper Summarizer",
         techStack: ["MSc Thesis Project", "Generative AI", "PyTorch", "Python", "Gradio"],
         description: "Developed a Generative AI powered tool for extracting key takeaways from biomedical papers with adjustable levels of detail. Created an end-to-end pipeline for processing full-text research articles into both detailed analyses and concise TL;DR formats, focusing on longevity and human health domains.",
-        logo: ParabolLogo,
         link: {
           label: "Biomedical Paper Summarizer",
           href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",
