@@ -1,6 +1,5 @@
 import React from "react";
 import Image from "next/image";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CommandMenu } from "@/components/command-menu";
@@ -26,203 +25,238 @@ export default function Page() {
       <main className="container relative mx-auto scroll-my-12 overflow-auto p-4 print:p-12 md:p-16">
         <ThemeToggle />
         <BackToTop />
-      <section className="mx-auto w-full max-w-2xl space-y-8 bg-white dark:bg-transparent print:space-y-4">
-        <div className="flex items-center justify-between animate-fade-in-up">
-          <div className="flex-1 space-y-1.5">
-            <h1 className="text-2xl font-bold">{RESUME_DATA.name}</h1>
-            <p className="max-w-md text-pretty font-mono text-sm text-muted-foreground print:text-[12px]">
-              {RESUME_DATA.about}
-            </p>
-            <p className="max-w-md items-center text-pretty font-mono text-xs text-muted-foreground">
-              <a
-                className="inline-flex gap-x-1.5 align-baseline leading-none hover:underline"
-                href={RESUME_DATA.locationLink}
-                target="_blank"
-              >
-                <GlobeIcon className="size-3" />
-                {RESUME_DATA.location}
-              </a>
-            </p>
-            <div className="flex gap-x-1 pt-1 font-mono text-sm text-muted-foreground print:text-[10px]">
-              {RESUME_DATA.contact.email ? (
-                <Button
-                  className="size-8 print:size-8"
-                  variant="outline"
-                  size="icon"
-                  asChild
+        <section className="mx-auto w-full max-w-3xl space-y-12 print:space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between animate-fade-in-up">
+            <div className="flex-1 space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+                {RESUME_DATA.name}
+              </h1>
+              <p className="max-w-md text-pretty text-sm leading-relaxed text-muted-foreground print:text-[12px]">
+                {RESUME_DATA.about}
+              </p>
+              <p className="max-w-md items-center text-pretty text-sm text-muted-foreground">
+                <a
+                  className="inline-flex gap-x-1.5 align-baseline leading-none hover:underline"
+                  href={RESUME_DATA.locationLink}
+                  target="_blank"
                 >
-                  <a href={`mailto:${RESUME_DATA.contact.email}`}>
-                    <MailIcon className="size-4 print:size-5" />
-                  </a>
-                </Button>
-              ) : null}
-              {RESUME_DATA.contact.tel ? (
-                <Button
-                  className="size-8 print:size-8"
-                  variant="outline"
-                  size="icon"
-                  asChild
-                >
-                  <a href={`tel:${RESUME_DATA.contact.tel}`}>
-                    <PhoneIcon className="size-4 print:size-5" />
-                  </a>
-                </Button>
-              ) : null}
-              {RESUME_DATA.contact.social.map((social) => (
-                <Button
-                  key={social.name}
-                  className="size-8 print:size-8"
-                  variant="outline"
-                  size="icon"
-                  asChild
-                >
-                  <a href={social.url}>
-                    {React.createElement(
-                      social.icon as React.ComponentType<{ className: string }>,
-                      { className: "h-4 w-4 print:h-5 print:w-5" },
-                    )}
-                  </a>
-                </Button>
-              ))}
+                  <GlobeIcon className="size-3" />
+                  {RESUME_DATA.location}
+                </a>
+              </p>
+              <div className="flex gap-x-1 pt-1 text-sm text-muted-foreground print:text-[10px]">
+                {RESUME_DATA.contact.email ? (
+                  <Button
+                    className="size-8 print:size-8"
+                    variant="outline"
+                    size="icon"
+                    asChild
+                  >
+                    <a href={`mailto:${RESUME_DATA.contact.email}`} aria-label="Email">
+                      <MailIcon className="size-4 print:size-5" />
+                    </a>
+                  </Button>
+                ) : null}
+                {RESUME_DATA.contact.tel ? (
+                  <Button
+                    className="size-8 print:size-8"
+                    variant="outline"
+                    size="icon"
+                    asChild
+                  >
+                    <a href={`tel:${RESUME_DATA.contact.tel}`} aria-label="Phone">
+                      <PhoneIcon className="size-4 print:size-5" />
+                    </a>
+                  </Button>
+                ) : null}
+                {RESUME_DATA.contact.social.map((social) => (
+                  <Button
+                    key={social.name}
+                    className="size-8 print:size-8"
+                    variant="outline"
+                    size="icon"
+                    asChild
+                  >
+                    <a href={social.url} aria-label={social.name}>
+                      {React.createElement(
+                        social.icon as React.ComponentType<{ className: string }>,
+                        { className: "h-4 w-4 print:h-5 print:w-5" },
+                      )}
+                    </a>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative size-28 rounded-full border-2 border-primary/20 overflow-hidden transition-refined hover:border-primary hover:scale-105 hover:shadow-[0_0_20px_-4px] hover:shadow-primary/25">
+              <Image
+                src={RESUME_DATA.avatarUrl}
+                alt={RESUME_DATA.name}
+                width={112}
+                height={112}
+                priority
+                className="object-cover"
+              />
             </div>
           </div>
 
-          <div className="relative size-28 border-4 border-brand-blue/20 rounded-full transition-smooth hover:border-brand-blue hover:scale-105 overflow-hidden">
-            <Image
-              src={RESUME_DATA.avatarUrl}
-              alt={RESUME_DATA.name}
-              width={112}
-              height={112}
-              priority
-              className="object-cover"
-            />
-          </div>
-        </div>
-        <Section className="animate-fade-in-up animation-delay-100">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">About</h2>
-          <p className="text-pretty font-mono text-sm text-muted-foreground print:text-[12px]">
-            {RESUME_DATA.summary}
-          </p>
-        </Section>
-        <Section className="animate-fade-in-up animation-delay-200">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">Work Experience</h2>
-          {RESUME_DATA.work.map((work, index) => {
-            return (
-              <Card key={work.company} className="card-hover border-l-4 border-l-transparent hover:border-l-brand-blue pl-6 pr-6"
-                style={{ animationDelay: `${(index + 1) * 100}ms` }}>
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-x-2 text-base">
-                    <h3 className="inline-flex items-center justify-center gap-x-1 font-semibold leading-none">
-                      <a className="hover:underline" href={work.link}>
-                        {work.company}
-                      </a>
+          {/* About */}
+          <Section className="animate-fade-in-up delay-100">
+            <h2 className="text-xl font-bold tracking-tight text-primary">
+              About
+            </h2>
+            <div className="h-px w-12 bg-primary/30" />
+            <div className="space-y-3 text-pretty text-base leading-relaxed text-muted-foreground print:text-[12px]">
+              {RESUME_DATA.summary.split("\n\n").map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </Section>
 
-                      <span className="inline-flex gap-x-1">
-                        {work.badges.map((badge) => (
-                          <Badge
-                            variant="secondary"
-                            className="align-middle text-xs print:text-[8px] print:leading-tight print:px-1 print:py-0.5"
-                            key={badge}
-                          >
-                            {badge}
-                          </Badge>
-                        ))}
-                      </span>
-                    </h3>
-                    <div className="text-sm tabular-nums text-gray-500">
-                      {work.start} - {work.end ?? "Present"}
-                    </div>
-                  </div>
-
-                  <h4 className="font-mono text-sm leading-none print:text-[12px]">
-                    {work.title}
-                  </h4>
-                </CardHeader>
-                <CardContent className="mt-2 text-xs print:text-[10px]">
-                  {typeof work.description === "string" ? (
-                    <p>{work.description}</p>
-                  ) : (
-                    work.description?.map((desc) => {
-                      return (
-                        <p key={desc} className="mb-1">
-                          <span className="mr-2">
-                            {work?.customBullet || "•"}
-                          </span>
-                          {desc}
-                        </p>
-                      );
-                    })
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Section>
-        <Section className="animate-fade-in-up animation-delay-300">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">Education</h2>
-          {RESUME_DATA.education.map((education) => {
-            return (
-              <Card key={education.school} className="card-hover px-6">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-x-2 text-base">
-                    <h3 className="font-semibold leading-none">
-                      {education.school}
-                    </h3>
-                    <div className="text-sm tabular-nums text-gray-500">
-                      {education.start} - {education.end}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="mt-2 print:text-[12px]">
-                  {education.degree}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Section>
-        <Section className="animate-fade-in-up animation-delay-400">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">Skills</h2>
-          <div className="flex flex-wrap gap-1">
-            {RESUME_DATA.skills.map((skill) => {
+          {/* Work Experience */}
+          <Section className="animate-fade-in-up delay-200">
+            <h2 className="text-xl font-bold tracking-tight text-primary">
+              Work Experience
+            </h2>
+            <div className="h-px w-12 bg-primary/30" />
+            {RESUME_DATA.work.map((work) => {
               return (
-                <Badge className="print:text-[10px] transition-smooth hover:scale-110 hover:bg-brand-blue hover:text-white cursor-default" key={skill}>
-                  {skill}
-                </Badge>
+                <Card
+                  key={`${work.company}-${work.start}`}
+                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4"
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-x-2 text-base">
+                      <h3 className="inline-flex items-center justify-center gap-x-1 font-semibold leading-none">
+                        <a className="hover:underline" href={work.link}>
+                          {work.company}
+                        </a>
+                        <span className="inline-flex gap-x-1">
+                          {work.badges.map((badge) => (
+                            <Badge
+                              variant="secondary"
+                              className="align-middle text-xs print:text-[8px] print:leading-tight print:px-1 print:py-0.5"
+                              key={badge}
+                            >
+                              {badge}
+                            </Badge>
+                          ))}
+                        </span>
+                      </h3>
+                      <div className="text-sm tabular-nums text-muted-foreground">
+                        {work.start} - {work.end ?? "Present"}
+                      </div>
+                    </div>
+                    <h4 className="text-sm leading-none text-muted-foreground print:text-[12px]">
+                      {work.title}
+                    </h4>
+                  </CardHeader>
+                  <CardContent className="mt-2 text-sm print:text-[10px]">
+                    {typeof work.description === "string" ? (
+                      <p>{work.description}</p>
+                    ) : (
+                      work.description?.map((desc) => {
+                        return (
+                          <p key={desc} className="mb-1">
+                            <span className="mr-2">
+                              {work?.customBullet || "\u2022"}
+                            </span>
+                            {desc}
+                          </p>
+                        );
+                      })
+                    )}
+                  </CardContent>
+                </Card>
               );
             })}
-          </div>
-        </Section>
+          </Section>
 
-        <Section className="print-force-new-page scroll-mb-16 animate-fade-in-up animation-delay-400">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-brand-blue to-brand-blue-dark bg-clip-text text-transparent">Projects</h2>
-          <div className="-mx-3 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {RESUME_DATA.projects.map((project) => {
+          {/* Education */}
+          <Section className="animate-fade-in-up delay-300">
+            <h2 className="text-xl font-bold tracking-tight text-primary">
+              Education
+            </h2>
+            <div className="h-px w-12 bg-primary/30" />
+            {RESUME_DATA.education.map((education) => {
               return (
-                <ProjectCard
-                  key={project.title}
-                  title={project.title}
-                  description={project.description}
-                  tags={project.techStack}
-                  link={"link" in project ? project.link?.href : undefined}
-                />
+                <Card
+                  key={education.school}
+                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4"
+                >
+                  <CardHeader>
+                    <div className="flex items-center justify-between gap-x-2 text-base">
+                      <h3 className="font-semibold leading-none">
+                        {education.school}
+                      </h3>
+                      <div className="text-sm tabular-nums text-muted-foreground">
+                        {education.start} - {education.end}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="mt-2 print:text-[12px]">
+                    {education.degree}
+                  </CardContent>
+                </Card>
               );
             })}
-          </div>
-        </Section>
-      </section>
+          </Section>
 
-      <CommandMenu
-        links={[
-          {
-            url: RESUME_DATA.personalWebsiteUrl,
-            title: "Personal Website",
-          },
-          ...RESUME_DATA.contact.social.map((socialMediaLink) => ({
-            url: socialMediaLink.url,
-            title: socialMediaLink.name,
-          })),
-        ]}
-      />
+          {/* Skills */}
+          <Section className="animate-fade-in-up delay-400">
+            <h2 className="text-xl font-bold tracking-tight text-primary">
+              Skills
+            </h2>
+            <div className="h-px w-12 bg-primary/30" />
+            <div className="flex flex-wrap gap-1.5">
+              {RESUME_DATA.skills.map((skill) => {
+                return (
+                  <Badge
+                    className="print:text-[10px] transition-refined hover:scale-105 hover:bg-primary hover:text-primary-foreground cursor-default"
+                    key={skill}
+                  >
+                    {skill}
+                  </Badge>
+                );
+              })}
+            </div>
+          </Section>
+
+          {/* Projects */}
+          <Section className="print-force-new-page scroll-mb-16 animate-fade-in-up delay-500">
+            <h2 className="text-xl font-bold tracking-tight text-primary">
+              Projects
+            </h2>
+            <div className="h-px w-12 bg-primary/30" />
+            <div className="-mx-3 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-2 lg:grid-cols-3">
+              {RESUME_DATA.projects.map((project) => {
+                return (
+                  <ProjectCard
+                    key={project.title}
+                    title={project.title}
+                    description={project.description}
+                    tags={project.techStack}
+                    link={"link" in project ? project.link?.href : undefined}
+                  />
+                );
+              })}
+            </div>
+          </Section>
+        </section>
+
+        <CommandMenu
+          links={[
+            {
+              url: RESUME_DATA.personalWebsiteUrl,
+              title: "Personal Website",
+            },
+            ...RESUME_DATA.contact.social.map((socialMediaLink) => ({
+              url: socialMediaLink.url,
+              title: socialMediaLink.name,
+            })),
+          ]}
+        />
       </main>
     </>
   );

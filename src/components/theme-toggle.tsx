@@ -2,15 +2,18 @@
 
 import * as React from "react";
 import { Moon, Sun } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function ThemeToggle() {
   const [theme, setTheme] = React.useState<"light" | "dark">("light");
 
   React.useEffect(() => {
-    // Load theme from localStorage or system preference
-    const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const savedTheme = localStorage.getItem("theme") as
+      | "light"
+      | "dark"
+      | null;
+    const prefersDark = window.matchMedia(
+      "(prefers-color-scheme: dark)",
+    ).matches;
     const initialTheme = savedTheme || (prefersDark ? "dark" : "light");
 
     setTheme(initialTheme);
@@ -25,18 +28,16 @@ export function ThemeToggle() {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
+    <button
       onClick={toggleTheme}
-      className="fixed top-4 right-4 z-50 print:hidden transition-smooth"
+      className="fixed top-4 right-4 z-50 flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground transition-refined hover:bg-primary hover:text-primary-foreground print:hidden"
       aria-label="Toggle theme"
     >
       {theme === "light" ? (
-        <Moon className="h-5 w-5" />
+        <Moon className="h-4 w-4 transition-refined" />
       ) : (
-        <Sun className="h-5 w-5" />
+        <Sun className="h-4 w-4 transition-refined" />
       )}
-    </Button>
+    </button>
   );
 }
