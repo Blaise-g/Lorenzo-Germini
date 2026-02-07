@@ -37,3 +37,9 @@ next-env.d.ts
 
 # ide
 .idea
+# next-agents-md
+.next-docs/
+
+# lock files (bun.lock is tracked)
+package-lock.json
+yarn.lock

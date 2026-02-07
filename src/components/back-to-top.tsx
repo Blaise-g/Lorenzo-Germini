@@ -2,22 +2,16 @@
 
 import * as React from "react";
 import { ArrowUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function BackToTop() {
   const [isVisible, setIsVisible] = React.useState(false);
 
   React.useEffect(() => {
     const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
+      setIsVisible(window.scrollY > 300);
     };
 
     window.addEventListener("scroll", toggleVisibility);
-
     return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
 
@@ -28,18 +22,15 @@ export function BackToTop() {
     });
   };
 
+  if (!isVisible) return null;
+
   return (
-    <>
-      {isVisible && (
-        <Button
-          onClick={scrollToTop}
-          size="icon"
-          className="fixed bottom-20 right-4 z-50 rounded-full shadow-lg print:hidden animate-fade-in bg-brand-blue hover:bg-brand-blue-dark"
-          aria-label="Back to top"
-        >
-          <ArrowUp className="h-5 w-5" />
-        </Button>
-      )}
-    </>
+    <button
+      onClick={scrollToTop}
+      className="fixed bottom-20 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-refined animate-fade-in hover:scale-110 print:hidden"
+      aria-label="Back to top"
+    >
+      <ArrowUp className="h-4 w-4" />
+    </button>
   );
 }

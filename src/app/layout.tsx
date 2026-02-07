@@ -87,6 +87,9 @@ export const metadata: Metadata = {
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",
   },
+  other: {
+    author: RESUME_DATA.name,
+  },
 };
 
 export default function RootLayout({
@@ -95,14 +98,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         <link rel="preconnect" href="https://avatars.githubusercontent.com" />
-        <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
+        <link
+          rel="dns-prefetch"
+          href="https://avatars.githubusercontent.com"
+        />
       </head>
-      <body>{children}</body>
-      <Analytics />
-      <SpeedInsights />
+      <body className="antialiased">
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }

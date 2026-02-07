@@ -1,155 +1,77 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-@layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+/* ─── Class-based dark mode ─── */
+@variant dark (&:where(.dark, .dark *));
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+/* ─── Theme tokens ─── */
+@theme {
+  /* Typography */
+  --font-body: var(--font-inter), "system-ui", "-apple-system", sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "Menlo", "Monaco", "Courier New",
+    monospace;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+  /* Radius */
+  --radius-lg: 0.75rem;
+  --radius-md: calc(0.75rem - 2px);
+  --radius-sm: calc(0.75rem - 4px);
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+  /* Colors — light mode defaults */
+  --color-background: hsl(40 20% 98%);
+  --color-foreground: hsl(240 10% 10%);
+  --color-card: hsl(40 15% 99%);
+  --color-card-foreground: hsl(240 10% 10%);
+  --color-popover: hsl(40 15% 99%);
+  --color-popover-foreground: hsl(240 10% 10%);
+  --color-primary: hsl(245 45% 46%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-secondary: hsl(40 10% 93%);
+  --color-secondary-foreground: hsl(240 10% 10%);
+  --color-muted: hsl(40 10% 95%);
+  --color-muted-foreground: hsl(240 5% 38%);
+  --color-accent: hsl(245 45% 46%);
+  --color-accent-foreground: hsl(0 0% 100%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(40 10% 90%);
+  --color-input: hsl(40 10% 90%);
+  --color-ring: hsl(245 45% 46%);
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 217 91% 60%;
-
-    --radius: 0.75rem;
-
-    /* Custom brand colors */
-    --brand-blue: 217 91% 60%;
-    --brand-blue-light: 217 91% 70%;
-    --brand-blue-dark: 217 91% 50%;
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
-  }
-
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
-
-    /* Custom brand colors for dark mode */
-    --brand-blue: 217 91% 60%;
-    --brand-blue-light: 217 91% 70%;
-    --brand-blue-dark: 217 91% 50%;
-    --success: 142 71% 45%;
-    --warning: 38 92% 50%;
-  }
+  /* Animations */
+  --animate-fade-in-up: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in-left: slide-in-left 0.45s cubic-bezier(0.16, 1, 0.3, 1)
+    both;
+  --animate-scale-in: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
-  /* Better focus styles for accessibility */
-  *:focus-visible {
-    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
-  }
+/* ─── Dark mode overrides ─── */
+.dark {
+  --color-background: hsl(240 10% 8%);
+  --color-foreground: hsl(40 10% 93%);
+  --color-card: hsl(240 10% 10%);
+  --color-card-foreground: hsl(40 10% 93%);
+  --color-popover: hsl(240 10% 10%);
+  --color-popover-foreground: hsl(40 10% 93%);
+  --color-primary: hsl(245 55% 68%);
+  --color-primary-foreground: hsl(240 10% 8%);
+  --color-secondary: hsl(240 10% 14%);
+  --color-secondary-foreground: hsl(40 10% 93%);
+  --color-muted: hsl(240 10% 14%);
+  --color-muted-foreground: hsl(40 5% 55%);
+  --color-accent: hsl(245 55% 68%);
+  --color-accent-foreground: hsl(240 10% 8%);
+  --color-destructive: hsl(0 63% 31%);
+  --color-destructive-foreground: hsl(40 10% 93%);
+  --color-border: hsl(240 10% 16%);
+  --color-input: hsl(240 10% 16%);
+  --color-ring: hsl(245 55% 68%);
 }
 
-@layer utilities {
-  .font-mono {
-    font-family: var(--font-jetbrains-mono), 'Courier New', monospace;
-  }
-}
-
-.print-force-new-page {
-  page-break-before: always;
-}
-
-/* Smooth transitions */
-@layer components {
-  .transition-smooth {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .card-hover {
-    @apply transition-smooth hover:shadow-lg hover:-translate-y-1;
-  }
-
-  /* Gradient background for sections */
-  .section-gradient {
-    background: linear-gradient(135deg, transparent 0%, hsl(var(--accent) / 0.05) 100%);
-  }
-
-  /* Remove hover effects when printing */
-  @media print {
-    .card-hover:hover {
-      @apply shadow-none translate-y-0;
-    }
-
-    .transition-smooth {
-      transition: none;
-    }
-
-    /* Fix gradient text rendering issues in print */
-    .bg-gradient-to-r {
-      background: none !important;
-      -webkit-background-clip: unset !important;
-      background-clip: unset !important;
-      -webkit-text-fill-color: currentColor !important;
-      color: hsl(var(--foreground)) !important;
-    }
-  }
-}
-
-/* Animation keyframes */
-@keyframes fadeInUp {
+/* ─── Keyframes ─── */
+@keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -157,7 +79,7 @@
   }
 }
 
-@keyframes fadeIn {
+@keyframes fade-in {
   from {
     opacity: 0;
   }
@@ -166,10 +88,10 @@
   }
 }
 
-@keyframes slideInFromLeft {
+@keyframes slide-in-left {
   from {
     opacity: 0;
-    transform: translateX(-20px);
+    transform: translateX(-16px);
   }
   to {
     opacity: 1;
@@ -177,31 +99,108 @@
   }
 }
 
-.animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+/* ─── Base styles ─── */
+* {
+  border-color: var(--color-border);
 }
 
-.animate-slide-in-left {
-  animation: slideInFromLeft 0.5s ease-out forwards;
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Staggered animation delays */
-.animation-delay-100 {
+html {
+  scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+*:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-background),
+    0 0 0 4px var(--color-ring);
+}
+
+/* ─── Staggered animation delays ─── */
+.delay-100 {
   animation-delay: 100ms;
 }
-
-.animation-delay-200 {
+.delay-200 {
   animation-delay: 200ms;
 }
-
-.animation-delay-300 {
+.delay-300 {
   animation-delay: 300ms;
 }
-
-.animation-delay-400 {
+.delay-400 {
   animation-delay: 400ms;
+}
+.delay-500 {
+  animation-delay: 500ms;
+}
+.delay-600 {
+  animation-delay: 600ms;
+}
+
+/* ─── Component utilities ─── */
+.card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 16px -4px color-mix(in srgb, var(--color-primary) 12%, transparent),
+    0 2px 4px -2px color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.transition-refined {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Print-force page break */
+.print-force-new-page {
+  page-break-before: always;
+}
+
+/* ─── Print styles ─── */
+@media print {
+  .card-hover:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .transition-refined {
+    transition: none;
+  }
+
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ─── Reduced motion ─── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

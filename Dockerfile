@@ -1,22 +1,23 @@
-# Use the official lightweight Node.js 18 image.
-# https://hub.docker.com/_/node
-FROM node:18-slim
+# Use the official lightweight Node.js 22 image.
+FROM node:22-slim
+
+# Install bun
+RUN npm install -g bun
 
 # Create and change to the app directory.
 WORKDIR /usr/src/app
 
-# Copy application dependency manifests to the container image.
-# A wildcard is used to ensure both package.json AND package-lock.json are copied.
-COPY package*.json ./
+# Copy dependency manifests.
+COPY package.json bun.lock ./
 
-# Install all dependencies.
-RUN npm install
+# Install dependencies.
+RUN bun install --frozen-lockfile
 
 # Copy local code to the container image.
 COPY . .
 
-# Build the app
-RUN npm run build
+# Build the app.
+RUN bun run build
 
 # Run the web service on container startup.
-CMD [ "npm", "start" ]
+CMD ["bun", "run", "start"]

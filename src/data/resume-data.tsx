@@ -1,21 +1,8 @@
 import {
-    AmbitLogo,
-    BarepapersLogo,
-    BimLogo,
-    CDGOLogo,
-    ClevertechLogo,
     ConsultlyLogo,
-    EvercastLogo,
-    Howdy,
     JarockiMeLogo,
-    JojoMobileLogo,
-    Minimal,
-    MobileVikingsLogo,
     MonitoLogo,
-    NSNLogo,
     ParabolLogo,
-    TastyCloudLogo,
-    YearProgressLogo,
   } from "@/images/logos";
   import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons";
   import { ResumeData } from "./resume-data.types";
@@ -26,7 +13,7 @@ import {
     location: "Turin, Italy, CET",
     locationLink: "https://www.google.com/maps/place/Torino",
     about: "Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale",
-    summary: "As an AI Engineer with a generalist mindset, I excel at building impactful technology while wearing multiple hats to drive success in dynamic environments. I have a proven ability to architect and deploy cutting-edge Generative AI solutions, effectively bridging the gap between technical execution, product development, and business strategy using strong commercial intuition. My experience in both Startups and Pharma demonstrates effective cross-functional collaboration and the adaptability required to quickly fill gaps and drive projects forward. Fueled by an entrepreneurial drive, I'm passionate about leveraging a versatile skillset – combining deep tech understanding with product acumen – to navigate uncertainty and deliver tangible results from concept to scale. In my free time, I engage in sports, work on personal projects, and voraciously consume content on tech entrepreneurship, personal finance, and biohacking.",
+    summary: "As a Full-Stack AI Engineer with a generalist mindset, I thrive at the intersection of technical execution, product development, and business strategy in fast-paced environments. I have a track record of architecting and deploying production AI systems end-to-end -- from multi-provider LLM infrastructure and agentic RAG pipelines to full-stack product features -- while effectively bridging the gap between engineering depth and commercial intuition.\n\nMy path through data science in pharmaceutical manufacturing, AI R&D in digital health, founding an AI startup, and now building the AI engine behind a compliance platform has reinforced a core belief: the most impactful AI engineers connect technical capability to real user problems.\n\nFueled by an entrepreneurial drive, I'm passionate about leveraging a versatile skillset -- combining deep AI engineering expertise with product acumen and cross-functional collaboration skills -- to navigate uncertainty and deliver tangible results from concept to production. I spend my free time engaged in sports, experimenting with Generative AI side projects, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking.",
     avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
     personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
     contact: {
@@ -73,7 +60,11 @@ import {
         logo: MonitoLogo,
         start: "May 2025",
         end: "Present",
-        description: "Building cool stuff 🫡",
+        description: [
+          "Building the AI engine behind Complaion, a compliance automation platform helping European SMEs achieve and maintain ISO certifications.",
+          "Architecting multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG systems, and AI evaluation frameworks.",
+          "Shipping end-to-end AI product features while contributing to product strategy and supporting cross-functional teams with automation workflows.",
+        ],
       },
       {
         company: "Stealth GenAI Startup",
@@ -167,19 +158,8 @@ import {
       "RAG",
       "Python",
       "Data Science",
-      "AWS"
     ],
     projects: [
-      {
-        title: "Freelance AI consultancy",
-        techStack: ["Generative AI", "Commercial Acumen", "Side Project"],
-        description: "Offering AI consultancy services to small businesses, helping them leverage Generative AI to improve their operations and decision-making processes. This included providing guidance on AI implementation, training employees on AI tools, and helping them identify opportunities for AI integration. The goal was to help small businesses stay competitive in the digital age by leveraging AI to improve their operations and decision-making processes.",
-        logo: MonitoLogo,
-        link: {
-          label: "Freelance AI consultancy",
-          href: "https://quadrell.replit.app/",
-        },
-      },
       {
         title: "Kailas Italy Store Locator Website",
         techStack: ["Side Project", "Front-end Development", "Generative AI", "Claude", "Node.js"],

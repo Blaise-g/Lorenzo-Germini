@@ -1,0 +1,38 @@
+# Lorenzo Germini
+
+> Full-Stack AI Engineer based in Turin, Italy. Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale.
+
+## Resume
+
+- [Portfolio](https://lorenzo-germini.vercel.app/): Full interactive resume and portfolio
+
+## Links
+
+- [GitHub](https://github.com/Blaise-g): Projects and open-source code
+- [LinkedIn](https://www.linkedin.com/in/lorenzogermini/): Professional profile
+- [X/Twitter](https://twitter.com/spleenboi_): Updates and thoughts
+
+## Skills
+
+Generative AI, LLMs, RAG, Python, Data Science, AWS
+
+## Experience
+
+- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Architecting multi-provider LLM infrastructure, agentic RAG systems, and AI evaluation frameworks.
+- Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
+- AI Engineer at GSK - AI, Digital Twins & Intelligent Autonomous Systems (Aug 2024 - Oct 2024)
+- Data Scientist at GSK - Technical Services (Sep 2023 - Jul 2024)
+- Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
+- Engineering Intern at Burgeon Labs (Feb 2022 - Oct 2022)
+- Summer Intern at Roche - Think Tank in Innovation & Sustainability (Jul 2021 - Oct 2021)
+
+## Education
+
+- MSc in Life Sciences Engineering (Neuroscience & Neuroengineering), Swiss Federal Institute of Technology Lausanne (EPFL) (2020-2022)
+- Bachelor's Degree in Electrical Engineering, Polytechnic of Turin (2017-2020)
+
+## Projects
+
+- Freelance AI consultancy: AI consultancy services for small businesses
+- Kailas Italy Store Locator Website: Front-end development project with Claude AI
+- Biomedical Paper Summarizer: Generative AI tool for extracting key takeaways from biomedical papers

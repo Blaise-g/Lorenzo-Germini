@@ -1,0 +1,97 @@
+# Lorenzo Germini -- Full Resume
+
+> Full-Stack AI Engineer based in Turin, Italy, CET. Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale.
+
+## Summary
+
+As a Full-Stack AI Engineer with a generalist mindset, I thrive at the intersection of technical execution, product development, and business strategy in fast-paced environments. I have a track record of architecting and deploying production AI systems end-to-end -- from multi-provider LLM infrastructure and agentic RAG pipelines to full-stack product features -- while effectively bridging the gap between engineering depth and commercial intuition.
+
+My path through data science in pharmaceutical manufacturing, AI R&D in digital health, founding an AI startup, and now building the AI engine behind a compliance platform has reinforced a core belief: the most impactful AI engineers connect technical capability to real user problems.
+
+Fueled by an entrepreneurial drive, I'm passionate about leveraging a versatile skillset -- combining deep AI engineering expertise with product acumen and cross-functional collaboration skills -- to navigate uncertainty and deliver tangible results from concept to production. I spend my free time engaged in sports, experimenting with Generative AI side projects, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking.
+
+## Contact
+
+- Email: lorenzo.germini@icloud.com
+- Phone: +393279220232
+- Website: https://lorenzo-germini.vercel.app/
+- GitHub: https://github.com/Blaise-g
+- LinkedIn: https://www.linkedin.com/in/lorenzogermini/
+- X/Twitter: https://twitter.com/spleenboi_
+
+## Skills
+
+- Generative AI
+- LLMs (Large Language Models)
+- RAG (Retrieval-Augmented Generation)
+- Python
+- Data Science
+- AWS
+
+## Work Experience
+
+### AI Engineer at Complaion (May 2025 - Present)
+Location: Turin, Italy
+Building the AI engine behind Complaion, a compliance automation platform helping European SMEs achieve and maintain ISO certifications. Architecting multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG systems, AI evaluation frameworks, and shipping end-to-end AI product features while contributing to product strategy and supporting cross-functional teams with automation workflows.
+
+### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
+Location: Turin, Italy
+- Spearheaded the development of a EdTech web application product, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify, Lambda) and Generative AI API layer (OpenAI & Gemini with structured outputs) from the ground up.
+- Engineered a robust Retrieval-Augmented Generation (RAG) application utilizing pgai, incorporating custom-built and state-of-the-art parsing pipelines to handle diverse input formats containing both machine-readable and handwritten text.
+- Set up LLM tracing (LangSmith) and evaluation pipelines to enable systematic refinement of prompts, LLM outputs and RAG parameters.
+- Oversaw the development team in collaboration with the Product Manager, taking on a leadership role in addition to core engineering responsibilities for the MVP, and contributing significantly to product strategy.
+
+### AI Engineer at GSK - AI, Digital Twins & Intelligent Autonomous Systems (Aug 2024 - Oct 2024)
+Location: Lille, France
+- Developed a POC for an anomaly detection system leveraging Sentence Transformers for semantic clustering of maintenance reports and anomaly descriptions.
+- Implemented time series forecasting models for predictive maintenance, combining NLP insights with temporal patterns to enhance fault prediction in pharmaceutical manufacturing equipment.
+- Explored generative AI use cases, including the use of agents, to optimize production processes and enable intelligent decision-making.
+
+### Data Scientist at GSK - Technical Services (Sep 2023 - Jul 2024)
+Location: Saint-Amand-les-Eaux, France
+- Led comprehensive analysis of multi-source sensor data for water consumption optimization, implementing Python to identify inefficiencies in Distillators and WFI systems. Designed and managed water rejection strategies projected to save 10,000 m3 annually through combined hardware upgrades and real-time software optimization.
+- Created a Streamlit analytics dashboard for clean utilities equipment to monitor KPIs, enabling proactive maintenance and reducing reliance on external companies. This innovation saved costs, cut manual data inspection time by 50%, and earned a silver recognition award for its impact on operational efficiency.
+- Developed a proof-of-concept combining gpt-4o-mini and PandasAI to enable natural language interactions with operational data. Built a conversational interface allowing users to query complex datasets through natural language, automatically generating relevant visualizations and data-driven insights.
+
+### Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
+Location: Cuneo, Italy
+- Taught Math and Physics at my high-school alma mater, reconnecting with my hometown community. Shared my passion for STEM and fostered a renewed sense of purpose before the next chapter of my career.
+- Developed an interior design MVP using Stable Diffusion, implementing Dreambooth fine-tuning on personally curated datasets of room designs. Created custom training datasets through careful selection and preprocessing of interior design examples.
+- Led comprehensive market research and user outreach efforts, engaging with interior design firms and potential customers to validate product-market fit. Leveraged insights to make a data-driven decision to conclude the project.
+
+### Engineering Intern at Burgeon Labs (Feb 2022 - Oct 2022)
+Location: Geneva, Switzerland
+- Developed and deployed a Generative AI tool for biomedical literature analysis, leveraging fine-tuned language models trained on curated scientific datasets. Implemented an end-to-end pipeline for abstractive text summarization.
+- Collaborated with the CEO to define product management strategies and streamline business processes for the company's first digital health product, successfully establishing a partnership with a renowned clinic.
+- Actively engaged with various business functions to understand user needs and drive impactful solutions, demonstrating a strong commitment to improving health outcomes through technology.
+
+### Summer Intern at Roche - Think Tank in Innovation & Sustainability (Jul 2021 - Oct 2021)
+Location: Basel, Switzerland
+- Managed development of customized filling machine prototype for personalized drug supply, including hardware-software integration testing and collaboration with external partners.
+- Improved tuning of filling prototype by creating a Machine Learning model (gradient-boosted tree) to optimize fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to manual methods.
+- Emphasized the practical applications of machine learning to drive innovation in personalized medicine, showcasing ability to translate technical expertise into real-world impact.
+
+## Education
+
+### MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)
+Swiss Federal Institute of Technology Lausanne (EPFL), 2020-2022
+
+### Bachelor's Degree in Electrical Engineering
+Polytechnic of Turin, 2017-2020
+
+## Projects
+
+### Freelance AI Consultancy
+Tech Stack: Generative AI, Commercial Acumen
+Offering AI consultancy services to small businesses, helping them leverage Generative AI to improve their operations and decision-making processes. This included providing guidance on AI implementation, training employees on AI tools, and helping them identify opportunities for AI integration. The goal was to help small businesses stay competitive in the digital age by leveraging AI to improve their operations and decision-making processes.
+Link: https://quadrell.replit.app/
+
+### Kailas Italy Store Locator Website
+Tech Stack: Front-end Development, Generative AI, Claude, Node.js
+Developed a website for Kailas Italia featuring trail running and hiking products with an integrated Store Locator. This side project was a deep dive into front-end development, starting from zero knowledge. Leveraging Node.js and guidance from Claude 3.5 Sonnet, I rapidly learned and implemented core web development concepts. Completed in just 2 weeks during holidays, this project demonstrates my ability to quickly acquire new skills.
+Link: https://kailasitalia.replit.app/
+
+### Biomedical Paper Summarizer
+Tech Stack: Generative AI, PyTorch, Python, Gradio
+Developed a Generative AI powered tool for extracting key takeaways from biomedical papers with adjustable levels of detail. Created an end-to-end pipeline for processing full-text research articles into both detailed analyses and concise TL;DR formats, focusing on longevity and human health domains.
+Link: https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr
