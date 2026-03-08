@@ -124,7 +124,7 @@ export default function Page() {
               return (
                 <Card
                   key={`${work.company}-${work.start}`}
-                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4"
+                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4 print:px-0"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
@@ -183,7 +183,7 @@ export default function Page() {
               return (
                 <Card
                   key={education.school}
-                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4"
+                  className="card-hover border-l border-l-border hover:border-l-[3px] hover:border-l-primary px-6 py-4 print:px-0"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">

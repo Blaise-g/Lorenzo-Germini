@@ -135,6 +135,13 @@ html {
     0 0 0 4px var(--color-ring);
 }
 
+/* Dialog & command menu: suppress global focus ring */
+[role="dialog"]:focus-visible,
+[cmdk-root]:focus-visible,
+[cmdk-input]:focus-visible {
+  box-shadow: none;
+}
+
 /* ─── Staggered animation delays ─── */
 .delay-100 {
   animation-delay: 100ms;
@@ -190,6 +197,30 @@ html {
   * {
     animation: none !important;
     transition: none !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* ─── Print color overrides ─── */
+  :root,
+  .dark {
+    --color-background: hsl(0 0% 100%);
+    --color-foreground: hsl(0 0% 5%);
+    --color-card: hsl(0 0% 100%);
+    --color-card-foreground: hsl(0 0% 5%);
+    --color-popover: hsl(0 0% 100%);
+    --color-popover-foreground: hsl(0 0% 5%);
+    --color-primary: hsl(245 50% 30%);
+    --color-primary-foreground: hsl(0 0% 100%);
+    --color-secondary: hsl(0 0% 90%);
+    --color-secondary-foreground: hsl(0 0% 5%);
+    --color-muted: hsl(0 0% 93%);
+    --color-muted-foreground: hsl(0 0% 20%);
+    --color-accent: hsl(245 50% 30%);
+    --color-accent-foreground: hsl(0 0% 100%);
+    --color-border: hsl(0 0% 75%);
+    --color-input: hsl(0 0% 75%);
+    --color-ring: hsl(245 50% 30%);
   }
 }
 

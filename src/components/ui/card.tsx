@@ -9,7 +9,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground",
+        "rounded-lg border border-border bg-card text-card-foreground print:border-none print:bg-transparent print:shadow-none print:rounded-none",
         className,
       )}
       {...props}
