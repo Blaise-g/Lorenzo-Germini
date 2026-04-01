@@ -6,8 +6,8 @@
     initials: "LG",
     location: "Turin, Italy, CET",
     locationLink: "https://www.google.com/maps/place/Torino",
-    about: "Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale",
-    summary: "As a Full-Stack AI Engineer with a generalist mindset, I thrive at the intersection of technical execution, product development, and business strategy in fast-paced environments. I have a track record of architecting and deploying production AI systems end-to-end -- from multi-provider LLM infrastructure and agentic RAG pipelines to full-stack product features -- while effectively bridging the gap between engineering depth and commercial intuition.\n\nMy path through data science in pharmaceutical manufacturing, AI R&D in digital health, founding an AI startup, and now building the AI engine behind a compliance platform has reinforced a core belief: the most impactful AI engineers connect technical capability to real user problems.\n\nFueled by an entrepreneurial drive, I'm passionate about leveraging a versatile skillset -- combining deep AI engineering expertise with product acumen and cross-functional collaboration skills -- to navigate uncertainty and deliver tangible results from concept to production. I spend my free time engaged in sports, experimenting with Generative AI side projects, and voraciously consuming content on tech entrepreneurship, personal finance, and biohacking.",
+    about: "Full-Stack AI Engineer shipping production systems end-to-end across compliance, health, and education",
+    summary: "Full-Stack AI Engineer with a generalist mindset, I operate at the intersection of technical execution, product thinking, and business strategy. My track record spans architecting multi-provider LLM infrastructure, agentic RAG systems, and full-stack AI product features — shipped end-to-end in fast-paced environments.\n\nFrom data science in pharma manufacturing to AI R&D in digital health, founding a GenAI startup, and now building the AI engine behind a compliance platform — each step reinforced one belief: the best AI engineers connect technical depth to real user problems. Outside work, I'm into sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
     avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
     personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
     contact: {
@@ -148,12 +148,21 @@
     ],
     projects: [
       {
-        title: "Kailas Italy Store Locator Website",
-        techStack: ["Side Project", "Front-end Development", "Generative AI", "Claude", "Node.js"],
-        description: "Developed a website for Kailas Italia featuring trail running and hiking products with an integrated Store Locator. This side project was a deep dive into front-end development, starting from zero knowledge. Leveraging Node.js and guidance from Claude 3.5 Sonnet, I rapidly learned and implemented core web development concepts. Completed in just 2 weeks during holidays, this project demonstrates my ability to quickly acquire new skills.",
+        title: "L'Oracolo della Ghigliottina",
+        techStack: [
+          "Side Project",
+          "Generative AI",
+          "Gemini",
+          "Next.js",
+          "Vercel AI SDK",
+          "Telegram Bot",
+          "WhatsApp Bot",
+        ],
+        description:
+          "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredità. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word — hitting ~95% accuracy via Gemini deep reasoning, with a cache-first architecture designed to serve concurrent live players from a single LLM call.",
         link: {
-          label: "Kailas Italia Store Locator",
-          href: "https://kailasitalia.replit.app/",
+          label: "L'Oracolo della Ghigliottina",
+          href: "https://ghigliottina.vercel.app/",
         },
       },
       {

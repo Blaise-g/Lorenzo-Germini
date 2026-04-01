@@ -1,6 +1,6 @@
 # Lorenzo Germini
 
-> Full-Stack AI Engineer based in Turin, Italy. Multi-hat ninja who likes to build cool stuff to create meaningful impact for people at scale.
+> Full-Stack AI Engineer shipping production systems end-to-end across compliance, health, and education. Based in Turin, Italy.
 
 ## Resume
 
@@ -14,7 +14,7 @@
 
 ## Skills
 
-Generative AI, LLMs, RAG, Python, Data Science, AWS
+Generative AI, LLMs, RAG, Python, Data Science
 
 ## Experience
 
@@ -33,6 +33,5 @@ Generative AI, LLMs, RAG, Python, Data Science, AWS
 
 ## Projects
 
-- Freelance AI consultancy: AI consultancy services for small businesses
-- Kailas Italy Store Locator Website: Front-end development project with Claude AI
+- L'Oracolo della Ghigliottina: AI game companion for Italy's most-watched quiz show, hitting ~95% accuracy via Gemini deep reasoning
 - Biomedical Paper Summarizer: Generative AI tool for extracting key takeaways from biomedical papers

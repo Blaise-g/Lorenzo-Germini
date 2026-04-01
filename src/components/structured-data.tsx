@@ -5,7 +5,7 @@ export function StructuredData() {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
     dateCreated: "2024-01-01",
-    dateModified: new Date().toISOString().split("T")[0],
+    dateModified: "2026-04-01",
     mainEntity: {
       "@type": "Person",
       name: RESUME_DATA.name,

@@ -22,7 +22,13 @@ export default function Page() {
   return (
     <>
       <StructuredData />
-      <main className="container relative mx-auto scroll-my-12 overflow-auto p-4 print:p-12 md:p-16">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to content
+      </a>
+      <main id="main-content" className="container relative mx-auto scroll-my-12 overflow-auto p-4 print:p-12 md:p-16">
         <ThemeToggle />
         <BackToTop />
         <section className="mx-auto w-full max-w-3xl space-y-12 print:space-y-4">
@@ -129,9 +135,13 @@ export default function Page() {
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
                       <h3 className="inline-flex items-center justify-center gap-x-1 font-semibold leading-none">
-                        <a className="hover:underline" href={work.link}>
-                          {work.company}
-                        </a>
+                        {work.link ? (
+                          <a className="hover:underline" href={work.link}>
+                            {work.company}
+                          </a>
+                        ) : (
+                          <span>{work.company}</span>
+                        )}
                         <span className="inline-flex gap-x-1">
                           {work.badges.map((badge) => (
                             <Badge
@@ -229,7 +239,7 @@ export default function Page() {
               Projects
             </h2>
             <div className="h-px w-12 bg-primary/30" />
-            <div className="-mx-3 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-2 lg:grid-cols-3">
+            <div className="-mx-3 grid grid-cols-1 gap-3 print:grid-cols-3 print:gap-2 md:grid-cols-2">
               {RESUME_DATA.projects.map((project) => {
                 return (
                   <ProjectCard

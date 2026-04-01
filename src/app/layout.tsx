@@ -55,21 +55,12 @@ export const metadata: Metadata = {
     title: `${RESUME_DATA.name} - ${RESUME_DATA.about}`,
     description: RESUME_DATA.summary,
     siteName: RESUME_DATA.name,
-    images: [
-      {
-        url: RESUME_DATA.avatarUrl,
-        width: 1200,
-        height: 630,
-        alt: RESUME_DATA.name,
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${RESUME_DATA.name} - ${RESUME_DATA.about}`,
     description: RESUME_DATA.summary,
     creator: "@spleenboi_",
-    images: [RESUME_DATA.avatarUrl],
   },
   robots: {
     index: true,
@@ -98,6 +89,11 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
+          }}
+        />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" />
         <link
           rel="dns-prefetch"
