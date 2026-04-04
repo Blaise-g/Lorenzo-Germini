@@ -33,5 +33,5 @@ Generative AI, LLMs, RAG, Python, Data Science
 
 ## Projects
 
-- L'Oracolo della Ghigliottina: AI game companion for Italy's most-watched quiz show, hitting ~95% accuracy via Gemini deep reasoning
+- L'Oracolo della Ghigliottina: AI game companion for Italy's most-watched quiz show, having hit 100% accuracy so far while handling rate-limit abuse and optimizing usage
 - Biomedical Paper Summarizer: Generative AI tool for extracting key takeaways from biomedical papers

@@ -79,8 +79,8 @@ Polytechnic of Turin, 2017-2020
 ## Projects
 
 ### L'Oracolo della Ghigliottina
-Tech Stack: Generative AI, Gemini, Next.js, Vercel AI SDK, Telegram Bot, WhatsApp Bot
-AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredita. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word -- hitting ~95% accuracy via Gemini deep reasoning, with a cache-first architecture designed to serve concurrent live players from a single LLM call.
+Tech Stack: Generative AI, Next.js, Vercel AI SDK, Telegram Bot, WhatsApp Bot
+AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredita. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word -- having hit 100% accuracy so far, while being built to handle rate-limit abuse and optimize usage.
 Link: https://ghigliottina.vercel.app/
 
 ### Biomedical Paper Summarizer

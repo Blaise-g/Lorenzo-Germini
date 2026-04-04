@@ -143,8 +143,8 @@
       "Generative AI",
       "LLMs",
       "RAG",
+      "Full-Stack Development",
       "Python",
-      "Data Science",
     ],
     projects: [
       {
@@ -152,14 +152,13 @@
         techStack: [
           "Side Project",
           "Generative AI",
-          "Gemini",
           "Next.js",
           "Vercel AI SDK",
           "Telegram Bot",
           "WhatsApp Bot",
         ],
         description:
-          "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredità. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word — hitting ~95% accuracy via Gemini deep reasoning, with a cache-first architecture designed to serve concurrent live players from a single LLM call.",
+          "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredità. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word — having hit 100% accuracy so far, while being built to handle rate-limit abuse and optimize usage.",
         link: {
           label: "L'Oracolo della Ghigliottina",
           href: "https://ghigliottina.vercel.app/",
