@@ -14,14 +14,13 @@
 
 ## Skills
 
-Generative AI, LLMs, RAG, Python, Data Science
+Generative AI, LLMs, RAG, Full-Stack Development, Python
 
 ## Experience
 
 - AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Architecting multi-provider LLM infrastructure, agentic RAG systems, and AI evaluation frameworks.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
-- AI Engineer at GSK - AI, Digital Twins & Intelligent Autonomous Systems (Aug 2024 - Oct 2024)
-- Data Scientist at GSK - Technical Services (Sep 2023 - Jul 2024)
+- AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
 - Engineering Intern at Burgeon Labs (Feb 2022 - Oct 2022)
 - Summer Intern at Roche - Think Tank in Innovation & Sustainability (Jul 2021 - Oct 2021)

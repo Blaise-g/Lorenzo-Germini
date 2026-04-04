@@ -22,8 +22,8 @@ From data science in pharma manufacturing to AI R&D in digital health, founding 
 - Generative AI
 - LLMs (Large Language Models)
 - RAG (Retrieval-Augmented Generation)
+- Full-Stack Development
 - Python
-- Data Science
 
 ## Work Experience
 
@@ -33,22 +33,15 @@ Building the AI engine behind Complaion, a compliance automation platform helpin
 
 ### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 Location: Turin, Italy
-- Spearheaded the development of a EdTech web application product, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify, Lambda) and Generative AI API layer (OpenAI & Gemini with structured outputs) from the ground up.
-- Engineered a robust Retrieval-Augmented Generation (RAG) application utilizing pgai, incorporating custom-built and state-of-the-art parsing pipelines to handle diverse input formats containing both machine-readable and handwritten text.
-- Set up LLM tracing (LangSmith) and evaluation pipelines to enable systematic refinement of prompts, LLM outputs and RAG parameters.
-- Oversaw the development team in collaboration with the Product Manager, taking on a leadership role in addition to core engineering responsibilities for the MVP, and contributing significantly to product strategy.
+- Spearheaded the development of an EdTech web application product, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify, Lambda) and the Generative AI API layer from the ground up.
+- Engineered a robust RAG stack with pgai, custom and state-of-the-art parsing pipelines, plus tracing and evaluation workflows to systematically refine prompts, outputs, and retrieval quality across machine-readable and handwritten content.
+- Led engineering execution for the MVP in close collaboration with the Product Manager, contributing to team coordination, product strategy, and end-to-end delivery.
 
-### AI Engineer at GSK - AI, Digital Twins & Intelligent Autonomous Systems (Aug 2024 - Oct 2024)
-Location: Lille, France
-- Developed a POC for an anomaly detection system leveraging Sentence Transformers for semantic clustering of maintenance reports and anomaly descriptions.
-- Implemented time series forecasting models for predictive maintenance, combining NLP insights with temporal patterns to enhance fault prediction in pharmaceutical manufacturing equipment.
-- Explored generative AI use cases, including the use of agents, to optimize production processes and enable intelligent decision-making.
-
-### Data Scientist at GSK - Technical Services (Sep 2023 - Jul 2024)
+### AI Engineer at GSK (Sep 2023 - Oct 2024)
 Location: Saint-Amand-les-Eaux, France
-- Led comprehensive analysis of multi-source sensor data for water consumption optimization, implementing Python to identify inefficiencies in Distillators and WFI systems. Designed and managed water rejection strategies projected to save 10,000 m3 annually through combined hardware upgrades and real-time software optimization.
-- Created a Streamlit analytics dashboard for clean utilities equipment to monitor KPIs, enabling proactive maintenance and reducing reliance on external companies. This innovation saved costs, cut manual data inspection time by 50%, and earned a silver recognition award for its impact on operational efficiency.
-- Developed a proof-of-concept combining gpt-4o-mini and PandasAI to enable natural language interactions with operational data. Built a conversational interface allowing users to query complex datasets through natural language, automatically generating relevant visualizations and data-driven insights.
+- Led process optimization initiatives across pharmaceutical utilities, using Python and multi-source sensor data to identify inefficiencies and design water rejection strategies projected to save 10,000 m3 annually.
+- Built predictive and anomaly-detection solutions for manufacturing operations, combining semantic NLP and time-series forecasting to improve fault detection and maintenance decision-making.
+- Developed operational AI tools, including natural-language interfaces and generative AI use cases, to make plant data more accessible and support smarter production decisions.
 
 ### Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
 Location: Cuneo, Italy
