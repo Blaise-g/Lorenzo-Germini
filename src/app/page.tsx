@@ -12,13 +12,70 @@ import { ProjectCard } from "@/components/project-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
 import { StructuredData } from "@/components/structured-data";
+import { PrototypeSwitcher } from "@/components/prototype/prototype-switcher";
+import { VariantA } from "@/components/prototype/variant-a";
+import { VariantB } from "@/components/prototype/variant-b";
+import { VariantC } from "@/components/prototype/variant-c";
+import { VariantD } from "@/components/prototype/variant-d";
 
 export const metadata: Metadata = {
   title: `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
   description: RESUME_DATA.summary,
 };
 
-export default function Page() {
+// PROTOTYPE (issue #7): dev-only homepage direction variants, switchable via
+// ?variant=a|b|c. Never reads searchParams in production, so the page stays
+// static there. Delete this block + src/components/prototype/ only when the
+// Phase 2 §2.6 homepage swap merges.
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ variant?: string }>;
+}) {
+  if (process.env.NODE_ENV !== "production") {
+    const { variant } = await searchParams;
+    // Issue #8: b1/b2/b3 are visual treatments of the chosen Variant B.
+    // Issue #12: composition is the variable — d = single measure, b1a = amended rail.
+    const compositions = { d: "single", b1a: "rail" } as const;
+    if (variant && variant in compositions) {
+      return (
+        <>
+          <VariantD
+            composition={compositions[variant as keyof typeof compositions]}
+          />
+          <PrototypeSwitcher />
+        </>
+      );
+    }
+    const treatments = { b: "warm", b1: "warm", b2: "slate", b3: "broadsheet" } as const;
+    if (variant && variant in treatments) {
+      return (
+        <>
+          <VariantB treatment={treatments[variant as keyof typeof treatments]} />
+          <PrototypeSwitcher />
+        </>
+      );
+    }
+    if (variant === "a" || variant === "c") {
+      const Variant = { a: VariantA, c: VariantC }[variant];
+      return (
+        <>
+          <Variant />
+          <PrototypeSwitcher />
+        </>
+      );
+    }
+    return (
+      <>
+        <CurrentHome />
+        <PrototypeSwitcher />
+      </>
+    );
+  }
+  return <CurrentHome />;
+}
+
+function CurrentHome() {
   return (
     <>
       <StructuredData />
