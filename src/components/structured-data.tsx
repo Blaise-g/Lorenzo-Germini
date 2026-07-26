@@ -1,11 +1,12 @@
 import { RESUME_DATA } from "@/data/resume-data";
+import { BUILD_DATE_ISO } from "@/lib/build-metadata";
 
 export function StructuredData() {
   const personData = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
     dateCreated: "2024-01-01",
-    dateModified: "2026-04-01",
+    dateModified: BUILD_DATE_ISO,
     mainEntity: {
       "@type": "Person",
       name: RESUME_DATA.name,

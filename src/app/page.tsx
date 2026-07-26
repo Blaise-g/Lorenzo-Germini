@@ -104,6 +104,7 @@ function CurrentHome() {
                   className="touch-target gap-x-1.5 align-baseline leading-none hover:underline"
                   href={RESUME_DATA.locationLink}
                   target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <GlobeIcon className="size-3" />
                   {RESUME_DATA.location}

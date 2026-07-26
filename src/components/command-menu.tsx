@@ -76,7 +76,10 @@ export const CommandMenu = ({ links }: Props) => {
                 key={url}
                 onSelect={() => {
                   setOpen(false);
-                  window.open(url, "_blank");
+                  /* Matches the rel="noopener noreferrer" the anchors carry:
+                     without windowFeatures the opened tab keeps a live
+                     window.opener back into this page. */
+                  window.open(url, "_blank", "noopener,noreferrer");
                 }}
               >
                 <span>{title}</span>

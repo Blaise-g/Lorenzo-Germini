@@ -24,6 +24,7 @@ export function ProjectCard({ title, description, tags, link }: Props) {
               <a
                 href={link}
                 target="_blank"
+                rel="noopener noreferrer"
                 className="touch-target transition-refined group-hover:text-primary items-center gap-1.5 hover:underline"
               >
                 {title}
@@ -42,7 +43,7 @@ export function ProjectCard({ title, description, tags, link }: Props) {
         <div className="mt-2 flex flex-wrap gap-1">
           {tags.map((tag) => (
             <Badge
-              className="transition-refined hover:bg-primary hover:text-primary-foreground px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[12px] print:leading-tight"
+              className="px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[12px] print:leading-tight"
               variant="secondary"
               key={tag}
             >

@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { setTheme, themes } from "./support/theme";
+
 const viewports = [375, 768, 1024, 1440] as const;
 
 async function waitForTwoAnimationFrames(page: Page) {
@@ -289,13 +291,11 @@ test.describe("motion, theme initialization, and accessibility", () => {
     expect(hydrationErrors).toEqual([]);
   });
 
-  for (const theme of ["light", "dark"] as const) {
+  for (const theme of themes) {
     test(`${theme} mode has no serious or critical accessibility violations`, async ({
       page,
     }) => {
-      await page.addInitScript((nextTheme) => {
-        localStorage.setItem("theme", nextTheme);
-      }, theme);
+      await setTheme(page, theme);
       await page.goto("/");
       if (theme === "dark") {
         await expect(page.locator("html")).toHaveClass(/\bdark\b/);
