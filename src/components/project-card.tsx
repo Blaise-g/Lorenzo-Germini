@@ -16,7 +16,7 @@ interface Props {
 
 export function ProjectCard({ title, description, tags, link }: Props) {
   return (
-    <Card className="flex flex-col overflow-hidden p-3 card-hover group border-l border-l-border hover:border-l-[3px] hover:border-l-primary">
+    <Card className="card-hover group border-l-border hover:border-l-primary flex flex-col overflow-hidden border-l p-3 hover:border-l-[3px]">
       <CardHeader>
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">
@@ -24,20 +24,17 @@ export function ProjectCard({ title, description, tags, link }: Props) {
               <a
                 href={link}
                 target="_blank"
-                className="inline-flex items-center gap-1.5 hover:underline group-hover:text-primary transition-refined"
+                className="touch-target transition-refined group-hover:text-primary items-center gap-1.5 hover:underline"
               >
                 {title}
-                <span className="size-1.5 rounded-full bg-primary/60 animate-pulse" />
+                <span className="bg-primary/60 size-1.5 animate-pulse rounded-full" />
               </a>
             ) : (
               title
             )}
           </CardTitle>
           <div className="hidden font-mono text-xs underline print:visible">
-            {link
-              ?.replace("https://", "")
-              .replace("www.", "")
-              .replace("/", "")}
+            {link?.replace("https://", "").replace("www.", "").replace("/", "")}
           </div>
           <CardDescription className="text-xs print:text-[10px]">
             {description}
@@ -48,7 +45,7 @@ export function ProjectCard({ title, description, tags, link }: Props) {
         <div className="mt-2 flex flex-wrap gap-1">
           {tags.map((tag) => (
             <Badge
-              className="px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[8px] print:leading-tight transition-refined hover:bg-primary hover:text-primary-foreground"
+              className="transition-refined hover:bg-primary hover:text-primary-foreground px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[8px] print:leading-tight"
               variant="secondary"
               key={tag}
             >
