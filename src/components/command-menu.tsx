@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   CommandDialog,
   CommandEmpty,
@@ -46,13 +47,15 @@ export const CommandMenu = ({ links }: Props) => {
         </kbd>{" "}
         to open the command menu
       </p>
-      <button
+      <Button
+        variant="outline"
+        size="icon"
         onClick={() => setOpen((open) => !open)}
-        className="fixed bottom-4 right-4 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background shadow-lg transition-refined hover:bg-secondary print:hidden xl:hidden"
+        className="fixed bottom-4 right-4 z-50 h-12 w-12 rounded-full border-border shadow-lg hover:bg-secondary hover:text-foreground print:hidden xl:hidden"
         aria-label="Open command menu"
       >
         <CommandIcon className="size-5" />
-      </button>
+      </Button>
       <CommandDialog open={open} onOpenChange={setOpen}>
         <CommandInput placeholder="Type a command or search..." />
         <CommandList>
