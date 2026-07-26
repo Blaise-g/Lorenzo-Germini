@@ -152,7 +152,7 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
   return (
     <div className={`min-h-screen ${t.page}`}>
       {t.texture}
-      <main className="mx-auto max-w-6xl px-6 py-10 md:px-10">
+      <div className="mx-auto max-w-6xl px-6 py-10 md:px-10">
         {/* Masthead */}
         <header
           className={`flex items-baseline justify-between ${t.masthead} ${t.reveal}`}
@@ -304,7 +304,7 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
             </section>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

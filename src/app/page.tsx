@@ -86,16 +86,7 @@ function CurrentHome() {
   return (
     <>
       <StructuredData />
-      <a
-        href="#main-content"
-        className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg"
-      >
-        Skip to content
-      </a>
-      <main
-        id="main-content"
-        className="relative container mx-auto scroll-my-12 overflow-auto p-4 pt-20 pr-16 pb-20 md:p-16 print:p-12"
-      >
+      <div className="relative container mx-auto overflow-auto p-4 pt-20 pr-16 pb-20 md:p-16 print:p-12">
         <ThemeToggle />
         <BackToTop />
         <section className="mx-auto w-full max-w-3xl space-y-12 print:space-y-4">
@@ -345,7 +336,7 @@ function CurrentHome() {
             })),
           ]}
         />
-      </main>
+      </div>
     </>
   );
 }

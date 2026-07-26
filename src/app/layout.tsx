@@ -6,6 +6,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import { RESUME_DATA } from "@/data/resume-data";
+import { SiteFooter } from "@/components/site-footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -99,7 +100,20 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
       </head>
       <body className="antialiased">
-        {children}
+        <a
+          href="#main-content"
+          className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:shadow-lg print:hidden"
+        >
+          Skip to content
+        </a>
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="scroll-mt-12 focus-visible:shadow-none"
+        >
+          {children}
+        </main>
+        <SiteFooter />
         <Analytics />
         <SpeedInsights />
       </body>

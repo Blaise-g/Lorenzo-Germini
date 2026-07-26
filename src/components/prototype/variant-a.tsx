@@ -6,7 +6,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { ArrowRightIcon, GlobeIcon, MailIcon } from "lucide-react";
+import { ArrowRightIcon, MailIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export function VariantA() {
   const earlier = RESUME_DATA.work.slice(FEATURED_ROLES);
 
   return (
-    <main className="container relative mx-auto scroll-my-12 overflow-auto p-4 md:p-16">
+    <div className="container relative mx-auto overflow-auto p-4 md:p-16">
       <section className="mx-auto w-full max-w-3xl space-y-14">
         {/* Hero */}
         <header className="flex items-start justify-between gap-6">
@@ -197,13 +197,7 @@ export function VariantA() {
             Stack: {RESUME_DATA.skills.join(" · ")} — EPFL MSc, Life Sciences Engineering.
           </p>
         </section>
-
-        <footer className="border-t pt-6 text-sm text-muted-foreground">
-          <a href={RESUME_DATA.locationLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 hover:underline">
-            <GlobeIcon className="size-3" /> {RESUME_DATA.location}
-          </a>
-        </footer>
       </section>
-    </main>
+    </div>
   );
 }
