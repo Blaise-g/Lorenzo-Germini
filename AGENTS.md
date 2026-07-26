@@ -19,9 +19,11 @@ npx tsc --noEmit
 ## Gotchas
 
 **Tailwind v4, no config file.** Design tokens are CSS variables in `src/app/globals.css`:
-`@theme` (light), `.dark`, and a third set inside `@media print`. A token added to one and
-not the others silently falls back. Dark mode is class-based via `@variant dark`. PostCSS
-uses `@tailwindcss/postcss`, not `tailwindcss` + `autoprefixer`.
+`@theme` (light), `.dark`, and a third set inside `@media print`. Only `@theme` generates
+utilities; the other two reassign values. A token missing from `.dark` renders its light
+value; missing from the print block, print keeps whatever mode was on screen — which shows
+up only under print emulation. Dark mode is class-based via `@variant dark`. PostCSS uses
+`@tailwindcss/postcss`, not `tailwindcss` + `autoprefixer`.
 
 **Copy is centralized, and identity surfaces drift.** Content lives in data modules, not
 inline JSX, so it stays cheap to iterate. Any change to a role, title, or bio also has to
