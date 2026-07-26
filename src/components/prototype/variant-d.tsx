@@ -299,66 +299,6 @@ function Systems() {
   );
 }
 
-/* variant-b.tsx ended inside <main> and rendered no footer at all, while #9
-   (CV discoverability) and #10 (subscribe link) both depend on one existing. */
-function Footer() {
-  return (
-    <footer className="mt-24 border-t-2 border-current pt-8 pb-16">
-      <div className="grid gap-8 sm:grid-cols-[1fr_auto]">
-        <div className="space-y-3">
-          <p className={`${fraunces.className} text-lg font-semibold`}>
-            Lorenzo Germini
-          </p>
-          <p id="contact" className={`${t.meta} ${t.faint} space-x-3`}>
-            <a
-              href={`mailto:${RESUME_DATA.contact.email}`}
-              className="underline underline-offset-4 hover:opacity-70"
-            >
-              Email
-            </a>
-            {RESUME_DATA.contact.social.map((s) => (
-              <a
-                key={s.name}
-                href={s.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:opacity-70"
-              >
-                {s.name}
-              </a>
-            ))}
-          </p>
-          <p className={`${t.meta} ${t.faint}`}>{RESUME_DATA.location}</p>
-        </div>
-        <div className={`space-y-3 ${t.meta} sm:text-right`}>
-          <p>
-            <a
-              href="#"
-              className={`underline underline-offset-4 ${t.accent} hover:opacity-70`}
-            >
-              Subscribe to the essays →
-            </a>
-          </p>
-          <p>
-            <a
-              href={CV_HREF}
-              className={`underline underline-offset-4 ${t.accent} hover:opacity-70`}
-            >
-              CV →
-            </a>
-          </p>
-          <p className={t.faint}>
-            agents welcome →{" "}
-            <a href="/llms.txt" className="underline underline-offset-4">
-              /llms.txt
-            </a>
-          </p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 /* ─── The variable: composition ─── */
 
 export function VariantD({
@@ -371,12 +311,6 @@ export function VariantD({
   return (
     <div className={`min-h-screen ${t.page}`}>
       <StructuredData />
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:bg-[#9c3c1c] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
-      >
-        Skip to content
-      </a>
       <ThemeToggle />
       <BackToTop />
 
@@ -414,10 +348,7 @@ export function VariantD({
             <IdentityBand />
           </div>
 
-          <main
-            id="main-content"
-            className="grid gap-10 pt-10 lg:grid-cols-[220px_1fr] lg:gap-14"
-          >
+          <div className="grid gap-10 pt-10 lg:grid-cols-[220px_1fr] lg:gap-14">
             <aside
               className={`hidden space-y-6 lg:block lg:sticky lg:top-10 lg:col-start-1 lg:row-start-1 lg:self-start ${t.reveal}`}
               aria-label="Profile"
@@ -472,8 +403,7 @@ export function VariantD({
                 <Systems />
               </div>
             </div>
-          </main>
-          <Footer />
+          </div>
         </div>
       ) : (
         /* ── Composition "single": no rail. The rail's content moves into a
@@ -503,14 +433,13 @@ export function VariantD({
             <IdentityBand />
           </header>
 
-          <main id="main-content" className="space-y-16 pt-12">
+          <div className="space-y-16 pt-12">
             <Hero />
             <Writing />
             <Work />
             <Projects twoUp={false} />
             <Systems />
-          </main>
-          <Footer />
+          </div>
         </div>
       )}
 

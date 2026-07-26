@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center p-4">
       <div className="text-center space-y-6 animate-fade-in-up">
         <h1 className="text-7xl font-bold tracking-tighter text-primary md:text-9xl">
           404
@@ -18,6 +18,6 @@ export default function NotFound() {
           Back to resume
         </Link>
       </div>
-    </main>
+    </div>
   );
 }

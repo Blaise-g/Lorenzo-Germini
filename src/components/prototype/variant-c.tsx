@@ -23,7 +23,7 @@ function SectionLabel({ path, title }: { path: string; title: string }) {
 export function VariantC() {
   return (
     <div className="min-h-screen bg-zinc-950 font-mono text-sm text-zinc-300 selection:bg-emerald-400 selection:text-zinc-950">
-      <main className="mx-auto max-w-4xl px-5 py-12 md:py-16">
+      <div className="mx-auto max-w-4xl px-5 py-12 md:py-16">
         {/* Frontmatter hero */}
         <header className="border border-zinc-700">
           <div className="flex items-center gap-2 border-b border-zinc-700 bg-zinc-900 px-4 py-2 text-xs text-zinc-500">
@@ -140,8 +140,8 @@ export function VariantC() {
           </div>
         </section>
 
-        {/* /stack + footer */}
-        <footer className="mt-12 space-y-2 border-t border-zinc-800 pt-6 text-xs text-zinc-500">
+        {/* /stack colophon */}
+        <section aria-label="Stack and education" className="mt-12 space-y-2 border-t border-zinc-800 pt-6 text-xs text-zinc-500">
           <p>
             <Key>stack:</Key> {RESUME_DATA.skills.join(" · ")}
           </p>
@@ -152,8 +152,8 @@ export function VariantC() {
           <p>
             <Key>location:</Key> {RESUME_DATA.location}
           </p>
-        </footer>
-      </main>
+        </section>
+      </div>
     </div>
   );
 }
