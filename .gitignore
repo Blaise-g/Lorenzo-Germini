@@ -37,8 +37,14 @@ next-env.d.ts
 
 # ide
 .idea
-# next-agents-md
-.next-docs/
+
+# local agent config, hook manifests and Impeccable consent
+.claude/settings.local.json
+.claude/*.lock
+.codex/hooks.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/hook.pending.json
 
 # lock files (bun.lock is tracked)
 package-lock.json

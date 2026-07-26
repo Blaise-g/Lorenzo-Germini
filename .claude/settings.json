@@ -1,0 +1,20 @@
+{
+  "disabledMcpServers": [
+    "claude.ai Airtable",
+    "claude.ai Atlassian Rovo",
+    "claude.ai Canva",
+    "claude.ai ClickUp",
+    "claude.ai Docusign",
+    "claude.ai Figma",
+    "claude.ai Gmail",
+    "claude.ai Google Calendar",
+    "claude.ai Google Drive",
+    "claude.ai HubSpot",
+    "claude.ai Meta",
+    "claude.ai Microsoft 365",
+    "claude.ai n8n",
+    "claude.ai Notion",
+    "claude.ai PostHog",
+    "claude.ai tldv"
+  ]
+}
