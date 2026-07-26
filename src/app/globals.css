@@ -7,8 +7,8 @@
 @theme {
   /* Typography */
   --font-body: var(--font-inter), "system-ui", "-apple-system", sans-serif;
-  --font-mono: var(--font-jetbrains-mono), "Menlo", "Monaco", "Courier New",
-    monospace;
+  --font-mono:
+    var(--font-jetbrains-mono), "Menlo", "Monaco", "Courier New", monospace;
 
   /* Radius */
   --radius-lg: 0.75rem;
@@ -165,6 +165,13 @@ html {
 }
 
 /* ─── Component utilities ─── */
+.touch-target {
+  display: inline-flex;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+  align-items: center;
+}
+
 .card-hover {
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -231,7 +238,9 @@ html {
   *,
   *::before,
   *::after {
+    animation-delay: 0ms !important;
     animation-duration: 0.01ms !important;
+    animation-fill-mode: none !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;

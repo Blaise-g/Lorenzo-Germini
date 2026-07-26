@@ -87,6 +87,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
       <head>
         <script
@@ -95,10 +96,7 @@ export default function RootLayout({
           }}
         />
         <link rel="preconnect" href="https://avatars.githubusercontent.com" />
-        <link
-          rel="dns-prefetch"
-          href="https://avatars.githubusercontent.com"
-        />
+        <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
       </head>
       <body className="antialiased">
         {children}
