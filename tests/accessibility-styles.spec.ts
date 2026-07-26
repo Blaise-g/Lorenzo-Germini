@@ -1,19 +1,13 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
-type Theme = "light" | "dark";
+import { contrast } from "./support/color";
+import { setTheme, themes } from "./support/theme";
 
-const themes: Theme[] = ["light", "dark"];
 const focusControls = [
   "Toggle theme",
   "Back to top",
   "Open command menu",
 ] as const;
-
-function setTheme(page: Page, theme: Theme) {
-  return page.evaluate((nextTheme) => {
-    localStorage.setItem("theme", nextTheme);
-  }, theme);
-}
 
 async function expectVisibleFocus(control: Locator, label: string) {
   await control.focus();
@@ -50,32 +44,6 @@ async function expectVisibleFocus(control: Locator, label: string) {
       return normalized;
     };
 
-    const channels = (value: string) => {
-      const matches = normalizeColor(value).match(/[\d.]+/g);
-      if (!matches || matches.length < 3) {
-        throw new Error(`Unable to parse color: ${value}`);
-      }
-      return matches.slice(0, 3).map(Number);
-    };
-
-    const luminance = (value: string) => {
-      const linear = channels(value).map((channel) => {
-        const normalized = channel / 255;
-        return normalized <= 0.04045
-          ? normalized / 12.92
-          : ((normalized + 0.055) / 1.055) ** 2.4;
-      });
-      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-    };
-
-    const contrast = (first: string, second: string) => {
-      const firstLuminance = luminance(first);
-      const secondLuminance = luminance(second);
-      const lighter = Math.max(firstLuminance, secondLuminance);
-      const darker = Math.min(firstLuminance, secondLuminance);
-      return (lighter + 0.05) / (darker + 0.05);
-    };
-
     const ringColor = normalizeColor(
       rootStyle.getPropertyValue("--color-ring"),
     );
@@ -90,14 +58,21 @@ async function expectVisibleFocus(control: Locator, label: string) {
 
     return {
       boxShadow: style.boxShadow,
-      controlOffsetContrast: contrast(controlColor, offsetColor),
-      controlRingContrast: contrast(controlColor, ringColor),
+      controlColor,
       focusVisible: element.matches(":focus-visible"),
-      pageRingContrast: contrast(pageColor, ringColor),
+      offsetColor,
+      pageColor,
       ringColor,
       ringUtilityColor,
     };
   });
+
+  const controlOffsetContrast = contrast(
+    metrics.controlColor,
+    metrics.offsetColor,
+  );
+  const controlRingContrast = contrast(metrics.controlColor, metrics.ringColor);
+  const pageRingContrast = contrast(metrics.pageColor, metrics.ringColor);
 
   expect(metrics.focusVisible, `${label} should match :focus-visible`).toBe(
     true,
@@ -111,11 +86,11 @@ async function expectVisibleFocus(control: Locator, label: string) {
     `${label} should render the theme ring color`,
   ).toContain(metrics.ringColor);
   expect(
-    metrics.pageRingContrast,
+    pageRingContrast,
     `${label} ring should contrast with the page`,
   ).toBeGreaterThanOrEqual(3);
   expect(
-    Math.max(metrics.controlRingContrast, metrics.controlOffsetContrast),
+    Math.max(controlRingContrast, controlOffsetContrast),
     `${label} ring or offset should contrast with the control`,
   ).toBeGreaterThanOrEqual(3);
 }

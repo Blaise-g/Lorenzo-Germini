@@ -3,9 +3,8 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import { RESUME_DATA } from "@/data/resume-data";
 
-type Theme = "light" | "dark";
+import { setTheme, themes, type Theme } from "./support/theme";
 
-const themes: Theme[] = ["light", "dark"];
 const minimumPrintFontSizePx = 12; // 9pt at the CSS reference pixel ratio.
 const millimetersToPoints = 72 / 25.4;
 const printMarginPoints = 14 * millimetersToPoints;
@@ -108,9 +107,7 @@ function measureTextBlockFill(
 
 async function openPrintCv(page: Page, theme: Theme) {
   await page.emulateMedia({ media: "print", colorScheme: theme });
-  await page.addInitScript((nextTheme) => {
-    localStorage.setItem("theme", nextTheme);
-  }, theme);
+  await setTheme(page, theme);
   await page.goto("/");
   await page
     .locator("nextjs-portal")
