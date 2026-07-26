@@ -3,6 +3,8 @@
 import * as React from "react";
 import { ArrowUp } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+
 export function BackToTop() {
   const [isVisible, setIsVisible] = React.useState(false);
 
@@ -23,9 +25,10 @@ export function BackToTop() {
   };
 
   return (
-    <button
+    <Button
+      size="icon"
       onClick={scrollToTop}
-      className={`fixed bottom-20 right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-refined print:hidden ${
+      className={`fixed bottom-20 right-4 z-50 rounded-full shadow-lg hover:bg-primary print:hidden ${
         isVisible
           ? "translate-y-0 scale-100 opacity-100"
           : "pointer-events-none translate-y-2 scale-95 opacity-0"
@@ -35,6 +38,6 @@ export function BackToTop() {
       tabIndex={isVisible ? 0 : -1}
     >
       <ArrowUp className="h-4 w-4" />
-    </button>
+    </Button>
   );
 }

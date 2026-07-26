@@ -111,8 +111,25 @@
 }
 
 /* ─── Base styles ─── */
-* {
-  border-color: var(--color-border);
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  /* Focus styles for accessibility */
+  *:focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--color-background),
+      0 0 0 4px var(--color-ring);
+  }
+
+  /* Dialog & command menu: suppress global focus ring */
+  [role="dialog"]:focus-visible,
+  [cmdk-root]:focus-visible,
+  [cmdk-input]:focus-visible {
+    box-shadow: none;
+  }
 }
 
 body {
@@ -125,21 +142,6 @@ body {
 
 html {
   scroll-behavior: smooth;
-}
-
-/* Focus styles for accessibility */
-*:focus-visible {
-  outline: none;
-  box-shadow:
-    0 0 0 2px var(--color-background),
-    0 0 0 4px var(--color-ring);
-}
-
-/* Dialog & command menu: suppress global focus ring */
-[role="dialog"]:focus-visible,
-[cmdk-root]:focus-visible,
-[cmdk-input]:focus-visible {
-  box-shadow: none;
 }
 
 /* ─── Staggered animation delays ─── */
