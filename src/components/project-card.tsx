@@ -16,7 +16,7 @@ interface Props {
 
 export function ProjectCard({ title, description, tags, link }: Props) {
   return (
-    <Card className="card-hover group border-l-border hover:border-l-primary flex flex-col overflow-hidden border-l p-3 hover:border-l-[3px]">
+    <Card className="card-hover print-keep-together group border-l-border hover:border-l-primary flex flex-col overflow-hidden border-l p-3 hover:border-l-[3px] print:p-1">
       <CardHeader>
         <div className="space-y-1">
           <CardTitle className="text-base font-semibold">
@@ -33,10 +33,7 @@ export function ProjectCard({ title, description, tags, link }: Props) {
               title
             )}
           </CardTitle>
-          <div className="hidden font-mono text-xs underline print:visible">
-            {link?.replace("https://", "").replace("www.", "").replace("/", "")}
-          </div>
-          <CardDescription className="text-xs print:text-[10px]">
+          <CardDescription className="text-xs print:text-[12px]">
             {description}
           </CardDescription>
         </div>
@@ -45,7 +42,7 @@ export function ProjectCard({ title, description, tags, link }: Props) {
         <div className="mt-2 flex flex-wrap gap-1">
           {tags.map((tag) => (
             <Badge
-              className="transition-refined hover:bg-primary hover:text-primary-foreground px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[8px] print:leading-tight"
+              className="transition-refined hover:bg-primary hover:text-primary-foreground px-1 py-0 text-[10px] print:px-1 print:py-0.5 print:text-[12px] print:leading-tight"
               variant="secondary"
               key={tag}
             >

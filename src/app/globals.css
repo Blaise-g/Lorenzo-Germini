@@ -187,13 +187,41 @@ html {
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Print-force page break */
-.print-force-new-page {
-  page-break-before: always;
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print and (width: 8.5in) and (height: 11in) {
+  @page {
+    size: Letter;
+    margin: 14mm;
+  }
 }
 
 /* ─── Print styles ─── */
 @media print {
+  .print-keep-together {
+    break-inside: avoid;
+  }
+
+  .print-keep-together h3 {
+    break-after: avoid;
+  }
+
+  .print-keep-together p {
+    break-inside: avoid;
+  }
+
+  .print-projects-section {
+    display: block;
+  }
+
+  .print-projects-section > h2,
+  .print-projects-section > h2 + div {
+    break-after: avoid;
+  }
+
   .card-hover:hover {
     transform: none;
     box-shadow: none;
