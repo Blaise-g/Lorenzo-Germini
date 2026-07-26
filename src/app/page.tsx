@@ -86,10 +86,10 @@ function CurrentHome() {
   return (
     <>
       <StructuredData />
-      <div className="relative container mx-auto overflow-auto p-4 pt-20 pr-16 pb-20 md:p-16 print:p-12">
+      <div className="relative container mx-auto overflow-auto p-4 pt-20 pr-16 pb-20 md:p-16 print:p-0">
         <ThemeToggle />
         <BackToTop />
-        <section className="mx-auto w-full max-w-3xl space-y-12 print:space-y-4">
+        <section className="mx-auto w-full max-w-3xl space-y-12 print:space-y-2">
           {/* Header */}
           <div className="animate-fade-in-up flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 space-y-2">
@@ -109,7 +109,7 @@ function CurrentHome() {
                   {RESUME_DATA.location}
                 </a>
               </p>
-              <div className="text-muted-foreground flex gap-x-1 pt-1 text-sm print:text-[10px]">
+              <div className="text-muted-foreground flex gap-x-1 pt-1 text-sm print:text-[12px]">
                 {RESUME_DATA.contact.email ? (
                   <Button
                     className="print:size-8"
@@ -174,12 +174,12 @@ function CurrentHome() {
           </div>
 
           {/* About */}
-          <Section className="animate-fade-in-up">
+          <Section className="animate-fade-in-up print:gap-y-1">
             <h2 className="text-primary text-xl font-bold tracking-tight">
               About
             </h2>
             <div className="bg-primary/30 h-px w-12" />
-            <div className="text-muted-foreground space-y-3 text-base leading-relaxed text-pretty print:text-[12px]">
+            <div className="text-muted-foreground space-y-3 text-base leading-relaxed text-pretty print:space-y-1 print:text-[12px] print:leading-[1.35]">
               {RESUME_DATA.summary.split("\n\n").map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
@@ -187,7 +187,7 @@ function CurrentHome() {
           </Section>
 
           {/* Work Experience */}
-          <Section className="animate-fade-in-up">
+          <Section className="animate-fade-in-up print:gap-y-1">
             <h2 className="text-primary text-xl font-bold tracking-tight">
               Work Experience
             </h2>
@@ -196,7 +196,7 @@ function CurrentHome() {
               return (
                 <Card
                   key={`${work.company}-${work.start}`}
-                  className="card-hover border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0"
+                  className="card-hover print-keep-together border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0 print:py-1"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
@@ -215,7 +215,7 @@ function CurrentHome() {
                           {work.badges.map((badge) => (
                             <Badge
                               variant="secondary"
-                              className="align-middle text-xs print:px-1 print:py-0.5 print:text-[8px] print:leading-tight"
+                              className="align-middle text-xs print:px-1 print:py-0.5 print:text-[12px] print:leading-tight"
                               key={badge}
                             >
                               {badge}
@@ -231,7 +231,7 @@ function CurrentHome() {
                       {work.title}
                     </h4>
                   </CardHeader>
-                  <CardContent className="mt-2 text-sm print:text-[10px]">
+                  <CardContent className="mt-2 text-sm print:mt-1 print:text-[12px] print:leading-[1.25]">
                     {typeof work.description === "string" ? (
                       <p>{work.description}</p>
                     ) : (
@@ -253,7 +253,7 @@ function CurrentHome() {
           </Section>
 
           {/* Education */}
-          <Section className="animate-fade-in-up">
+          <Section className="animate-fade-in-up print:gap-y-1">
             <h2 className="text-primary text-xl font-bold tracking-tight">
               Education
             </h2>
@@ -262,7 +262,7 @@ function CurrentHome() {
               return (
                 <Card
                   key={education.school}
-                  className="card-hover border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0"
+                  className="card-hover border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0 print:py-1"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
@@ -283,7 +283,7 @@ function CurrentHome() {
           </Section>
 
           {/* Skills */}
-          <Section className="animate-fade-in-up">
+          <Section className="animate-fade-in-up print:gap-y-1">
             <h2 className="text-primary text-xl font-bold tracking-tight">
               Skills
             </h2>
@@ -292,7 +292,7 @@ function CurrentHome() {
               {RESUME_DATA.skills.map((skill) => {
                 return (
                   <Badge
-                    className="bg-primary cursor-default print:text-[10px]"
+                    className="bg-primary cursor-default print:text-[12px]"
                     key={skill}
                   >
                     {skill}
@@ -303,12 +303,12 @@ function CurrentHome() {
           </Section>
 
           {/* Projects */}
-          <Section className="print-force-new-page animate-fade-in-up scroll-mb-16">
+          <Section className="print-projects-section animate-fade-in-up scroll-mb-16 print:gap-y-1">
             <h2 className="text-primary text-xl font-bold tracking-tight">
               Projects
             </h2>
-            <div className="bg-primary/30 h-px w-12" />
-            <div className="-mx-3 grid grid-cols-1 gap-3 md:grid-cols-2 print:grid-cols-3 print:gap-2">
+            <div className="bg-primary/30 h-px w-12 print:my-1" />
+            <div className="-mx-3 grid grid-cols-1 gap-3 md:grid-cols-2 print:mx-0 print:grid-cols-2 print:gap-2">
               {RESUME_DATA.projects.map((project) => {
                 return (
                   <ProjectCard

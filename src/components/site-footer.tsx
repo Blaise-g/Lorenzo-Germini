@@ -5,8 +5,8 @@ const footerLinkClass =
 
 export function SiteFooter() {
   return (
-    <footer className="container mx-auto px-4 pr-16 pb-20 md:px-16 print:px-12 print:pb-4">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 border-t pt-6 text-sm sm:flex-row sm:items-end sm:justify-between print:pt-4">
+    <footer className="container mx-auto px-4 pr-16 pb-20 md:px-16 print:px-0 print:pb-0">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 border-t pt-6 text-sm sm:flex-row sm:items-end sm:justify-between print:hidden">
         <div className="space-y-1">
           <p className="font-semibold">{RESUME_DATA.name}</p>
           <p className="text-muted-foreground">{RESUME_DATA.location}</p>
