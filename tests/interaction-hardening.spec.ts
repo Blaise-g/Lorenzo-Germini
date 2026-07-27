@@ -4,6 +4,19 @@ import { expect, test, type Page } from "@playwright/test";
 import { setTheme, themes } from "./support/theme";
 
 const viewports = [375, 768, 1024, 1440] as const;
+const routesUsingTheSharedShell = [
+  "/",
+  "/?variant=a",
+  "/?variant=b",
+  "/?variant=b1",
+  "/?variant=b2",
+  "/?variant=b3",
+  "/?variant=c",
+  "/?variant=d",
+  "/?variant=b1a",
+  "/writing",
+  "/route-that-does-not-exist",
+] as const;
 
 async function waitForTwoAnimationFrames(page: Page) {
   await page.evaluate(
@@ -115,8 +128,15 @@ test.describe("touch and fixed-chrome geometry", () => {
           ).filter((element) => {
             const style = getComputedStyle(element);
             const rect = element.getBoundingClientRect();
+            let container: HTMLElement | null = element;
+            while (
+              container &&
+              getComputedStyle(container).position !== "fixed"
+            ) {
+              container = container.parentElement;
+            }
             return (
-              style.position === "fixed" &&
+              container !== null &&
               style.visibility !== "hidden" &&
               style.display !== "none" &&
               rect.width > 0 &&
@@ -315,34 +335,41 @@ test.describe("motion, theme initialization, and accessibility", () => {
 
 test.describe("keyboard order", () => {
   for (const width of [375, 1440] as const) {
-    test(`the first main-page focus targets stay in the first viewport at ${width}px`, async ({
+    test(`every route's first main focus target stays in the first viewport at ${width}px`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 800 });
-      await page.goto("/");
-      await page
-        .locator("nextjs-portal")
-        .evaluateAll((portals) => portals.forEach((portal) => portal.remove()));
 
-      await page.keyboard.press("Tab");
-      await expect(page.locator(":focus")).toHaveAttribute(
-        "href",
-        "#main-content",
-      );
+      for (const route of routesUsingTheSharedShell) {
+        await page.goto(route);
+        await page
+          .locator("nextjs-portal")
+          .evaluateAll((portals) =>
+            portals.forEach((portal) => portal.remove()),
+          );
 
-      await page.keyboard.press("Tab");
-      const firstMainTarget = page.locator("main :focus");
-      await expect(firstMainTarget).toHaveAttribute(
-        "aria-label",
-        "Toggle theme",
-      );
-      const box = await firstMainTarget.boundingBox();
-      expect(
-        box,
-        "the first focusable in main should be rendered",
-      ).not.toBeNull();
-      expect(box!.y).toBeGreaterThanOrEqual(0);
-      expect(box!.y + box!.height).toBeLessThanOrEqual(800);
+        await page.keyboard.press("Tab");
+        await expect(page.locator(":focus")).toHaveAttribute(
+          "href",
+          "#main-content",
+        );
+
+        await page.keyboard.press("Tab");
+        const firstMainTarget = page.locator("main :focus");
+        const box = await firstMainTarget.boundingBox();
+        expect(
+          box,
+          `${route} should render its first main focus target`,
+        ).not.toBeNull();
+        expect(
+          box!.y,
+          `${route} target should start in the viewport`,
+        ).toBeGreaterThanOrEqual(0);
+        expect(
+          box!.y + box!.height,
+          `${route} target should end in the viewport`,
+        ).toBeLessThanOrEqual(800);
+      }
     });
   }
 });
