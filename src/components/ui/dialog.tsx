@@ -21,7 +21,7 @@ function DialogOverlay({
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-ink/20 backdrop-blur-[2px] print:hidden",
+        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 bg-ink/20 fixed inset-0 z-50 backdrop-blur-[2px] print:hidden",
         className,
       )}
       {...props}
@@ -45,7 +45,7 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close className="ring-offset-ground focus:ring-accent data-[state=open]:border-accent data-[state=open]:text-ink absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-sm border border-transparent text-faint transition-colors hover:text-ink focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
+        <DialogPrimitive.Close className="ring-offset-ground focus:ring-accent data-[state=open]:border-accent data-[state=open]:text-ink text-faint hover:text-ink absolute top-2 right-2 inline-flex size-11 items-center justify-center rounded-sm border border-transparent transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none">
           <X className="h-4 w-4" />
           <span className="sr-only">Close</span>
         </DialogPrimitive.Close>

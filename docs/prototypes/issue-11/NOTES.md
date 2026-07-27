@@ -36,25 +36,25 @@ authorize continuous motion generally or on `/writing`.
 
 ## Observed evidence
 
-| Gate | Result |
-|---|---|
-| 1440 light/dark | Same Warm Print line character; terracotta remains rare |
-| 1024 | Motion active; rail 220px; no visible text in draw zones |
-| 768 / 375 | Rail and canvas absent; document width equals viewport |
-| Reduced motion | Runtime `static`; frame delta 0; zero running animations |
-| Initialization failure | Runtime `failed`; no canvas; CLS 0 |
-| No JS | Transparent default canvas only; content geometry unchanged |
-| Hidden tab | Frame count held while hidden; resumed on return |
-| Offscreen simulation | Frame delta 0 while host hidden; runtime `paused` |
-| Natural offscreen lifecycle | **Unresolved:** fixed viewport target cannot leave viewport |
-| DPR / FPS | Effective DPR capped at 1.5; target 24 fps |
-| Draw cost | ~0.18–0.25ms average; ~0.7ms observed maximum |
-| Sustained automated scroll | No long tasks; no observable degradation |
-| Clipping | 0 sampled pixels in rail body/content; 0 visible text intersections |
-| Input / accessibility | No pointer interception; absent from a11y snapshot/focus order |
-| Geometry / CLS | Motion and failure exact; no-JS layout equal; CLS 0 |
-| CV screen | Static outer-margin trace; frame count 0 |
-| CV print | One tagged, JavaScript-free Letter page; no decoration/chrome |
+| Gate                        | Result                                                              |
+| --------------------------- | ------------------------------------------------------------------- |
+| 1440 light/dark             | Same Warm Print line character; terracotta remains rare             |
+| 1024                        | Motion active; rail 220px; no visible text in draw zones            |
+| 768 / 375                   | Rail and canvas absent; document width equals viewport              |
+| Reduced motion              | Runtime `static`; frame delta 0; zero running animations            |
+| Initialization failure      | Runtime `failed`; no canvas; CLS 0                                  |
+| No JS                       | Transparent default canvas only; content geometry unchanged         |
+| Hidden tab                  | Frame count held while hidden; resumed on return                    |
+| Offscreen simulation        | Frame delta 0 while host hidden; runtime `paused`                   |
+| Natural offscreen lifecycle | **Unresolved:** fixed viewport target cannot leave viewport         |
+| DPR / FPS                   | Effective DPR capped at 1.5; target 24 fps                          |
+| Draw cost                   | ~0.18–0.25ms average; ~0.7ms observed maximum                       |
+| Sustained automated scroll  | No long tasks; no observable degradation                            |
+| Clipping                    | 0 sampled pixels in rail body/content; 0 visible text intersections |
+| Input / accessibility       | No pointer interception; absent from a11y snapshot/focus order      |
+| Geometry / CLS              | Motion and failure exact; no-JS layout equal; CLS 0                 |
+| CV screen                   | Static outer-margin trace; frame count 0                            |
+| CV print                    | One tagged, JavaScript-free Letter page; no decoration/chrome       |
 
 The print proof covers Letter only. The real `/cv` implementation must repeat
 the suppression check at A4.

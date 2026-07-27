@@ -26,7 +26,7 @@ in the print override, so it would have printed whatever mode was on screen. Do 
 error colour back without deciding what Warm Print's error surface looks like; reintroducing
 `hsl(0 84% 60%)` would put pure red on warm paper.
 
-**`faint` has a 12px floor.** The role is defined by contrast *and* size. Contrast alone was
+**`faint` has a 12px floor.** The role is defined by contrast _and_ size. Contrast alone was
 never the binding constraint — the tokens measure comfortably above AA — but the metadata it
 carries was rendering at 10–11px, which passes a ratio check and still reads as the weakest
 text on the page. Metadata below 12px is a defect even when the contrast maths is green.

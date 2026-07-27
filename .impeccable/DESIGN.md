@@ -54,22 +54,22 @@ that imply sophistication without conveying information.
 
 ### Light
 
-| Role | Value | Use |
-|---|---|---|
-| Ground | `#faf6ef` | Page background |
-| Ink | `#1c1917` | Display text and strongest body text |
-| Body | `#3f3a35` | Paragraphs and descriptions |
-| Faint | `#5c554e` | Dates, tags, technology, metadata |
+| Role   | Value     | Use                                        |
+| ------ | --------- | ------------------------------------------ |
+| Ground | `#faf6ef` | Page background                            |
+| Ink    | `#1c1917` | Display text and strongest body text       |
+| Body   | `#3f3a35` | Paragraphs and descriptions                |
+| Faint  | `#5c554e` | Dates, tags, technology, metadata          |
 | Accent | `#9c3c1c` | Emphasis, links, headings, primary control |
 
 ### Dark
 
-| Role | Value | Use |
-|---|---|---|
-| Ground | `#171412` | Page background |
-| Ink | `#ece7de` | Display text and strongest body text |
-| Body | `#c9c2b7` | Paragraphs and descriptions |
-| Faint | `#a49a8e` | Dates, tags, technology, metadata |
+| Role   | Value     | Use                                        |
+| ------ | --------- | ------------------------------------------ |
+| Ground | `#171412` | Page background                            |
+| Ink    | `#ece7de` | Display text and strongest body text       |
+| Body   | `#c9c2b7` | Paragraphs and descriptions                |
+| Faint  | `#a49a8e` | Dates, tags, technology, metadata          |
 | Accent | `#d98d63` | Emphasis, links, headings, primary control |
 
 Use the accent as information, not atmosphere. It may mark the active rail

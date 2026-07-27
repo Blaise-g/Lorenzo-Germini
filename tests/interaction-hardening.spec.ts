@@ -1,6 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  commandPaletteInput,
+  openCommandPalette,
+  openCommandPaletteWithShortcut,
+} from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { routesUsingTheSharedShell } from "./support/routes";
 import { setTheme, themes } from "./support/theme";
@@ -21,48 +26,56 @@ async function expectMinimumTarget(
   selector: string,
   minimum: number,
 ) {
-  const undersized = await page.locator(selector).evaluateAll(
-    (elements, targetMinimum) =>
-      elements.flatMap((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        const isVisible =
-          style.visibility !== "hidden" &&
-          style.display !== "none" &&
-          !(
-            style.position === "absolute" &&
-            style.overflow === "hidden" &&
-            rect.width <= 1 &&
-            rect.height <= 1
-          ) &&
-          rect.width > 0 &&
-          rect.height > 0;
+  /* Polled, not measured once: a control that transitions in is briefly its own
+     resting size times a scale factor, and back-to-top passes through scale-95
+     — 41.8px of its 44px box — on the way to visible. A short budget, because
+     a genuinely undersized target should report fast rather than re-sweep the
+     page for the default five seconds first. */
+  const undersizedTargets = () =>
+    page.locator(selector).evaluateAll(
+      (elements, targetMinimum) =>
+        elements.flatMap((element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          const isVisible =
+            style.visibility !== "hidden" &&
+            style.display !== "none" &&
+            !(
+              style.position === "absolute" &&
+              style.overflow === "hidden" &&
+              rect.width <= 1 &&
+              rect.height <= 1
+            ) &&
+            rect.width > 0 &&
+            rect.height > 0;
 
-        if (
-          !isVisible ||
-          (rect.width >= targetMinimum && rect.height >= targetMinimum)
-        ) {
-          return [];
-        }
+          if (
+            !isVisible ||
+            (rect.width >= targetMinimum && rect.height >= targetMinimum)
+          ) {
+            return [];
+          }
 
-        return [
-          {
-            height: rect.height,
-            label:
-              element.getAttribute("aria-label") ||
-              element.textContent?.trim().slice(0, 80) ||
-              element.tagName,
-            width: rect.width,
-          },
-        ];
-      }),
-    minimum,
-  );
+          return [
+            {
+              height: rect.height,
+              label:
+                element.getAttribute("aria-label") ||
+                element.textContent?.trim().slice(0, 80) ||
+                element.tagName,
+              width: rect.width,
+            },
+          ];
+        }),
+      minimum,
+    );
 
-  expect(
-    undersized,
-    `all visible ${selector} targets should be at least ${minimum}×${minimum}px`,
-  ).toEqual([]);
+  await expect
+    .poll(undersizedTargets, {
+      message: `all visible ${selector} targets should be at least ${minimum}×${minimum}px`,
+      timeout: 2_000,
+    })
+    .toEqual([]);
 }
 
 test.describe("touch and fixed-chrome geometry", () => {
@@ -79,15 +92,14 @@ test.describe("touch and fixed-chrome geometry", () => {
       await expect(
         page.getByRole("button", { name: "Back to top" }),
       ).toBeVisible();
-      await waitForTwoAnimationFrames(page);
       await expectMinimumTarget(
         page,
         "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",
         44,
       );
 
-      await page.getByRole("button", { name: "Open command menu" }).click();
-      const close = page.getByRole("button", { name: "Close" });
+      const dialog = await openCommandPalette(page);
+      const close = dialog.getByRole("button", { name: "Close" });
       const closeBox = await close.boundingBox();
       expect(closeBox, "dialog close control should be visible").not.toBeNull();
       expect(closeBox!.width).toBeGreaterThanOrEqual(44);
@@ -326,6 +338,34 @@ test.describe("motion, theme initialization, and accessibility", () => {
         expect(severeViolations).toEqual([]);
       });
     }
+  }
+});
+
+test.describe("command palette", () => {
+  const triggers = [
+    ["the shortcut", openCommandPaletteWithShortcut],
+    ["the button", openCommandPalette],
+  ] as const;
+
+  for (const [name, open] of triggers) {
+    test(`${name} survives a hydration delay`, async ({ page }) => {
+      /* `commit` returns as soon as the document starts arriving, so the trigger
+         below is guaranteed to fire before hydration once the scripts it needs
+         are stalled — which is what makes a dropped trigger certain here instead
+         of the 1-in-6 it was when only a busy dev server produced the delay.
+
+         Only the build's own chunks are held: stalling every `.js` would also
+         catch the HMR client and analytics, which hydration does not wait on and
+         which added two seconds of dead time. */
+      await page.route("**/_next/static/**/*.js", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await route.continue();
+      });
+      await page.goto("/", { waitUntil: "commit" });
+
+      const dialog = await open(page);
+      await expect(commandPaletteInput(dialog)).toBeFocused();
+    });
   }
 });
 

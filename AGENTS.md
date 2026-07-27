@@ -11,7 +11,8 @@ Bun, not npm or yarn.
 bun install
 bun run dev          # localhost:3200
 bun run build
-bun run lint
+bun run lint         # eslint only — formatting is a separate command
+bun run format       # prettier --write .; format:check for the read-only pass
 bun run test         # Playwright; reuses the dev server on 3200, or starts one
 npx tsc --noEmit
 ```

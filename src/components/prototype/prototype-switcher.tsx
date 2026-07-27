@@ -21,11 +21,15 @@ function SwitcherInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const current = searchParams.get("variant") ?? "current";
-  const index = Math.max(0, VARIANTS.findIndex((v) => v.key === current));
+  const index = Math.max(
+    0,
+    VARIANTS.findIndex((v) => v.key === current),
+  );
 
   const go = useCallback(
     (delta: number) => {
-      const next = VARIANTS[(index + delta + VARIANTS.length) % VARIANTS.length];
+      const next =
+        VARIANTS[(index + delta + VARIANTS.length) % VARIANTS.length];
       const params = new URLSearchParams(searchParams.toString());
       if (next.key === "current") params.delete("variant");
       else params.set("variant", next.key);
@@ -38,7 +42,13 @@ function SwitcherInner() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null;
-      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (
+        t &&
+        (t.tagName === "INPUT" ||
+          t.tagName === "TEXTAREA" ||
+          t.isContentEditable)
+      )
+        return;
       if (e.key === "ArrowLeft") go(-1);
       if (e.key === "ArrowRight") go(1);
     };
@@ -47,12 +57,12 @@ function SwitcherInner() {
   }, [go]);
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[200] flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-ground px-2 py-1.5 font-mono text-xs text-ink shadow-xl print:hidden">
+    <div className="border-border bg-ground text-ink fixed bottom-4 left-1/2 z-[200] flex -translate-x-1/2 items-center gap-1 rounded-full border px-2 py-1.5 font-mono text-xs shadow-xl print:hidden">
       <button
         type="button"
         onClick={() => go(-1)}
         aria-label="Previous variant"
-        className="rounded-full border border-transparent px-2 py-1 hover:border-accent"
+        className="hover:border-accent rounded-full border border-transparent px-2 py-1"
       >
         ←
       </button>
@@ -63,7 +73,7 @@ function SwitcherInner() {
         type="button"
         onClick={() => go(1)}
         aria-label="Next variant"
-        className="rounded-full border border-transparent px-2 py-1 hover:border-accent"
+        className="hover:border-accent rounded-full border border-transparent px-2 py-1"
       >
         →
       </button>

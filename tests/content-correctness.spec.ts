@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { contrast } from "./support/color";
+import { openCommandPalette } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 /* WCAG 2.1 AA for text below 18.66px (the large-text threshold at normal
@@ -25,9 +26,10 @@ test.describe("outbound link hardening", () => {
         })),
       );
 
-    expect(links.length, "the page should render new-tab links").toBeGreaterThan(
-      0,
-    );
+    expect(
+      links.length,
+      "the page should render new-tab links",
+    ).toBeGreaterThan(0);
     expect(
       links.filter(({ rel }) => !rel.includes("noopener")),
       'every a[target="_blank"] should carry rel="noopener"',
@@ -69,7 +71,7 @@ test.describe("outbound link hardening", () => {
       };
     });
 
-    await page.getByRole("button", { name: "Open command menu" }).click();
+    await openCommandPalette(page);
     await page.getByRole("option", { name: /GitHub/i }).click();
 
     expect(calls, "the command menu should have opened a window").toHaveLength(
@@ -119,7 +121,8 @@ test.describe("non-interactive badge affordances", () => {
           }
           const walk = (list: CSSRule[]) => {
             for (const rule of list) {
-              if (rule instanceof CSSGroupingRule) walk(Array.from(rule.cssRules));
+              if (rule instanceof CSSGroupingRule)
+                walk(Array.from(rule.cssRules));
               if (!(rule instanceof CSSStyleRule)) continue;
               if (!rule.selectorText.includes(":hover")) continue;
               const base = rule.selectorText.replaceAll(":hover", "");
@@ -322,7 +325,10 @@ test.describe("freshness metadata", () => {
           .find((data) => data["@type"] === "ProfilePage"),
       );
 
-    expect(profile, "the homepage should emit ProfilePage JSON-LD").toBeTruthy();
+    expect(
+      profile,
+      "the homepage should emit ProfilePage JSON-LD",
+    ).toBeTruthy();
     expect(profile.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(
       profile.dateModified,
@@ -342,9 +348,7 @@ test.describe("freshness metadata", () => {
     /* Both surfaces read the same build-time constant, so agreement is what
        proves the value is derived rather than typed in two places. */
     const sitemap = await (await request.get("/sitemap.xml")).text();
-    const lastModified = sitemap.match(
-      /<lastmod>(\d{4}-\d{2}-\d{2})/i,
-    )?.[1];
+    const lastModified = sitemap.match(/<lastmod>(\d{4}-\d{2}-\d{2})/i)?.[1];
     expect(lastModified, "the sitemap should publish a lastmod").toBeTruthy();
     expect(profile.dateModified).toBe(lastModified);
   });

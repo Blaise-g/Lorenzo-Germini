@@ -6,14 +6,14 @@ tokens — no estimates.
 
 ## What was built
 
-| file | what |
-|---|---|
-| `src/app/writing/page.tsx` | dev-only route; `notFound()` in production |
-| `src/components/prototype/writing-index.tsx` | the index: count-aware list, thumbnails, metadata row, footer |
-| `src/components/prototype/subscribe-module.tsx` | the subscribe module, client leaf |
-| `src/components/prototype/writing-feed.ts` | a fake feed in the shape `src/lib/substack.ts` will return |
-| `src/components/prototype/warm-print.ts` | Warm Print tokens copied from `variant-d.tsx`, plus the border shim |
-| `public/prototype/covers/*.png` | five placeholder covers spanning the tonal range |
+| file                                            | what                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------- |
+| `src/app/writing/page.tsx`                      | dev-only route; `notFound()` in production                          |
+| `src/components/prototype/writing-index.tsx`    | the index: count-aware list, thumbnails, metadata row, footer       |
+| `src/components/prototype/subscribe-module.tsx` | the subscribe module, client leaf                                   |
+| `src/components/prototype/writing-feed.ts`      | a fake feed in the shape `src/lib/substack.ts` will return          |
+| `src/components/prototype/warm-print.ts`        | Warm Print tokens copied from `variant-d.tsx`, plus the border shim |
+| `public/prototype/covers/*.png`                 | five placeholder covers spanning the tonal range                    |
 
 Parameters, so each open question can be seen both ways in one file:
 `?n=1|3|6` · `?grain=on|off` · `?reveal=mount|stagger` · `?stream=on|off` · `?it=on`
@@ -29,15 +29,15 @@ Screenshots in this directory: `n1/n3/n6-light-1440`, `n6-dark-1440`,
 Measured by toggling the overlay in-page (same load, no layout change) and
 diffing screenshot crops:
 
-| region | at spec opacity (0.035 light / 0.06 dark) | at 4× (0.12) |
-|---|---|---|
-| lead cover, light | mean \|Δ\| **0.36/255**, max 2 | 1.15, max 7 |
-| lead cover, dark | mean \|Δ\| **2.61/255**, max 6 | 5.18, max 11 |
-| paper ground, light | 0.62, max 2 | 1.99, max 7 |
-| added texture on flat paper (σ) | **0.00 → 0.49** | 0.00 → 0.79 |
+| region                          | at spec opacity (0.035 light / 0.06 dark) | at 4× (0.12) |
+| ------------------------------- | ----------------------------------------- | ------------ |
+| lead cover, light               | mean \|Δ\| **0.36/255**, max 2            | 1.15, max 7  |
+| lead cover, dark                | mean \|Δ\| **2.61/255**, max 6            | 5.18, max 11 |
+| paper ground, light             | 0.62, max 2                               | 1.99, max 7  |
+| added texture on flat paper (σ) | **0.00 → 0.49**                           | 0.00 → 0.79  |
 
 So: not mud — but not texture either. The overlay shifts covers by ≤2/255 in
-light and ≤6/255 in dark, and it shifts the paper ground by the *same* amount,
+light and ≤6/255 in dark, and it shifts the paper ground by the _same_ amount,
 so it does not treat images differently at all. At 4× strength it is still
 under 1.5/255 on the covers. It is paying a full-viewport `mix-blend-multiply`
 composite per scroll frame (already logged as a perf item) for an effect that
@@ -47,11 +47,11 @@ re-test over covers, or drop it.**
 The real thumbnail risk is **cover-vs-ground luminance**, which #10 did not
 consider:
 
-| cover | light mode vs paper | dark mode vs near-black |
-|---|---|---|
-| near-white diagram | **1.04:1** (no edge at all) | **17.43:1** — brightest object on the page |
-| light title card (Substack's auto-generated default) | 1.07:1 | 15.68:1 |
-| dark photographic | 4.53:1 | 1.06:1 (no edge) |
+| cover                                                | light mode vs paper         | dark mode vs near-black                    |
+| ---------------------------------------------------- | --------------------------- | ------------------------------------------ |
+| near-white diagram                                   | **1.04:1** (no edge at all) | **17.43:1** — brightest object on the page |
+| light title card (Substack's auto-generated default) | 1.07:1                      | 15.68:1                                    |
+| dark photographic                                    | 4.53:1                      | 1.06:1 (no edge)                           |
 
 Text on this page runs 6.6–13:1, so a white cover in dark mode out-shouts every
 word on it. And in light mode a light cover has no boundary — visible in
@@ -67,16 +67,16 @@ Row thumbs should be 16:9 like the lead, or `object-contain` on a paper panel.
 ### 2. The streamed reveal — **confirmed defect, and the fix is measured**
 
 Chunk lands ~700 ms after navigation (simulated Suspense boundary). All six
-articles mount in the *same* frame, so a "stagger" is not sequential arrival —
+articles mount in the _same_ frame, so a "stagger" is not sequential arrival —
 it is a uniform delay tax on a section that already arrived late.
 
 Under `prefers-reduced-motion: reduce`, `animation-duration` collapses to
 `1e-05s` but `animation-delay` is **not** reset and `fade-in-up` fills `both`:
 
-| arm | opacity after its own mount |
-|---|---|
+| arm                                | opacity after its own mount                                                                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `reveal=stagger` (today's pattern) | item 1 visible at 30 ms; item 6 **holds opacity 0 for 452–600 ms** — blank until ~1.3 s after navigation |
-| `reveal=mount` (no delay classes) | **every** item at opacity 1 within 30 ms |
+| `reveal=mount` (no delay classes)  | **every** item at opacity 1 within 30 ms                                                                 |
 
 Under normal motion the stagger costs the last row another 452 ms after the
 chunk arrives (visible ~1.17 s), for a sequence the user cannot perceive as
@@ -93,7 +93,7 @@ streamed sections, and the reduced-motion block must reset `animation-delay`
 
 `n1-light-1440.png` / `n1-light-375.png`. It does not read as a broken or empty
 section: cover, date, reading time, title, excerpt, CTA, then the subscribe
-module and footer. What it does read as is *a page with one thing on it* — the
+module and footer. What it does read as is _a page with one thing on it_ — the
 standfirst promises "essays", plural, and delivers one, and nothing on the page
 frames that as a launch. Two cheap answers, for the owner to pick:
 a launch line in the standfirst ("The first essay went out 21 July; new ones
@@ -109,7 +109,7 @@ using the explicit `faint` token instead of `opacity-55` (3.84:1). Error text
 
 **The `?email=` handoff works.** A valid submit produces
 `https://lorenzogermini.substack.com/subscribe?email=lorenzo%2Btest%40example.com`
-— the browser URL-encodes `+` and `@` itself, because the form's `action` *is*
+— the browser URL-encodes `+` and `@` itself, because the form's `action` _is_
 the subscribe page (GET). It therefore also works with JS disabled. Empty
 submit → "Enter an email address to continue." with `aria-invalid`,
 `aria-describedby` and `role="alert"` wired; invalid → "That doesn't look like
@@ -239,7 +239,7 @@ Findings that became spec constraints rather than prototype edits:
   differing only in weight.
 - **Each essay is one 221–268-character link**, six of them, with no list
   semantics; rows are `h3` under the lead's `h2`, so heading navigation implies
-  they are sections *of* the lead essay.
+  they are sections _of_ the lead essay.
 - **The theme toggle overlaps the CV nav link at 375.** CV's box is
   15.8×16.5 at (335, 48); the fixed 36×36 toggle spans (323, 16); 63px² of
   overlap, and the top pixel row of CV hit-tests as "Toggle theme".
@@ -256,13 +256,13 @@ Findings that became spec constraints rather than prototype edits:
 
 ## `/impeccable audit` — 11/20, "Acceptable (significant work needed)"
 
-| # | Dimension | Score | Key finding |
-|---|---|---|---|
-| 1 | Accessibility | 2 | Reduced motion blanks 5 of 6 essays; 11 links under 24px (SC 2.5.8); misleading heading nesting; 250-char link names |
-| 2 | Performance | 2 | Row thumbs served at ¼ resolution (fixed); lead LCP lazy (fixed); grain composite (dropped) |
-| 3 | Theming | 2 | Unlayered `*` rules kill every border and outline utility site-wide; `--color-ring` off-palette; palette still literals pending the `@theme` migration |
-| 4 | Responsive | 2 | Subscribe row could not wrap (fixed); targets under 24px; nothing in the layout changes above 736px; 51% of a 1440 viewport used |
-| 5 | Implementation integrity | 3 | Static scan clean, intent commented; the numbering promise did not hold |
+| #   | Dimension                | Score | Key finding                                                                                                                                            |
+| --- | ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1   | Accessibility            | 2     | Reduced motion blanks 5 of 6 essays; 11 links under 24px (SC 2.5.8); misleading heading nesting; 250-char link names                                   |
+| 2   | Performance              | 2     | Row thumbs served at ¼ resolution (fixed); lead LCP lazy (fixed); grain composite (dropped)                                                            |
+| 3   | Theming                  | 2     | Unlayered `*` rules kill every border and outline utility site-wide; `--color-ring` off-palette; palette still literals pending the `@theme` migration |
+| 4   | Responsive               | 2     | Subscribe row could not wrap (fixed); targets under 24px; nothing in the layout changes above 736px; 51% of a 1440 viewport used                       |
+| 5   | Implementation integrity | 3     | Static scan clean, intent commented; the numbering promise did not hold                                                                                |
 
 Passing outright: no horizontal overflow at 375–1440, **no overflow at 200% root
 font size**, AA contrast in both modes, CLS 0.0000, form semantics, skip link,

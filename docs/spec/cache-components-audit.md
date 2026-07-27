@@ -21,18 +21,18 @@ below cites the dev log and not just a green build.
 
 ## Per-route findings
 
-| Route | Source | Runtime data read | Boundary given | Result |
-| --- | --- | --- | --- | --- |
-| `/` | `src/app/page.tsx` | `searchParams` — **dev only**; production returns `CurrentHome` before the read | `<Suspense>` around `SelectedVariant`, on the dev path only | Static |
-| `/cv` | `src/app/cv/page.tsx` | none | none — genuinely needs none | Static |
-| `/writing` | `src/app/writing/page.tsx` | `searchParams` — **dev only**; production `notFound()`s before the read | `<Suspense>` around `ParameterizedWritingIndex` | Static |
-| `/resume` | `src/app/resume/route.ts` | `request.url` | n/a — Route Handler | Dynamic, unchanged |
-| `/sitemap.xml` | `src/app/sitemap.ts` | none (see `BUILD_DATE` below) | none | Static |
-| `/manifest.webmanifest` | `src/app/manifest.ts` | none | none | Static |
-| `/opengraph-image` | `src/app/opengraph-image.tsx` | none | none | Static |
-| `/cv/opengraph-image` | `src/app/cv/opengraph-image.tsx` | none | none | Static |
-| `/apple-icon.png` | file convention | none | none | Static |
-| `/_not-found` | `src/app/not-found.tsx` | none | none | Static |
+| Route                   | Source                           | Runtime data read                                                               | Boundary given                                              | Result             |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------ |
+| `/`                     | `src/app/page.tsx`               | `searchParams` — **dev only**; production returns `CurrentHome` before the read | `<Suspense>` around `SelectedVariant`, on the dev path only | Static             |
+| `/cv`                   | `src/app/cv/page.tsx`            | none                                                                            | none — genuinely needs none                                 | Static             |
+| `/writing`              | `src/app/writing/page.tsx`       | `searchParams` — **dev only**; production `notFound()`s before the read         | `<Suspense>` around `ParameterizedWritingIndex`             | Static             |
+| `/resume`               | `src/app/resume/route.ts`        | `request.url`                                                                   | n/a — Route Handler                                         | Dynamic, unchanged |
+| `/sitemap.xml`          | `src/app/sitemap.ts`             | none (see `BUILD_DATE` below)                                                   | none                                                        | Static             |
+| `/manifest.webmanifest` | `src/app/manifest.ts`            | none                                                                            | none                                                        | Static             |
+| `/opengraph-image`      | `src/app/opengraph-image.tsx`    | none                                                                            | none                                                        | Static             |
+| `/cv/opengraph-image`   | `src/app/cv/opengraph-image.tsx` | none                                                                            | none                                                        | Static             |
+| `/apple-icon.png`       | file convention                  | none                                                                            | none                                                        | Static             |
+| `/_not-found`           | `src/app/not-found.tsx`          | none                                                                            | none                                                        | Static             |
 
 The route table after the flag is identical to the one before it: everything Static except
 `/resume`, which was already Dynamic. Nothing regressed and nothing newly needed caching.

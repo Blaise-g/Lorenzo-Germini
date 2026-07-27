@@ -8,6 +8,7 @@ p1_count: 5
 timestamp: 2026-07-25T15-36-04Z
 slug: src-components-prototype-writing-index-tsx
 ---
+
 Provenance: two isolated parallel sub-agents (Assessment A design review, Assessment B detector + browser evidence), synthesized in the parent. Not degraded. Every number below was measured in a real browser by A, B, or the parent; parent re-verified the three claims that change the spec.
 
 ## Design specificity — **specific skin, generic bones**
@@ -16,25 +17,26 @@ The tokens are authored: Fraunces at optical size, JetBrains Mono uppercase at 0
 
 The composition is category-interchangeable: hero card → hairline rows with left thumbnails → email capture → two-column footer, i.e. the default Ghost/Substack/Medium index. Nothing structural knows this is an AI product engineer's page; the technical signal is carried by essay titles, which are content, not design.
 
-Two things cut against the audit's binding constraint (*never look less technical*):
+Two things cut against the audit's binding constraint (_never look less technical_):
+
 - At `?n=1` — the launch state — the largest object on the page is a 688×387 decorative cover **Substack generated**, 26% of a 1,482px document.
 - There is **no RSS/Atom/JSON feed link anywhere**, on an essay index for AI engineers, while the footer does advertise `/llms.txt`. The page is machine-readable to agents and not to humans.
 
 ## Design health score
 
-| # | Heuristic | Score | Key issue |
-|---|---|---|---|
-| 1 | Visibility of system status | 2 | No pending state; page is byte-identical after a successful handoff; under reduced motion 5 of 6 essays compute `opacity: 0`; 8 links open new tabs unannounced |
-| 2 | Match system / real world | 3 | Copy is audience-fluent, but "06/05/04…" is a scheme no reader can derive and row 02 silently drops reading time |
-| 3 | User control and freedom | 2 | Every essay link is `target="_blank"` unannounced while nav/CV stay in-tab — inconsistent within one page |
-| 4 | Consistency and standards | 2 | Two aspect ratios for one content type (16:9 lead / 4:3 rows, and 4:3 crops the art); five link types share one treatment; error hue ≈ focus hue; rows are `h3` under the lead's `h2` |
-| 5 | Error prevention | 3 | `type=email`, `inputMode`, `autoComplete`, real `<label>`, permissive regex, works with JS off — undercut by a 133px field at 375 |
-| 6 | Recognition over recall | 2 | Accessible names measure **221–268 chars each**; undecodable numbering |
-| 7 | Flexibility and efficiency | 2 | Skip link, `aria-current`, JS-off form, `?email=` prefill — but no title-only scan path, no list semantics, no feed |
-| 8 | Aesthetic and minimalist design | 3 | Genuinely restrained; deductions for the decorative cover leading, the invisible coverless panel, and a full-viewport `mix-blend-multiply` that renders nothing |
-| 9 | Error recovery | 3 | Specific, `role="alert"`, `aria-invalid`, value preserved, clears on input; focus never moves to the field |
-| 10 | Help and documentation | n/a | An essay index has nothing to document; the one place guidance is needed (the handoff) carries it inline and well |
-| **Total** | | **22/36 (61%)** | **Acceptable** |
+| #         | Heuristic                       | Score           | Key issue                                                                                                                                                                             |
+| --------- | ------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1         | Visibility of system status     | 2               | No pending state; page is byte-identical after a successful handoff; under reduced motion 5 of 6 essays compute `opacity: 0`; 8 links open new tabs unannounced                       |
+| 2         | Match system / real world       | 3               | Copy is audience-fluent, but "06/05/04…" is a scheme no reader can derive and row 02 silently drops reading time                                                                      |
+| 3         | User control and freedom        | 2               | Every essay link is `target="_blank"` unannounced while nav/CV stay in-tab — inconsistent within one page                                                                             |
+| 4         | Consistency and standards       | 2               | Two aspect ratios for one content type (16:9 lead / 4:3 rows, and 4:3 crops the art); five link types share one treatment; error hue ≈ focus hue; rows are `h3` under the lead's `h2` |
+| 5         | Error prevention                | 3               | `type=email`, `inputMode`, `autoComplete`, real `<label>`, permissive regex, works with JS off — undercut by a 133px field at 375                                                     |
+| 6         | Recognition over recall         | 2               | Accessible names measure **221–268 chars each**; undecodable numbering                                                                                                                |
+| 7         | Flexibility and efficiency      | 2               | Skip link, `aria-current`, JS-off form, `?email=` prefill — but no title-only scan path, no list semantics, no feed                                                                   |
+| 8         | Aesthetic and minimalist design | 3               | Genuinely restrained; deductions for the decorative cover leading, the invisible coverless panel, and a full-viewport `mix-blend-multiply` that renders nothing                       |
+| 9         | Error recovery                  | 3               | Specific, `role="alert"`, `aria-invalid`, value preserved, clears on input; focus never moves to the field                                                                            |
+| 10        | Help and documentation          | n/a             | An essay index has nothing to document; the one place guidance is needed (the handoff) carries it inline and well                                                                     |
+| **Total** |                                 | **22/36 (61%)** | **Acceptable**                                                                                                                                                                        |
 
 ## Cognitive load — 4 of 8 failed (high), concentrated in the last 600px
 
@@ -42,11 +44,11 @@ The list itself is low-load: one decision per screen, no filters, no sort, no ta
 
 ## Emotional journey
 
-Entry is the peak and earns it: 2px masthead rule, "Writing" in Fraunces, one standfirst sentence that says what the essays are about. Then a dip — the eye lands on a brown blur, not a title. Scanning is flat: six rows of equal weight over a divider measured at **1.19:1** against paper, with two thumbnails that either vanish into the paper (1.02:1) or glare out of the dark (12.4:1). The valley is the reduced-motion arm: a reader who asked for *less* motion gets *more* blankness. The end inverts the peak-end rule — at 375 the final impression is a 133px field whose placeholder is cut to "you@company.c", and after a successful submit the page does not change at all. The one genuinely reassuring moment is the handoff sentence: *"Opens Substack with your address filled in — you confirm the subscription there."*
+Entry is the peak and earns it: 2px masthead rule, "Writing" in Fraunces, one standfirst sentence that says what the essays are about. Then a dip — the eye lands on a brown blur, not a title. Scanning is flat: six rows of equal weight over a divider measured at **1.19:1** against paper, with two thumbnails that either vanish into the paper (1.02:1) or glare out of the dark (12.4:1). The valley is the reduced-motion arm: a reader who asked for _less_ motion gets _more_ blankness. The end inverts the peak-end rule — at 375 the final impression is a 133px field whose placeholder is cut to "you@company.c", and after a successful submit the page does not change at all. The one genuinely reassuring moment is the handoff sentence: _"Opens Substack with your address filled in — you confirm the subscription there."_
 
 ## Strengths
 
-1. **The handoff, mechanism and copy together.** The form's `action` *is* the Substack subscribe page over GET, so the browser builds `?email=` itself — no third-party script, works with JS off — and the copy promises a handoff rather than success, precisely where a reader would otherwise be misled (`subscribe-module.tsx:92-97`).
+1. **The handoff, mechanism and copy together.** The form's `action` _is_ the Substack subscribe page over GET, so the browser builds `?email=` itself — no third-party script, works with JS off — and the copy promises a handoff rather than success, precisely where a reader would otherwise be misled (`subscribe-module.tsx:92-97`).
 2. **The count-aware list.** `?n=1` → lead only, no numbering, no archive link, no "0 more essays"; `ListFallback` holds the exact space the essays will occupy (`writing-index.tsx:269-280`) and measures **CLS 0.0000** on streamed arrival.
 3. **Metadata restraint and contrast honesty.** Date + computed reading time, nothing invented; reading time omitted rather than guessed on the previewed post; the explicit `faint` token instead of `opacity-55`. Lowest text contrast on the page is **6.34:1 light / 6.63:1 dark** at 11px. Nothing fails AA in either mode.
 
@@ -66,7 +68,7 @@ Entry is the peak and earns it: 2px masthead rule, "Writing" in Fraunces, one st
 
 ## Persona red flags
 
-**Sam (screen reader / keyboard):** essay links announce 221–268 characters; heading levels make the five rows `h3` children of the lead's `h2`, so heading navigation implies they are sections *of* "The demo-to-production gap"; eight links open new tabs unannounced while the masthead stays in-tab; the error state is a 2px `#a32f13` underline beside a `#9c3c1c` focus state — indistinguishable — and focus never moves to the offending field; the `X` footer link is a 7.9×14px box named "X"; under reduced motion five of six essays are invisible.
+**Sam (screen reader / keyboard):** essay links announce 221–268 characters; heading levels make the five rows `h3` children of the lead's `h2`, so heading navigation implies they are sections _of_ "The demo-to-production gap"; eight links open new tabs unannounced while the masthead stays in-tab; the error state is a 2px `#a32f13` underline beside a `#9c3c1c` focus state — indistinguishable — and focus never moves to the offending field; the `X` footer link is a 7.9×14px box named "X"; under reduced motion five of six essays are invisible.
 
 **Casey (one-handed, 375):** the primary action is at the bottom of a **4,411px** page; every control is a text link (nav 16.5px tall, footer 14px, submit 35px); the fixed theme toggle overlaps the CV link — parent hit-tested (343, 49) and got **"Toggle theme"**, with 63px² of overlap on a 15.8×16.5px target.
 
@@ -89,7 +91,7 @@ Entry is the peak and earns it: 2px masthead rule, "Writing" in Fraunces, one st
 ## Questions
 
 - The numbers read as a countdown and the same essay is "04" at a different feed length. If a reader cannot decode them and they are not stable, what are they for?
-- The largest object on the page is a cover Substack generated. What if `/writing` led with the *sentence* — the excerpt at display size, no image — and covers were 16:9 hairlines in the rows?
+- The largest object on the page is a cover Substack generated. What if `/writing` led with the _sentence_ — the excerpt at display size, no image — and covers were 16:9 hairlines in the rows?
 - Every CTA is the same 11px mono underline. If exactly one had to look like a button, which earns it — and what does that say about whether this surface is Read or Persuade?
 - The footer tells agents where the machine-readable index is and never tells a human engineer where the feed is. Which audience is `/writing` for?
 - A reader who asks for reduced motion sees five blank rows. What is the animation buying that is worth that?

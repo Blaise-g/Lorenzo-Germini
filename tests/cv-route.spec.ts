@@ -7,6 +7,8 @@ import { expect, test } from "@playwright/test";
 import retainedProof from "@/../docs/spec/retained-proof.json";
 import { RESUME_DATA } from "@/data/resume-data";
 
+import { openCommandPalette } from "./support/command-palette";
+
 const cvPath = "/cv";
 const pdfFilename = "lorenzo-germini-cv.pdf";
 
@@ -125,7 +127,7 @@ test.describe("canonical CV route", () => {
 
   test("offers View CV off-route and Print CV on-route", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Open command menu" }).click();
+    await openCommandPalette(page);
     const viewCv = page.getByRole("option", { name: "View CV" });
     await expect(viewCv).toBeVisible();
     await viewCv.click();
@@ -136,7 +138,7 @@ test.describe("canonical CV route", () => {
         document.documentElement.dataset.printCalled = "true";
       };
     });
-    await page.getByRole("button", { name: "Open command menu" }).click();
+    await openCommandPalette(page);
     const printCv = page.getByRole("option", { name: "Print CV" });
     await expect(printCv).toBeVisible();
     await printCv.click();

@@ -5,6 +5,7 @@ import path from "node:path";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 import { contrast } from "./support/color";
+import { openCommandPaletteWithShortcut } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 const colorRoles = [
@@ -67,9 +68,7 @@ function paletteTokens(palette: (typeof WARM_PRINT)[keyof typeof WARM_PRINT]) {
   );
 }
 
-function browserPalette(
-  palette: (typeof WARM_PRINT)[keyof typeof WARM_PRINT],
-) {
+function browserPalette(palette: (typeof WARM_PRINT)[keyof typeof WARM_PRINT]) {
   return Object.fromEntries(
     Object.entries(palette).map(([role, value]) => {
       const channels = value
@@ -127,7 +126,8 @@ test("palette values, retired aliases, grain, and the border shim stay out of so
     /(?:--color-|(?:bg|text|border|ring|outline|decoration)-)(?:background|foreground|card(?:-foreground)?|popover(?:-foreground)?|primary(?:-foreground)?|secondary(?:-foreground)?|muted(?:-foreground)?|destructive(?:-foreground)?|input|ring)\b/g;
   const builtInPalette =
     /(?:bg|text|border|ring|outline|decoration)-(?:black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-[0-9]+)?(?:\/[0-9]+)?\b/g;
-  const retiredEffects = /\b(?:BORDER_SHIM|GRAIN_URL)\b|feTurbulence|mix-blend-/g;
+  const retiredEffects =
+    /\b(?:BORDER_SHIM|GRAIN_URL)\b|feTurbulence|mix-blend-/g;
 
   for (const file of files) {
     const relativePath = path.relative(process.cwd(), file);
@@ -198,28 +198,26 @@ test.describe("Warm Print runtime contract", () => {
         const faintText = Array.from(
           document.querySelectorAll<HTMLElement>("*"),
         ).flatMap((element) => {
-            const style = getComputedStyle(element);
-            if (
-              !element.textContent?.trim() ||
-              element.getClientRects().length === 0 ||
-              style.color !== faint
-            ) {
-              return [];
-            }
-            return [
-              {
-                color: style.color,
-                size: Number.parseFloat(style.fontSize),
-                text: element.textContent.trim().slice(0, 80),
-              },
-            ];
-          });
+          const style = getComputedStyle(element);
+          if (
+            !element.textContent?.trim() ||
+            element.getClientRects().length === 0 ||
+            style.color !== faint
+          ) {
+            return [];
+          }
+          return [
+            {
+              color: style.color,
+              size: Number.parseFloat(style.fontSize),
+              text: element.textContent.trim().slice(0, 80),
+            },
+          ];
+        });
 
         return {
           faintText,
-          tokens: Object.fromEntries(
-            roles.map((role) => [role, token(role)]),
-          ),
+          tokens: Object.fromEntries(roles.map((role) => [role, token(role)])),
         };
       }, colorRoles);
 
@@ -248,25 +246,14 @@ test.describe("Warm Print runtime contract", () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await setTheme(page, theme);
       await page.goto("/");
-      await page.evaluate(() => {
-        document.dispatchEvent(
-          new KeyboardEvent("keydown", {
-            bubbles: true,
-            ctrlKey: true,
-            key: "j",
-          }),
-        );
-      });
-      await expect(page.getByRole("dialog")).toBeVisible();
+      await openCommandPaletteWithShortcut(page);
 
       const primitives = await page.evaluate(() => {
         const effectiveBackground = (element: HTMLElement) => {
           let current: HTMLElement | null = element;
           while (current) {
             const background = getComputedStyle(current).backgroundColor;
-            const alpha = Number(
-              (background.match(/[\d.]+/g) ?? [])[3] ?? "1",
-            );
+            const alpha = Number((background.match(/[\d.]+/g) ?? [])[3] ?? "1");
             if (alpha > 0) return background;
             current = current.parentElement;
           }
