@@ -21,6 +21,7 @@ source URLs. Where a fact was verified empirically against a live feed, it is ma
 ## 1. Substack RSS feed
 
 ### Feed URL format
+
 - Default: `https://<publication>.substack.com/feed`. If the publication uses a custom
   domain, the feed lives at `https://<custom-domain>/feed` and the subdomain form
   redirects there. **[verified live]** `https://noahpinion.substack.com/feed` serves an
@@ -29,6 +30,7 @@ source URLs. Where a fact was verified empirically against a live feed, it is ma
 - Overview of the working URL variants: [wpRSSaggregator – Substack RSS Feed](https://www.wprssaggregator.com/substack-rss-feed/).
 
 ### XML shape **[verified live, noahpinion.substack.com/feed, 2026-07-22]**
+
 Root: `<rss version="2.0">` with namespaces `content` (`content:encoded`), `dc`, `atom`,
 `itunes`, `googleplay`.
 
@@ -41,6 +43,7 @@ Root: `<rss version="2.0">` with namespaces `content` (`content:encoded`), `dc`,
   `content:encoded`, and `enclosure`.
 
 ### Full text vs excerpt
+
 - **`description`** = short subtitle/teaser (53 characters in the sampled item). **[verified live]**
 - **`content:encoded`** = the full post body as HTML (36,864 characters in the sampled
   free item), wrapped in `<![CDATA[...]]>`. **[verified live]** This is the RSS
@@ -57,11 +60,13 @@ Root: `<rss version="2.0">` with namespaces `content` (`content:encoded`), `dc`,
   no explicit `paid` flag/class. ([FreshRSS #6667](https://github.com/FreshRSS/FreshRSS/discussions/6667))
 
 ### Images
+
 - Each item carries an `<enclosure>` pointing at the post's cover image on the Substack
   CDN, e.g. `url="https://substackcdn.com/image/fetch/.../https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2F...jpeg" length="0" type="image/jpeg"`. **[verified live]**
-- Inline images appear inside `content:encoded` as `<figure><picture><img ...></picture><figcaption>…</figcaption></figure>` markup (the sampled item's HTML contained `figure`, `picture`, `img`, `figcaption` tags). **[verified live]** For latest-article *cards* the `enclosure` URL is the clean choice for the thumbnail; parsing `content:encoded` for the first `<img>` is a fallback.
+- Inline images appear inside `content:encoded` as `<figure><picture><img ...></picture><figcaption>…</figcaption></figure>` markup (the sampled item's HTML contained `figure`, `picture`, `img`, `figcaption` tags). **[verified live]** For latest-article _cards_ the `enclosure` URL is the clean choice for the thumbnail; parsing `content:encoded` for the first `<img>` is a fallback.
 
 ### Item count, update cadence, rate limits
+
 - **Item count is small and not officially documented.** Sampled feeds returned only a
   handful of items: **6 items** (noahpinion) and **5 items** (astralcodexten) **[verified live]**.
   Commonly cited elsewhere is "up to ~20"; treat the feed as "the most recent N posts,"
@@ -81,6 +86,7 @@ Root: `<rss version="2.0">` with namespaces `content` (`content:encoded`), `dc`,
 ## 2. Building latest-article cards from RSS in Next.js 16
 
 ### Fetching + parsing
+
 - Use the runtime's native `fetch` (Bun and Node both provide it) plus a small XML parser.
   `fast-xml-parser` is a good zero-native-dep choice; `rss-parser` also works but is
   heavier. Install with `bun add fast-xml-parser`. (No parser is bundled today — verified
@@ -89,6 +95,7 @@ Root: `<rss version="2.0">` with namespaces `content` (`content:encoded`), `dc`,
   avoid the CORS issue noted above and to keep the API key-free request off the browser.
 
 ### Correct Next.js 16 caching approach (Cache Components era)
+
 This site is in the `cacheComponents` era, where **data fetches are excluded from the
 prerender unless explicitly cached** — you opt back into caching with the `use cache`
 directive. Source: `.next-docs/.../cacheComponents.mdx`.
@@ -133,22 +140,27 @@ const FEED_URL = "https://<publication>.substack.com/feed";
 
 export async function getLatestArticles(limit = 3): Promise<Article[]> {
   "use cache";
-  cacheLife("days");        // newsletter cadence; serve stale, refresh in bg (~daily)
+  cacheLife("days"); // newsletter cadence; serve stale, refresh in bg (~daily)
   cacheTag("substack-feed"); // allows on-demand revalidateTag("substack-feed")
 
   const res = await fetch(FEED_URL);
   const xml = await res.text();
-  const parser = new XMLParser({ ignoreAttributes: false, cdataPropName: "__cdata" });
+  const parser = new XMLParser({
+    ignoreAttributes: false,
+    cdataPropName: "__cdata",
+  });
   const doc = parser.parse(xml);
   const items = doc.rss.channel.item ?? [];
 
-  return (Array.isArray(items) ? items : [items]).slice(0, limit).map((it: any) => ({
-    title: it.title?.__cdata ?? it.title,
-    url: it.link,
-    publishedAt: it.pubDate,
-    excerpt: it.description?.__cdata ?? it.description ?? "",
-    image: it.enclosure?.["@_url"],
-  }));
+  return (Array.isArray(items) ? items : [items])
+    .slice(0, limit)
+    .map((it: any) => ({
+      title: it.title?.__cdata ?? it.title,
+      url: it.link,
+      publishedAt: it.pubDate,
+      excerpt: it.description?.__cdata ?? it.description ?? "",
+      image: it.enclosure?.["@_url"],
+    }));
 }
 ```
 
@@ -173,7 +185,7 @@ export async function LatestWriting() {
   `<LatestWriting/>` section drops in without turning anything into a client component.
   Interactive bits (a subscribe form) can stay isolated client leaves.
 - If you'd rather avoid `cacheComponents` for now, the fallback is `fetch(FEED_URL,
-  { next: { revalidate: 86400, tags: ["substack-feed"] } })` (route-segment revalidation),
+{ next: { revalidate: 86400, tags: ["substack-feed"] } })` (route-segment revalidation),
   which does not need the flag — but the project's stated direction is the `use cache`
   model. Source: `.next-docs/.../getting-started/09-caching-and-revalidating.mdx`.
 
@@ -186,9 +198,10 @@ Docs consulted (local): `use-cache.mdx`, `cacheLife.mdx`, `cacheTag.mdx`,
 ## 3. Subscription form — three options
 
 ### (a) Substack embed iframe
+
 - Markup from publication Settings → Growth features → "Embed signup form on other
   websites": `<iframe src="https://<pub>.substack.com/embed" width="480" height="320"
-  style="border:1px solid #EEE; background:white;" frameborder="0" scrolling="no">`.
+style="border:1px solid #EEE; background:white;" frameborder="0" scrolling="no">`.
   ([Substack support: Can I embed a signup form?](https://support.substack.com/hc/en-us/articles/360041759232-Can-I-embed-a-signup-form-for-my-Substack-publication))
 - **Sizing:** default `width="480"` is hardcoded and overflows on phones; the standard fix
   is to set `width:100%`. A pub-logo toggle exists; otherwise **not customizable** —
@@ -204,8 +217,9 @@ Docs consulted (local): `use-cache.mdx`, `cacheLife.mdx`, `cacheTag.mdx`,
   first-party, minimal-tracking footprint.
 
 ### (b) Custom form POSTing to Substack
+
 - Undocumented endpoint used by Substack's own form: `POST
-  https://<pub>.substack.com/api/v1/free?nojs=true`, body
+https://<pub>.substack.com/api/v1/free?nojs=true`, body
   `email=<addr>&source=subscribe_page` (`application/x-www-form-urlencoded`).
   ([laserfocus – Automate adding subscribers](https://laserfocus.substack.com/p/automate-adding-substack-subscribers),
   [techtrails – Adding subscribers to Substack](https://techtrails.io/p/adding-subscribers-to-substack))
@@ -220,16 +234,18 @@ Docs consulted (local): `use-cache.mdx`, `cacheLife.mdx`, `cacheTag.mdx`,
   Gives full styling control and first-party UX but is the least reliable and the riskiest.
 
 ### (c) Plain link to the subscribe page
+
 - A styled link/button to `https://<pub>.substack.com/subscribe` (or the publication home).
   Zero third-party code on our page, full control over the button's look, most reliable
   (nothing to break), but adds a navigation hop off-site.
 
 ### Comparison
-| Option | Aesthetics | Privacy | Control | Reliability |
-| --- | --- | --- | --- | --- |
-| (a) iframe embed | Poor (fixed white box) | Poor (3rd-party cookies) | Low | High |
-| (b) custom form → API | Excellent (native) | Good (first-party proxy) | High | Low (undocumented, ToS risk) |
-| (c) plain link | Good (our button) | Excellent (no 3rd-party) | High (styling only) | Highest |
+
+| Option                | Aesthetics             | Privacy                  | Control             | Reliability                  |
+| --------------------- | ---------------------- | ------------------------ | ------------------- | ---------------------------- |
+| (a) iframe embed      | Poor (fixed white box) | Poor (3rd-party cookies) | Low                 | High                         |
+| (b) custom form → API | Excellent (native)     | Good (first-party proxy) | High                | Low (undocumented, ToS risk) |
+| (c) plain link        | Good (our button)      | Excellent (no 3rd-party) | High (styling only) | Highest                      |
 
 ---
 
@@ -255,13 +271,15 @@ Framing from the project's goal: the site is the **central professional hub** an
 are a **first-class identity signal**, explicitly **not** a newsletter landing page.
 
 ### Homepage-only cards (a `<LatestWriting/>` section on `page.tsx`)
+
 - **Pros:** minimal surface; single page stays the canonical entry; low maintenance; the
   latest 2-3 posts reinforce "this person writes" without stealing focus from the resume.
 - **Cons:** no first-party landing surface for essays; SEO value accrues to Substack, not
   your domain; nowhere to host local MDX essays later; content is only ever a link-out.
 
 ### RSS-driven `/writing` index route
-- **Pros:** a first-party URL (`lorenzo-germini.vercel.app/writing`) that *you* own and can
+
+- **Pros:** a first-party URL (`lorenzo-germini.vercel.app/writing`) that _you_ own and can
   rank/link in the resume and JSON-LD; natural home for future **local MDX essays** as
   first-class content (mix Substack link-outs + owned long-form); better narrative control
   of ordering, tags, framing; the homepage can still show 2-3 cards that link into
@@ -278,15 +296,16 @@ are a **first-class identity signal**, explicitly **not** a newsletter landing p
 
 ## Recommendation matrix
 
-| Area | Options | Pros / Cons | Recommended default (input to a human decision) |
-| --- | --- | --- | --- |
-| **1. Feed source** | Native `<pub>.substack.com/feed` (RSS 2.0, `content:encoded` full text for free posts, `description` excerpt, `enclosure` image); paid posts truncated | +Official, no auth, cover image via enclosure / −small item count (~5-6 observed, undocumented), −paid posts preview-only, −browser CORS | **Use the native feed, server-side only**, read `enclosure` for thumbnails and `description` for card excerpts |
-| **2. Fetch + cache** | (a) `use cache` + `cacheLife('days')` + `cacheTag` (needs `cacheComponents:true`); (b) `fetch(..., {next:{revalidate,tags}})` | (a) +aligns with project's Cache Components direction, ISR-like on Vercel / −requires enabling the flag; (b) +works today without the flag / −not the stated model | **(a) `use cache` + `cacheLife('days')` + `cacheTag('substack-feed')`** in a server `lib/substack.ts`, rendered by a Server Component — *contingent on enabling `cacheComponents`*; use (b) if the flag stays off |
-| **3. Subscribe UI** | (a) iframe embed; (b) custom form → undocumented API; (c) plain styled link | (a) +reliable/−ugly, 3rd-party cookies; (b) +native look/−ToS + CORS + fragile; (c) +reliable, first-party, on-brand/−off-site hop | **(c) plain styled link/button** to `/subscribe`, matching Tailwind theme — best privacy + reliability, no third-party cookies; revisit (b) via a server proxy only if inline capture becomes a real requirement |
-| **4. Archive linking** | `/archive`, `/p/<slug>`, `/s/<section>`, Discover `/discover/category` | Stable, documented URL shapes | Link cards to per-post `/p/<slug>` (from feed `link`), and a single "Read all essays" link to `/archive` |
-| **5. Surface** | Homepage cards only vs `/writing` index (RSS + optional local MDX) | cards: +low maint/−no owned surface; route: +owned SEO + MDX home/−more to build | **`/writing` index route** (RSS-driven now, MDX-ready later) with **2-3 latest cards on the homepage linking into it** — matches "central hub, essays as first-class identity" |
+| Area                   | Options                                                                                                                                                | Pros / Cons                                                                                                                                                        | Recommended default (input to a human decision)                                                                                                                                                                   |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1. Feed source**     | Native `<pub>.substack.com/feed` (RSS 2.0, `content:encoded` full text for free posts, `description` excerpt, `enclosure` image); paid posts truncated | +Official, no auth, cover image via enclosure / −small item count (~5-6 observed, undocumented), −paid posts preview-only, −browser CORS                           | **Use the native feed, server-side only**, read `enclosure` for thumbnails and `description` for card excerpts                                                                                                    |
+| **2. Fetch + cache**   | (a) `use cache` + `cacheLife('days')` + `cacheTag` (needs `cacheComponents:true`); (b) `fetch(..., {next:{revalidate,tags}})`                          | (a) +aligns with project's Cache Components direction, ISR-like on Vercel / −requires enabling the flag; (b) +works today without the flag / −not the stated model | **(a) `use cache` + `cacheLife('days')` + `cacheTag('substack-feed')`** in a server `lib/substack.ts`, rendered by a Server Component — _contingent on enabling `cacheComponents`_; use (b) if the flag stays off |
+| **3. Subscribe UI**    | (a) iframe embed; (b) custom form → undocumented API; (c) plain styled link                                                                            | (a) +reliable/−ugly, 3rd-party cookies; (b) +native look/−ToS + CORS + fragile; (c) +reliable, first-party, on-brand/−off-site hop                                 | **(c) plain styled link/button** to `/subscribe`, matching Tailwind theme — best privacy + reliability, no third-party cookies; revisit (b) via a server proxy only if inline capture becomes a real requirement  |
+| **4. Archive linking** | `/archive`, `/p/<slug>`, `/s/<section>`, Discover `/discover/category`                                                                                 | Stable, documented URL shapes                                                                                                                                      | Link cards to per-post `/p/<slug>` (from feed `link`), and a single "Read all essays" link to `/archive`                                                                                                          |
+| **5. Surface**         | Homepage cards only vs `/writing` index (RSS + optional local MDX)                                                                                     | cards: +low maint/−no owned surface; route: +owned SEO + MDX home/−more to build                                                                                   | **`/writing` index route** (RSS-driven now, MDX-ready later) with **2-3 latest cards on the homepage linking into it** — matches "central hub, essays as first-class identity"                                    |
 
 ### Prerequisites flagged for the human decision
+
 - Enabling **`cacheComponents: true`** in `next.config.ts` is a project-wide change (it
   unifies `ppr`/`useCache`/`dynamicIO`); decide this before adopting the `use cache` pattern.
 - Add **`substackcdn.com`** (and possibly `substack-post-media.s3.amazonaws.com`) to

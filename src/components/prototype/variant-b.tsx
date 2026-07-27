@@ -50,8 +50,7 @@ const TREATMENTS: Record<TreatmentKey, Treatment> = {
   warm: {
     page: "bg-ground text-ink",
     meta: "font-mono text-xs uppercase tracking-[0.12em]",
-    metaHeading:
-      "font-mono text-xs uppercase tracking-[0.2em] text-accent",
+    metaHeading: "font-mono text-xs uppercase tracking-[0.2em] text-accent",
     accent: "text-accent",
     accentBorder: "border-accent",
     masthead: "border-b-2 border-current pb-4",
@@ -130,7 +129,11 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
           </p>
           <nav className={`flex gap-5 ${t.meta}`}>
             {NAV.map((item) => (
-              <a key={item.href} href={item.href} className="hover:underline underline-offset-4">
+              <a
+                key={item.href}
+                href={item.href}
+                className="underline-offset-4 hover:underline"
+              >
                 {item.label}
               </a>
             ))}
@@ -144,7 +147,14 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
             style={delay(1)}
           >
             <div className="relative size-24 overflow-hidden rounded-sm grayscale">
-              <Image src={RESUME_DATA.avatarUrl} alt={RESUME_DATA.name} width={96} height={96} priority className="object-cover" />
+              <Image
+                src={RESUME_DATA.avatarUrl}
+                alt={RESUME_DATA.name}
+                width={96}
+                height={96}
+                priority
+                className="object-cover"
+              />
             </div>
             <p className={`text-sm leading-relaxed ${t.body}`}>
               AI Product Engineer in Turin. Building the AI engine behind a
@@ -152,11 +162,20 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
               GenAI startup.
             </p>
             <div id="contact" className="space-y-1 text-sm">
-              <a href={`mailto:${RESUME_DATA.contact.email}`} className="block underline underline-offset-4">
+              <a
+                href={`mailto:${RESUME_DATA.contact.email}`}
+                className="block underline underline-offset-4"
+              >
                 {RESUME_DATA.contact.email}
               </a>
               {RESUME_DATA.contact.social.map((s) => (
-                <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" className="block underline underline-offset-4">
+                <a
+                  key={s.name}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block underline underline-offset-4"
+                >
                   {s.name}
                 </a>
               ))}
@@ -164,7 +183,10 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
             <p className={`${t.meta} ${t.faint}`}>EN · IT</p>
             <p className={`${t.meta} ${t.faint}`}>
               agents welcome →{" "}
-              <a href="/llms.txt" className={`underline underline-offset-4 ${t.accent}`}>
+              <a
+                href="/llms.txt"
+                className={`underline underline-offset-4 ${t.accent}`}
+              >
                 /llms.txt
               </a>
             </p>
@@ -175,10 +197,13 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
             {/* Statement hero */}
             <section className={t.reveal} style={delay(2)}>
               <h1 className={`font-display ${t.heroClass}`}>
-                Turning frontier AI into <em className={`italic ${t.accent}`}>shipped products</em> — and writing
-                about tech, startups, and strategy along the way.
+                Turning frontier AI into{" "}
+                <em className={`italic ${t.accent}`}>shipped products</em> — and
+                writing about tech, startups, and strategy along the way.
               </h1>
-              <p className={`mt-6 max-w-xl text-base leading-relaxed ${t.body}`}>
+              <p
+                className={`mt-6 max-w-xl text-base leading-relaxed ${t.body}`}
+              >
                 Pharma manufacturing, digital health, a founded GenAI startup,
                 compliance AI: the through-line is that technical depth only
                 matters when it connects to what&apos;s worth building.
@@ -196,15 +221,25 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
               <h2 className={`mb-6 ${t.metaHeading}`}>Writing</h2>
               <div className={t.divide}>
                 {PROTOTYPE_ESSAYS.map((essay, i) => (
-                  <a key={essay.title} href="#" className={`group grid gap-2 ${t.essayPad} md:grid-cols-[3rem_1fr_auto] md:gap-6`}>
-                    <span className={`font-display text-2xl italic ${t.accent}`}>
+                  <a
+                    key={essay.title}
+                    href="#"
+                    className={`group grid gap-2 ${t.essayPad} md:grid-cols-[3rem_1fr_auto] md:gap-6`}
+                  >
+                    <span
+                      className={`font-display text-2xl italic ${t.accent}`}
+                    >
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span>
-                      <span className={`font-display block ${t.essayTitle} group-hover:underline underline-offset-4`}>
+                      <span
+                        className={`font-display block ${t.essayTitle} underline-offset-4 group-hover:underline`}
+                      >
                         {essay.title}
                       </span>
-                      <span className={`mt-2 block max-w-xl text-sm leading-relaxed ${t.body}`}>
+                      <span
+                        className={`mt-2 block max-w-xl text-sm leading-relaxed ${t.body}`}
+                      >
                         {essay.excerpt}
                       </span>
                     </span>
@@ -216,7 +251,10 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
                   </a>
                 ))}
               </div>
-              <a href="#" className={`mt-4 inline-block text-sm underline underline-offset-4 ${t.accent} hover:opacity-70`}>
+              <a
+                href="#"
+                className={`mt-4 inline-block text-sm underline underline-offset-4 ${t.accent} hover:opacity-70`}
+              >
                 Archive &amp; subscribe →
               </a>
             </section>
@@ -226,29 +264,46 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
               <h2 className={`mb-6 ${t.metaHeading}`}>Work</h2>
               <div className={t.workGap}>
                 {RESUME_DATA.work.slice(0, 4).map((work) => (
-                  <div key={`${work.company}-${work.start}`} className="grid gap-1 md:grid-cols-[10rem_1fr] md:gap-6">
-                    <p className={`${t.meta} ${t.faint} pt-1 tabular-nums normal-case`}>
+                  <div
+                    key={`${work.company}-${work.start}`}
+                    className="grid gap-1 md:grid-cols-[10rem_1fr] md:gap-6"
+                  >
+                    <p
+                      className={`${t.meta} ${t.faint} pt-1 normal-case tabular-nums`}
+                    >
                       {work.start} – {work.end ?? "Present"}
                     </p>
                     <div>
                       <h3 className="font-display text-xl">
                         {work.title} · {work.company}
                       </h3>
-                      <p className={`mt-1 max-w-xl text-sm leading-relaxed ${t.body}`}>
-                        {Array.isArray(work.description) ? work.description[0] : work.description}
+                      <p
+                        className={`mt-1 max-w-xl text-sm leading-relaxed ${t.body}`}
+                      >
+                        {Array.isArray(work.description)
+                          ? work.description[0]
+                          : work.description}
                       </p>
                     </div>
                   </div>
                 ))}
                 <p className={`text-sm ${t.faint} md:pl-[10rem]`}>
-                  Earlier: {RESUME_DATA.work.slice(4).map((w) => w.company).join(", ")} · EPFL MSc
-                  in Life Sciences Engineering.
+                  Earlier:{" "}
+                  {RESUME_DATA.work
+                    .slice(4)
+                    .map((w) => w.company)
+                    .join(", ")}{" "}
+                  · EPFL MSc in Life Sciences Engineering.
                 </p>
               </div>
             </section>
 
             {/* Projects */}
-            <section id="projects" className={`pb-16 ${t.reveal}`} style={delay(5)}>
+            <section
+              id="projects"
+              className={`pb-16 ${t.reveal}`}
+              style={delay(5)}
+            >
               <h2 className={`mb-6 ${t.metaHeading}`}>Projects</h2>
               <div className="grid gap-8 md:grid-cols-2">
                 {RESUME_DATA.projects.map((project) => (
@@ -262,7 +317,9 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
                     <h3 className="font-display text-2xl group-hover:italic">
                       {project.title}
                     </h3>
-                    <p className={`mt-2 text-sm leading-relaxed ${t.body}`}>{project.description}</p>
+                    <p className={`mt-2 text-sm leading-relaxed ${t.body}`}>
+                      {project.description}
+                    </p>
                     <p className={`mt-3 ${t.meta} ${t.faint}`}>
                       {project.techStack.slice(0, 4).join(" · ")}
                     </p>

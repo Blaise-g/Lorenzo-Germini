@@ -26,15 +26,15 @@ That reframing came out of fixing the rail arm's mobile fate. There is no good i
 
 ## Measured comparison at ≥1024
 
-| | single measure (`d`) | amended rail (`b1a`) |
-|---|---|---|
-| Above-fold copy @1440 | 495 chars | **677 (+37%)** |
-| Above-fold copy @375 (pre-copy-fix) | 307 | **488 (+59%)** |
-| Viewport width used @1440 | 688/1440 = **48%**, 752px dead margin | 944/1440 = **66%** |
-| Face + nav on screen | masthead only | **85.6% of the scroll** |
-| Left column fill @1280 | — | 377 of 860px = **44%**, empty in every frame |
-| Design specificity | category-interchangeable | **authored** |
-| Nielsen (5/9/10 n/a) | 20/28 (71%) | 21/28 (75%) |
+|                                     | single measure (`d`)                  | amended rail (`b1a`)                         |
+| ----------------------------------- | ------------------------------------- | -------------------------------------------- |
+| Above-fold copy @1440               | 495 chars                             | **677 (+37%)**                               |
+| Above-fold copy @375 (pre-copy-fix) | 307                                   | **488 (+59%)**                               |
+| Viewport width used @1440           | 688/1440 = **48%**, 752px dead margin | 944/1440 = **66%**                           |
+| Face + nav on screen                | masthead only                         | **85.6% of the scroll**                      |
+| Left column fill @1280              | —                                     | 377 of 860px = **44%**, empty in every frame |
+| Design specificity                  | category-interchangeable              | **authored**                                 |
+| Nielsen (5/9/10 n/a)                | 20/28 (71%)                           | 21/28 (75%)                                  |
 
 The rail wins on the brief's non-negotiable — proof above the fold — and it is the only arm the design review judges authored rather than interchangeable. Since #8 holds palette and typeface constant, the single measure contributes no compositional authorship at all: a centred `max-w-[46rem]` column with a masthead and mono kickers is the default output of every editorial personal-site starter of the last four years.
 
@@ -50,7 +50,7 @@ Three would have been baked into the spec if it had been written from the protot
 
 ## The copy amendment (crosses back into #6)
 
-The critique measured **3 technical terms above the fold on the incumbent site and 0 in both prototype arms** — a violation of the audit's one binding constraint, *never look less technical*, in both arms. So composition was never the binding variable on the metric that decides a founder's ten seconds; hero copy is.
+The critique measured **3 technical terms above the fold on the incumbent site and 0 in both prototype arms** — a violation of the audit's one binding constraint, _never look less technical_, in both arms. So composition was never the binding variable on the metric that decides a founder's ten seconds; hero copy is.
 
 The site owner chose to amend the copy now rather than defer it. The hero subhead and the rail bio now name a system: "Right now: the agentic RAG engine behind a compliance platform." Verified: `agentic` and `RAG` both above the fold at 375 and 1440 in both arms, above-fold copy up from 488 to 775 chars on a phone. **The wording is a recommendation for the copy rewrite, not a locked line** — the decision is that the fold must name at least one concrete system.
 
@@ -58,7 +58,7 @@ The site owner chose to amend the copy now rather than defer it. The hero subhea
 
 - **Contrast: zero failures**, both arms, both schemes, 18 distinct text styles each. Lowest real-content ratio 6.34:1 (light) / 6.63:1 (dark).
 - **Heading outline** h1 → h2 → h3 with no skipped levels; `banner` / `main` / `contentinfo` all present; `<footer>` correctly outside `<main>`; skip-link target exists.
-- **Reduced motion:** the known `globals.css:228` defect (never resets `animation-delay`; `fade-in-up` uses `both` fill) is **dormant here** because this prototype sets no stagger delays — zero elements end at `opacity < 1`. The defect is real, but it is the *stagger* that triggers it.
+- **Reduced motion:** the known `globals.css:228` defect (never resets `animation-delay`; `fade-in-up` uses `both` fill) is **dormant here** because this prototype sets no stagger delays — zero elements end at `opacity < 1`. The defect is real, but it is the _stagger_ that triggers it.
 - **Images:** Next picks the smallest bucket ≥ layout size (64 for 56px, 96 for 80px); neither arm over-requests.
 
 ## Viewing

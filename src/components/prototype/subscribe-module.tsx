@@ -76,13 +76,10 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   return (
     <section
       aria-labelledby={`${id}-heading`}
-      className={`${t.projectRule} mt-20 border-ink/70`}
+      className={`${t.projectRule} border-ink/70 mt-20`}
     >
       <div className="max-w-[34rem]">
-        <h2
-          id={`${id}-heading`}
-          className="font-display text-2xl leading-snug"
-        >
+        <h2 id={`${id}-heading`} className="font-display text-2xl leading-snug">
           {c.heading}
         </h2>
         <p className={`mt-3 text-base leading-relaxed ${t.body}`}>
@@ -113,10 +110,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
           }}
           className="mt-7"
         >
-          <label
-            htmlFor={inputId}
-            className={`block ${t.meta} ${t.faint}`}
-          >
+          <label htmlFor={inputId} className={`block ${t.meta} ${t.faint}`}>
             {c.label}
           </label>
           {/* #13: `flex flex-wrap` never wrapped — min-w-0 flex-1 let the
@@ -137,7 +131,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
                 setValue(e.target.value);
                 if (error) setError(null);
               }}
-              className={`min-w-0 border-b-2 bg-transparent px-1 py-2 text-base placeholder:text-faint focus-visible:outline-none sm:flex-1 ${
+              className={`placeholder:text-faint min-w-0 border-b-2 bg-transparent px-1 py-2 text-base focus-visible:outline-none sm:flex-1 ${
                 error
                   ? "border-accent"
                   : "border-border focus-visible:border-accent"
@@ -145,7 +139,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
             />
             <button
               type="submit"
-              className={`${t.meta} self-start shrink-0 border-b-2 pt-2 pb-2 ${t.accent} ${t.accentBorder} hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent`}
+              className={`${t.meta} shrink-0 self-start border-b-2 pt-2 pb-2 ${t.accent} ${t.accentBorder} focus-visible:outline-accent hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4`}
             >
               {c.button}
             </button>
@@ -154,14 +148,17 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
             <p
               id={errorId}
               role="alert"
-              className="mt-3 font-mono text-xs text-body"
+              className="text-body mt-3 font-mono text-xs"
             >
               {error}
             </p>
           ) : null}
           {/* The handoff promise. Never "you're subscribed" — this surface
               genuinely does not know, and cannot. */}
-          <p id={hintId} className={`mt-3 text-[13px] leading-relaxed ${t.faint}`}>
+          <p
+            id={hintId}
+            className={`mt-3 text-[13px] leading-relaxed ${t.faint}`}
+          >
             {c.handoff}
           </p>
         </form>

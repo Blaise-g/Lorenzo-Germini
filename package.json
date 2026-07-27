@@ -12,6 +12,8 @@
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
     "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "test": "playwright test"
   },
   "dependencies": {

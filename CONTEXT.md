@@ -47,7 +47,7 @@ carries a destructive variant. See ADR-0001.
 **Token set**:
 One of the three blocks in `src/app/globals.css` that declare the seven colour roles:
 `@theme` (light), `.dark`, and the `@media print` override. They must declare identical
-token *names*; their values differ by design.
+token _names_; their values differ by design.
 
 **Generating set**:
 `@theme` specifically. It is the only set Tailwind v4 generates utilities from — the other

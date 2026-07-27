@@ -12,21 +12,40 @@
       "source": "Complaion",
       "acceptedAnyOf": ["compliance automation", "compliance platform"]
     },
-    { "id": "iso-certification", "source": "Complaion", "acceptedAnyOf": ["ISO"] },
+    {
+      "id": "iso-certification",
+      "source": "Complaion",
+      "acceptedAnyOf": ["ISO"]
+    },
     {
       "id": "multi-provider-llm-infra",
       "source": "Complaion",
-      "acceptedAnyOf": ["multi-provider LLM infrastructure", "multi-provider LLM"]
+      "acceptedAnyOf": [
+        "multi-provider LLM infrastructure",
+        "multi-provider LLM"
+      ]
     },
-    { "id": "provider-openai", "source": "Complaion", "acceptedAnyOf": ["OpenAI"] },
+    {
+      "id": "provider-openai",
+      "source": "Complaion",
+      "acceptedAnyOf": ["OpenAI"]
+    },
     {
       "id": "provider-anthropic",
       "source": "Complaion",
       "acceptedAnyOf": ["Claude", "Anthropic"],
       "$comment": "resume-data says 'Claude'; the prototype's homepageProof says 'Anthropic'. Either satisfies the constraint."
     },
-    { "id": "provider-gemini", "source": "Complaion", "acceptedAnyOf": ["Gemini"] },
-    { "id": "agentic-rag", "source": "Complaion", "acceptedAnyOf": ["agentic RAG"] },
+    {
+      "id": "provider-gemini",
+      "source": "Complaion",
+      "acceptedAnyOf": ["Gemini"]
+    },
+    {
+      "id": "agentic-rag",
+      "source": "Complaion",
+      "acceptedAnyOf": ["agentic RAG"]
+    },
     {
       "id": "eval-frameworks",
       "source": "Complaion",
@@ -38,10 +57,26 @@
       "acceptedAnyOf": ["automation workflows"]
     },
 
-    { "id": "aws", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["AWS"] },
-    { "id": "dynamodb", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["DynamoDB"] },
-    { "id": "amplify", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["Amplify"] },
-    { "id": "lambda", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["Lambda"] },
+    {
+      "id": "aws",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["AWS"]
+    },
+    {
+      "id": "dynamodb",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["DynamoDB"]
+    },
+    {
+      "id": "amplify",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["Amplify"]
+    },
+    {
+      "id": "lambda",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["Lambda"]
+    },
     {
       "id": "backend-infrastructure",
       "source": "Stealth GenAI Startup",
@@ -52,14 +87,26 @@
       "source": "Stealth GenAI Startup",
       "acceptedAnyOf": ["Generative AI API layer", "GenAI API layer"]
     },
-    { "id": "rag-stack", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["RAG stack"] },
-    { "id": "pgai", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["pgai"] },
+    {
+      "id": "rag-stack",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["RAG stack"]
+    },
+    {
+      "id": "pgai",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["pgai"]
+    },
     {
       "id": "parsing-pipelines",
       "source": "Stealth GenAI Startup",
       "acceptedAnyOf": ["parsing pipelines", "custom parsing"]
     },
-    { "id": "tracing", "source": "Stealth GenAI Startup", "acceptedAnyOf": ["tracing"] },
+    {
+      "id": "tracing",
+      "source": "Stealth GenAI Startup",
+      "acceptedAnyOf": ["tracing"]
+    },
     {
       "id": "retrieval-quality",
       "source": "Stealth GenAI Startup",
@@ -70,7 +117,11 @@
     {
       "id": "sensor-data",
       "source": "GSK",
-      "acceptedAnyOf": ["multi-source sensor data", "plant sensor data", "sensor data"]
+      "acceptedAnyOf": [
+        "multi-source sensor data",
+        "plant sensor data",
+        "sensor data"
+      ]
     },
     {
       "id": "water-rejection",
@@ -78,14 +129,33 @@
       "requiredAllOf": ["water rejection", "10,000 m"],
       "$comment": "The figure is the proof; the phrase alone is not. Loose on the unit suffix so m3/m³ both match."
     },
-    { "id": "anomaly-detection", "source": "GSK", "acceptedAnyOf": ["anomaly detection", "anomaly-detection"] },
-    { "id": "semantic-nlp", "source": "GSK", "acceptedAnyOf": ["semantic NLP"] },
-    { "id": "time-series", "source": "GSK", "acceptedAnyOf": ["time-series forecasting", "time-series"] },
-    { "id": "fault-detection", "source": "GSK", "acceptedAnyOf": ["fault detection"] },
+    {
+      "id": "anomaly-detection",
+      "source": "GSK",
+      "acceptedAnyOf": ["anomaly detection", "anomaly-detection"]
+    },
+    {
+      "id": "semantic-nlp",
+      "source": "GSK",
+      "acceptedAnyOf": ["semantic NLP"]
+    },
+    {
+      "id": "time-series",
+      "source": "GSK",
+      "acceptedAnyOf": ["time-series forecasting", "time-series"]
+    },
+    {
+      "id": "fault-detection",
+      "source": "GSK",
+      "acceptedAnyOf": ["fault detection"]
+    },
     {
       "id": "nl-interfaces",
       "source": "GSK",
-      "acceptedAnyOf": ["natural-language interfaces", "natural language interfaces"]
+      "acceptedAnyOf": [
+        "natural-language interfaces",
+        "natural language interfaces"
+      ]
     },
     {
       "id": "genai-use-cases",
@@ -93,19 +163,34 @@
       "acceptedAnyOf": ["generative AI use cases"]
     },
 
-    { "id": "stable-diffusion", "source": "Self Employed", "acceptedAnyOf": ["Stable Diffusion"] },
-    { "id": "dreambooth", "source": "Self Employed", "acceptedAnyOf": ["Dreambooth"] },
+    {
+      "id": "stable-diffusion",
+      "source": "Self Employed",
+      "acceptedAnyOf": ["Stable Diffusion"]
+    },
+    {
+      "id": "dreambooth",
+      "source": "Self Employed",
+      "acceptedAnyOf": ["Dreambooth"]
+    },
     {
       "id": "curated-datasets",
       "source": "Self Employed",
       "acceptedAnyOf": ["curated dataset", "hand-curated dataset"]
     },
-    { "id": "preprocessing", "source": "Self Employed", "acceptedAnyOf": ["preprocessing"] },
+    {
+      "id": "preprocessing",
+      "source": "Self Employed",
+      "acceptedAnyOf": ["preprocessing"]
+    },
 
     {
       "id": "biomedical-literature-analysis",
       "source": "Burgeon Labs",
-      "acceptedAnyOf": ["biomedical literature analysis", "biomedical literature"]
+      "acceptedAnyOf": [
+        "biomedical literature analysis",
+        "biomedical literature"
+      ]
     },
     {
       "id": "fine-tuned-lms",
@@ -115,7 +200,11 @@
     {
       "id": "abstractive-summarization",
       "source": "Burgeon Labs",
-      "acceptedAnyOf": ["abstractive text summarization", "abstractive summarisation", "abstractive summarization"]
+      "acceptedAnyOf": [
+        "abstractive text summarization",
+        "abstractive summarisation",
+        "abstractive summarization"
+      ]
     },
     {
       "id": "end-to-end-pipeline",
@@ -145,16 +234,40 @@
       "acceptedAnyOf": ["hardware-software integration"]
     },
 
-    { "id": "skill-generative-ai", "source": "skills", "acceptedAnyOf": ["Generative AI", "GenAI"] },
+    {
+      "id": "skill-generative-ai",
+      "source": "skills",
+      "acceptedAnyOf": ["Generative AI", "GenAI"]
+    },
     { "id": "skill-llms", "source": "skills", "acceptedAnyOf": ["LLM"] },
     { "id": "skill-rag", "source": "skills", "acceptedAnyOf": ["RAG"] },
-    { "id": "skill-fullstack", "source": "skills", "acceptedAnyOf": ["Full-Stack", "Full Stack"] },
+    {
+      "id": "skill-fullstack",
+      "source": "skills",
+      "acceptedAnyOf": ["Full-Stack", "Full Stack"]
+    },
 
     { "id": "nextjs", "source": "projects", "acceptedAnyOf": ["Next.js"] },
-    { "id": "vercel-ai-sdk", "source": "projects", "acceptedAnyOf": ["Vercel AI SDK"] },
-    { "id": "telegram-bot", "source": "projects", "acceptedAnyOf": ["Telegram"] },
-    { "id": "whatsapp-bot", "source": "projects", "acceptedAnyOf": ["WhatsApp"] },
-    { "id": "rate-limiting", "source": "projects", "acceptedAnyOf": ["rate-limit", "rate limit"] },
+    {
+      "id": "vercel-ai-sdk",
+      "source": "projects",
+      "acceptedAnyOf": ["Vercel AI SDK"]
+    },
+    {
+      "id": "telegram-bot",
+      "source": "projects",
+      "acceptedAnyOf": ["Telegram"]
+    },
+    {
+      "id": "whatsapp-bot",
+      "source": "projects",
+      "acceptedAnyOf": ["WhatsApp"]
+    },
+    {
+      "id": "rate-limiting",
+      "source": "projects",
+      "acceptedAnyOf": ["rate-limit", "rate limit"]
+    },
     { "id": "pytorch", "source": "projects", "acceptedAnyOf": ["PyTorch"] },
     { "id": "gradio", "source": "projects", "acceptedAnyOf": ["Gradio"] },
     {

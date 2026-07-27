@@ -74,7 +74,7 @@ export function StickyRailNavigation({
       })}
       <a
         href="/cv"
-        className="touch-target text-accent mt-3 border-l border-l-transparent py-1.5 pl-3 underline decoration-border underline-offset-4 hover:decoration-accent"
+        className="touch-target text-accent decoration-border hover:decoration-accent mt-3 border-l border-l-transparent py-1.5 pl-3 underline underline-offset-4"
       >
         CV →
       </a>

@@ -15,7 +15,7 @@ function Command({
   return (
     <CommandPrimitive
       className={cn(
-        "flex h-full w-full flex-col overflow-hidden rounded-md bg-ground text-ink",
+        "bg-ground text-ink flex h-full w-full flex-col overflow-hidden rounded-md",
         className,
       )}
       {...props}
@@ -30,7 +30,7 @@ function CommandDialog({ children, ...props }: CommandDialogProps) {
     <Dialog {...props}>
       <DialogContent className="overflow-hidden p-0 shadow-lg">
         <DialogTitle className="sr-only">Command Menu</DialogTitle>
-        <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-faint [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+        <Command className="[&_[cmdk-group-heading]]:text-faint [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>
       </DialogContent>
@@ -47,7 +47,7 @@ function CommandInput({
       <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
       <CommandPrimitive.Input
         className={cn(
-          "flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-faint disabled:cursor-not-allowed disabled:opacity-50 focus-visible:ring-0 focus-visible:ring-offset-0",
+          "placeholder:text-faint flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50",
           className,
         )}
         {...props}
@@ -63,7 +63,7 @@ function CommandList({
   return (
     <CommandPrimitive.List
       className={cn(
-        "max-h-[300px] overflow-y-auto overflow-x-hidden",
+        "max-h-[300px] overflow-x-hidden overflow-y-auto",
         className,
       )}
       {...props}
@@ -75,10 +75,7 @@ function CommandEmpty(
   props: React.ComponentPropsWithoutRef<typeof CommandPrimitive.Empty>,
 ) {
   return (
-    <CommandPrimitive.Empty
-      className="py-6 text-center text-sm"
-      {...props}
-    />
+    <CommandPrimitive.Empty className="py-6 text-center text-sm" {...props} />
   );
 }
 
@@ -89,7 +86,7 @@ function CommandGroup({
   return (
     <CommandPrimitive.Group
       className={cn(
-        "overflow-hidden p-1 text-ink [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-faint",
+        "text-ink [&_[cmdk-group-heading]]:text-faint overflow-hidden p-1 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:font-mono [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium",
         className,
       )}
       {...props}
@@ -103,7 +100,7 @@ function CommandSeparator({
 }: React.ComponentPropsWithoutRef<typeof CommandPrimitive.Separator>) {
   return (
     <CommandPrimitive.Separator
-      className={cn("-mx-1 h-px bg-border", className)}
+      className={cn("bg-border -mx-1 h-px", className)}
       {...props}
     />
   );
@@ -116,7 +113,7 @@ function CommandItem({
   return (
     <CommandPrimitive.Item
       className={cn(
-        "relative flex cursor-default select-none items-center rounded-sm border-l-2 border-transparent px-2 py-1.5 text-sm text-ink outline-none data-[selected=true]:border-accent data-[selected=true]:text-accent data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
+        "text-ink data-[selected=true]:border-accent data-[selected=true]:text-accent relative flex cursor-default items-center rounded-sm border-l-2 border-transparent px-2 py-1.5 text-sm outline-none select-none data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50",
         className,
       )}
       {...props}
@@ -131,7 +128,7 @@ function CommandShortcut({
   return (
     <span
       className={cn(
-        "ml-auto font-mono text-xs tracking-widest text-faint",
+        "text-faint ml-auto font-mono text-xs tracking-widest",
         className,
       )}
       {...props}

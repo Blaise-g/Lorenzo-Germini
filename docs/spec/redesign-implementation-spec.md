@@ -6,11 +6,11 @@
 
 This is the hand-off artifact. It consolidates every decision made on the map into three phases, and it is the only document an implementer should need to read end-to-end. Where a decision has a long rationale, the rationale stays on its ticket and is linked, not restated.
 
-**One-line goal:** reposition the site from a chronological CV into a professional hub for an **AI Product Engineer**, with essays as a first-class part of the identity — without the site ever looking *less* technical than it does today.
+**One-line goal:** reposition the site from a chronological CV into a professional hub for an **AI Product Engineer**, with essays as a first-class part of the identity — without the site ever looking _less_ technical than it does today.
 
 ## How to read this
 
-- **Phase 1** ships on the *current* design. Every item is independently valuable, independently revertable, and none of it presumes the redesign happens.
+- **Phase 1** ships on the _current_ design. Every item is independently valuable, independently revertable, and none of it presumes the redesign happens.
 - **Phase 2** is the redesign. Its internal order is load-bearing and stated explicitly; the `/cv` route is a hard prerequisite of the homepage swap.
 - **Phase 3** is optional and unordered.
 - **Every design and structural decision in here is locked.** What remains open is copy, naming and the publication URL — enumerated in [Open inputs](#open-inputs-this-spec-does-not-decide), with what each one blocks. There are no "the implementer decides" holes; if you find one, it is a defect in this document.
@@ -19,18 +19,18 @@ This is the hand-off artifact. It consolidates every decision made on the map in
 
 ## Source decisions
 
-| Ticket | What it settled |
-|---|---|
-| [#4](https://github.com/Blaise-g/Lorenzo-Germini/issues/4) | Audit + the one binding constraint: never look less technical |
-| [#5](https://github.com/Blaise-g/Lorenzo-Germini/issues/5) | Substack RSS mechanics (partly superseded by #10) |
-| [#6](https://github.com/Blaise-g/Lorenzo-Germini/issues/6) | Positioning brief — "AI Product Engineer", founders & product leaders, CTA = read the writing |
-| [#7](https://github.com/Blaise-g/Lorenzo-Germini/issues/7) | Direction: Variant B "Editorial" + agent-native affordances |
-| [#8](https://github.com/Blaise-g/Lorenzo-Germini/issues/8) | Visual treatment: B1 "Warm Print" |
-| [#9](https://github.com/Blaise-g/Lorenzo-Germini/issues/9) | `/cv` route, build-generated PDF, two print blocks |
-| [#10](https://github.com/Blaise-g/Lorenzo-Germini/issues/10) | Substack integration: RSS, two surfaces, `?email=` handoff, `cacheComponents` |
+| Ticket                                                       | What it settled                                                                                       |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| [#4](https://github.com/Blaise-g/Lorenzo-Germini/issues/4)   | Audit + the one binding constraint: never look less technical                                         |
+| [#5](https://github.com/Blaise-g/Lorenzo-Germini/issues/5)   | Substack RSS mechanics (partly superseded by #10)                                                     |
+| [#6](https://github.com/Blaise-g/Lorenzo-Germini/issues/6)   | Positioning brief — "AI Product Engineer", founders & product leaders, CTA = read the writing         |
+| [#7](https://github.com/Blaise-g/Lorenzo-Germini/issues/7)   | Direction: Variant B "Editorial" + agent-native affordances                                           |
+| [#8](https://github.com/Blaise-g/Lorenzo-Germini/issues/8)   | Visual treatment: B1 "Warm Print"                                                                     |
+| [#9](https://github.com/Blaise-g/Lorenzo-Germini/issues/9)   | `/cv` route, build-generated PDF, two print blocks                                                    |
+| [#10](https://github.com/Blaise-g/Lorenzo-Germini/issues/10) | Substack integration: RSS, two surfaces, `?email=` handoff, `cacheComponents`                         |
 | [#11](https://github.com/Blaise-g/Lorenzo-Germini/issues/11) | Owner sign-off; Ambient Current accepted as one named, gated exception to the default motion contract |
-| [#12](https://github.com/Blaise-g/Lorenzo-Germini/issues/12) | Composition: 220px sticky rail at `lg`+, single measure below |
-| [#13](https://github.com/Blaise-g/Lorenzo-Germini/issues/13) | `/writing` pixels: grain dropped, numbering dropped, launch line, feed link |
+| [#12](https://github.com/Blaise-g/Lorenzo-Germini/issues/12) | Composition: 220px sticky rail at `lg`+, single measure below                                         |
+| [#13](https://github.com/Blaise-g/Lorenzo-Germini/issues/13) | `/writing` pixels: grain dropped, numbering dropped, launch line, feed link                           |
 
 Prototype reference code lives in `src/components/prototype/` and `src/app/writing/page.tsx` (dev-only, never merged to production routes). It is **reference, not a starting point** — see [Prototype teardown](#prototype-teardown).
 
@@ -38,40 +38,40 @@ Prototype reference code lives in `src/components/prototype/` and `src/app/writi
 
 # Decisions this spec makes
 
-Nine questions were handed to #11 marked *"the spec must decide."* They are
+Nine questions were handed to #11 marked _"the spec must decide."_ They are
 decided here rather than buried in a phase. A tenth decision was added after
 the runnable Ambient Current prototype detour produced real-browser evidence.
 
-1. **Mobile navigation below `lg`.** A mono anchor row (`Writing · Work · Projects · CV`) sits directly under the identity band, in the normal document flow. It must clear the fixed theme toggle — see item 2. Rationale: as built, *neither* composition in #12 offered a phone visitor any route to Writing except scrolling past Work, and `/writing`'s always-visible mono nav row was measured working at every width.
+1. **Mobile navigation below `lg`.** A mono anchor row (`Writing · Work · Projects · CV`) sits directly under the identity band, in the normal document flow. It must clear the fixed theme toggle — see item 2. Rationale: as built, _neither_ composition in #12 offered a phone visitor any route to Writing except scrolling past Work, and `/writing`'s always-visible mono nav row was measured working at every width.
 
 2. **Fixed chrome gets reserved gutters, top and bottom.** The theme toggle, `BackToTop` and the command FAB may not overlap content at any width.
    - **Top-right:** below `lg` the masthead reserves `pr-12`, and no in-flow interactive element may enter the top-right 56×56 box.
    - **Bottom-right:** below `lg` the page reserves `pb-20` on its last in-flow block, and the FAB and `BackToTop` share one stacked cluster in a 56px-wide bottom-right column rather than being placed independently. Above `lg` they may sit in the margin, which is 752px wide at 1440 and empty.
 
-   Rationale: two measured collisions — 63px² of the `/writing` CV link hit-testing as "Toggle theme" at 375, and up to 640px² of command FAB over the essay excerpt. The second is a *bottom*-right collision, which a top-right exclusion zone alone does not prevent.
+   Rationale: two measured collisions — 63px² of the `/writing` CV link hit-testing as "Toggle theme" at 375, and up to 640px² of command FAB over the essay excerpt. The second is a _bottom_-right collision, which a top-right exclusion zone alone does not prevent.
 
-3. **Primary-action treatment — LOCKED.** The subscribe submit becomes the *only* filled control in the system: **solid accent ground, 12px mono uppercase, ≥44px tall**. Every other CTA keeps the 11px mono accent underline. Rationale: #13 measured 11 discrete CTAs in the last ~600px of `/writing`, 10 sharing one treatment — the submit was indistinguishable from a navigation link. A ~44px control is not a "large fill" and does not violate #8's accent discipline.
+3. **Primary-action treatment — LOCKED.** The subscribe submit becomes the _only_ filled control in the system: **solid accent ground, 12px mono uppercase, ≥44px tall**. Every other CTA keeps the 11px mono accent underline. Rationale: #13 measured 11 discrete CTAs in the last ~600px of `/writing`, 10 sharing one treatment — the submit was indistinguishable from a navigation link. A ~44px control is not a "large fill" and does not violate #8's accent discipline.
 
    **The label colour inverts between modes, and this is not optional:**
 
-   | | fill | label | contrast | |
-   |---|---|---|---|---|
-   | **light** | `#9c3c1c` | paper `#faf6ef` | **6.34:1** | ✓ ship |
-   | **dark** | `#d98d63` | ink `#171412` | **6.93:1** | ✓ ship |
-   | ~~dark~~ | ~~`#d98d63`~~ | ~~paper `#ece7de`~~ | **2.15:1** | ✗ AA fail — the trap |
+   |           | fill          | label               | contrast   |                             |
+   | --------- | ------------- | ------------------- | ---------- | --------------------------- |
+   | **light** | `#9c3c1c`     | paper `#faf6ef`     | **6.34:1** | ✓ ship                      |
+   | **dark**  | `#d98d63`     | ink `#171412`       | **6.93:1** | ✓ ship                      |
+   | ~~dark~~  | ~~`#d98d63`~~ | ~~paper `#ece7de`~~ | **2.15:1** | ✗ AA fail — the trap        |
    | ~~light~~ | ~~`#d98d63`~~ | ~~paper `#faf6ef`~~ | **2.45:1** | ✗ (same trap, wrong ground) |
 
-   Paper text on the dark accent fails badly. The dark accent was lightened for legibility *as text on a dark ground*, which makes it a light ground itself — so dark mode takes **ink on accent**. Getting this wrong is the single most likely visual defect in the spec, because it is the intuitive choice.
+   Paper text on the dark accent fails badly. The dark accent was lightened for legibility _as text on a dark ground_, which makes it a light ground itself — so dark mode takes **ink on accent**. Getting this wrong is the single most likely visual defect in the spec, because it is the intuitive choice.
 
-   *On the 6.34 vs 6.16 discrepancy:* #8 recorded 6.16:1 for the light accent. That measurement was taken **with the grain overlay composited** (#8 noted `multiply` costs a further 1–2%). The grain is dropped, so **6.34:1 is the operative figure** and every accent number on the map that carried the grain penalty is now slightly conservative.
+   _On the 6.34 vs 6.16 discrepancy:_ #8 recorded 6.16:1 for the light accent. That measurement was taken **with the grain overlay composited** (#8 noted `multiply` costs a further 1–2%). The grain is dropped, so **6.34:1 is the operative figure** and every accent number on the map that carried the grain penalty is now slightly conservative.
 
    **Three states, not four — there is no disabled state.**
 
-   | state | treatment |
-   |---|---|
-   | `hover` | accent darkens ~8% (light) / lightens ~8% (dark); label unchanged |
-   | `focus-visible` | the §2.1 ring at 2px offset, so it reads against the fill rather than blending into it |
-   | pending | **no custom pending UI.** The form is a GET navigation; the browser's own navigation state is the indicator. Do not build a spinner. Only requirement: the label must not reflow |
+   | state           | treatment                                                                                                                                                                        |
+   | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | `hover`         | accent darkens ~8% (light) / lightens ~8% (dark); label unchanged                                                                                                                |
+   | `focus-visible` | the §2.1 ring at 2px offset, so it reads against the fill rather than blending into it                                                                                           |
+   | pending         | **no custom pending UI.** The form is a GET navigation; the browser's own navigation state is the indicator. Do not build a spinner. Only requirement: the label must not reflow |
 
    **The submit stays enabled and focusable at all times.** An empty field is not a dead end — attempting submission is how the reader gets the error. Contract: `required` + `type="email"` on the field, and on attempted submission the wired error surfaces through `aria-describedby` + `role="alert"`. This is the no-JS-compatible path, since native validation and the GET fallback both work without it.
 
@@ -83,15 +83,15 @@ the runnable Ambient Current prototype detour produced real-browser evidence.
 
 5. **Heading rank on `/writing`.** `h1 "Writing"` holds 36px; the **lead essay title yields to 28px**, rows to 20px. Rationale: #13 found `h1` and the lead title both at 36px in the same colour, differing only by weight. Demoting the `h1` instead would reproduce exactly the rank inversion #12 fixed.
 
-6. **Substack link budget.** Three surfaces, **never more than two per route**: the subscribe module at the end of `/writing`, the archive link **below** the module (not at the end of the list), and the footer subscribe link **suppressed on `/writing`** where the module already lives. (Per route, not per viewport — the test is countable in the DOM, not dependent on scroll position.) Rationale: #10 decision 6 wanted two placements; #13 measured three inside 400px, with the end-of-list archive link taking the reader off-site *before* the conversion point.
+6. **Substack link budget.** Three surfaces, **never more than two per route**: the subscribe module at the end of `/writing`, the archive link **below** the module (not at the end of the list), and the footer subscribe link **suppressed on `/writing`** where the module already lives. (Per route, not per viewport — the test is countable in the DOM, not dependent on scroll position.) Rationale: #10 decision 6 wanted two placements; #13 measured three inside 400px, with the end-of-list archive link taking the reader off-site _before_ the conversion point.
 
 7. **Previewed posts — a threshold, not a paywall detector.** #10 said reading time is "omitted when the body looks previewed." That is not an implementation contract, and the research found **no explicit paid flag in the feed** — so nothing in this spec may claim to detect paid posts.
 
-   What ships instead: reading time is computed from `content:encoded` word count and **omitted when `content:encoded` is absent or under 250 words**. When it is omitted, the metadata row renders the date alone — no `Paid` label, no `—`, no placeholder, because the site cannot prove *why* the body was short. A short free post is indistinguishable from a truncated paid one on the available evidence, and labelling it "Paid" would be a guess rendered as a fact.
+   What ships instead: reading time is computed from `content:encoded` word count and **omitted when `content:encoded` is absent or under 250 words**. When it is omitted, the metadata row renders the date alone — no `Paid` label, no `—`, no placeholder, because the site cannot prove _why_ the body was short. A short free post is indistinguishable from a truncated paid one on the available evidence, and labelling it "Paid" would be a guess rendered as a fact.
 
    The publication launches free, so this is a guard rail against a lone-date row looking like a data bug, not a paywall feature. **Verifying the actual paywall marker requires a real paid post to inspect** — Phase 3, if the owner ever gates a post. Do not invent the marker before then.
 
-8. **No subscribe success state — accepted deliberately.** The `?email=` handoff cannot confirm a signup. Copy promises a handoff ("continue on Substack"), never success; the typed address is lost on refresh. Documented as a known hole rather than solved, because every mechanism that *could* confirm it is either Cloudflare-blocked (#10) or funnels readers into Substack Recommendations.
+8. **No subscribe success state — accepted deliberately.** The `?email=` handoff cannot confirm a signup. Copy promises a handoff ("continue on Substack"), never success; the typed address is lost on refresh. Documented as a known hole rather than solved, because every mechanism that _could_ confirm it is either Cloudflare-blocked (#10) or funnels readers into Substack Recommendations.
 
 9. **Reading-order rule, generalised.** No layout may use CSS `order-*` or `flex-direction: *-reverse` to reorder interactive content against DOM order. Grid `col-start`/`row-start` only. Rationale: WCAG 2.4.3, and #12 found the prototype's own comment falsely claiming this was fixed.
 
@@ -102,7 +102,6 @@ the runnable Ambient Current prototype detour produced real-browser evidence.
     containment**, at `lg` and above.
 
     The exception is narrower than the visual-system hypothesis:
-
     - Hard-clip all drawn pixels to the extreme outer margin and a narrow
       rail-edge instrument lane. Zero generated pixels may enter rail content,
       navigation, metadata, controls, the rail/main gap outside that lane, or
@@ -148,12 +147,12 @@ the runnable Ambient Current prototype detour produced real-browser evidence.
 
 These are inputs the implementer needs and does not have. **Nothing in Phase 1 is blocked by any of them.**
 
-| Input | Blocks | Notes |
-|---|---|---|
-| **Final hero, About and section copy** | §2.6, §2.7 | Constrained below, not written. The fold must name at least one concrete system; #12's `"Right now: the agentic RAG engine behind a compliance platform"` is a *recommendation*, not a locked line. §2.7 is blocked too, because the metadata surfaces mirror the copy verbatim |
-| **Substack publication name and URL** | §2.5 | `SUBSTACK_BASE` is `https://lorenzogermini.substack.com` in the prototype; the publication does not exist yet. §2.4 is *not* blocked — the `cacheComponents` migration is site-wide and needs no feed |
-| **Whether the essay outranks the positioning statement in type size** | nothing | §2.6 ships the current hierarchy — person outranks writing — **deliberately**, not by default. It is the incumbent's information architecture in a nicer typeface, and inverting it is a one-line type-scale change once the copy exists. Do not hold the swap for it. Listed again in Phase 3 as the experiment |
-| **Bilingual EN/IT structure** | nothing | The feed carries no per-item language, so there is nothing to build against until IT publishing starts. **Do not pre-build filtering** |
+| Input                                                                 | Blocks     | Notes                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Final hero, About and section copy**                                | §2.6, §2.7 | Constrained below, not written. The fold must name at least one concrete system; #12's `"Right now: the agentic RAG engine behind a compliance platform"` is a _recommendation_, not a locked line. §2.7 is blocked too, because the metadata surfaces mirror the copy verbatim                                  |
+| **Substack publication name and URL**                                 | §2.5       | `SUBSTACK_BASE` is `https://lorenzogermini.substack.com` in the prototype; the publication does not exist yet. §2.4 is _not_ blocked — the `cacheComponents` migration is site-wide and needs no feed                                                                                                            |
+| **Whether the essay outranks the positioning statement in type size** | nothing    | §2.6 ships the current hierarchy — person outranks writing — **deliberately**, not by default. It is the incumbent's information architecture in a nicer typeface, and inverting it is a one-line type-scale change once the copy exists. Do not hold the swap for it. Listed again in Phase 3 as the experiment |
+| **Bilingual EN/IT structure**                                         | nothing    | The feed carries no per-item language, so there is nothing to build against until IT publishing starts. **Do not pre-build filtering**                                                                                                                                                                           |
 
 ---
 
@@ -171,10 +170,14 @@ These are inputs the implementer needs and does not have. **Nothing in Phase 1 i
 
 ```css
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   *:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-ring);
+    box-shadow:
+      0 0 0 2px var(--color-background),
+      0 0 0 4px var(--color-ring);
   }
 }
 ```
@@ -207,7 +210,9 @@ Fix at the convention level, not per-element, or every new surface reproduces it
 
 ```css
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+  *,
+  *::before,
+  *::after {
     animation-delay: 0ms !important;
     /* …existing declarations… */
   }
@@ -236,7 +241,7 @@ Move the skip link and `#main-content` to `layout.tsx`; add a real `<footer>`.
 
 ## 1.7 Print CV baseline fixes
 
-A real Chromium A4 render of the *current* print CV measures **3 pages**, page 2 28% blank, page 3 **75% empty** holding Projects alone, one bullet cut **mid-line** across the page-1/2 boundary, and 17 elements at 8px ≈ 6pt. There is no golden print path being preserved here.
+A real Chromium A4 render of the _current_ print CV measures **3 pages**, page 2 28% blank, page 3 **75% empty** holding Projects alone, one bullet cut **mid-line** across the page-1/2 boundary, and 17 elements at 8px ≈ 6pt. There is no golden print path being preserved here.
 
 - `@page { size: A4; margin: 14mm }`
 - `break-inside: avoid` on each role block and each project card
@@ -266,7 +271,7 @@ A real Chromium A4 render of the *current* print CV measures **3 pages**, page 2
 2.1 tokens ──▶ 2.2 shell ──▶ 2.3 /cv ──▶ 2.4 cacheComponents ──▶ 2.5 /writing ──▶ 2.6 homepage swap ──▶ 2.7 lockstep metadata
 ```
 
-**The sequencing rule that governs the whole phase:** `/cv` ships *before* the homepage swap, because the swap deletes content that today exists nowhere else. There must never be a commit where the site knows less than it does now. This was #9's strongest call and it is not negotiable without redoing that ticket.
+**The sequencing rule that governs the whole phase:** `/cv` ships _before_ the homepage swap, because the swap deletes content that today exists nowhere else. There must never be a commit where the site knows less than it does now. This was #9's strongest call and it is not negotiable without redoing that ticket.
 
 **Rough effort: 13–15 days** (2 + 2 + 3 + 1–2 + 3 + 2 + 0.5, plus no overlap assumed — the chain is sequential by construction, so nothing parallelises).
 
@@ -276,14 +281,14 @@ A real Chromium A4 render of the *current* print CV measures **3 pages**, page 2
 
 Migrate `src/app/globals.css`'s `@theme` block and `.dark` overrides to Warm Print. The palette must live in the tokens, **not alongside slate-indigo as one-off literals** — the prototypes use literals, and left that way shadcn/ui components and every non-homepage surface drift from the redesign.
 
-| Token | Light | Dark |
-|---|---|---|
+| Token                         | Light     | Dark      |
+| ----------------------------- | --------- | --------- |
 | ground (`--color-background`) | `#faf6ef` | `#171412` |
-| ink (`--color-foreground`) | `#1c1917` | `#ece7de` |
-| body | `#3f3a35` | `#c9c2b7` |
-| faint | `#5c554e` | `#a49a8e` |
-| accent | `#9c3c1c` | `#d98d63` |
-| `--color-ring` | accent | accent |
+| ink (`--color-foreground`)    | `#1c1917` | `#ece7de` |
+| body                          | `#3f3a35` | `#c9c2b7` |
+| faint                         | `#5c554e` | `#a49a8e` |
+| accent                        | `#9c3c1c` | `#d98d63` |
+| `--color-ring`                | accent    | accent    |
 
 - **`faint` must be an explicit token, never `opacity-55`.** Composited, `opacity-55` measures `rgb(128,124,120)` on `#faf6ef` = **3.84:1**, failing AA at 11px, **light mode only** — which is why it survived four tickets whose only dark-mode artifact was a screenshot. It carries every date, tag, tech stack and metadata line in the design. The explicit tokens measure 6.34:1 light / 6.63:1 dark.
 - The dark pass is a **first-class requirement**, not a follow-up. Dark ground is warm near-black, not slate or zinc.
@@ -311,7 +316,7 @@ Migrate `src/app/globals.css`'s `@theme` block and `.dark` overrides to Warm Pri
 - One **full-bleed hairline** (masthead rule running to the viewport edge, not stopping at the measure) — the single gesture that makes a centred measure read as intentional.
 - Mobile anchor row under the identity band, per [decision 1](#decisions-this-spec-makes).
 
-**Why the rail:** +37% above-fold copy at 1440, +59% at 375; 66% vs 48% of viewport width used; face and nav on screen for 85.6% of the scroll — and it is the only arm the review judged *authored* rather than category-interchangeable.
+**Why the rail:** +37% above-fold copy at 1440, +59% at 375; 66% vs 48% of viewport width used; face and nav on screen for 85.6% of the scroll — and it is the only arm the review judged _authored_ rather than category-interchangeable.
 
 **Component inventory** (all built and verified in prototypes):
 
@@ -327,12 +332,12 @@ masthead · identity band (below `lg`) · sticky rail with scroll-spy nav · mob
 - **Export: a build step** renders `/cv` from the same `RESUME_DATA` into `public/lorenzo-germini-cv.pdf`. Primary action is **Download CV (PDF)** with a controlled filename and zero drift. This is categorically different from the hand-maintained static PDF rejected in #9's first pass — same single source of truth.
 - `Cmd+P` must also behave: `<title>` exactly `Lorenzo-Germini-CV`, `@page { size: A4; margin: 14mm }`, `break-inside: avoid` per role block, and a mono hint line about unchecking browser headers/footers.
 - **Print CSS is two blocks**: a **global baseline** (hide chrome, neutralise `position: fixed`, force white ground + near-black ink for `:root` **and** `.dark`) plus a **`/cv`-scoped** block for page breaks and document specifics. One block scoped to `/cv` leaves `Cmd+P` on the homepage emitting warm paper and dark tokens.
-- **Content split — no duplicated *layout*, not no shared facts.** The homepage keeps a body-contrast mono systems line, per-role `homepageProof`, and the one-line credential. `/cv` holds full role bullets, full degrees with institutions and dates, the enriched skills taxonomy, and full contact. Read the ticket before narrowing this: as originally locked it cut the homepage from 18 proof statements to 4 and deleted **every** technical noun in the data — multi-provider LLM infrastructure, agentic RAG, evaluation frameworks, pgai, tracing — because the layout renders `description[0]`, and `description[0]` for Complaion is the business sentence. That violates the audit's one binding constraint.
+- **Content split — no duplicated _layout_, not no shared facts.** The homepage keeps a body-contrast mono systems line, per-role `homepageProof`, and the one-line credential. `/cv` holds full role bullets, full degrees with institutions and dates, the enriched skills taxonomy, and full contact. Read the ticket before narrowing this: as originally locked it cut the homepage from 18 proof statements to 4 and deleted **every** technical noun in the data — multi-provider LLM infrastructure, agentic RAG, evaluation frameworks, pgai, tracing — because the layout renders `description[0]`, and `description[0]` for Complaion is the business sentence. That violates the audit's one binding constraint.
 - Discoverability: mono `CV →` in the sticky rail, repeated in the footer; command-menu **Print** becomes context-dependent (**View CV** off-route, **Print CV** on-route).
 - An **"Updated \<month year\>"** line — the highest-trust-per-byte element on the surface, and it retires the hardcoded `dateModified`.
 - `/cv` gets `Person` / `alumniOf` / `hasOccupation` JSON-LD, not the homepage's `ProfilePage`.
-- `/cv` needs **its own OG image**. It currently inherits a dark slate-indigo card captioned "Full-Stack AI Engineer" — a palette this redesign abandons and a title it replaces. For many recipients the OG card *is* the CV's first impression.
-- `sitemap.ts` emits exactly one entry today; add `/cv`. **Do not expect `priority` or `changeFrequency` to keep Google from picking `/cv` as the entry result** — [Google ignores both](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap). #9 recorded that as the mechanism and it is wrong. The controls that actually work are the ones to use: a self-referencing canonical on `/cv`, the homepage as the only internally-linked hub (every route links home, `/cv` is linked *from* the rail and footer and links back), a `title`/`description` on `/cv` that reads as a document rather than a landing page, and the homepage's richer `ProfilePage` JSON-LD against `/cv`'s narrower `Person`. Set the sitemap fields to sane values if you like; just do not treat them as the guard rail. `/resume` 301s to `/cv`.
+- `/cv` needs **its own OG image**. It currently inherits a dark slate-indigo card captioned "Full-Stack AI Engineer" — a palette this redesign abandons and a title it replaces. For many recipients the OG card _is_ the CV's first impression.
+- `sitemap.ts` emits exactly one entry today; add `/cv`. **Do not expect `priority` or `changeFrequency` to keep Google from picking `/cv` as the entry result** — [Google ignores both](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap). #9 recorded that as the mechanism and it is wrong. The controls that actually work are the ones to use: a self-referencing canonical on `/cv`, the homepage as the only internally-linked hub (every route links home, `/cv` is linked _from_ the rail and footer and links back), a `title`/`description` on `/cv` that reads as a document rather than a landing page, and the homepage's richer `ProfilePage` JSON-LD against `/cv`'s narrower `Person`. Set the sitemap fields to sane values if you like; just do not treat them as the guard rail. `/resume` 301s to `/cv`.
 - **ATS extraction must be verified, not assumed.** A two-column grid with subsetted variable Fraunces and `tracking-[0.12em]` uppercase mono is a known mangling combination. The generated PDF collapses to a single column, and the acceptance test extracts its text.
 
 **Effort: 3 days**, of which ~1 is the PDF build step and its CI wiring.
@@ -351,7 +356,7 @@ This is a **blocker, not a follow-up**: it needs a site-wide prerender audit wit
 
 **Failure-tolerant fetch.** An unreachable, empty or malformed feed renders the section as **absent** — never a broken or empty centerpiece, never a failed build. This also removes launch-day ordering as a constraint: the site can deploy before the first post exists.
 
-**Cache policy — the one place failure-as-absence and caching interact badly.** #10 chose `cacheLife('days')`, and the pinned Next 16 profile for `days` is `stale: 5min / revalidate: 1 day / expire: 1 week`. Combined with failure-as-absence, deploying before the first post exists caches *"there is no writing"* and serves it for up to a day after publication — on the surface the site's primary CTA points at, during the only week anyone is looking. `cacheTag` alone does not fix this; a tag does nothing until something calls `revalidateTag`.
+**Cache policy — the one place failure-as-absence and caching interact badly.** #10 chose `cacheLife('days')`, and the pinned Next 16 profile for `days` is `stale: 5min / revalidate: 1 day / expire: 1 week`. Combined with failure-as-absence, deploying before the first post exists caches _"there is no writing"_ and serves it for up to a day after publication — on the surface the site's primary CTA points at, during the only week anyone is looking. `cacheTag` alone does not fix this; a tag does nothing until something calls `revalidateTag`.
 
 Locked policy, all three parts:
 
@@ -363,21 +368,21 @@ Locked policy, all three parts:
 
 3. **A manual invalidation endpoint, fully specified** (no implementer choice here — the spec says there are none, so this one gets nailed down):
 
-   | | |
-   |---|---|
-   | Route | `POST /api/revalidate/substack` — a Route Handler |
-   | Auth | `Authorization: Bearer <secret>` from an environment variable |
-   | Missing/wrong secret | `401`, no body, no timing difference worth exploiting |
-   | Success | `revalidateTag('substack-feed')` and **only** that tag, then `204` |
-   | Forbidden | **No `GET` mutation, and the secret never travels in the query string** — a `GET` that revalidates is a prefetch away from being triggered by a crawler |
+   |                      |                                                                                                                                                         |
+   | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+   | Route                | `POST /api/revalidate/substack` — a Route Handler                                                                                                       |
+   | Auth                 | `Authorization: Bearer <secret>` from an environment variable                                                                                           |
+   | Missing/wrong secret | `401`, no body, no timing difference worth exploiting                                                                                                   |
+   | Success              | `revalidateTag('substack-feed')` and **only** that tag, then `204`                                                                                      |
+   | Forbidden            | **No `GET` mutation, and the secret never travels in the query string** — a `GET` that revalidates is a prefetch away from being triggered by a crawler |
 
    Do not rely on redeploy-to-purge. The whole point of the feed is that the site does not redeploy when Lorenzo publishes.
 
-Verifying part 2 is an acceptance test, not an inspection: the empty-feed fixture must be observed *recovering*, not just rendering as absent once. Note that revalidation is **request-driven** — after the 300s window the first request may still receive the stale absence while triggering regeneration, and a subsequent request observes the recovered feed. The test asserts that two-step sequence, not instant recovery.
+Verifying part 2 is an acceptance test, not an inspection: the empty-feed fixture must be observed _recovering_, not just rendering as absent once. Note that revalidation is **request-driven** — after the 300s window the first request may still receive the stale absence while triggering regeneration, and a subsequent request observes the recovered feed. The test asserts that two-step sequence, not instant recovery.
 
-**Count-aware rendering.** The publication does not exist yet and its launch is coupled to the site's, so **day one is exactly one post**. 0 → section absent entirely. 1 → lead treatment only, no archive link. 2–3 → lead + compact rows. 4+ → full index and a "Read all essays" link to **`${SUBSTACK_BASE}/archive`** (an off-site Substack URL — there is no local `/archive` route and none is planned). The section must never imply more writing exists than does. At n=1 a mono **launch line** renders ("First essay published \<date\> · new ones roughly fortnightly") — without it the page read as *a page with one thing on it* under a standfirst promising "essays" plural.
+**Count-aware rendering.** The publication does not exist yet and its launch is coupled to the site's, so **day one is exactly one post**. 0 → section absent entirely. 1 → lead treatment only, no archive link. 2–3 → lead + compact rows. 4+ → full index and a "Read all essays" link to **`${SUBSTACK_BASE}/archive`** (an off-site Substack URL — there is no local `/archive` route and none is planned). The section must never imply more writing exists than does. At n=1 a mono **launch line** renders ("First essay published \<date\> · new ones roughly fortnightly") — without it the page read as _a page with one thing on it_ under a standfirst promising "essays" plural.
 
-**No numbering, anywhere.** #10's publication-order numbering and #7's numbered lead feature are both **dropped**. Verified live: numbers derived from the *fetched feed window*, not the archive, so the same essay rendered **04 at four items and 06 at six** — exactly the renumbering the decision existed to prevent, and it will happen in production the moment Substack's feed window slides past the archive. No reader could decode the scheme either (it counted up while the list counted down, with no total and no key). **The homepage teaser loses its numbers too.**
+**No numbering, anywhere.** #10's publication-order numbering and #7's numbered lead feature are both **dropped**. Verified live: numbers derived from the _fetched feed window_, not the archive, so the same essay rendered **04 at four items and 06 at six** — exactly the renumbering the decision existed to prevent, and it will happen in production the moment Substack's feed window slides past the archive. No reader could decode the scheme either (it counted up while the list counted down, with no total and no key). **The homepage teaser loses its numbers too.**
 
 **Metadata row:** date + computed reading time, in the explicit `faint` token. Language chips and topic tags are **dropped** — the feed has no per-item language (channel-level only), no tags, no reading time. Reading time is computed from `content:encoded` word count; see [decision 7](#decisions-this-spec-makes) for previewed posts.
 
@@ -385,16 +390,16 @@ Verifying part 2 is an acceptance test, not an inspection: the empty-feed fixtur
 
 The real cover risk is **luminance against the ground**, which #10 never considered:
 
-| cover | vs paper (light) | vs near-black (dark) |
-|---|---|---|
-| near-white diagram | **1.04:1** — no edge at all | **17.43:1** — brighter than any text on the page |
-| Substack auto-generated title card | 1.07:1 | 15.68:1 |
-| dark photographic | 4.53:1 | 1.06:1 — no edge |
+| cover                              | vs paper (light)            | vs near-black (dark)                             |
+| ---------------------------------- | --------------------------- | ------------------------------------------------ |
+| near-white diagram                 | **1.04:1** — no edge at all | **17.43:1** — brighter than any text on the page |
+| Substack auto-generated title card | 1.07:1                      | 15.68:1                                          |
+| dark photographic                  | 4.53:1                      | 1.06:1 — no edge                                 |
 
 Text on the page runs 6.6–13:1, so a white cover out-shouts every word around it in dark mode and has no boundary at all in light. **Substack auto-generates white cards, so this is the default case.** Therefore: **every cover carries a hairline in both modes** (≥3:1 against the ground — it is a functional boundary, not decoration), and light covers are knocked back in dark (`dark:brightness-[0.82]`). Deliberate cover art is a standing obligation the owner accepted in #10.
 
 - Rows are **16:9**, like the lead. A 4:3 row box cropped ~25% of 16:9 art and decapitated title cards ("Costruire" → "ostruire").
-- The lead cover is the LCP element and must not be `loading="lazy"` (Next was logging the warning). **Do not use `priority`** — it is deprecated as of Next 16. And do not reach for `preload` either: the official Next.js Image documentation is explicit that *"in most cases, you should use `loading="eager"` or `fetchPriority="high"` instead of `preload`"* ([Image component — `preload`](https://nextjs.org/docs/app/api-reference/components/image#preload)). `preload` injects a `<link>` in `<head>`, which is for images the parser has not reached; the lead cover is in the initial HTML of the route it lives on. **Use `loading="eager"` + `fetchPriority="high"`.** The other five stay lazy.
+- The lead cover is the LCP element and must not be `loading="lazy"` (Next was logging the warning). **Do not use `priority`** — it is deprecated as of Next 16. And do not reach for `preload` either: the official Next.js Image documentation is explicit that _"in most cases, you should use `loading="eager"` or `fetchPriority="high"` instead of `preload`"_ ([Image component — `preload`](https://nextjs.org/docs/app/api-reference/components/image#preload)). `preload` injects a `<link>` in `<head>`, which is for images the parser has not reached; the lead cover is in the initial HTML of the route it lives on. **Use `loading="eager"` + `fetchPriority="high"`.** The other five stay lazy.
 - `sizes` must be `(min-width: 640px) 160px, 100vw`. A bare `sizes="160px"` served a 160px file into a 325px slot at DPR 2 on every phone.
 - The coverless fallback panel becomes a full-width empty box on a phone — drop it below `sm`.
 
@@ -409,7 +414,7 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
 
 **Semantics:**
 
-- **Fix the essay link semantics.** As built, each essay was a single 221–268-character link — ~1,500 characters of link text across six tab stops — with no list semantics, and rows were `h3` under the lead's `h2`, so heading navigation announced the other five essays as *sections of* the lead. Link the title, associate the rest, wrap rows in `ul`/`li`.
+- **Fix the essay link semantics.** As built, each essay was a single 221–268-character link — ~1,500 characters of link text across six tab stops — with no list semantics, and rows were `h3` under the lead's `h2`, so heading navigation announced the other five essays as _sections of_ the lead. Link the title, associate the rest, wrap rows in `ul`/`li`.
 - Heading rank per [decision 5](#decisions-this-spec-makes).
 - The lead excerpt caps with everything else — it set at **90 characters per line** (688px) while every other paragraph ran 63–74, because `max-width` computed to `none` on all nine paragraphs.
 - Substack link budget per [decision 6](#decisions-this-spec-makes).
@@ -430,7 +435,7 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
   sections. `cacheComponents` streams sections in via Suspense, so the #8
   "~90ms stagger across masthead → rail → hero → writing → work → projects"
   is **dropped**: the chunk lands ~700ms after navigation and all items mount
-  in the *same* frame, so the stagger is not sequential arrival but a uniform
+  in the _same_ frame, so the stagger is not sequential arrival but a uniform
   delay tax on a section that already arrived late — and under reduced motion
   it holds five of six items blank. Space-holding fallbacks measured
   **CLS 0.0000**. Hover = underline/opacity only. Ambient Current is not
@@ -455,9 +460,9 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
 These drift the moment the copy lands, and they drift silently. Do them in the same commit as §2.6.
 
 - `RESUME_DATA.about` still says "Full-Stack AI Engineer" while the hero says "AI Product Engineer."
-- `src/components/structured-data.tsx`: `hasOccupation.name` is the hardcoded string `"AI Engineer"`. `jobTitle` is *not* hardcoded — it reads `RESUME_DATA.work[0]?.title`, which is the employer's job title ("AI Engineer"), not the positioning label. Both need to say "AI Product Engineer" without overwriting the employer-accurate title in the work history, so the label needs its own field rather than being derived from `work[0]`. (The map recorded both as hardcoded; only the first is.)
+- `src/components/structured-data.tsx`: `hasOccupation.name` is the hardcoded string `"AI Engineer"`. `jobTitle` is _not_ hardcoded — it reads `RESUME_DATA.work[0]?.title`, which is the employer's job title ("AI Engineer"), not the positioning label. Both need to say "AI Product Engineer" without overwriting the employer-accurate title in the work history, so the label needs its own field rather than being derived from `work[0]`. (The map recorded both as hardcoded; only the first is.)
 - `llms.txt:7` calls the homepage "Full interactive resume and portfolio" — false once `/cv` exists.
-- `llms.txt` / `llms-full.txt` structure adopts #7's key/value manifest shape (from Variant C — the *structure*, not the visual design).
+- `llms.txt` / `llms-full.txt` structure adopts #7's key/value manifest shape (from Variant C — the _structure_, not the visual design).
 - OG image and metadata title/description.
 - `sitemap.ts`: `/cv` and `/writing`.
 - A visible **agents-welcome** affordance pointing at `/llms.txt` — #7's chosen agent-native carry-over.
@@ -475,17 +480,17 @@ Delete on merge of §2.6: `src/components/prototype/` (all of it) and the dev-on
 
 Unordered, none blocking. Each is a real idea that survived a ticket without earning a place in the critical path.
 
-| Item | Why it might be worth it | Why not Phase 2 | Effort | Primary risk | Revisit when |
-|---|---|---|---|---|---|
-| **Substack custom domain** ($50 one-time) | Makes the `?email=` handoff read as the owner's own property, not a jump to substack.com | Pure polish on a working mechanism; #10 explicitly did not decide it | 1h + DNS propagation | Changing the domain later breaks the feed URL and every `?email=` link at once — do it before the archive grows or not at all | Before the 2nd or 3rd post, or never |
-| **MDX-native essays** | First-party hosting, full control, no feed-window dependency | The publication does not exist yet; `/writing` is built RSS-now/MDX-ready-later by design | 3–5 days | Splits the corpus across two sources; needs a migration and a canonical story for essays that exist in both places | Substack becomes a constraint, not a convenience |
-| **Bilingual EN/IT surface** | Stated part of the Italy focus (#6) | The feed carries no per-item language, so the only routes are a hand-maintained slug→language map or two publications — the latter is publication strategy, out of scope | 1 day (slug map) / unknown (two pubs) | A hand-maintained map silently rots; the wrong language chip is worse than none, which is why the inert chip was dropped | IT publishing actually starts |
-| **A live artifact / working demo in the hero** | "Shows he can build" is the brief's weakest-served claim | Answered by default — textual proof works. `homepageProof` measured as the strongest element in the prototype, and once the fold names a system the claim is served above the fold. The only candidate, *L'Oracolo della Ghigliottina*, is a sidelined side project whose own `techStack` leads with "Side Project" | 1 week+ per artifact | A hero demo that is slow, broken or obviously a toy is worse than prose — and it becomes maintenance on the highest-traffic surface | An artifact worth promoting exists |
-| **Essay outranks the positioning statement in type** | Ranked by size, the design says the *person* is the product and the writing is a section — the incumbent's IA in a nicer typeface | §2.6 ships the current hierarchy deliberately (see Open inputs); inverting it is a type-scale change, not a rebuild | 2h + a critique pass | Demoting the positioning statement undercuts #6's primary reader, who is judging the person first | The copy rewrite has landed and 4+ essays exist |
-| **Excerpt leads at display size, no cover at all** | The largest object on `/writing` is art Substack generated — #13's sharpest provocation | Cheap experiment, but it contradicts the cover-art obligation #10 accepted; needs real covers to judge fairly | 4h | Removing covers makes the index denser and less scannable; the fix for bad covers may be better covers | Real cover art exists for 3+ posts |
-| **Self-host / optimize the GitHub avatar** | Only perf candidate the audit found; posture is otherwise excellent | Marginal — one remote image | 1h | Avatar drifts from the GitHub profile it mirrors | Bundling a real photo shoot, or the remote host gets slow |
-| **Richer `Article` structured data per essay** | SEO on the writing surface | §2.7 ships minimal `Blog`; per-essay `Article` needs real posts | 3h | Marking up excerpts as `Article` when the body lives on Substack invites duplicate-content ambiguity — canonical must point at Substack | 4+ posts, or Search Console shows the essays indexing badly |
-| **`SYSTEMS` moved out of the colophon** | An AI engineer will `Cmd+F` "pgvector" before scrolling to 83% depth | Decided against — see [decision 4](#decisions-this-spec-makes) | 2h | Moving a 12px stack line up the page competes with `homepageProof` for the same job and may read as keyword stuffing | Analytics show peer/engineer traffic, or the fold's system name tests weak |
+| Item                                                 | Why it might be worth it                                                                                                          | Why not Phase 2                                                                                                                                                                                                                                                                                                     | Effort                                | Primary risk                                                                                                                            | Revisit when                                                               |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **Substack custom domain** ($50 one-time)            | Makes the `?email=` handoff read as the owner's own property, not a jump to substack.com                                          | Pure polish on a working mechanism; #10 explicitly did not decide it                                                                                                                                                                                                                                                | 1h + DNS propagation                  | Changing the domain later breaks the feed URL and every `?email=` link at once — do it before the archive grows or not at all           | Before the 2nd or 3rd post, or never                                       |
+| **MDX-native essays**                                | First-party hosting, full control, no feed-window dependency                                                                      | The publication does not exist yet; `/writing` is built RSS-now/MDX-ready-later by design                                                                                                                                                                                                                           | 3–5 days                              | Splits the corpus across two sources; needs a migration and a canonical story for essays that exist in both places                      | Substack becomes a constraint, not a convenience                           |
+| **Bilingual EN/IT surface**                          | Stated part of the Italy focus (#6)                                                                                               | The feed carries no per-item language, so the only routes are a hand-maintained slug→language map or two publications — the latter is publication strategy, out of scope                                                                                                                                            | 1 day (slug map) / unknown (two pubs) | A hand-maintained map silently rots; the wrong language chip is worse than none, which is why the inert chip was dropped                | IT publishing actually starts                                              |
+| **A live artifact / working demo in the hero**       | "Shows he can build" is the brief's weakest-served claim                                                                          | Answered by default — textual proof works. `homepageProof` measured as the strongest element in the prototype, and once the fold names a system the claim is served above the fold. The only candidate, _L'Oracolo della Ghigliottina_, is a sidelined side project whose own `techStack` leads with "Side Project" | 1 week+ per artifact                  | A hero demo that is slow, broken or obviously a toy is worse than prose — and it becomes maintenance on the highest-traffic surface     | An artifact worth promoting exists                                         |
+| **Essay outranks the positioning statement in type** | Ranked by size, the design says the _person_ is the product and the writing is a section — the incumbent's IA in a nicer typeface | §2.6 ships the current hierarchy deliberately (see Open inputs); inverting it is a type-scale change, not a rebuild                                                                                                                                                                                                 | 2h + a critique pass                  | Demoting the positioning statement undercuts #6's primary reader, who is judging the person first                                       | The copy rewrite has landed and 4+ essays exist                            |
+| **Excerpt leads at display size, no cover at all**   | The largest object on `/writing` is art Substack generated — #13's sharpest provocation                                           | Cheap experiment, but it contradicts the cover-art obligation #10 accepted; needs real covers to judge fairly                                                                                                                                                                                                       | 4h                                    | Removing covers makes the index denser and less scannable; the fix for bad covers may be better covers                                  | Real cover art exists for 3+ posts                                         |
+| **Self-host / optimize the GitHub avatar**           | Only perf candidate the audit found; posture is otherwise excellent                                                               | Marginal — one remote image                                                                                                                                                                                                                                                                                         | 1h                                    | Avatar drifts from the GitHub profile it mirrors                                                                                        | Bundling a real photo shoot, or the remote host gets slow                  |
+| **Richer `Article` structured data per essay**       | SEO on the writing surface                                                                                                        | §2.7 ships minimal `Blog`; per-essay `Article` needs real posts                                                                                                                                                                                                                                                     | 3h                                    | Marking up excerpts as `Article` when the body lives on Substack invites duplicate-content ambiguity — canonical must point at Substack | 4+ posts, or Search Console shows the essays indexing badly                |
+| **`SYSTEMS` moved out of the colophon**              | An AI engineer will `Cmd+F` "pgvector" before scrolling to 83% depth                                                              | Decided against — see [decision 4](#decisions-this-spec-makes)                                                                                                                                                                                                                                                      | 2h                                    | Moving a 12px stack line up the page competes with `homepageProof` for the same job and may read as keyword stuffing                    | Analytics show peer/engineer traffic, or the fold's system name tests weak |
 
 ---
 
@@ -497,16 +502,16 @@ Run against every phase that touches the surface in question. Every one of these
 
 Nothing below is a manual eyeball check unless it says so.
 
-| Check | How |
-|---|---|
-| Build / types / lint | `bun run build`, `npx tsc --noEmit`, `bun run lint` — all three clean |
+| Check                                            | How                                                                                                                                                                             |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build / types / lint                             | `bun run build`, `npx tsc --noEmit`, `bun run lint` — all three clean                                                                                                           |
 | Contrast, computed styles, geometry, hit-testing | `/agent-browser` against `bun run dev` at 375 / 768 / 1024 / 1440, both modes. This is how every number in this spec was produced; reproduce the method, not just the threshold |
-| Automated a11y sweep | axe-core via the browser tool, per route per mode. Zero violations at `serious` or `critical` |
-| Design review | `/impeccable critique` on each new surface before it merges. It caught the WCAG failure and the violated brief constraint that four prior tickets missed |
-| CLS | Chrome DevTools Performance trace, or `PerformanceObserver` on `layout-shift` in the browser tool |
-| Print | Headless Chromium `printToPDF` at A4 and Letter, both modes |
-| PDF text | `pdftotext -layout` on the built PDF, then assert on the extracted string |
-| Feed states | Local fixtures, not the live feed — see below |
+| Automated a11y sweep                             | axe-core via the browser tool, per route per mode. Zero violations at `serious` or `critical`                                                                                   |
+| Design review                                    | `/impeccable critique` on each new surface before it merges. It caught the WCAG failure and the violated brief constraint that four prior tickets missed                        |
+| CLS                                              | Chrome DevTools Performance trace, or `PerformanceObserver` on `layout-shift` in the browser tool                                                                               |
+| Print                                            | Headless Chromium `printToPDF` at A4 and Letter, both modes                                                                                                                     |
+| PDF text                                         | `pdftotext -layout` on the built PDF, then assert on the extracted string                                                                                                       |
+| Feed states                                      | Local fixtures, not the live feed — see below                                                                                                                                   |
 
 ## Contrast
 
@@ -521,7 +526,7 @@ Nothing below is a manual eyeball check unless it says so.
 - No `order-*` or `*-reverse` reordering of interactive content, anywhere. Grep for it as well as testing it.
 - Heading outline of `/writing` does not nest rows under the lead. Extract the outline programmatically rather than reading the JSX.
 - Skip link and `#main-content` work on all three routes.
-- **No link's accessible name exceeds 80 characters** — a hard threshold, asserted on `accessibleName` for every link on the route. The defect was ~1,500 characters of link text across six tab stops, so the exact cutoff is not load-bearing; having *a* cutoff is.
+- **No link's accessible name exceeds 80 characters** — a hard threshold, asserted on `accessibleName` for every link on the route. The defect was ~1,500 characters of link text across six tab stops, so the exact cutoff is not load-bearing; having _a_ cutoff is.
 
 ## Reduced motion
 
@@ -565,7 +570,7 @@ Nothing below is a manual eyeball check unless it says so.
 
 ## Touch targets
 
-- Every link and control is **≥24×24 CSS px** at 375 (SC 2.5.8 is a two-dimensional minimum; the map's "purely height" note was an observation about *this* codebase's failures, not a narrower rule). Icon controls ≥44×44.
+- Every link and control is **≥24×24 CSS px** at 375 (SC 2.5.8 is a two-dimensional minimum; the map's "purely height" note was an observation about _this_ codebase's failures, not a narrower rule). Icon controls ≥44×44.
 - No fixed chrome overlaps or clips content at any width from 375 to 1440. **Hit-test both corners:** `document.elementFromPoint` on the top-right masthead cluster and on the bottom-right FAB cluster. The measured failures were 63px² top-right and up to 640px² bottom-right.
 
 ## Print / PDF
@@ -601,6 +606,7 @@ Fixtures, not the live feed: the live feed is one publication with a sliding win
   ```
 
   Hex-in-`.tsx` alone would have missed the `color-mix(in srgb, var(--color-primary) …)` pair already in `globals.css`'s `.card-hover`, and misses any token helper that lands in a `.ts` file — which is exactly where the prototype kept them (`warm-print.ts`).
+
 - Note that `/impeccable`'s detector has **no hardcoded-colour rule in JSX regex mode** — #12 confirmed a clean run on a file with ~20 palette literals. A clean detector result is not evidence here; run the search above.
 - Pick any element with a `border-<color>` utility: computed `border-color` matches the utility, not `--color-border`. Run this on all three routes — the defect was site-wide, 41 of 41 elements on the current homepage.
 
@@ -608,25 +614,25 @@ Fixtures, not the live feed: the live feed is one publication with a sliding win
 
 Two distinct tests, often confused:
 
-- **Technical-term count above the fold: ≥3** at 375 and 1440. This is *parity with the incumbent*, which names 3 — a floor, not a target. Both #12 arms scored 0.
+- **Technical-term count above the fold: ≥3** at 375 and 1440. This is _parity with the incumbent_, which names 3 — a floor, not a target. Both #12 arms scored 0.
 - **At least one named concrete system** above the fold. A system name typically contributes 2–3 terms, so this is a stronger constraint than the count and does not replace it. Both must pass.
-- **Retained-proof manifest.** "Every technical noun survives the split" has no reproducible oracle in prose, so it is a **machine-readable fixture**: [`docs/spec/retained-proof.json`](./retained-proof.json) (56 entries, explained in [`retained-proof.md`](./retained-proof.md)). Each entry declares either `acceptedAnyOf` (aliases — pass on any one) or `requiredAllOf` (a term *and* its figure — pass only on all), so nothing is left for a test to infer. Assert every entry against the concatenated visible text of `/` and `/cv`; filter `additive: true` entries when running against the current site. Written as prose, this constraint was violated by a decision that passed review.
+- **Retained-proof manifest.** "Every technical noun survives the split" has no reproducible oracle in prose, so it is a **machine-readable fixture**: [`docs/spec/retained-proof.json`](./retained-proof.json) (56 entries, explained in [`retained-proof.md`](./retained-proof.md)). Each entry declares either `acceptedAnyOf` (aliases — pass on any one) or `requiredAllOf` (a term _and_ its figure — pass only on all), so nothing is left for a test to infer. Assert every entry against the concatenated visible text of `/` and `/cv`; filter `additive: true` entries when running against the current site. Written as prose, this constraint was violated by a decision that passed review.
 
 # Risk register
 
 `Source` distinguishes risks **measured** on this map from ones **projected** by it. Only the first kind has evidence behind its likelihood.
 
-| Risk | Source | Likelihood | Mitigation |
-|---|---|---|---|
-| `cacheComponents` breaks prerendering on a route nobody audited | Projected — #10 accepted that the flag changes prerender semantics for every route, untested | Medium | §2.4 before `/writing`; the site-wide audit is the deliverable, not a side effect. Widest effort band in the spec |
-| An empty feed is cached across launch | **Documented/derived** — follows directly from the pinned Next 16 `days` profile (`revalidate: 1 day`) combined with failure-as-absence. Read from the docs, not observed live | Medium, if the policy is skipped | The three-part cache policy in §2.5. The `feedMiss` profile is the actual fix; the `hours` profile alone still caches a miss for an hour |
-| The site reads *less* technical after the swap | **Measured** — the incumbent names 3 terms above the fold, both #12 arms named 0; #9's locked decision 5 would have cut 18 proof statements to 4 | Medium | The binding constraint. Three acceptance tests exist for it, including the retained-proof manifest. #9's amendment history shows how easily a reasonable-looking decision violates it |
-| The `@theme` migration regresses shadcn/ui components | Projected — the prototypes never rendered a shadcn component under Warm Print | Medium | Both-modes sweep of every existing component is part of §2.1's effort, not a follow-up. Note that no border has ever rendered correctly, so "it looks fine today" is not a baseline |
-| The copy rewrite never lands and blocks §2.6 | Projected — it is fog on the map, never ticketed | Medium | §2.1–2.5 are all copy-independent. `/cv` alone is a shippable increment |
-| PDF build step is fragile in CI (headless Chromium) | Projected — the build step does not exist yet | Medium | Fail the build loudly rather than shipping a stale PDF; `Cmd+P` on `/cv` is the designed fallback and is specified to work on its own |
-| ATS mangles the generated PDF | **Measured risk factors** — subsetted variable Fraunces + `tracking-[0.12em]` uppercase mono + two-column grid is a known mangling combination | Medium | Single-column collapse is specified, and `pdftotext` extraction is an acceptance test rather than an assumption |
-| Ambient Current distracts or misses containment/performance gates | Projected for production — the disposable prototype passed measured cost and clipping ceilings, but natural offscreen lifecycle and attended reading remain unresolved | Low | Treat the gates as binary: simplify or go quieter within the signed Canvas 2D contract; if they still fail, remove the continuous loop and ship the default one-reveal contract. Do not add WebGL/Radiant |
-| The rail is built without scroll-spy and reads as dead space | **Measured** — the 220px column is 44% filled in every frame at 1280 | Low | Stated as a condition of the composition, not a polish item. Orientation is its entire justification |
-| Fixed chrome collides on a surface nobody re-tested | **Measured twice** — 63px² on `/writing` at 375, up to 640px² on the homepage; the same conventions reproduced the defect on a second route | Low, given the reserved gutters | Decision 2's two gutters, plus a corner hit-test in the acceptance suite that runs per route |
-| Substack changes `?email=` or walls the feed | **Measured precedent** — `POST /api/v1/free` was Cloudflare-walled between #5 and #10, six weeks apart | Low | Handoff degrades to a plain subscribe link; the fetch is failure-tolerant by design |
-| The positioning turns out to be wrong | Accepted by the owner | Accepted | It is an experiment. Copy stays centralized and cheap to change; no structure commits to one framing |
+| Risk                                                              | Source                                                                                                                                                                         | Likelihood                       | Mitigation                                                                                                                                                                                                |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cacheComponents` breaks prerendering on a route nobody audited   | Projected — #10 accepted that the flag changes prerender semantics for every route, untested                                                                                   | Medium                           | §2.4 before `/writing`; the site-wide audit is the deliverable, not a side effect. Widest effort band in the spec                                                                                         |
+| An empty feed is cached across launch                             | **Documented/derived** — follows directly from the pinned Next 16 `days` profile (`revalidate: 1 day`) combined with failure-as-absence. Read from the docs, not observed live | Medium, if the policy is skipped | The three-part cache policy in §2.5. The `feedMiss` profile is the actual fix; the `hours` profile alone still caches a miss for an hour                                                                  |
+| The site reads _less_ technical after the swap                    | **Measured** — the incumbent names 3 terms above the fold, both #12 arms named 0; #9's locked decision 5 would have cut 18 proof statements to 4                               | Medium                           | The binding constraint. Three acceptance tests exist for it, including the retained-proof manifest. #9's amendment history shows how easily a reasonable-looking decision violates it                     |
+| The `@theme` migration regresses shadcn/ui components             | Projected — the prototypes never rendered a shadcn component under Warm Print                                                                                                  | Medium                           | Both-modes sweep of every existing component is part of §2.1's effort, not a follow-up. Note that no border has ever rendered correctly, so "it looks fine today" is not a baseline                       |
+| The copy rewrite never lands and blocks §2.6                      | Projected — it is fog on the map, never ticketed                                                                                                                               | Medium                           | §2.1–2.5 are all copy-independent. `/cv` alone is a shippable increment                                                                                                                                   |
+| PDF build step is fragile in CI (headless Chromium)               | Projected — the build step does not exist yet                                                                                                                                  | Medium                           | Fail the build loudly rather than shipping a stale PDF; `Cmd+P` on `/cv` is the designed fallback and is specified to work on its own                                                                     |
+| ATS mangles the generated PDF                                     | **Measured risk factors** — subsetted variable Fraunces + `tracking-[0.12em]` uppercase mono + two-column grid is a known mangling combination                                 | Medium                           | Single-column collapse is specified, and `pdftotext` extraction is an acceptance test rather than an assumption                                                                                           |
+| Ambient Current distracts or misses containment/performance gates | Projected for production — the disposable prototype passed measured cost and clipping ceilings, but natural offscreen lifecycle and attended reading remain unresolved         | Low                              | Treat the gates as binary: simplify or go quieter within the signed Canvas 2D contract; if they still fail, remove the continuous loop and ship the default one-reveal contract. Do not add WebGL/Radiant |
+| The rail is built without scroll-spy and reads as dead space      | **Measured** — the 220px column is 44% filled in every frame at 1280                                                                                                           | Low                              | Stated as a condition of the composition, not a polish item. Orientation is its entire justification                                                                                                      |
+| Fixed chrome collides on a surface nobody re-tested               | **Measured twice** — 63px² on `/writing` at 375, up to 640px² on the homepage; the same conventions reproduced the defect on a second route                                    | Low, given the reserved gutters  | Decision 2's two gutters, plus a corner hit-test in the acceptance suite that runs per route                                                                                                              |
+| Substack changes `?email=` or walls the feed                      | **Measured precedent** — `POST /api/v1/free` was Cloudflare-walled between #5 and #10, six weeks apart                                                                         | Low                              | Handoff degrades to a plain subscribe link; the fetch is failure-tolerant by design                                                                                                                       |
+| The positioning turns out to be wrong                             | Accepted by the owner                                                                                                                                                          | Accepted                         | It is an experiment. Copy stays centralized and cheap to change; no structure commits to one framing                                                                                                      |

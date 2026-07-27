@@ -59,7 +59,7 @@ docker compose up -d
 Stop the Container
 
 ```
-docker compose down 
+docker compose down
 ```
 
 # License
