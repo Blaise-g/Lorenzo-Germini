@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Metadata } from "next";
@@ -41,59 +41,45 @@ const HUB_DESTINATIONS = [
 // ?variant=a|b|c. Never reads searchParams in production, so the page stays
 // static there. Delete this block + src/components/prototype/ only when the
 // Phase 2 §2.6 homepage swap merges.
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ variant?: string }>;
-}) {
-  if (process.env.NODE_ENV !== "production") {
-    const { variant } = await searchParams;
-    // Issue #8: b1/b2/b3 are visual treatments of the chosen Variant B.
-    // Issue #12: composition is the variable — d = single measure, b1a = amended rail.
-    const compositions = { d: "single", b1a: "rail" } as const;
-    if (variant && variant in compositions) {
-      return (
-        <>
-          <VariantD
-            composition={compositions[variant as keyof typeof compositions]}
-          />
-          <PrototypeSwitcher />
-        </>
-      );
-    }
-    const treatments = {
-      b: "warm",
-      b1: "warm",
-      b2: "slate",
-      b3: "broadsheet",
-    } as const;
-    if (variant && variant in treatments) {
-      return (
-        <>
-          <VariantB
-            treatment={treatments[variant as keyof typeof treatments]}
-          />
-          <PrototypeSwitcher />
-        </>
-      );
-    }
-    if (variant === "a" || variant === "c") {
-      const Variant = { a: VariantA, c: VariantC }[variant];
-      return (
-        <>
-          <Variant />
-          <PrototypeSwitcher />
-        </>
-      );
-    }
-    return (
-      <>
-        <CurrentHome />
-        <PrototypeSwitcher />
-      </>
-    );
-  }
-  return <CurrentHome />;
+type HomeProps = { searchParams: Promise<{ variant?: string }> };
+
+export default function Page({ searchParams }: HomeProps) {
+  if (process.env.NODE_ENV === "production") return <CurrentHome />;
+
+  // Cache Components (issue #23): reading searchParams is runtime data, so it
+  // has to sit behind Suspense or it blocks the whole route from prerendering.
+  // The fallback is CurrentHome, which is also what an absent or unknown
+  // ?variant resolves to — so bare `/`, the URL dev actually loads, settles
+  // into the geometry it started with. Production returns above and never
+  // reaches this boundary.
+  return (
+    <>
+      <Suspense fallback={<CurrentHome />}>
+        <SelectedVariant searchParams={searchParams} />
+      </Suspense>
+      <PrototypeSwitcher />
+    </>
+  );
+}
+
+async function SelectedVariant({ searchParams }: HomeProps) {
+  const { variant } = await searchParams;
+  // Issue #8: b1/b2/b3 are visual treatments of the chosen Variant B.
+  // Issue #12: composition is the variable — d = single measure, b1a = amended rail.
+  const variants: Record<string, React.ReactNode> = {
+    a: <VariantA />,
+    b: <VariantB treatment="warm" />,
+    b1: <VariantB treatment="warm" />,
+    b1a: <VariantD composition="rail" />,
+    b2: <VariantB treatment="slate" />,
+    b3: <VariantB treatment="broadsheet" />,
+    c: <VariantC />,
+    d: <VariantD composition="single" />,
+  };
+
+  // Anything unrecognised falls through to the same CurrentHome the boundary
+  // above already painted, so an unknown ?variant costs no swap.
+  return (variant ? variants[variant] : undefined) ?? <CurrentHome />;
 }
 
 function CurrentHome() {
