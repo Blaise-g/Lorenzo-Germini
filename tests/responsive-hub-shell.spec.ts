@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { removeDevOverlay } from "./support/dev-overlay";
+
 const mobileAndTabletWidths = [375, 768, 1023] as const;
 const desktopWidths = [1024, 1440] as const;
 
@@ -196,9 +198,7 @@ test.describe("responsive hub shell", () => {
   }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
-    await page
-      .locator("nextjs-portal")
-      .evaluateAll((portals) => portals.forEach((portal) => portal.remove()));
+    await removeDevOverlay(page);
 
     const visibleMainTargets = await page
       .locator("main a[href], main button")

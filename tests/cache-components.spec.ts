@@ -8,6 +8,8 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { removeDevOverlay } from "./support/dev-overlay";
+
 declare global {
   interface Window {
     __cumulativeLayoutShift: number;
@@ -46,12 +48,7 @@ async function measureCumulativeLayoutShift(page: Page, route: string) {
 
   await page.goto(route, { waitUntil: "networkidle" });
 
-  // The dev overlay mounts after load and is not part of the page under test.
-  // Four other specs strip it for the same reason; here it would also be free
-  // to contribute layout-shift entries against the 0.01 budget.
-  await page
-    .locator("nextjs-portal")
-    .evaluateAll((portals) => portals.forEach((portal) => portal.remove()));
+  await removeDevOverlay(page);
 
   // Webfonts and the avatar settle after networkidle; both shift layout when
   // they land, so a reading taken any earlier would under-report.

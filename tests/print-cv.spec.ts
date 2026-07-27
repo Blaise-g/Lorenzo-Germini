@@ -3,6 +3,7 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import { RESUME_DATA } from "@/data/resume-data";
 
+import { removeDevOverlay } from "./support/dev-overlay";
 import { setTheme, themes, type Theme } from "./support/theme";
 
 const minimumPrintFontSizePx = 12; // 9pt at the CSS reference pixel ratio.
@@ -114,9 +115,7 @@ async function openPrintCv(page: Page, theme: Theme, route = "/") {
   await page.emulateMedia({ media: "print", colorScheme: theme });
   await setTheme(page, theme);
   await page.goto(route);
-  await page
-    .locator("nextjs-portal")
-    .evaluateAll((portals) => portals.forEach((portal) => portal.remove()));
+  await removeDevOverlay(page);
   await page.evaluate(() => document.fonts.ready);
 }
 
