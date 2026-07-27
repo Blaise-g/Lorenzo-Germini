@@ -1,19 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-const routesUsingTheSharedShell = [
-  "/",
-  "/?variant=a",
-  "/?variant=b",
-  "/?variant=b1",
-  "/?variant=b2",
-  "/?variant=b3",
-  "/?variant=c",
-  "/?variant=d",
-  "/?variant=b1a",
-  "/cv",
-  "/writing",
-  "/route-that-does-not-exist",
-];
+import { removeDevOverlay } from "./support/dev-overlay";
+import { routesUsingTheSharedShell } from "./support/routes";
 
 test.describe("route-shared semantic shell", () => {
   for (const route of routesUsingTheSharedShell) {
@@ -21,9 +9,7 @@ test.describe("route-shared semantic shell", () => {
       page,
     }) => {
       await page.goto(route);
-      await page
-        .locator("nextjs-portal")
-        .evaluateAll((portals) => portals.forEach((portal) => portal.remove()));
+      await removeDevOverlay(page);
 
       const main = page.getByRole("main");
       await expect(main).toHaveCount(1);

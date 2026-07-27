@@ -1,23 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { removeDevOverlay } from "./support/dev-overlay";
+import { routesUsingTheSharedShell } from "./support/routes";
 import { setTheme, themes } from "./support/theme";
 
 const viewports = [375, 768, 1024, 1440] as const;
-const routesUsingTheSharedShell = [
-  "/",
-  "/?variant=a",
-  "/?variant=b",
-  "/?variant=b1",
-  "/?variant=b2",
-  "/?variant=b3",
-  "/?variant=c",
-  "/?variant=d",
-  "/?variant=b1a",
-  "/cv",
-  "/writing",
-  "/route-that-does-not-exist",
-] as const;
 
 async function waitForTwoAnimationFrames(page: Page) {
   await page.evaluate(
@@ -350,11 +338,7 @@ test.describe("keyboard order", () => {
 
       for (const route of routesUsingTheSharedShell) {
         await page.goto(route);
-        await page
-          .locator("nextjs-portal")
-          .evaluateAll((portals) =>
-            portals.forEach((portal) => portal.remove()),
-          );
+        await removeDevOverlay(page);
 
         await page.keyboard.press("Tab");
         await expect(page.locator(":focus")).toHaveAttribute(
