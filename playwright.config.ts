@@ -1,23 +1,27 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const testPort = process.env.PLAYWRIGHT_PORT ?? "3000";
-const testUrl = `http://localhost:${testPort}`;
+import { devServerPort, devServerUrl } from "./tests/support/dev-server";
 
 export default defineConfig({
   testDir: "./tests",
   outputDir: "node_modules/.cache/playwright-test",
   fullyParallel: true,
+  globalSetup: "./tests/support/verify-dev-server.ts",
   use: {
-    baseURL: testUrl,
+    baseURL: devServerUrl,
     contextOptions: {
       reducedMotion: "reduce",
     },
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `bun run dev --port ${testPort}`,
-    url: testUrl,
-    reuseExistingServer: !process.env.CI,
+    /* No `--port`: the dev script reads `PLAYWRIGHT_PORT` itself, so both sides
+       land on the same port without passing the flag twice. */
+    command: "bun run dev",
+    url: devServerUrl,
+    /* Forced by the `.next/dev/lock` constraint in tests/support/dev-server.ts,
+       not a speed choice — reuse saves only ~2.5s of a ~28s suite. */
+    reuseExistingServer: true,
   },
   projects: [
     {
