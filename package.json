@@ -6,7 +6,7 @@
     "node": ">=24.x"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 3200",
     "build": "bun run install:cv-browser && bun run generate:cv && next build",
     "generate:cv": "node scripts/generate-cv-pdf.mjs",
     "install:cv-browser": "playwright install chromium --only-shell",

@@ -9,10 +9,10 @@ Bun, not npm or yarn.
 
 ```bash
 bun install
-bun run dev          # localhost:3000
+bun run dev          # localhost:3200
 bun run build
 bun run lint
-bun run test         # Playwright; starts its own dev server
+bun run test         # Playwright; reuses the dev server on 3200, or starts one
 npx tsc --noEmit
 ```
 
@@ -24,6 +24,13 @@ utilities; the other two reassign values. A token missing from `.dark` renders i
 value; missing from the print block, print keeps whatever mode was on screen — which shows
 up only under print emulation. Dark mode is class-based via `@variant dark`. PostCSS uses
 `@tailwindcss/postcss`, not `tailwindcss` + `autoprefixer`.
+
+**One dev server per repo, so `dev` and the test runner share port 3200.** Next holds a
+lock at `.next/dev/lock` for the working directory, not the port — a second `next dev` here
+cannot start on any port, so the suite has to reuse the one you already have running, and
+its port cannot diverge from the `dev` script's. Since reuse means trusting whatever answers
+on 3200, `globalSetup` first checks the server is this app; another project's dev server on
+that port is refused rather than tested against. `PLAYWRIGHT_PORT` overrides both.
 
 **Copy is centralized, and identity surfaces drift.** Content lives in data modules, not
 inline JSX, so it stays cheap to iterate. Any change to a role, title, or bio also has to
