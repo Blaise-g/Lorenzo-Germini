@@ -190,6 +190,9 @@ test("the build-generated PDF is current, readable, and single-column", async ()
   const packageJson = JSON.parse(
     await readFile(path.join(process.cwd(), "package.json"), "utf8"),
   ) as { scripts: Record<string, string> };
+  const vercelConfig = JSON.parse(
+    await readFile(path.join(process.cwd(), "vercel.json"), "utf8"),
+  ) as { installCommand: string };
 
   expect(packageJson.scripts["install:cv-browser"]).toBe(
     "playwright install chromium --only-shell",
@@ -199,6 +202,9 @@ test("the build-generated PDF is current, readable, and single-column", async ()
     packageJson.scripts.build.indexOf("generate:cv"),
   );
   expect(packageJson.scripts["generate:cv"]).toBeTruthy();
+  expect(vercelConfig.installCommand).toBe(
+    "bun install && dnf install -y nspr nss dbus-libs libXdamage libXext libXfixes mesa-libgbm libxcb libxkbcommon systemd-libs",
+  );
 
   const extracted = normalizePdfText(
     execFileSync("pdftotext", ["-layout", pdfPath, "-"], {

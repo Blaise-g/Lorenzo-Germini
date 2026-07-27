@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "bun install && dnf install -y nspr nss dbus-libs libXdamage libXext libXfixes mesa-libgbm libxcb libxkbcommon systemd-libs"
+}
