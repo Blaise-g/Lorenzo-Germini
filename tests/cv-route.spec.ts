@@ -191,7 +191,13 @@ test("the build-generated PDF is current, readable, and single-column", async ()
     await readFile(path.join(process.cwd(), "package.json"), "utf8"),
   ) as { scripts: Record<string, string> };
 
-  expect(packageJson.scripts.build).toContain("generate:cv");
+  expect(packageJson.scripts["install:cv-browser"]).toBe(
+    "playwright install chromium --only-shell",
+  );
+  expect(packageJson.scripts.build).toContain("install:cv-browser");
+  expect(packageJson.scripts.build.indexOf("install:cv-browser")).toBeLessThan(
+    packageJson.scripts.build.indexOf("generate:cv"),
+  );
   expect(packageJson.scripts["generate:cv"]).toBeTruthy();
 
   const extracted = normalizePdfText(
