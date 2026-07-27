@@ -61,6 +61,13 @@ and surfaces only under print emulation.
 
 ### Content surfaces
 
+**Positioning**:
+The settled label and one-line claim the site is repositioning onto — "AI Product
+Engineer", per #6. It lives in `RESUME_DATA.positioning` as its own field because it is
+neither `work[0].title` (the employer-accurate job title, which stays accurate) nor
+`about` (the current hero string, which the §2.7 lockstep replaces).
+_Avoid_: role, title, tagline
+
 **Identity surface**:
 Any place the site states Lorenzo's role, title, or bio. There are five and nothing
 generates them from each other: `src/data/resume-data.tsx`, `public/llms.txt`,

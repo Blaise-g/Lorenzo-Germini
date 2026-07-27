@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { RESUME_DATA } from "@/data/resume-data";
 import { BUILD_DATE_ISO, BUILD_MONTH_YEAR } from "@/lib/build-metadata";
 import { buildPersonStructuredData } from "@/lib/person-structured-data";
+import { displayUrl } from "@/lib/utils";
 
 const cvUrl = new URL("/cv", RESUME_DATA.personalWebsiteUrl).href;
 const cvDescription = `Curriculum vitae for ${RESUME_DATA.name}, covering work in AI product engineering, education, technical skills, and selected systems.`;
@@ -113,7 +114,7 @@ export default function CvPage() {
             </a>
             <span>{RESUME_DATA.location}</span>
             <a className="touch-target" href={RESUME_DATA.personalWebsiteUrl}>
-              {RESUME_DATA.personalWebsiteUrl.replace(/^https?:\/\//, "")}
+              {displayUrl(RESUME_DATA.personalWebsiteUrl)}
             </a>
             {RESUME_DATA.contact.social.map((social) => (
               <a key={social.name} className="touch-target" href={social.url}>

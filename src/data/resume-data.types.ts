@@ -4,6 +4,14 @@ export type ResumeData = {
   location: string;
   locationLink: string;
   about: string;
+  /**
+   * The settled positioning. Deliberately not derived from `work[0].title`,
+   * which is the employer-accurate job title and must stay that way.
+   */
+  positioning: {
+    label: string;
+    line: string;
+  };
   summary: string;
   avatarUrl: string;
   personalWebsiteUrl: string;
