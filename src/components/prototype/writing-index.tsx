@@ -22,10 +22,15 @@
 import { Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { FloatingActionCluster } from "@/components/floating-action-cluster";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BackToTop } from "@/components/back-to-top";
 import { SUBSTACK_BASE, t } from "./warm-print";
-import { FEED, type FeedItem, formatDate, readingMinutes } from "./writing-feed";
+import {
+  FEED,
+  type FeedItem,
+  formatDate,
+  readingMinutes,
+} from "./writing-feed";
 import { SubscribeModule } from "./subscribe-module";
 
 export type WritingParams = {
@@ -40,7 +45,14 @@ export type WritingParams = {
    but never resets animation-delay, and fade-in-up fills `both` — so under
    reduced motion these elements hold the 0% keyframe (opacity 0) for the whole
    delay. Reproduced verbatim so the defect can be measured rather than argued. */
-const STAGGER = ["", "delay-100", "delay-200", "delay-300", "delay-400", "delay-500"];
+const STAGGER = [
+  "",
+  "delay-100",
+  "delay-200",
+  "delay-300",
+  "delay-400",
+  "delay-500",
+];
 
 function revealClass(params: WritingParams, index: number) {
   if (params.reveal === "stagger") {
@@ -54,20 +66,13 @@ function revealClass(params: WritingParams, index: number) {
 
 /* ─── Thumbnails ─── */
 
-function Cover({
-  item,
-  size,
-}: {
-  item: FeedItem;
-  size: "lead" | "row";
-}) {
+function Cover({ item, size }: { item: FeedItem; size: "lead" | "row" }) {
   /* #13: 16:9 for rows too. In a 4:3 box, 16:9 cover art lost ~25% of its
      width and decapitated Substack's auto-generated title cards ("Costruire"
      rendered as "ostruire"). A hairline in both modes is not decoration: a
      near-white cover measured 1.04:1 against the paper (no edge at all) and
      12–17:1 against the near-black (brighter than any text on the page). */
-  const box =
-    "relative aspect-[16/9] w-full overflow-hidden rounded-sm border";
+  const box = "relative aspect-[16/9] w-full overflow-hidden rounded-sm border";
 
   if (!item.cover) {
     /* #10 decision 7: the feed does not guarantee <enclosure>. A coverless post
@@ -75,12 +80,10 @@ function Cover({
        index does not break on one missing image. */
     return (
       <div
-        className={`${box} flex items-end border-border bg-current/[0.06]`}
+        className={`${box} border-border flex items-end bg-current/[0.06]`}
         aria-hidden
       >
-        <p className={`${t.meta} ${t.faint} p-3`}>
-          {formatDate(item.pubDate)}
-        </p>
+        <p className={`${t.meta} ${t.faint} p-3`}>{formatDate(item.pubDate)}</p>
       </div>
     );
   }
@@ -134,9 +137,7 @@ function Lead({ item, params }: { item: FeedItem; params: WritingParams }) {
         <div className="mt-5">
           <Meta item={item} />
         </div>
-        <h2
-          className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline sm:text-4xl"
-        >
+        <h2 className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline sm:text-4xl">
           {item.title}
         </h2>
         <p className={`mt-3 text-base leading-relaxed ${t.body}`}>
@@ -165,7 +166,7 @@ function Row({
 }) {
   return (
     <article
-      className={`border-t border-border pt-7 ${revealClass(params, index)}`}
+      className={`border-border border-t pt-7 ${revealClass(params, index)}`}
     >
       <a
         href={item.link}
@@ -176,9 +177,7 @@ function Row({
         <Cover item={item} size="row" />
         <div>
           <Meta item={item} />
-          <h3
-            className="font-display mt-1.5 text-2xl leading-snug underline-offset-4 group-hover:underline"
-          >
+          <h3 className="font-display mt-1.5 text-2xl leading-snug underline-offset-4 group-hover:underline">
             {item.title}
           </h3>
           <p className={`mt-2 text-base leading-relaxed ${t.body}`}>
@@ -260,7 +259,7 @@ export function WritingIndex({ params }: { params: WritingParams }) {
   return (
     <div className={`min-h-screen ${t.page}`}>
       <ThemeToggle />
-      <BackToTop />
+      <FloatingActionCluster />
 
       <div className="mx-auto max-w-[46rem] px-6">
         <header className="pt-10">
@@ -293,9 +292,7 @@ export function WritingIndex({ params }: { params: WritingParams }) {
 
         <div className="pt-12">
           <div className="max-w-[34rem]">
-            <h1
-              className="font-display text-4xl leading-[1.1] font-medium tracking-tight"
-            >
+            <h1 className="font-display text-4xl leading-[1.1] font-medium tracking-tight">
               Writing
             </h1>
             <p className={`mt-4 text-base leading-relaxed ${t.body}`}>

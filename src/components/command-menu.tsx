@@ -20,11 +20,6 @@ interface Props {
 
 export const CommandMenu = ({ links }: Props) => {
   const [open, setOpen] = React.useState(false);
-  const [isMac, setIsMac] = React.useState(true);
-
-  React.useEffect(() => {
-    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
-  }, []);
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -40,18 +35,11 @@ export const CommandMenu = ({ links }: Props) => {
 
   return (
     <>
-      <p className="border-t-border text-faint mt-12 hidden border-t p-2 text-center font-mono text-xs xl:block print:hidden">
-        Press{" "}
-        <kbd className="bg-ground text-faint pointer-events-none inline-flex h-5 items-center gap-1 rounded border border-border px-1.5 font-mono text-xs font-medium select-none">
-          <span className="text-xs">{isMac ? "\u2318" : "Ctrl+"}</span>J
-        </kbd>{" "}
-        to open the command menu
-      </p>
       <Button
         variant="outline"
         size="icon"
         onClick={() => setOpen((open) => !open)}
-        className="border-border hover:border-accent hover:text-ink fixed right-4 bottom-4 z-50 h-12 w-12 rounded-full shadow-lg xl:hidden print:hidden"
+        className="border-border hover:border-accent hover:text-ink h-12 w-12 rounded-full shadow-lg print:hidden"
         aria-label="Open command menu"
       >
         <CommandIcon className="size-5" />
@@ -92,3 +80,21 @@ export const CommandMenu = ({ links }: Props) => {
     </>
   );
 };
+
+export function CommandMenuHint() {
+  const [isMac, setIsMac] = React.useState(true);
+
+  React.useEffect(() => {
+    setIsMac(/(Mac|iPhone|iPod|iPad)/i.test(navigator.platform));
+  }, []);
+
+  return (
+    <p className="border-t-border text-faint mt-12 hidden border-t p-2 text-center font-mono text-xs xl:block print:hidden">
+      Press{" "}
+      <kbd className="bg-ground text-faint border-border pointer-events-none inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-xs font-medium select-none">
+        <span className="text-xs">{isMac ? "\u2318" : "Ctrl+"}</span>J
+      </kbd>{" "}
+      to open the command menu
+    </p>
+  );
+}

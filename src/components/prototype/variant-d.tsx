@@ -29,9 +29,8 @@ import React from "react";
 import Image from "next/image";
 import { RESUME_DATA } from "@/data/resume-data";
 import { PROTOTYPE_ESSAYS } from "./writing-data";
-import { CommandMenu } from "@/components/command-menu";
+import { FloatingActionCluster } from "@/components/floating-action-cluster";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { BackToTop } from "@/components/back-to-top";
 import { StructuredData } from "@/components/structured-data";
 
 export type Composition = "single" | "rail";
@@ -149,9 +148,9 @@ function Hero() {
           copy rewrite, not a locked line. */}
       <p className={`mt-6 text-base leading-relaxed ${t.body}`}>
         Right now: the agentic RAG engine behind a compliance platform. Before
-        that pharma manufacturing, digital health, and a founded GenAI startup
-        — the through-line is that technical depth only matters when it
-        connects to what&apos;s worth building.
+        that pharma manufacturing, digital health, and a founded GenAI startup —
+        the through-line is that technical depth only matters when it connects
+        to what&apos;s worth building.
       </p>
       <a
         href="#writing"
@@ -180,9 +179,7 @@ function Writing() {
           })}{" "}
           · {lead.readingMinutes} min read
         </p>
-        <h3
-          className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline"
-        >
+        <h3 className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline">
           {lead.title}
         </h3>
         <p className={`mt-3 text-base leading-relaxed ${t.body}`}>
@@ -209,7 +206,7 @@ function Work() {
             className="grid gap-1 sm:grid-cols-[7.5rem_1fr] sm:gap-6"
           >
             <p
-              className={`${t.meta} ${t.faint} tabular-nums normal-case sm:pt-1.5`}
+              className={`${t.meta} ${t.faint} normal-case tabular-nums sm:pt-1.5`}
             >
               {work.start} – {work.end ?? "Present"}
             </p>
@@ -258,9 +255,7 @@ function Projects({ twoUp }: { twoUp: boolean }) {
             rel="noopener noreferrer"
             className={`group ${t.projectRule}`}
           >
-            <h3
-              className="font-display text-2xl group-hover:italic"
-            >
+            <h3 className="font-display text-2xl group-hover:italic">
               {project.title}
             </h3>
             <p className={`mt-2 text-sm leading-relaxed ${t.body}`}>
@@ -293,18 +288,13 @@ function Systems() {
 
 /* ─── The variable: composition ─── */
 
-export function VariantD({
-  composition,
-}: {
-  composition: Composition;
-}) {
+export function VariantD({ composition }: { composition: Composition }) {
   const rail = composition === "rail";
 
   return (
     <div className={`min-h-screen ${t.page}`}>
       <StructuredData />
       <ThemeToggle />
-      <BackToTop />
 
       {rail ? (
         /* ── Composition "rail": amended B1. The rail is a desktop-only
@@ -323,13 +313,9 @@ export function VariantD({
                1023px it rendered 943px wide and single-column — 105ch lines
                under a page of 672px ones. Now capped until lg. ── */
         <div className="mx-auto max-w-5xl px-6 md:px-10">
-          <header
-            className={`${t.masthead} pt-10 ${t.reveal}`}
-          >
+          <header className={`${t.masthead} pt-10 ${t.reveal}`}>
             <div className="flex items-baseline justify-between">
-              <p
-                className="font-display text-lg font-semibold tracking-tight"
-              >
+              <p className="font-display text-lg font-semibold tracking-tight">
                 Lorenzo Germini
               </p>
               <p className={`${t.meta} ${t.faint}`}>AI Product Engineer</p>
@@ -342,7 +328,7 @@ export function VariantD({
 
           <div className="grid gap-10 pt-10 lg:grid-cols-[220px_1fr] lg:gap-14">
             <aside
-              className={`hidden space-y-6 lg:block lg:sticky lg:top-10 lg:col-start-1 lg:row-start-1 lg:self-start ${t.reveal}`}
+              className={`hidden space-y-6 lg:sticky lg:top-10 lg:col-start-1 lg:row-start-1 lg:block lg:self-start ${t.reveal}`}
               aria-label="Profile"
             >
               <div className="relative size-20 overflow-hidden rounded-sm grayscale">
@@ -368,14 +354,14 @@ export function VariantD({
                   <a
                     key={item.href}
                     href={item.href}
-                    className="hover:underline underline-offset-4"
+                    className="underline-offset-4 hover:underline"
                   >
                     {item.label}
                   </a>
                 ))}
                 <a
                   href={CV_HREF}
-                  className={`${t.accent} hover:underline underline-offset-4`}
+                  className={`${t.accent} underline-offset-4 hover:underline`}
                 >
                   CV →
                 </a>
@@ -404,18 +390,21 @@ export function VariantD({
            display scale. ── */
         <div className="mx-auto max-w-[46rem] px-6">
           <header className={`pt-10 ${t.reveal}`}>
-            <div className={`flex items-baseline justify-between ${t.masthead}`}>
-              <p
-                className="font-display text-lg font-semibold tracking-tight"
-              >
+            <div
+              className={`flex items-baseline justify-between ${t.masthead}`}
+            >
+              <p className="font-display text-lg font-semibold tracking-tight">
                 Lorenzo Germini
               </p>
-              <nav className={`hidden gap-5 sm:flex ${t.meta}`} aria-label="Sections">
+              <nav
+                className={`hidden gap-5 sm:flex ${t.meta}`}
+                aria-label="Sections"
+              >
                 {NAV.map((item) => (
                   <a
                     key={item.href}
                     href={item.href}
-                    className="hover:underline underline-offset-4"
+                    className="underline-offset-4 hover:underline"
                   >
                     {item.label}
                   </a>
@@ -435,8 +424,8 @@ export function VariantD({
         </div>
       )}
 
-      <CommandMenu
-        links={[
+      <FloatingActionCluster
+        commandLinks={[
           { url: RESUME_DATA.personalWebsiteUrl, title: "Personal Website" },
           { url: CV_HREF, title: "CV" },
           ...RESUME_DATA.contact.social.map((s) => ({

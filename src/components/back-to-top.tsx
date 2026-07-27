@@ -4,6 +4,7 @@ import * as React from "react";
 import { ArrowUp } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function BackToTop() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -29,11 +30,12 @@ export function BackToTop() {
       variant="outline"
       size="icon"
       onClick={scrollToTop}
-      className={`fixed right-4 bottom-20 z-50 rounded-full shadow-lg hover:border-accent print:hidden ${
+      className={cn(
+        "hover:border-accent rounded-full shadow-lg print:hidden",
         isVisible
           ? "translate-y-0 scale-100 opacity-100"
-          : "pointer-events-none translate-y-2 scale-95 opacity-0"
-      }`}
+          : "pointer-events-none translate-y-2 scale-95 opacity-0",
+      )}
       aria-label="Back to top"
       aria-hidden={!isVisible}
       tabIndex={isVisible ? 0 : -1}
