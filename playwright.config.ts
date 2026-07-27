@@ -15,12 +15,12 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: `bun run dev --port ${devServerPort}`,
+    /* No `--port`: the dev script reads `PLAYWRIGHT_PORT` itself, so both sides
+       land on the same port without passing the flag twice. */
+    command: "bun run dev",
     url: devServerUrl,
-    /* Reuse is not a speed choice — it saves ~2.5s of a ~28s suite. It is forced
-       by the `.next/dev/lock` per-directory lock: booting a second `next dev` for
-       this repo fails outright, so a dev server you already have running must be
-       reused rather than replaced. `globalSetup` confirms it is actually ours. */
+    /* Forced by the `.next/dev/lock` constraint in tests/support/dev-server.ts,
+       not a speed choice — reuse saves only ~2.5s of a ~28s suite. */
     reuseExistingServer: true,
   },
   projects: [

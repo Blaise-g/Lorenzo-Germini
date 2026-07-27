@@ -2,39 +2,40 @@ import {
   devServerPort,
   devServerUrl,
   identityPath,
-  judgeServerIdentity,
+  identityRefusal,
 } from "./dev-server";
 
-/* Runs after `webServer` is up and before any test.
-
-   Playwright reuses whatever already listens on the port and cannot tell one app
-   from another. When a different project's dev server holds the port, every spec
-   runs against that app and the suite reports dozens of failures that read like
-   real regressions in this one. Refusing to start is the only outcome that names
-   the actual problem. */
+/* Playwright reuses whatever already listens on the port and cannot tell one app
+   from another, so confirm this one is ours before any test trusts it. Runs after
+   `webServer` is up. */
 export default async function verifyDevServer() {
   let status: number;
   let body: string;
 
   try {
-    const response = await fetch(`${devServerUrl}${identityPath}`);
+    /* Nothing else bounds this: a file-based globalSetup is outside the per-test
+       timeout and no globalTimeout is set, so a server that accepts the
+       connection and then stalls would hang the suite at zero tests. */
+    const response = await fetch(`${devServerUrl}${identityPath}`, {
+      signal: AbortSignal.timeout(10_000),
+    });
     status = response.status;
     body = await response.text();
   } catch (cause) {
     throw new Error(
-      `Could not reach ${devServerUrl}${identityPath} to confirm which app is serving port ${devServerPort}.`,
+      `Could not reach ${devServerUrl}${identityPath} within 10s to confirm which app is serving port ${devServerPort}.`,
       { cause },
     );
   }
 
-  const verdict = judgeServerIdentity({ status, body });
-  if (verdict.trusted) return;
+  const refusal = identityRefusal({ status, body });
+  if (!refusal) return;
 
   throw new Error(
     [
       `The server on port ${devServerPort} is not this app.`,
       ``,
-      `  ${verdict.reason}`,
+      `  ${refusal}`,
       ``,
       `Another project's dev server is probably holding the port. Free it, or run`,
       `the suite somewhere else:`,
