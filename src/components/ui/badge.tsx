@@ -7,15 +7,13 @@ import { cn } from "@/lib/utils";
    href, handler, or tab stop. Variants therefore carry no hover state — a
    colour shift under the cursor promises a click that never happens. */
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold transition-refined focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-nowrap",
+  "inline-flex items-center rounded-md border bg-ground px-2 py-0.5 font-mono text-xs font-medium text-nowrap",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary/80 text-primary-foreground",
-        secondary: "border-transparent bg-secondary text-secondary-foreground",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground",
-        outline: "text-foreground",
+        default: "border-accent text-accent",
+        secondary: "border-border text-faint",
+        outline: "border-border text-ink",
       },
     },
 

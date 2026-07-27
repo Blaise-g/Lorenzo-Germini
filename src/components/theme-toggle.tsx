@@ -31,7 +31,7 @@ export function ThemeToggle() {
       variant="secondary"
       size="icon"
       onClick={toggleTheme}
-      className="hover:bg-primary hover:text-primary-foreground fixed top-4 right-4 z-50 rounded-full print:hidden"
+      className="hover:border-accent hover:text-ink fixed top-4 right-4 z-50 rounded-full print:hidden"
       aria-label="Toggle theme"
     >
       {theme === "light" ? (

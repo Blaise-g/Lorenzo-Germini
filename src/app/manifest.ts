@@ -1,5 +1,6 @@
 import { MetadataRoute } from "next";
 import { RESUME_DATA } from "@/data/resume-data";
+import { WARM_PRINT } from "@/lib/warm-print";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -8,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: RESUME_DATA.summary,
     start_url: "/",
     display: "standalone",
-    background_color: "#faf9f7",
-    theme_color: "#5b52a8",
+    background_color: WARM_PRINT.light.ground,
+    theme_color: WARM_PRINT.light.accent,
     icons: [
       {
         src: "/favicon.ico",

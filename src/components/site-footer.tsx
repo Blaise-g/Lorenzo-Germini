@@ -1,7 +1,7 @@
 import { RESUME_DATA } from "@/data/resume-data";
 
 const footerLinkClass =
-  "touch-target underline decoration-border underline-offset-4 hover:decoration-primary";
+  "touch-target underline decoration-border underline-offset-4 hover:decoration-accent";
 
 export function SiteFooter() {
   return (
@@ -9,7 +9,9 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 border-t pt-6 text-sm sm:flex-row sm:items-end sm:justify-between print:hidden">
         <div className="space-y-1">
           <p className="font-semibold">{RESUME_DATA.name}</p>
-          <p className="text-muted-foreground">{RESUME_DATA.location}</p>
+          <p className="font-mono text-xs text-faint">
+            {RESUME_DATA.location}
+          </p>
         </div>
 
         <div className="space-y-3 sm:text-right">
@@ -50,7 +52,7 @@ export function SiteFooter() {
             </ul>
           </nav>
 
-          <p className="text-muted-foreground">
+          <p className="font-mono text-xs text-faint">
             agents welcome →{" "}
             <a className={footerLinkClass} href="/llms.txt">
               /llms.txt

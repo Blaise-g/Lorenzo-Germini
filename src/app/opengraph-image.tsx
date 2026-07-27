@@ -1,11 +1,21 @@
 import { ImageResponse } from "next/og";
 import { RESUME_DATA } from "@/data/resume-data";
+import { WARM_PRINT, type WarmPrintColor } from "@/lib/warm-print";
 
 export const alt = `${RESUME_DATA.name} - ${RESUME_DATA.about}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+function withAlpha(color: WarmPrintColor, opacity: number) {
+  const alpha = Math.round(opacity * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${color}${alpha}`;
+}
+
 export default function OGImage() {
+  const palette = WARM_PRINT.dark;
+
   return new ImageResponse(
     (
       <div
@@ -16,7 +26,7 @@ export default function OGImage() {
           flexDirection: "column",
           justifyContent: "center",
           padding: "80px",
-          background: "linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)",
+          background: `linear-gradient(135deg, ${palette.ground} 0%, ${WARM_PRINT.light.ink} 50%, ${palette.ground} 100%)`,
           fontFamily: "system-ui, sans-serif",
         }}
       >
@@ -28,8 +38,7 @@ export default function OGImage() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundImage:
-              "linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px)",
+            backgroundImage: `linear-gradient(${withAlpha(palette.accent, 0.05)} 1px, ${withAlpha(palette.accent, 0)} 1px), linear-gradient(90deg, ${withAlpha(palette.accent, 0.05)} 1px, ${withAlpha(palette.accent, 0)} 1px)`,
             backgroundSize: "40px 40px",
           }}
         />
@@ -42,7 +51,7 @@ export default function OGImage() {
             width: "400px",
             height: "400px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%)",
+            background: `radial-gradient(circle, ${withAlpha(palette.accent, 0.15)} 0%, ${withAlpha(palette.accent, 0)} 70%)`,
           }}
         />
         {/* Initials watermark */}
@@ -53,7 +62,7 @@ export default function OGImage() {
             right: "40px",
             fontSize: "280px",
             fontWeight: 900,
-            color: "rgba(99, 102, 241, 0.04)",
+            color: withAlpha(palette.accent, 0.04),
             lineHeight: 1,
             letterSpacing: "-0.05em",
           }}
@@ -66,7 +75,7 @@ export default function OGImage() {
             style={{
               fontSize: "56px",
               fontWeight: 800,
-              color: "#f0f0f5",
+              color: palette.ink,
               lineHeight: 1.1,
               letterSpacing: "-0.02em",
             }}
@@ -77,14 +86,14 @@ export default function OGImage() {
             style={{
               width: "64px",
               height: "3px",
-              background: "linear-gradient(90deg, #6366f1, #818cf8)",
+              background: `linear-gradient(90deg, ${WARM_PRINT.light.accent}, ${palette.accent})`,
               borderRadius: "2px",
             }}
           />
           <div
             style={{
               fontSize: "24px",
-              color: "#a5a5c0",
+              color: palette.body,
               lineHeight: 1.4,
               maxWidth: "800px",
             }}
@@ -104,8 +113,8 @@ export default function OGImage() {
                 style={{
                   padding: "6px 16px",
                   borderRadius: "20px",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
-                  color: "#818cf8",
+                  border: `1px solid ${withAlpha(palette.accent, 0.3)}`,
+                  color: palette.accent,
                   fontSize: "14px",
                   fontWeight: 500,
                 }}
@@ -124,7 +133,7 @@ export default function OGImage() {
             display: "flex",
             alignItems: "center",
             gap: "8px",
-            color: "#6b6b85",
+            color: palette.faint,
             fontSize: "16px",
           }}
         >

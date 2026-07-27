@@ -32,11 +32,6 @@ export default async function WritingPrototypePage({
   const n = Number(one("n"));
   const params: WritingParams = {
     n: [1, 2, 3, 4, 5, 6].includes(n) ? n : 1,
-    /* #13: the overlay measured <=2/255 in light and <=6/255 in dark on every
-       surface, covers and paper alike, while paying a full-viewport
-       mix-blend-multiply composite per scroll frame. Dropped; ?grain=on still
-       renders it so the decision can be re-tested. */
-    grain: one("grain") === "on",
     reveal: one("reveal") === "stagger" ? "stagger" : "mount",
     stream: one("stream") !== "off",
     lang: one("it") === "on" ? "it" : "en",

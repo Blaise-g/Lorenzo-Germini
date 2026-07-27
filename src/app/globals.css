@@ -7,6 +7,7 @@
 @theme {
   /* Typography */
   --font-body: var(--font-inter), "system-ui", "-apple-system", sans-serif;
+  --font-display: var(--font-fraunces), "Georgia", serif;
   --font-mono:
     var(--font-jetbrains-mono), "Menlo", "Monaco", "Courier New", monospace;
 
@@ -15,26 +16,14 @@
   --radius-md: calc(0.75rem - 2px);
   --radius-sm: calc(0.75rem - 4px);
 
-  /* Colors — light mode defaults */
-  --color-background: hsl(40 20% 98%);
-  --color-foreground: hsl(240 10% 10%);
-  --color-card: hsl(40 15% 99%);
-  --color-card-foreground: hsl(240 10% 10%);
-  --color-popover: hsl(40 15% 99%);
-  --color-popover-foreground: hsl(240 10% 10%);
-  --color-primary: hsl(245 45% 46%);
-  --color-primary-foreground: hsl(0 0% 100%);
-  --color-secondary: hsl(40 10% 93%);
-  --color-secondary-foreground: hsl(240 10% 10%);
-  --color-muted: hsl(40 10% 95%);
-  --color-muted-foreground: hsl(240 5% 38%);
-  --color-accent: hsl(245 45% 46%);
-  --color-accent-foreground: hsl(0 0% 100%);
-  --color-destructive: hsl(0 84% 60%);
-  --color-destructive-foreground: hsl(0 0% 100%);
-  --color-border: hsl(40 10% 90%);
-  --color-input: hsl(40 10% 90%);
-  --color-ring: hsl(245 45% 46%);
+  /* Warm Print — light mode */
+  --color-ground: #faf6ef;
+  --color-ink: #1c1917;
+  --color-body: #3f3a35;
+  --color-faint: #5c554e;
+  --color-accent: #9c3c1c;
+  --color-accent-foreground: #faf6ef;
+  --color-border: #9b8c7f;
 
   /* Animations */
   --animate-fade-in-up: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -46,25 +35,13 @@
 
 /* ─── Dark mode overrides ─── */
 .dark {
-  --color-background: hsl(240 10% 8%);
-  --color-foreground: hsl(40 10% 93%);
-  --color-card: hsl(240 10% 10%);
-  --color-card-foreground: hsl(40 10% 93%);
-  --color-popover: hsl(240 10% 10%);
-  --color-popover-foreground: hsl(40 10% 93%);
-  --color-primary: hsl(245 55% 68%);
-  --color-primary-foreground: hsl(240 10% 8%);
-  --color-secondary: hsl(240 10% 14%);
-  --color-secondary-foreground: hsl(40 10% 93%);
-  --color-muted: hsl(240 10% 14%);
-  --color-muted-foreground: hsl(40 5% 55%);
-  --color-accent: hsl(245 55% 68%);
-  --color-accent-foreground: hsl(240 10% 8%);
-  --color-destructive: hsl(0 63% 31%);
-  --color-destructive-foreground: hsl(40 10% 93%);
-  --color-border: hsl(240 10% 16%);
-  --color-input: hsl(240 10% 16%);
-  --color-ring: hsl(245 55% 68%);
+  --color-ground: #171412;
+  --color-ink: #ece7de;
+  --color-body: #c9c2b7;
+  --color-faint: #a49a8e;
+  --color-accent: #d98d63;
+  --color-accent-foreground: #171412;
+  --color-border: #6f6258;
 }
 
 /* ─── Keyframes ─── */
@@ -120,8 +97,8 @@
   *:focus-visible {
     outline: none;
     box-shadow:
-      0 0 0 2px var(--color-background),
-      0 0 0 4px var(--color-ring);
+      0 0 0 2px var(--color-ground),
+      0 0 0 4px var(--color-accent);
   }
 
   /* Dialog & command menu: suppress global focus ring */
@@ -133,8 +110,8 @@
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--color-ground);
+  color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -178,13 +155,18 @@ html {
 
 .card-hover:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 4px 16px -4px color-mix(in srgb, var(--color-primary) 12%, transparent),
-    0 2px 4px -2px color-mix(in srgb, var(--color-primary) 8%, transparent);
 }
 
 .transition-refined {
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.primary-control:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--color-accent) 92%,
+    var(--color-ink)
+  );
 }
 
 @page {
@@ -241,23 +223,13 @@ html {
   /* ─── Print color overrides ─── */
   :root,
   .dark {
-    --color-background: hsl(0 0% 100%);
-    --color-foreground: hsl(0 0% 5%);
-    --color-card: hsl(0 0% 100%);
-    --color-card-foreground: hsl(0 0% 5%);
-    --color-popover: hsl(0 0% 100%);
-    --color-popover-foreground: hsl(0 0% 5%);
-    --color-primary: hsl(245 50% 30%);
-    --color-primary-foreground: hsl(0 0% 100%);
-    --color-secondary: hsl(0 0% 90%);
-    --color-secondary-foreground: hsl(0 0% 5%);
-    --color-muted: hsl(0 0% 93%);
-    --color-muted-foreground: hsl(0 0% 20%);
-    --color-accent: hsl(245 50% 30%);
-    --color-accent-foreground: hsl(0 0% 100%);
-    --color-border: hsl(0 0% 75%);
-    --color-input: hsl(0 0% 75%);
-    --color-ring: hsl(245 50% 30%);
+    --color-ground: #ffffff;
+    --color-ink: #0d0d0d;
+    --color-body: #333333;
+    --color-faint: #595959;
+    --color-accent: #7a2f16;
+    --color-accent-foreground: #ffffff;
+    --color-border: #808080;
   }
 }
 

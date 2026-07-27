@@ -18,7 +18,7 @@ async function expectVisibleFocus(control: Locator, label: string) {
           const probe = document.createElement("span");
           probe.style.color = getComputedStyle(
             document.documentElement,
-          ).getPropertyValue("--color-ring");
+          ).getPropertyValue("--color-accent");
           document.body.append(probe);
           const ringColor = getComputedStyle(probe).color;
           probe.remove();
@@ -45,13 +45,13 @@ async function expectVisibleFocus(control: Locator, label: string) {
     };
 
     const ringColor = normalizeColor(
-      rootStyle.getPropertyValue("--color-ring"),
+      rootStyle.getPropertyValue("--color-accent"),
     );
     const ringUtilityColor = normalizeColor(
       style.getPropertyValue("--tw-ring-color"),
     );
     const offsetColor = normalizeColor(
-      rootStyle.getPropertyValue("--color-background"),
+      rootStyle.getPropertyValue("--color-ground"),
     );
     const controlColor = normalizeColor(style.backgroundColor);
     const pageColor = normalizeColor(bodyStyle.backgroundColor);
@@ -111,7 +111,7 @@ test.describe("component-owned border and focus styles", () => {
       const colors = await avatar.evaluate((element) => {
         const probe = document.createElement("span");
         probe.style.borderColor =
-          "color-mix(in oklab, var(--color-primary) 20%, transparent)";
+          "color-mix(in oklab, var(--color-accent) 20%, transparent)";
         document.body.append(probe);
         const expected = getComputedStyle(probe).borderColor;
         probe.remove();

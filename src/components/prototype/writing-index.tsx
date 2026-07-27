@@ -5,7 +5,6 @@
 // both ways in the same file:
 //
 //   ?n=1|3|6        count-aware states (1 = the actual launch state)
-//   ?grain=on|off   the #8 grain overlay over the covers (question 1)
 //   ?reveal=mount|stagger   own-mount reveal vs the page-level delay stagger
 //                           the live site uses today (question 2)
 //   ?stream=on|off  simulate the Suspense boundary cacheComponents introduces
@@ -25,13 +24,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
-import { BORDER_SHIM, GRAIN_URL, SUBSTACK_BASE, fraunces, t } from "./warm-print";
+import { SUBSTACK_BASE, t } from "./warm-print";
 import { FEED, type FeedItem, formatDate, readingMinutes } from "./writing-feed";
 import { SubscribeModule } from "./subscribe-module";
 
 export type WritingParams = {
   n: number;
-  grain: boolean;
   reveal: "mount" | "stagger";
   stream: boolean;
   lang: "en" | "it";
@@ -77,8 +75,7 @@ function Cover({
        index does not break on one missing image. */
     return (
       <div
-        className={`${box} flex items-end bg-current/[0.06]`}
-        data-rule="hair-20"
+        className={`${box} flex items-end border-border bg-current/[0.06]`}
         aria-hidden
       >
         <p className={`${t.meta} ${t.faint} p-3`}>
@@ -89,7 +86,7 @@ function Cover({
   }
 
   return (
-    <div className={box} data-rule="hair-20">
+    <div className={`${box} border-border`}>
       <Image
         src={item.cover}
         alt=""
@@ -138,7 +135,7 @@ function Lead({ item, params }: { item: FeedItem; params: WritingParams }) {
           <Meta item={item} />
         </div>
         <h2
-          className={`${fraunces.className} mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline sm:text-4xl`}
+          className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline sm:text-4xl"
         >
           {item.title}
         </h2>
@@ -146,7 +143,6 @@ function Lead({ item, params }: { item: FeedItem; params: WritingParams }) {
           {item.excerpt}
         </p>
         <span
-          data-rule="accent"
           className={`mt-4 inline-block border-b pb-1 ${t.meta} ${t.accent} ${t.accentBorder}`}
         >
           Read the essay →
@@ -169,8 +165,7 @@ function Row({
 }) {
   return (
     <article
-      data-rule="hair"
-      className={`border-t border-current/15 pt-7 ${revealClass(params, index)}`}
+      className={`border-t border-border pt-7 ${revealClass(params, index)}`}
     >
       <a
         href={item.link}
@@ -182,7 +177,7 @@ function Row({
         <div>
           <Meta item={item} />
           <h3
-            className={`${fraunces.className} mt-1.5 text-2xl leading-snug underline-offset-4 group-hover:underline`}
+            className="font-display mt-1.5 text-2xl leading-snug underline-offset-4 group-hover:underline"
           >
             {item.title}
           </h3>
@@ -236,7 +231,6 @@ async function EssayList({ params }: { params: WritingParams }) {
             href={`${SUBSTACK_BASE}/archive`}
             target="_blank"
             rel="noopener noreferrer"
-            data-rule="accent"
             className={`border-b pb-1 ${t.accent} ${t.accentBorder} hover:opacity-70`}
           >
             Read all essays on Substack →
@@ -265,30 +259,15 @@ function ListFallback() {
 export function WritingIndex({ params }: { params: WritingParams }) {
   return (
     <div className={`min-h-screen ${t.page}`}>
-      {/* see BORDER_SHIM: globals.css's unlayered `* { border-color }` beats
-          every Tailwind border utility, so no Warm Print rule renders without
-          this. Deleting that global rule is a spec item. */}
-      <style>{BORDER_SHIM}</style>
-      {params.grain ? (
-        <div
-          aria-hidden
-          className="pointer-events-none fixed inset-0 z-50 opacity-[0.035] mix-blend-multiply dark:opacity-[0.06] dark:mix-blend-screen"
-          style={{ backgroundImage: GRAIN_URL }}
-        />
-      ) : null}
-
       <ThemeToggle />
       <BackToTop />
 
       <div className="mx-auto max-w-[46rem] px-6">
         <header className="pt-10">
-          <div
-            data-rule="ink"
-            className={`flex items-baseline justify-between ${t.masthead}`}
-          >
+          <div className={`flex items-baseline justify-between ${t.masthead}`}>
             <Link
               href="/"
-              className={`${fraunces.className} text-lg font-semibold tracking-tight underline-offset-4 hover:underline`}
+              className="font-display text-lg font-semibold tracking-tight underline-offset-4 hover:underline"
             >
               Lorenzo Germini
             </Link>
@@ -315,7 +294,7 @@ export function WritingIndex({ params }: { params: WritingParams }) {
         <div className="pt-12">
           <div className="max-w-[34rem]">
             <h1
-              className={`${fraunces.className} text-4xl leading-[1.1] font-medium tracking-tight`}
+              className="font-display text-4xl leading-[1.1] font-medium tracking-tight"
             >
               Writing
             </h1>

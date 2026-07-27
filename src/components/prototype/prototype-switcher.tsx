@@ -47,12 +47,12 @@ function SwitcherInner() {
   }, [go]);
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-[200] flex -translate-x-1/2 items-center gap-1 rounded-full bg-zinc-900 px-2 py-1.5 font-mono text-xs text-zinc-100 shadow-xl ring-1 ring-white/20 print:hidden">
+    <div className="fixed bottom-4 left-1/2 z-[200] flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-ground px-2 py-1.5 font-mono text-xs text-ink shadow-xl print:hidden">
       <button
         type="button"
         onClick={() => go(-1)}
         aria-label="Previous variant"
-        className="rounded-full px-2 py-1 hover:bg-zinc-700"
+        className="rounded-full border border-transparent px-2 py-1 hover:border-accent"
       >
         ←
       </button>
@@ -63,7 +63,7 @@ function SwitcherInner() {
         type="button"
         onClick={() => go(1)}
         aria-label="Next variant"
-        className="rounded-full px-2 py-1 hover:bg-zinc-700"
+        className="rounded-full border border-transparent px-2 py-1 hover:border-accent"
       >
         →
       </button>

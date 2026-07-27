@@ -19,7 +19,7 @@
 // homepage swap merges.
 
 import { useId, useState } from "react";
-import { SUBSTACK_BASE, fraunces, t } from "./warm-print";
+import { SUBSTACK_BASE, t } from "./warm-print";
 
 type Copy = {
   heading: string;
@@ -76,13 +76,12 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   return (
     <section
       aria-labelledby={`${id}-heading`}
-      data-rule="ink-70"
-      className={`${t.projectRule} mt-20`}
+      className={`${t.projectRule} mt-20 border-ink/70`}
     >
       <div className="max-w-[34rem]">
         <h2
           id={`${id}-heading`}
-          className={`${fraunces.className} text-2xl leading-snug`}
+          className="font-display text-2xl leading-snug"
         >
           {c.heading}
         </h2>
@@ -125,7 +124,6 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
               mid-word. Stacked below sm, side by side above it. */}
           <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
             <input
-              data-rule={error ? "error" : "field"}
               id={inputId}
               name="email"
               type="email"
@@ -139,16 +137,15 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
                 setValue(e.target.value);
                 if (error) setError(null);
               }}
-              className={`min-w-0 sm:flex-1 border-b-2 bg-transparent px-1 py-2 text-base placeholder:text-[#8a8078] focus-visible:outline-none dark:placeholder:text-[#6f665d] ${
+              className={`min-w-0 border-b-2 bg-transparent px-1 py-2 text-base placeholder:text-faint focus-visible:outline-none sm:flex-1 ${
                 error
-                  ? "border-[#a32f13] dark:border-[#e8836a]"
-                  : "border-current/40 focus-visible:border-[#9c3c1c] dark:focus-visible:border-[#d98d63]"
+                  ? "border-accent"
+                  : "border-border focus-visible:border-accent"
               }`}
             />
             <button
-              data-rule="accent"
               type="submit"
-              className={`${t.meta} self-start shrink-0 border-b-2 pt-2 pb-2 ${t.accent} ${t.accentBorder} hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#9c3c1c] dark:focus-visible:outline-[#d98d63]`}
+              className={`${t.meta} self-start shrink-0 border-b-2 pt-2 pb-2 ${t.accent} ${t.accentBorder} hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent`}
             >
               {c.button}
             </button>
@@ -157,7 +154,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
             <p
               id={errorId}
               role="alert"
-              className={`mt-3 font-mono text-[12px] text-[#a32f13] dark:text-[#e8836a]`}
+              className="mt-3 font-mono text-xs text-body"
             >
               {error}
             </p>
