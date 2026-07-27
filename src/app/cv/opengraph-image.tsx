@@ -1,17 +1,20 @@
 import { ImageResponse } from "next/og";
 
 import { RESUME_DATA } from "@/data/resume-data";
+import { OG_FONT, ogFonts } from "@/lib/og-fonts";
+import { displayUrl } from "@/lib/utils";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 export const alt = `${RESUME_DATA.name} — Curriculum vitae`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
+const palette = WARM_PRINT.light;
+
 export default function CvOpenGraphImage() {
-  const palette = WARM_PRINT.light;
-  const cvDisplayUrl = new URL("/cv", RESUME_DATA.personalWebsiteUrl).href
-    .replace(/^https?:\/\//, "")
-    .replace(/\/$/, "");
+  const cvDisplayUrl = displayUrl(
+    new URL("/cv", RESUME_DATA.personalWebsiteUrl).href,
+  );
 
   return new ImageResponse(
     <div
@@ -44,7 +47,7 @@ export default function CvOpenGraphImage() {
           style={{
             color: palette.accent,
             display: "flex",
-            fontFamily: "monospace",
+            fontFamily: OG_FONT.mono,
             fontSize: 24,
             letterSpacing: "0.16em",
             textTransform: "uppercase",
@@ -56,9 +59,9 @@ export default function CvOpenGraphImage() {
           <div
             style={{
               display: "flex",
-              fontFamily: "Georgia, serif",
+              fontFamily: OG_FONT.display,
               fontSize: 76,
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: "-0.03em",
               lineHeight: 1,
             }}
@@ -69,7 +72,7 @@ export default function CvOpenGraphImage() {
             style={{
               color: palette.body,
               display: "flex",
-              fontFamily: "system-ui, sans-serif",
+              fontFamily: OG_FONT.text,
               fontSize: 30,
               lineHeight: 1.35,
               maxWidth: 900,
@@ -82,7 +85,7 @@ export default function CvOpenGraphImage() {
           style={{
             color: palette.faint,
             display: "flex",
-            fontFamily: "monospace",
+            fontFamily: OG_FONT.mono,
             fontSize: 20,
           }}
         >
@@ -90,6 +93,6 @@ export default function CvOpenGraphImage() {
         </div>
       </div>
     </div>,
-    size,
+    { ...size, fonts: ogFonts("upright") },
   );
 }
