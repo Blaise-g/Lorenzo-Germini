@@ -12,6 +12,7 @@ import { ProjectCard } from "@/components/project-card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
 import { StructuredData } from "@/components/structured-data";
+import { cn } from "@/lib/utils";
 import { PrototypeSwitcher } from "@/components/prototype/prototype-switcher";
 import { VariantA } from "@/components/prototype/variant-a";
 import { VariantB } from "@/components/prototype/variant-b";
@@ -93,13 +94,13 @@ function CurrentHome() {
           {/* Header */}
           <div className="animate-fade-in-up flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex-1 space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">
+              <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
                 {RESUME_DATA.name}
               </h1>
-              <p className="text-muted-foreground max-w-md text-sm leading-relaxed text-pretty print:text-[12px]">
+              <p className="text-body max-w-md text-sm leading-relaxed text-pretty print:text-[12px]">
                 {RESUME_DATA.about}
               </p>
-              <p className="text-muted-foreground max-w-md items-center text-sm text-pretty">
+              <p className="text-body max-w-md items-center text-sm text-pretty">
                 <a
                   className="touch-target gap-x-1.5 align-baseline leading-none hover:underline"
                   href={RESUME_DATA.locationLink}
@@ -110,7 +111,7 @@ function CurrentHome() {
                   {RESUME_DATA.location}
                 </a>
               </p>
-              <div className="text-muted-foreground flex gap-x-1 pt-1 text-sm print:text-[12px]">
+              <div className="text-faint flex gap-x-1 pt-1 font-mono text-xs print:text-[12px]">
                 {RESUME_DATA.contact.email ? (
                   <Button
                     className="print:size-8"
@@ -162,7 +163,7 @@ function CurrentHome() {
               </div>
             </div>
 
-            <div className="border-primary/20 transition-refined hover:border-primary hover:shadow-primary/25 relative size-28 overflow-hidden rounded-full border-2 hover:scale-105 hover:shadow-[0_0_20px_-4px]">
+            <div className="border-accent/20 transition-refined hover:border-accent relative size-28 overflow-hidden rounded-full border-2 hover:scale-105">
               <Image
                 src={RESUME_DATA.avatarUrl}
                 alt={RESUME_DATA.name}
@@ -176,11 +177,8 @@ function CurrentHome() {
 
           {/* About */}
           <Section className="animate-fade-in-up print:gap-y-1">
-            <h2 className="text-primary text-xl font-bold tracking-tight">
-              About
-            </h2>
-            <div className="bg-primary/30 h-px w-12" />
-            <div className="text-muted-foreground space-y-3 text-base leading-relaxed text-pretty print:space-y-1 print:text-[12px] print:leading-[1.35]">
+            <SectionHeading>About</SectionHeading>
+            <div className="text-body space-y-3 text-base leading-relaxed text-pretty print:space-y-1 print:text-[12px] print:leading-[1.35]">
               {RESUME_DATA.summary.split("\n\n").map((paragraph, i) => (
                 <p key={i}>{paragraph}</p>
               ))}
@@ -189,19 +187,16 @@ function CurrentHome() {
 
           {/* Work Experience */}
           <Section className="animate-fade-in-up print:gap-y-1">
-            <h2 className="text-primary text-xl font-bold tracking-tight">
-              Work Experience
-            </h2>
-            <div className="bg-primary/30 h-px w-12" />
+            <SectionHeading>Work Experience</SectionHeading>
             {RESUME_DATA.work.map((work) => {
               return (
                 <Card
                   key={`${work.company}-${work.start}`}
-                  className="card-hover print-keep-together border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0 print:py-1"
+                  className="card-hover print-keep-together border-l-border hover:border-l-accent border-l px-6 py-4 print:px-0 print:py-1"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
-                      <h3 className="inline-flex items-center justify-center gap-x-1 leading-none font-semibold">
+                      <h3 className="font-display inline-flex items-center justify-center gap-x-1 leading-none font-semibold">
                         {work.link ? (
                           <a
                             className="touch-target hover:underline"
@@ -224,11 +219,11 @@ function CurrentHome() {
                           ))}
                         </span>
                       </h3>
-                      <div className="text-muted-foreground text-sm tabular-nums">
+                      <div className="text-faint font-mono text-xs tabular-nums">
                         {work.start} - {work.end ?? "Present"}
                       </div>
                     </div>
-                    <h4 className="text-muted-foreground text-sm leading-none print:text-[12px]">
+                    <h4 className="text-faint font-mono text-xs leading-none print:text-[12px]">
                       {work.title}
                     </h4>
                   </CardHeader>
@@ -255,22 +250,19 @@ function CurrentHome() {
 
           {/* Education */}
           <Section className="animate-fade-in-up print:gap-y-1">
-            <h2 className="text-primary text-xl font-bold tracking-tight">
-              Education
-            </h2>
-            <div className="bg-primary/30 h-px w-12" />
+            <SectionHeading>Education</SectionHeading>
             {RESUME_DATA.education.map((education) => {
               return (
                 <Card
                   key={education.school}
-                  className="card-hover border-l-border hover:border-l-primary border-l px-6 py-4 hover:border-l-[3px] print:px-0 print:py-1"
+                  className="card-hover border-l-border hover:border-l-accent border-l px-6 py-4 print:px-0 print:py-1"
                 >
                   <CardHeader>
                     <div className="flex items-center justify-between gap-x-2 text-base">
-                      <h3 className="leading-none font-semibold">
+                      <h3 className="font-display leading-none font-semibold">
                         {education.school}
                       </h3>
-                      <div className="text-muted-foreground text-sm tabular-nums">
+                      <div className="text-faint font-mono text-xs tabular-nums">
                         {education.start} - {education.end}
                       </div>
                     </div>
@@ -285,15 +277,12 @@ function CurrentHome() {
 
           {/* Skills */}
           <Section className="animate-fade-in-up print:gap-y-1">
-            <h2 className="text-primary text-xl font-bold tracking-tight">
-              Skills
-            </h2>
-            <div className="bg-primary/30 h-px w-12" />
+            <SectionHeading>Skills</SectionHeading>
             <div className="flex flex-wrap gap-1.5">
               {RESUME_DATA.skills.map((skill) => {
                 return (
                   <Badge
-                    className="bg-primary cursor-default print:text-[12px]"
+                    className="border-border bg-ground text-faint cursor-default font-mono print:text-[12px]"
                     key={skill}
                   >
                     {skill}
@@ -305,10 +294,7 @@ function CurrentHome() {
 
           {/* Projects */}
           <Section className="print-projects-section animate-fade-in-up scroll-mb-16 print:gap-y-1">
-            <h2 className="text-primary text-xl font-bold tracking-tight">
-              Projects
-            </h2>
-            <div className="bg-primary/30 h-px w-12 print:my-1" />
+            <SectionHeading ruleClassName="print:my-1">Projects</SectionHeading>
             <div className="-mx-3 grid grid-cols-1 gap-3 md:grid-cols-2 print:mx-0 print:grid-cols-2 print:gap-2">
               {RESUME_DATA.projects.map((project) => {
                 return (
@@ -338,6 +324,23 @@ function CurrentHome() {
           ]}
         />
       </div>
+    </>
+  );
+}
+
+function SectionHeading({
+  children,
+  ruleClassName,
+}: {
+  children: React.ReactNode;
+  ruleClassName?: string;
+}) {
+  return (
+    <>
+      <h2 className="font-mono text-[15px] font-semibold tracking-[0.18em] text-accent uppercase">
+        {children}
+      </h2>
+      <div className={cn("h-px w-12 bg-accent/30", ruleClassName)} />
     </>
   );
 }

@@ -191,12 +191,14 @@ test.describe("non-interactive badge affordances", () => {
   }
 });
 
-test.describe("low-emphasis text contrast", () => {
+test.describe("faint metadata legibility", () => {
   for (const theme of themes) {
-    test(`${theme} mode muted text meets WCAG AA`, async ({ page }) => {
+    test(`${theme} mode faint text meets WCAG AA and the 12px floor`, async ({
+      page,
+    }) => {
       await setTheme(page, theme);
-      /* The 10px command-menu hint is the smallest muted text on the page and
-         only renders at xl and up, so measure wide enough to include it. */
+      /* The command-menu hint only renders at xl and up, so measure wide
+         enough to include the historical smallest metadata element. */
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto("/");
       await expect(page.locator("kbd").first()).toBeVisible();
@@ -211,9 +213,9 @@ test.describe("low-emphasis text contrast", () => {
           return normalized;
         };
 
-        const mutedColor = normalizeColor(
+        const faintColor = normalizeColor(
           getComputedStyle(document.documentElement).getPropertyValue(
-            "--color-muted-foreground",
+            "--color-faint",
           ),
         );
 
@@ -246,7 +248,7 @@ test.describe("low-emphasis text contrast", () => {
           document.body,
           NodeFilter.SHOW_TEXT,
         );
-        const muted: {
+        const faint: {
           background: string;
           color: string;
           fontSize: number;
@@ -259,27 +261,27 @@ test.describe("low-emphasis text contrast", () => {
           if (!parent || !text.textContent?.trim()) continue;
           if (parent.closest("nextjs-portal, script, style")) continue;
           const style = styleOf(parent);
-          if (style.color !== mutedColor) continue;
+          if (style.color !== faintColor) continue;
           if (!parent.getClientRects().length) continue;
 
-          muted.push({
+          faint.push({
             background: effectiveBackground(parent),
             color: style.color,
             fontSize: Number.parseFloat(style.fontSize),
             label: text.textContent.trim().slice(0, 40),
           });
         }
-        return muted;
+        return faint;
       });
 
       expect(
         measurements.length,
-        "the page should render muted text to measure",
+        "the page should render faint text to measure",
       ).toBeGreaterThan(0);
 
       /* Assert across every size, not just the smallest one found: filtering to
-         the minimum would stop covering 10px text the day the 10px element is
-         removed. */
+         the minimum would stop covering the smallest element when another
+         metadata element is added. */
       const failing = measurements
         .map((measurement) => ({
           ...measurement,
@@ -291,7 +293,7 @@ test.describe("low-emphasis text contrast", () => {
 
       expect(
         failing,
-        `muted text should reach ${minimumContrast}:1 against its background`,
+        `faint text should reach ${minimumContrast}:1 against its background`,
       ).toEqual([]);
 
       const smallest = Math.min(
@@ -299,8 +301,8 @@ test.describe("low-emphasis text contrast", () => {
       );
       expect(
         smallest,
-        "the smallest muted text should have been measured",
-      ).toBeLessThanOrEqual(10);
+        "faint metadata should not render below the signed size floor",
+      ).toBeGreaterThanOrEqual(12);
     });
   }
 });

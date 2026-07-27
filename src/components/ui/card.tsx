@@ -9,7 +9,7 @@ function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground print:border-none print:bg-transparent print:shadow-none print:rounded-none",
+        "rounded-lg border border-border bg-ground text-ink print:rounded-none print:border-none print:bg-transparent print:shadow-none",
         className,
       )}
       {...props}
@@ -50,7 +50,7 @@ function CardDescription({
 }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-body text-sm", className)}
       {...props}
     />
   );
@@ -63,7 +63,7 @@ function CardContent({
   return (
     <div
       className={cn(
-        "text-pretty text-sm text-muted-foreground",
+        "text-body text-pretty text-sm",
         className,
       )}
       {...props}

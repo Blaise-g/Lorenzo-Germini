@@ -1,19 +1,12 @@
 // PROTOTYPE Variant B — "Editorial" (issue #7), now parameterized with three
 // visual treatments (issue #8): same layout (masthead, sticky rail, numbered
-// essay index, prose timeline), different typography/palette/density/texture/
-// motion per treatment. Switch via ?variant=b1|b2|b3 (b = b1).
+// essay index, prose timeline), different typography, density, rule weight,
+// and motion. All treatments now inherit the signed Warm Print palette.
+// Switch via ?variant=b1|b2|b3 (b = b1).
 
-import React from "react";
 import Image from "next/image";
-import { Fraunces } from "next/font/google";
 import { RESUME_DATA } from "@/data/resume-data";
 import { PROTOTYPE_ESSAYS } from "./writing-data";
-
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
-});
 
 const NAV = [
   { href: "#writing", label: "Writing" },
@@ -50,22 +43,17 @@ type Treatment = {
   /* motion: per-section reveal class ("" = none) */
   reveal: string;
   stagger: boolean;
-  /* full-page texture overlay */
-  texture?: React.ReactNode;
 };
 
-/* Faint SVG grain for the warm-print treatment. */
-const GRAIN = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E")`;
-
 const TREATMENTS: Record<TreatmentKey, Treatment> = {
-  /* B1 — Warm Print: paper + terracotta ink, mono metadata, grain, staggered reveal. */
+  /* B1 — Warm Print: paper + terracotta ink, mono metadata, staggered reveal. */
   warm: {
-    page: "bg-[#faf6ef] text-[#1c1917] dark:bg-[#171412] dark:text-[#ece7de]",
-    meta: "font-mono text-[11px] uppercase tracking-[0.12em]",
+    page: "bg-ground text-ink",
+    meta: "font-mono text-xs uppercase tracking-[0.12em]",
     metaHeading:
-      "font-mono text-[11px] uppercase tracking-[0.2em] text-[#9c3c1c] dark:text-[#d98d63]",
-    accent: "text-[#9c3c1c] dark:text-[#d98d63]",
-    accentBorder: "border-[#9c3c1c] dark:border-[#d98d63]",
+      "font-mono text-xs uppercase tracking-[0.2em] text-accent",
+    accent: "text-accent",
+    accentBorder: "border-accent",
     masthead: "border-b-2 border-current pb-4",
     divide: "divide-y divide-current/15",
     projectRule: "border-t-2 border-current/70 pt-4",
@@ -74,27 +62,19 @@ const TREATMENTS: Record<TreatmentKey, Treatment> = {
     flow: "space-y-20",
     essayPad: "py-6",
     workGap: "space-y-8",
-    body: "opacity-80",
-    faint: "opacity-55",
+    body: "text-body",
+    faint: "text-faint",
     reveal: "animate-fade-in-up",
     stagger: true,
-    texture: (
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-50 opacity-[0.035] mix-blend-multiply dark:opacity-[0.06] dark:mix-blend-screen"
-        style={{ backgroundImage: GRAIN }}
-      />
-    ),
   },
 
-  /* B2 — Slate Editorial: Fraunces on the existing slate-indigo theme tokens.
-     Dark mode, shadcn/ui, and print styling keep working for free. */
+  /* B2 — a quieter editorial scale and rhythm on Warm Print. */
   slate: {
-    page: "bg-background text-foreground",
-    meta: "text-[11px] uppercase tracking-[0.15em] text-muted-foreground",
-    metaHeading: "text-[11px] uppercase tracking-[0.2em] text-primary",
-    accent: "text-primary",
-    accentBorder: "border-primary",
+    page: "bg-ground text-ink",
+    meta: "font-mono text-xs uppercase tracking-[0.15em] text-faint",
+    metaHeading: "font-mono text-xs uppercase tracking-[0.2em] text-accent",
+    accent: "text-accent",
+    accentBorder: "border-accent",
     masthead: "border-b border-border pb-4",
     divide: "divide-y divide-border",
     projectRule: "border-t border-border pt-4",
@@ -103,21 +83,20 @@ const TREATMENTS: Record<TreatmentKey, Treatment> = {
     flow: "space-y-20",
     essayPad: "py-6",
     workGap: "space-y-8",
-    body: "text-muted-foreground",
-    faint: "text-muted-foreground/70",
+    body: "text-body",
+    faint: "text-faint",
     reveal: "animate-fade-in",
     stagger: false,
   },
 
-  /* B3 — Technical Broadsheet: bone/near-black, heavy rules, dense, mono-forward,
-     one signal-orange accent, ruled-paper texture, zero motion. */
+  /* B3 — dense, mono-forward, heavy rules, and zero motion. */
   broadsheet: {
-    page: "bg-[#f2efe6] text-[#111110] dark:bg-[#100f0d] dark:text-[#e7e3d8]",
-    meta: "font-mono text-[11px] uppercase tracking-[0.08em]",
+    page: "bg-ground text-ink",
+    meta: "font-mono text-xs uppercase tracking-[0.08em]",
     metaHeading:
-      "font-mono text-[11px] font-bold uppercase tracking-[0.08em] text-[#d43d0c] dark:text-[#ff6a33]",
-    accent: "text-[#d43d0c] dark:text-[#ff6a33]",
-    accentBorder: "border-[#d43d0c] dark:border-[#ff6a33]",
+      "font-mono text-xs font-bold uppercase tracking-[0.08em] text-accent",
+    accent: "text-accent",
+    accentBorder: "border-accent",
     masthead: "border-b-4 border-current pb-3",
     divide: "divide-y-2 divide-current/25",
     projectRule: "border-t-[3px] border-current pt-3",
@@ -127,20 +106,10 @@ const TREATMENTS: Record<TreatmentKey, Treatment> = {
     flow: "space-y-14",
     essayPad: "py-5",
     workGap: "space-y-5",
-    body: "opacity-80",
-    faint: "opacity-55",
+    body: "text-body",
+    faint: "text-faint",
     reveal: "",
     stagger: false,
-    texture: (
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 z-50 opacity-[0.05] dark:opacity-[0.07]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(to bottom, currentColor 0, currentColor 1px, transparent 1px, transparent 28px)",
-        }}
-      />
-    ),
   },
 };
 
@@ -151,13 +120,12 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
 
   return (
     <div className={`min-h-screen ${t.page}`}>
-      {t.texture}
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-10">
         {/* Masthead */}
         <header
           className={`flex items-baseline justify-between ${t.masthead} ${t.reveal}`}
         >
-          <p className={`${fraunces.className} text-lg font-semibold tracking-tight`}>
+          <p className="font-display text-lg font-semibold tracking-tight">
             Lorenzo Germini
           </p>
           <nav className={`flex gap-5 ${t.meta}`}>
@@ -206,7 +174,7 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
           <div className={t.flow}>
             {/* Statement hero */}
             <section className={t.reveal} style={delay(2)}>
-              <h1 className={`${fraunces.className} ${t.heroClass}`}>
+              <h1 className={`font-display ${t.heroClass}`}>
                 Turning frontier AI into <em className={`italic ${t.accent}`}>shipped products</em> — and writing
                 about tech, startups, and strategy along the way.
               </h1>
@@ -229,11 +197,11 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
               <div className={t.divide}>
                 {PROTOTYPE_ESSAYS.map((essay, i) => (
                   <a key={essay.title} href="#" className={`group grid gap-2 ${t.essayPad} md:grid-cols-[3rem_1fr_auto] md:gap-6`}>
-                    <span className={`${fraunces.className} text-2xl italic ${t.accent} opacity-70`}>
+                    <span className={`font-display text-2xl italic ${t.accent}`}>
                       {String(i + 1).padStart(2, "0")}
                     </span>
                     <span>
-                      <span className={`${fraunces.className} block ${t.essayTitle} group-hover:underline underline-offset-4`}>
+                      <span className={`font-display block ${t.essayTitle} group-hover:underline underline-offset-4`}>
                         {essay.title}
                       </span>
                       <span className={`mt-2 block max-w-xl text-sm leading-relaxed ${t.body}`}>
@@ -263,7 +231,7 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
                       {work.start} – {work.end ?? "Present"}
                     </p>
                     <div>
-                      <h3 className={`${fraunces.className} text-xl`}>
+                      <h3 className="font-display text-xl">
                         {work.title} · {work.company}
                       </h3>
                       <p className={`mt-1 max-w-xl text-sm leading-relaxed ${t.body}`}>
@@ -291,7 +259,7 @@ export function VariantB({ treatment = "warm" }: { treatment?: TreatmentKey }) {
                     rel="noopener noreferrer"
                     className={`group ${t.projectRule}`}
                   >
-                    <h3 className={`${fraunces.className} text-2xl group-hover:italic`}>
+                    <h3 className="font-display text-2xl group-hover:italic">
                       {project.title}
                     </h3>
                     <p className={`mt-2 text-sm leading-relaxed ${t.body}`}>{project.description}</p>

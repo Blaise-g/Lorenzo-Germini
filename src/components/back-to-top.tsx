@@ -26,9 +26,10 @@ export function BackToTop() {
 
   return (
     <Button
+      variant="outline"
       size="icon"
       onClick={scrollToTop}
-      className={`fixed bottom-20 right-4 z-50 rounded-full shadow-lg hover:bg-primary print:hidden ${
+      className={`fixed right-4 bottom-20 z-50 rounded-full shadow-lg hover:border-accent print:hidden ${
         isVisible
           ? "translate-y-0 scale-100 opacity-100"
           : "pointer-events-none translate-y-2 scale-95 opacity-0"

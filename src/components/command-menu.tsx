@@ -40,9 +40,9 @@ export const CommandMenu = ({ links }: Props) => {
 
   return (
     <>
-      <p className="border-t-border text-muted-foreground mt-12 hidden border-t p-2 text-center text-sm xl:block print:hidden">
+      <p className="border-t-border text-faint mt-12 hidden border-t p-2 text-center font-mono text-xs xl:block print:hidden">
         Press{" "}
-        <kbd className="bg-muted text-muted-foreground pointer-events-none inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium opacity-100 select-none">
+        <kbd className="bg-ground text-faint pointer-events-none inline-flex h-5 items-center gap-1 rounded border border-border px-1.5 font-mono text-xs font-medium select-none">
           <span className="text-xs">{isMac ? "\u2318" : "Ctrl+"}</span>J
         </kbd>{" "}
         to open the command menu
@@ -51,7 +51,7 @@ export const CommandMenu = ({ links }: Props) => {
         variant="outline"
         size="icon"
         onClick={() => setOpen((open) => !open)}
-        className="border-border hover:bg-secondary hover:text-foreground fixed right-4 bottom-4 z-50 h-12 w-12 rounded-full shadow-lg xl:hidden print:hidden"
+        className="border-border hover:border-accent hover:text-ink fixed right-4 bottom-4 z-50 h-12 w-12 rounded-full shadow-lg xl:hidden print:hidden"
         aria-label="Open command menu"
       >
         <CommandIcon className="size-5" />

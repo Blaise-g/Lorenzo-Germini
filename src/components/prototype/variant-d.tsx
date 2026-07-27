@@ -27,7 +27,6 @@
 
 import React from "react";
 import Image from "next/image";
-import { Fraunces } from "next/font/google";
 import { RESUME_DATA } from "@/data/resume-data";
 import { PROTOTYPE_ESSAYS } from "./writing-data";
 import { CommandMenu } from "@/components/command-menu";
@@ -35,32 +34,25 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { BackToTop } from "@/components/back-to-top";
 import { StructuredData } from "@/components/structured-data";
 
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  axes: ["opsz"],
-  style: ["normal", "italic"],
-});
-
 export type Composition = "single" | "rail";
 
 /* ─── Warm Print tokens (#8), held constant across both compositions ─── */
 const t = {
-  page: "bg-[#faf6ef] text-[#1c1917] dark:bg-[#171412] dark:text-[#ece7de]",
-  /* metadata: JetBrains Mono, 11px, uppercase, wide tracking */
-  meta: "font-mono text-[11px] uppercase tracking-[0.12em]",
+  page: "bg-ground text-ink",
+  /* metadata: JetBrains Mono, 12px, uppercase, wide tracking */
+  meta: "font-mono text-xs uppercase tracking-[0.12em]",
   /* section heading: outranks body copy — 15px mono, semibold, accent, rule.
      At 13px the critique measured it at 0.81x the 16px body it heads and the
      lowest-contrast text on the page: legible up close, never the first
      fixation on a skim. 15px + wider tracking keeps the mono/caps/accent
      signal while actually outranking the body. */
   heading:
-    "font-mono text-[15px] font-semibold uppercase tracking-[0.18em] text-[#9c3c1c] dark:text-[#d98d63]",
+    "font-mono text-[15px] font-semibold uppercase tracking-[0.18em] text-accent",
   headingRule: "mt-2 border-t border-current/20",
-  accent: "text-[#9c3c1c] dark:text-[#d98d63]",
-  accentBorder: "border-[#9c3c1c] dark:border-[#d98d63]",
-  body: "text-[#3f3a35] dark:text-[#c9c2b7]",
-  /* was opacity-55 → 3.84:1 in light mode. Explicit tokens: 6.4:1 / 6.1:1 */
-  faint: "text-[#5c554e] dark:text-[#a49a8e]",
+  accent: "text-accent",
+  accentBorder: "border-accent",
+  body: "text-body",
+  faint: "text-faint",
   masthead: "border-b-2 border-current pb-4",
   divide: "divide-y divide-current/15",
   projectRule: "border-t-2 border-current/70 pt-4",
@@ -143,7 +135,7 @@ function Hero() {
   return (
     <section className={t.reveal}>
       <h1
-        className={`${fraunces.className} font-medium leading-[1.08] tracking-tight`}
+        className="font-display leading-[1.08] font-medium tracking-tight"
         style={HERO_SIZE}
       >
         Turning frontier AI into{" "}
@@ -189,7 +181,7 @@ function Writing() {
           · {lead.readingMinutes} min read
         </p>
         <h3
-          className={`${fraunces.className} mt-2 text-3xl leading-snug group-hover:underline underline-offset-4`}
+          className="font-display mt-2 text-3xl leading-snug underline-offset-4 group-hover:underline"
         >
           {lead.title}
         </h3>
@@ -222,7 +214,7 @@ function Work() {
               {work.start} – {work.end ?? "Present"}
             </p>
             <div>
-              <h3 className={`${fraunces.className} text-xl`}>
+              <h3 className="font-display text-xl">
                 {work.title} · {work.company}
               </h3>
               <p className={`mt-1.5 text-sm leading-relaxed ${t.body}`}>
@@ -267,7 +259,7 @@ function Projects({ twoUp }: { twoUp: boolean }) {
             className={`group ${t.projectRule}`}
           >
             <h3
-              className={`${fraunces.className} text-2xl group-hover:italic`}
+              className="font-display text-2xl group-hover:italic"
             >
               {project.title}
             </h3>
@@ -336,7 +328,7 @@ export function VariantD({
           >
             <div className="flex items-baseline justify-between">
               <p
-                className={`${fraunces.className} text-lg font-semibold tracking-tight`}
+                className="font-display text-lg font-semibold tracking-tight"
               >
                 Lorenzo Germini
               </p>
@@ -414,7 +406,7 @@ export function VariantD({
           <header className={`pt-10 ${t.reveal}`}>
             <div className={`flex items-baseline justify-between ${t.masthead}`}>
               <p
-                className={`${fraunces.className} text-lg font-semibold tracking-tight`}
+                className="font-display text-lg font-semibold tracking-tight"
               >
                 Lorenzo Germini
               </p>
