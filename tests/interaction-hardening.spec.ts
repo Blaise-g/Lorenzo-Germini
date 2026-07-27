@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { openCommandPalette } from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { routesUsingTheSharedShell } from "./support/routes";
 import { setTheme, themes } from "./support/theme";
@@ -21,48 +22,53 @@ async function expectMinimumTarget(
   selector: string,
   minimum: number,
 ) {
-  const undersized = await page.locator(selector).evaluateAll(
-    (elements, targetMinimum) =>
-      elements.flatMap((element) => {
-        const style = getComputedStyle(element);
-        const rect = element.getBoundingClientRect();
-        const isVisible =
-          style.visibility !== "hidden" &&
-          style.display !== "none" &&
-          !(
-            style.position === "absolute" &&
-            style.overflow === "hidden" &&
-            rect.width <= 1 &&
-            rect.height <= 1
-          ) &&
-          rect.width > 0 &&
-          rect.height > 0;
+  /* Polled, not measured once: a control that transitions in is briefly its own
+     resting size times a scale factor, and back-to-top passes through scale-95
+     — 41.8px of its 44px box — on the way to visible. */
+  const measure = () =>
+    page.locator(selector).evaluateAll(
+      (elements, targetMinimum) =>
+        elements.flatMap((element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          const isVisible =
+            style.visibility !== "hidden" &&
+            style.display !== "none" &&
+            !(
+              style.position === "absolute" &&
+              style.overflow === "hidden" &&
+              rect.width <= 1 &&
+              rect.height <= 1
+            ) &&
+            rect.width > 0 &&
+            rect.height > 0;
 
-        if (
-          !isVisible ||
-          (rect.width >= targetMinimum && rect.height >= targetMinimum)
-        ) {
-          return [];
-        }
+          if (
+            !isVisible ||
+            (rect.width >= targetMinimum && rect.height >= targetMinimum)
+          ) {
+            return [];
+          }
 
-        return [
-          {
-            height: rect.height,
-            label:
-              element.getAttribute("aria-label") ||
-              element.textContent?.trim().slice(0, 80) ||
-              element.tagName,
-            width: rect.width,
-          },
-        ];
-      }),
-    minimum,
-  );
+          return [
+            {
+              height: rect.height,
+              label:
+                element.getAttribute("aria-label") ||
+                element.textContent?.trim().slice(0, 80) ||
+                element.tagName,
+              width: rect.width,
+            },
+          ];
+        }),
+      minimum,
+    );
 
-  expect(
-    undersized,
-    `all visible ${selector} targets should be at least ${minimum}×${minimum}px`,
-  ).toEqual([]);
+  await expect
+    .poll(measure, {
+      message: `all visible ${selector} targets should be at least ${minimum}×${minimum}px`,
+    })
+    .toEqual([]);
 }
 
 test.describe("touch and fixed-chrome geometry", () => {
@@ -79,7 +85,6 @@ test.describe("touch and fixed-chrome geometry", () => {
       await expect(
         page.getByRole("button", { name: "Back to top" }),
       ).toBeVisible();
-      await waitForTwoAnimationFrames(page);
       await expectMinimumTarget(
         page,
         "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",
@@ -327,6 +332,25 @@ test.describe("motion, theme initialization, and accessibility", () => {
       });
     }
   }
+});
+
+test("the command palette shortcut survives a hydration delay", async ({
+  page,
+}) => {
+  /* The listener attaches in a client effect, so a press before hydration is
+     dropped. Stalling every script pushes hydration past the first press,
+     which turns the 1-in-6 timeout of #38 into a certainty — the suite used to
+     fail this way only when the dev server was busy compiling. */
+  await page.route("**/*.js", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+    await route.continue();
+  });
+  await page.goto("/", { waitUntil: "commit" });
+
+  const dialog = await openCommandPalette(page);
+  await expect(
+    dialog.getByPlaceholder("Type a command or search..."),
+  ).toBeFocused();
 });
 
 test.describe("keyboard order", () => {
