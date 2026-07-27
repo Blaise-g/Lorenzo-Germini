@@ -48,8 +48,6 @@ async function measureCumulativeLayoutShift(page: Page, route: string) {
 
   await page.goto(route, { waitUntil: "networkidle" });
 
-  // Here the removal also keeps the overlay out of the 0.01 budget below; see
-  // the helper for why it is load-bearing rather than cosmetic.
   await removeDevOverlay(page);
 
   // Webfonts and the avatar settle after networkidle; both shift layout when
