@@ -5,7 +5,7 @@ import path from "node:path";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 import { contrast } from "./support/color";
-import { openCommandPalette } from "./support/command-palette";
+import { openCommandPaletteWithShortcut } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 const colorRoles = [
@@ -246,7 +246,7 @@ test.describe("Warm Print runtime contract", () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await setTheme(page, theme);
       await page.goto("/");
-      await openCommandPalette(page);
+      await openCommandPaletteWithShortcut(page);
 
       const primitives = await page.evaluate(() => {
         const effectiveBackground = (element: HTMLElement) => {

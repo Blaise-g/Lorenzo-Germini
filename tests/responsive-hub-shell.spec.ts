@@ -1,5 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import {
+  COMMAND_MENU_LABEL,
+  commandMenuTrigger,
+} from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
 
 const mobileAndTabletWidths = [375, 768, 1023] as const;
@@ -188,9 +192,7 @@ test.describe("responsive hub shell", () => {
     await expect(
       page.getByRole("button", { name: "Back to top" }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Open command menu" }),
-    ).toBeHidden();
+    await expect(commandMenuTrigger(page)).toBeHidden();
   });
 
   test("interactive DOM order follows the mobile visual flow", async ({

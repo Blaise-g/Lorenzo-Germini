@@ -1,20 +1,32 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-/* One press is not enough: the Ctrl/Cmd+J listener attaches in a client effect,
-   so a press that lands before hydration is dropped and nothing redelivers it. */
+export const COMMAND_MENU_LABEL = "Open command menu";
+
 const COMMIT_BUDGET_MS = 2_000;
 const ATTACH_BUDGET_MS = 16_000;
 
-export async function openCommandPalette(page: Page): Promise<Locator> {
+export function commandMenuTrigger(page: Page) {
+  return page.getByRole("button", { name: COMMAND_MENU_LABEL });
+}
+
+export function commandPaletteInput(dialog: Locator) {
+  return dialog.getByPlaceholder("Type a command or search...");
+}
+
+/* One attempt is not enough for either trigger: the button's `onClick` and the
+   Ctrl/Cmd+J listener both come from the same client component, so anything that
+   fires before hydration is dropped and nothing redelivers it.
+
+   Waiting a full commit budget between attempts is what makes the retry safe:
+   both triggers toggle, so a check that gave up while React was still
+   committing would fire again and close what it had just opened. */
+async function openUntilVisible(page: Page, trigger: () => Promise<unknown>) {
   const dialog = page.getByRole("dialog");
 
-  /* Waiting a full commit budget between presses is what makes the retry safe:
-     the shortcut toggles, so a check that gave up while React was still
-     committing would press again and close what it had just opened. */
   await expect
     .poll(
       async () => {
-        await page.keyboard.press("Control+j");
+        await trigger();
         try {
           await dialog.waitFor({
             state: "visible",
@@ -23,7 +35,7 @@ export async function openCommandPalette(page: Page): Promise<Locator> {
           return true;
         } catch (error) {
           /* Only a timeout means "not open yet". A closed page or a navigation
-             would otherwise read as a dropped press and retry until the budget
+             would otherwise read as a dropped trigger and retry until the budget
              ran out, reporting the wrong failure. */
           if ((error as Error).name !== "TimeoutError") throw error;
           return false;
@@ -34,4 +46,12 @@ export async function openCommandPalette(page: Page): Promise<Locator> {
     .toBe(true);
 
   return dialog;
+}
+
+export function openCommandPalette(page: Page): Promise<Locator> {
+  return openUntilVisible(page, () => commandMenuTrigger(page).click());
+}
+
+export function openCommandPaletteWithShortcut(page: Page): Promise<Locator> {
+  return openUntilVisible(page, () => page.keyboard.press("Control+j"));
 }

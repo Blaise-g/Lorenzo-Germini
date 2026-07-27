@@ -1,12 +1,13 @@
 import { expect, test, type Locator } from "@playwright/test";
 
 import { contrast } from "./support/color";
+import { COMMAND_MENU_LABEL } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 const focusControls = [
   "Toggle theme",
   "Back to top",
-  "Open command menu",
+  COMMAND_MENU_LABEL,
 ] as const;
 
 async function expectVisibleFocus(control: Locator, label: string) {

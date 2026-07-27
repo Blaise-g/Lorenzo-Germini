@@ -1,7 +1,11 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { openCommandPalette } from "./support/command-palette";
+import {
+  commandPaletteInput,
+  openCommandPalette,
+  openCommandPaletteWithShortcut,
+} from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { routesUsingTheSharedShell } from "./support/routes";
 import { setTheme, themes } from "./support/theme";
@@ -94,8 +98,8 @@ test.describe("touch and fixed-chrome geometry", () => {
         44,
       );
 
-      await page.getByRole("button", { name: "Open command menu" }).click();
-      const close = page.getByRole("button", { name: "Close" });
+      const dialog = await openCommandPalette(page);
+      const close = dialog.getByRole("button", { name: "Close" });
       const closeBox = await close.boundingBox();
       expect(closeBox, "dialog close control should be visible").not.toBeNull();
       expect(closeBox!.width).toBeGreaterThanOrEqual(44);
@@ -338,26 +342,31 @@ test.describe("motion, theme initialization, and accessibility", () => {
 });
 
 test.describe("command palette", () => {
-  test("the shortcut survives a hydration delay", async ({ page }) => {
-    /* `commit` returns as soon as the document starts arriving, so the press
-       below is guaranteed to precede hydration once the scripts it needs are
-       stalled — which is what makes a dropped press certain here instead of the
-       1-in-6 it was when only a busy dev server produced the delay.
+  const triggers = [
+    ["the shortcut", openCommandPaletteWithShortcut],
+    ["the button", openCommandPalette],
+  ] as const;
 
-       Only the build's own chunks are held: stalling every `.js` would also
-       catch the HMR client and analytics, which hydration does not wait on and
-       which added two seconds of dead time. */
-    await page.route("**/_next/static/**/*.js", async (route) => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await route.continue();
+  for (const [name, open] of triggers) {
+    test(`${name} survives a hydration delay`, async ({ page }) => {
+      /* `commit` returns as soon as the document starts arriving, so the trigger
+         below is guaranteed to fire before hydration once the scripts it needs
+         are stalled — which is what makes a dropped trigger certain here instead
+         of the 1-in-6 it was when only a busy dev server produced the delay.
+
+         Only the build's own chunks are held: stalling every `.js` would also
+         catch the HMR client and analytics, which hydration does not wait on and
+         which added two seconds of dead time. */
+      await page.route("**/_next/static/**/*.js", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        await route.continue();
+      });
+      await page.goto("/", { waitUntil: "commit" });
+
+      const dialog = await open(page);
+      await expect(commandPaletteInput(dialog)).toBeFocused();
     });
-    await page.goto("/", { waitUntil: "commit" });
-
-    const dialog = await openCommandPalette(page);
-    await expect(
-      dialog.getByPlaceholder("Type a command or search..."),
-    ).toBeFocused();
-  });
+  }
 });
 
 test.describe("keyboard order", () => {

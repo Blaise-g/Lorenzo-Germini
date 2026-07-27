@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { contrast } from "./support/color";
+import { openCommandPalette } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 /* WCAG 2.1 AA for text below 18.66px (the large-text threshold at normal
@@ -70,7 +71,7 @@ test.describe("outbound link hardening", () => {
       };
     });
 
-    await page.getByRole("button", { name: "Open command menu" }).click();
+    await openCommandPalette(page);
     await page.getByRole("option", { name: /GitHub/i }).click();
 
     expect(calls, "the command menu should have opened a window").toHaveLength(
