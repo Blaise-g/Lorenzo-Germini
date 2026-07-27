@@ -33,6 +33,13 @@ nothing generates them from the data.
 **Measure in a browser before recording a design decision.** Comments and notes about the
 current visual state have been wrong here.
 
+**Cache Components is on, and `next build` will not catch violations of it.** Reading
+runtime data — `searchParams`, `cookies()`, `headers()` — must happen inside a `<Suspense>`
+boundary. A read that a `NODE_ENV` guard keeps out of production still builds green; the
+only report is a `blocking-route` error in the dev server's terminal, not the browser. Read
+the dev log after adding a route. Give a boundary a fallback with the same geometry as what
+replaces it, or it shifts the page.
+
 ## Workflows
 
 - Issues and PRDs: GitHub issues in `Blaise-g/Lorenzo-Germini` via `gh` — see `docs/agents/issue-tracker.md`
