@@ -195,6 +195,10 @@ html {
     break-inside: avoid;
   }
 
+  .print-keep-together li {
+    break-inside: avoid;
+  }
+
   .print-projects-section {
     display: block;
   }
@@ -211,6 +215,28 @@ html {
 
   .transition-refined {
     transition: none;
+  }
+
+  .fixed {
+    position: static !important;
+  }
+
+  /* ─── /cv document rules ─── */
+  .cv-route [data-cv-document] {
+    display: block;
+  }
+
+  .cv-route .cv-entry,
+  .cv-route .cv-entry-heading {
+    break-inside: avoid;
+  }
+
+  .cv-route .cv-entry h3 {
+    break-after: avoid;
+  }
+
+  .cv-route section > div:first-child {
+    break-after: avoid;
   }
 
   * {

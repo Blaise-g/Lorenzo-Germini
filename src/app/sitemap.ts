@@ -10,5 +10,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 1,
     },
+    {
+      url: new URL("/cv", RESUME_DATA.personalWebsiteUrl).href,
+      lastModified: BUILD_DATE,
+      changeFrequency: "yearly",
+      priority: 0.8,
+    },
   ];
 }

@@ -10,6 +10,7 @@ const routesUsingTheSharedShell = [
   "/?variant=c",
   "/?variant=d",
   "/?variant=b1a",
+  "/cv",
   "/writing",
   "/route-that-does-not-exist",
 ];
@@ -42,7 +43,7 @@ test.describe("route-shared semantic shell", () => {
     });
   }
 
-  test("the footer exposes only destinations that currently exist", async ({
+  test("the footer exposes every destination that currently exists", async ({
     page,
   }) => {
     await page.goto("/");
@@ -72,10 +73,23 @@ test.describe("route-shared semantic shell", () => {
     await expect(
       footer.getByRole("link", { name: "/llms.txt" }),
     ).toHaveAttribute("href", "/llms.txt");
-    await expect(footer.locator('a[href="/cv"]')).toHaveCount(0);
+    await expect(footer.getByRole("link", { name: "CV" })).toHaveAttribute(
+      "href",
+      "/cv",
+    );
     await expect(footer.locator('a[href*="feed"]')).toHaveCount(0);
     await expect(footer.locator('a[href*="subscribe"]')).toHaveCount(0);
   });
+
+  for (const route of ["/cv", "/writing", "/route-that-does-not-exist"]) {
+    test(`${route} keeps the homepage as the CV hub`, async ({ page }) => {
+      await page.goto(route);
+
+      await expect(
+        page.getByRole("contentinfo").locator('a[href="/cv"]'),
+      ).toHaveCount(0);
+    });
+  }
 
   test("the shell keeps DOM, visual, and print order aligned", async ({
     page,

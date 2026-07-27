@@ -72,6 +72,12 @@ export function StickyRailNavigation({
           </a>
         );
       })}
+      <a
+        href="/cv"
+        className="touch-target text-accent mt-3 border-l border-l-transparent py-1.5 pl-3 underline decoration-border underline-offset-4 hover:decoration-accent"
+      >
+        CV →
+      </a>
     </nav>
   );
 }

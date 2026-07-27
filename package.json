@@ -7,7 +7,9 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "bun run install:cv-browser && bun run generate:cv && next build",
+    "generate:cv": "node scripts/generate-cv-pdf.mjs",
+    "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
     "lint": "eslint .",
     "test": "playwright test"

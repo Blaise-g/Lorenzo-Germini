@@ -2,9 +2,11 @@
 
 > Full-Stack AI Engineer shipping production systems end-to-end across compliance, health, and education. Based in Turin, Italy.
 
-## Resume
+## Professional profile
 
-- [Portfolio](https://lorenzo-germini.vercel.app/): Full interactive resume and portfolio
+- [Homepage](https://lorenzo-germini.vercel.app/): Professional hub and portfolio
+- [CV](https://lorenzo-germini.vercel.app/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
+- [CV PDF](https://lorenzo-germini.vercel.app/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae
 
 ## Links
 
