@@ -1,24 +1,37 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-/* The Ctrl/Cmd+J listener attaches in a client effect, so a press that lands
-   before hydration is dropped with nothing to retry it — the source of the
-   1-in-6 timeout on the dialog in #38. Press, wait a bounded moment, press
-   again if nothing opened.
+/* One press is not enough: the Ctrl/Cmd+J listener attaches in a client effect,
+   so a press that lands before hydration is dropped and nothing redelivers it. */
+const COMMIT_BUDGET_MS = 2_000;
+const ATTACH_BUDGET_MS = 16_000;
 
-   The bounded wait is load-bearing, not politeness: the shortcut toggles, so a
-   check that gave up before React committed the open state would press again
-   and close it, and the poll would flip-flop instead of converging. */
-export function openCommandPalette(page: Page): Promise<Locator> {
+export async function openCommandPalette(page: Page): Promise<Locator> {
   const dialog = page.getByRole("dialog");
 
-  return expect
-    .poll(async () => {
-      await page.keyboard.press("Control+j");
-      return dialog
-        .waitFor({ state: "visible", timeout: 2_000 })
-        .then(() => true)
-        .catch(() => false);
-    })
-    .toBe(true)
-    .then(() => dialog);
+  /* Waiting a full commit budget between presses is what makes the retry safe:
+     the shortcut toggles, so a check that gave up while React was still
+     committing would press again and close what it had just opened. */
+  await expect
+    .poll(
+      async () => {
+        await page.keyboard.press("Control+j");
+        try {
+          await dialog.waitFor({
+            state: "visible",
+            timeout: COMMIT_BUDGET_MS,
+          });
+          return true;
+        } catch (error) {
+          /* Only a timeout means "not open yet". A closed page or a navigation
+             would otherwise read as a dropped press and retry until the budget
+             ran out, reporting the wrong failure. */
+          if ((error as Error).name !== "TimeoutError") throw error;
+          return false;
+        }
+      },
+      { intervals: [100], timeout: ATTACH_BUDGET_MS },
+    )
+    .toBe(true);
+
+  return dialog;
 }

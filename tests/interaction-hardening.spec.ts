@@ -24,8 +24,10 @@ async function expectMinimumTarget(
 ) {
   /* Polled, not measured once: a control that transitions in is briefly its own
      resting size times a scale factor, and back-to-top passes through scale-95
-     — 41.8px of its 44px box — on the way to visible. */
-  const measure = () =>
+     — 41.8px of its 44px box — on the way to visible. A short budget, because
+     a genuinely undersized target should report fast rather than re-sweep the
+     page for the default five seconds first. */
+  const undersizedTargets = () =>
     page.locator(selector).evaluateAll(
       (elements, targetMinimum) =>
         elements.flatMap((element) => {
@@ -65,8 +67,9 @@ async function expectMinimumTarget(
     );
 
   await expect
-    .poll(measure, {
+    .poll(undersizedTargets, {
       message: `all visible ${selector} targets should be at least ${minimum}×${minimum}px`,
+      timeout: 2_000,
     })
     .toEqual([]);
 }
@@ -334,23 +337,27 @@ test.describe("motion, theme initialization, and accessibility", () => {
   }
 });
 
-test("the command palette shortcut survives a hydration delay", async ({
-  page,
-}) => {
-  /* The listener attaches in a client effect, so a press before hydration is
-     dropped. Stalling every script pushes hydration past the first press,
-     which turns the 1-in-6 timeout of #38 into a certainty — the suite used to
-     fail this way only when the dev server was busy compiling. */
-  await page.route("**/*.js", async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 2_000));
-    await route.continue();
-  });
-  await page.goto("/", { waitUntil: "commit" });
+test.describe("command palette", () => {
+  test("the shortcut survives a hydration delay", async ({ page }) => {
+    /* `commit` returns as soon as the document starts arriving, so the press
+       below is guaranteed to precede hydration once the scripts it needs are
+       stalled — which is what makes a dropped press certain here instead of the
+       1-in-6 it was when only a busy dev server produced the delay.
 
-  const dialog = await openCommandPalette(page);
-  await expect(
-    dialog.getByPlaceholder("Type a command or search..."),
-  ).toBeFocused();
+       Only the build's own chunks are held: stalling every `.js` would also
+       catch the HMR client and analytics, which hydration does not wait on and
+       which added two seconds of dead time. */
+    await page.route("**/_next/static/**/*.js", async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await route.continue();
+    });
+    await page.goto("/", { waitUntil: "commit" });
+
+    const dialog = await openCommandPalette(page);
+    await expect(
+      dialog.getByPlaceholder("Type a command or search..."),
+    ).toBeFocused();
+  });
 });
 
 test.describe("keyboard order", () => {
