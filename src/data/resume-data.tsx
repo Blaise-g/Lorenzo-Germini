@@ -132,6 +132,20 @@
       "Full-Stack Development",
       "Python",
     ],
+    skillGroups: [
+      {
+        name: "AI systems",
+        skills: ["Generative AI", "LLMs", "RAG"],
+      },
+      {
+        name: "Product engineering",
+        skills: ["Full-Stack Development", "TypeScript", "Python"],
+      },
+      {
+        name: "Data systems",
+        skills: ["Postgres", "pgvector"],
+      },
+    ],
     projects: [
       {
         title: "L'Oracolo della Ghigliottina",

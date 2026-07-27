@@ -14,6 +14,7 @@ const routesUsingTheSharedShell = [
   "/?variant=c",
   "/?variant=d",
   "/?variant=b1a",
+  "/cv",
   "/writing",
   "/route-that-does-not-exist",
 ] as const;
@@ -77,175 +78,180 @@ async function expectMinimumTarget(
 }
 
 test.describe("touch and fixed-chrome geometry", () => {
-  test("all phone-width targets meet their minimum dimensions", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.goto("/");
-
-    await expectMinimumTarget(page, "a[href], button", 24);
-
-    await page.evaluate(() => window.scrollTo(0, 600));
-    await expect(
-      page.getByRole("button", { name: "Back to top" }),
-    ).toBeVisible();
-    await waitForTwoAnimationFrames(page);
-    await expectMinimumTarget(
-      page,
-      "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",
-      44,
-    );
-
-    await page.getByRole("button", { name: "Open command menu" }).click();
-    const close = page.getByRole("button", { name: "Close" });
-    const closeBox = await close.boundingBox();
-    expect(closeBox, "dialog close control should be visible").not.toBeNull();
-    expect(closeBox!.width).toBeGreaterThanOrEqual(44);
-    expect(closeBox!.height).toBeGreaterThanOrEqual(44);
-  });
-
-  for (const width of viewports) {
-    test(`fixed chrome does not cover content at ${width}px`, async ({
+  for (const route of ["/", "/cv"] as const) {
+    test(`${route} phone-width targets meet their minimum dimensions`, async ({
       page,
     }) => {
-      await page.setViewportSize({ width, height: 800 });
-      await page.goto("/");
+      await page.setViewportSize({ width: 375, height: 800 });
+      await page.goto(route);
 
-      const maximumScroll = await page.evaluate(
-        () => document.documentElement.scrollHeight - innerHeight,
+      await expectMinimumTarget(page, "a[href], button", 24);
+
+      await page.evaluate(() => window.scrollTo(0, 600));
+      await expect(
+        page.getByRole("button", { name: "Back to top" }),
+      ).toBeVisible();
+      await waitForTwoAnimationFrames(page);
+      await expectMinimumTarget(
+        page,
+        "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",
+        44,
       );
-      const scrollStops = [0, maximumScroll / 2, maximumScroll];
 
-      for (const scrollTop of scrollStops) {
-        await page.evaluate((top) => window.scrollTo(0, top), scrollTop);
-        await waitForTwoAnimationFrames(page);
+      await page.getByRole("button", { name: "Open command menu" }).click();
+      const close = page.getByRole("button", { name: "Close" });
+      const closeBox = await close.boundingBox();
+      expect(closeBox, "dialog close control should be visible").not.toBeNull();
+      expect(closeBox!.width).toBeGreaterThanOrEqual(44);
+      expect(closeBox!.height).toBeGreaterThanOrEqual(44);
+    });
+  }
 
-        const collisions = await page.evaluate(() => {
-          const fixedChrome = Array.from(
-            document.querySelectorAll<HTMLElement>(
-              'button[aria-label="Toggle theme"], button[aria-label="Back to top"], button[aria-label="Open command menu"], main > p.fixed',
-            ),
-          ).filter((element) => {
-            const style = getComputedStyle(element);
-            const rect = element.getBoundingClientRect();
-            let container: HTMLElement | null = element;
-            while (
-              container &&
-              getComputedStyle(container).position !== "fixed"
-            ) {
-              container = container.parentElement;
-            }
-            return (
-              container !== null &&
-              style.visibility !== "hidden" &&
-              style.display !== "none" &&
-              rect.width > 0 &&
-              rect.height > 0 &&
-              style.pointerEvents !== "none"
-            );
-          });
+  for (const route of ["/", "/cv"] as const) {
+    for (const width of viewports) {
+      test(`${route} fixed chrome does not cover content at ${width}px`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto(route);
 
-          const intersects = (first: DOMRect, second: DOMRect) =>
-            first.left < second.right &&
-            first.right > second.left &&
-            first.top < second.bottom &&
-            first.bottom > second.top;
+        const maximumScroll = await page.evaluate(
+          () => document.documentElement.scrollHeight - innerHeight,
+        );
+        const scrollStops = [0, maximumScroll / 2, maximumScroll];
 
-          const contentRects: { label: string; rect: DOMRect }[] = [];
-          const walker = document.createTreeWalker(
-            document.querySelector("main")!,
-            NodeFilter.SHOW_TEXT,
-          );
+        for (const scrollTop of scrollStops) {
+          await page.evaluate((top) => window.scrollTo(0, top), scrollTop);
+          await waitForTwoAnimationFrames(page);
 
-          while (walker.nextNode()) {
-            const textNode = walker.currentNode as Text;
-            const parent = textNode.parentElement;
-            if (
-              !parent ||
-              !textNode.textContent?.trim() ||
-              fixedChrome.some((chrome) => chrome.contains(parent))
-            ) {
-              continue;
-            }
-
-            const range = document.createRange();
-            range.selectNodeContents(textNode);
-            for (const rect of range.getClientRects()) {
-              if (rect.width > 0 && rect.height > 0) {
-                contentRects.push({
-                  label: textNode.textContent.trim().slice(0, 80),
-                  rect,
-                });
+          const collisions = await page.evaluate(() => {
+            const fixedChrome = Array.from(
+              document.querySelectorAll<HTMLElement>(
+                'button[aria-label="Toggle theme"], button[aria-label="Back to top"], button[aria-label="Open command menu"], main > p.fixed',
+              ),
+            ).filter((element) => {
+              const style = getComputedStyle(element);
+              const rect = element.getBoundingClientRect();
+              let container: HTMLElement | null = element;
+              while (
+                container &&
+                getComputedStyle(container).position !== "fixed"
+              ) {
+                container = container.parentElement;
               }
-            }
-          }
-
-          document
-            .querySelectorAll<HTMLImageElement>("main img")
-            .forEach((image) => {
-              contentRects.push({
-                label: image.alt || "image",
-                rect: image.getBoundingClientRect(),
-              });
+              return (
+                container !== null &&
+                style.visibility !== "hidden" &&
+                style.display !== "none" &&
+                rect.width > 0 &&
+                rect.height > 0 &&
+                style.pointerEvents !== "none"
+              );
             });
 
-          return fixedChrome.flatMap((chrome) => {
-            const chromeRect = chrome.getBoundingClientRect();
-            const rectangleCollisions = contentRects
-              .filter(({ rect }) => intersects(chromeRect, rect))
-              .map(({ label }) => ({
-                chrome: chrome.getAttribute("aria-label") || chrome.textContent,
-                content: label,
-                method: "rectangle",
-              }));
+            const intersects = (first: DOMRect, second: DOMRect) =>
+              first.left < second.right &&
+              first.right > second.left &&
+              first.top < second.bottom &&
+              first.bottom > second.top;
 
-            const originalPointerEvents = chrome.style.pointerEvents;
-            chrome.style.pointerEvents = "none";
-            const sampledPoints = [
-              [chromeRect.left + 1, chromeRect.top + 1],
-              [chromeRect.right - 1, chromeRect.top + 1],
-              [chromeRect.left + 1, chromeRect.bottom - 1],
-              [chromeRect.right - 1, chromeRect.bottom - 1],
-              [
-                chromeRect.left + chromeRect.width / 2,
-                chromeRect.top + chromeRect.height / 2,
-              ],
-            ];
-            const hitTestCollisions = sampledPoints.flatMap(([x, y]) => {
-              const target = document.elementFromPoint(x, y);
-              const content = target?.closest(
-                "a, button, img, h1, h2, h3, h4, p",
-              );
+            const contentRects: { label: string; rect: DOMRect }[] = [];
+            const walker = document.createTreeWalker(
+              document.querySelector("main")!,
+              NodeFilter.SHOW_TEXT,
+            );
+
+            while (walker.nextNode()) {
+              const textNode = walker.currentNode as Text;
+              const parent = textNode.parentElement;
               if (
-                !content ||
-                fixedChrome.some((item) => item.contains(content))
+                !parent ||
+                !textNode.textContent?.trim() ||
+                fixedChrome.some((chrome) => chrome.contains(parent))
               ) {
-                return [];
+                continue;
               }
-              return [
-                {
+
+              const range = document.createRange();
+              range.selectNodeContents(textNode);
+              for (const rect of range.getClientRects()) {
+                if (rect.width > 0 && rect.height > 0) {
+                  contentRects.push({
+                    label: textNode.textContent.trim().slice(0, 80),
+                    rect,
+                  });
+                }
+              }
+            }
+
+            document
+              .querySelectorAll<HTMLImageElement>("main img")
+              .forEach((image) => {
+                contentRects.push({
+                  label: image.alt || "image",
+                  rect: image.getBoundingClientRect(),
+                });
+              });
+
+            return fixedChrome.flatMap((chrome) => {
+              const chromeRect = chrome.getBoundingClientRect();
+              const rectangleCollisions = contentRects
+                .filter(({ rect }) => intersects(chromeRect, rect))
+                .map(({ label }) => ({
                   chrome:
                     chrome.getAttribute("aria-label") || chrome.textContent,
-                  content:
-                    content.getAttribute("aria-label") ||
-                    content.getAttribute("alt") ||
-                    content.textContent?.trim().slice(0, 80),
-                  method: "elementFromPoint",
-                },
+                  content: label,
+                  method: "rectangle",
+                }));
+
+              const originalPointerEvents = chrome.style.pointerEvents;
+              chrome.style.pointerEvents = "none";
+              const sampledPoints = [
+                [chromeRect.left + 1, chromeRect.top + 1],
+                [chromeRect.right - 1, chromeRect.top + 1],
+                [chromeRect.left + 1, chromeRect.bottom - 1],
+                [chromeRect.right - 1, chromeRect.bottom - 1],
+                [
+                  chromeRect.left + chromeRect.width / 2,
+                  chromeRect.top + chromeRect.height / 2,
+                ],
               ];
+              const hitTestCollisions = sampledPoints.flatMap(([x, y]) => {
+                const target = document.elementFromPoint(x, y);
+                const content = target?.closest(
+                  "a, button, img, h1, h2, h3, h4, p",
+                );
+                if (
+                  !content ||
+                  fixedChrome.some((item) => item.contains(content))
+                ) {
+                  return [];
+                }
+                return [
+                  {
+                    chrome:
+                      chrome.getAttribute("aria-label") || chrome.textContent,
+                    content:
+                      content.getAttribute("aria-label") ||
+                      content.getAttribute("alt") ||
+                      content.textContent?.trim().slice(0, 80),
+                    method: "elementFromPoint",
+                  },
+                ];
+              });
+              chrome.style.pointerEvents = originalPointerEvents;
+
+              return [...rectangleCollisions, ...hitTestCollisions];
             });
-            chrome.style.pointerEvents = originalPointerEvents;
-
-            return [...rectangleCollisions, ...hitTestCollisions];
           });
-        });
 
-        expect(
-          collisions,
-          `fixed chrome should not cover content at scroll position ${scrollTop}`,
-        ).toEqual([]);
-      }
-    });
+          expect(
+            collisions,
+            `${route} fixed chrome should not cover content at scroll position ${scrollTop}`,
+          ).toEqual([]);
+        }
+      });
+    }
   }
 });
 
@@ -311,25 +317,27 @@ test.describe("motion, theme initialization, and accessibility", () => {
     expect(hydrationErrors).toEqual([]);
   });
 
-  for (const theme of themes) {
-    test(`${theme} mode has no serious or critical accessibility violations`, async ({
-      page,
-    }) => {
-      await setTheme(page, theme);
-      await page.goto("/");
-      if (theme === "dark") {
-        await expect(page.locator("html")).toHaveClass(/\bdark\b/);
-      } else {
-        await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
-      }
+  for (const route of ["/", "/cv"] as const) {
+    for (const theme of themes) {
+      test(`${route} in ${theme} mode has no serious or critical accessibility violations`, async ({
+        page,
+      }) => {
+        await setTheme(page, theme);
+        await page.goto(route);
+        if (theme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+        } else {
+          await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
+        }
 
-      const results = await new AxeBuilder({ page }).analyze();
-      const severeViolations = results.violations.filter(
-        ({ impact }) => impact === "serious" || impact === "critical",
-      );
+        const results = await new AxeBuilder({ page }).analyze();
+        const severeViolations = results.violations.filter(
+          ({ impact }) => impact === "serious" || impact === "critical",
+        );
 
-      expect(severeViolations).toEqual([]);
-    });
+        expect(severeViolations).toEqual([]);
+      });
+    }
   }
 });
 

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +21,9 @@ interface Props {
 
 export const CommandMenu = ({ links }: Props) => {
   const [open, setOpen] = React.useState(false);
+  const pathname = usePathname();
+  const router = useRouter();
+  const isCvRoute = pathname === "/cv";
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -52,10 +56,14 @@ export const CommandMenu = ({ links }: Props) => {
             <CommandItem
               onSelect={() => {
                 setOpen(false);
-                window.print();
+                if (isCvRoute) {
+                  window.print();
+                  return;
+                }
+                router.push("/cv");
               }}
             >
-              <span>Print</span>
+              <span>{isCvRoute ? "Print CV" : "View CV"}</span>
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Links">

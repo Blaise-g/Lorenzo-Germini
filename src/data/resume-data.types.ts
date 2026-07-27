@@ -34,6 +34,10 @@ export type ResumeData = {
     customBullet?: string;
   }[];
   skills: string[];
+  skillGroups: {
+    name: string;
+    skills: string[];
+  }[];
   projects: {
     title: string;
     techStack: string[];
