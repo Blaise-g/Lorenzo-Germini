@@ -7,6 +7,7 @@ import {
   type HubDestination,
 } from "@/components/sticky-rail";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
 
 /* Shared by the masthead and the body below it, which are separate boxes so the
    masthead rule can span the viewport. The right padding below xl reserves room
@@ -39,16 +40,13 @@ export function HubShell({
     <div className="min-h-screen">
       <ThemeToggle />
 
-      {/* The rule is a border on a block that is already the width of the
-          viewport, so it stays flush to both edges no matter what the inset
-          below it reserves for the fixed theme toggle. */}
       <div
         data-testid="masthead-rule"
         className="animate-fade-in-up border-ink border-b-2 print:hidden"
       >
         <header
-          data-testid="shell-inset"
-          className={`${shellInset} pt-20 pb-4 lg:pt-10`}
+          data-testid="masthead-inset"
+          className={cn(shellInset, "pt-20 pb-4 lg:pt-10")}
         >
           <div className="flex items-baseline justify-between gap-8">
             <p className="font-display text-lg font-semibold tracking-tight">
@@ -62,8 +60,8 @@ export function HubShell({
       </div>
 
       <div
-        data-testid="shell-inset"
-        className={`${shellInset} pb-24 print:py-0`}
+        data-testid="body-inset"
+        className={cn(shellInset, "pb-24 print:py-0")}
       >
         <div
           data-testid="mobile-identity"

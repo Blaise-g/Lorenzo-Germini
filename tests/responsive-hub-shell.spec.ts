@@ -148,7 +148,7 @@ test.describe("responsive hub shell", () => {
 
     const before = await mastheadRuleEdges(page);
     await page.addStyleTag({
-      content: `[data-testid="shell-inset"] {
+      content: `[data-testid="masthead-inset"], [data-testid="body-inset"] {
         padding-left: 4px !important;
         padding-right: 140px !important;
       }`,
@@ -176,26 +176,27 @@ test.describe("responsive hub shell", () => {
       .poll(() => railNav.locator('[aria-current="true"]').textContent())
       .toBe("Work");
 
-    const activeStyle = await railNav
-      .locator('[aria-current="true"]')
-      .evaluate((element) => {
-        const style = getComputedStyle(element);
-        const root = getComputedStyle(document.documentElement);
-        const probe = document.createElement("span");
-        probe.style.color = root.getPropertyValue("--color-accent");
-        document.body.append(probe);
-        const accent = getComputedStyle(probe).color;
-        probe.remove();
+    /* Polled, not read once: `border-left-color` is a transitioning property, so
+       a read in the same tick React swaps the class returns the transition's
+       start value — the colour the link is leaving, not the one it is taking. */
+    await expect
+      .poll(() =>
+        railNav.locator('[aria-current="true"]').evaluate((element) => {
+          const style = getComputedStyle(element);
+          const root = getComputedStyle(document.documentElement);
+          const probe = document.createElement("span");
+          probe.style.color = root.getPropertyValue("--color-accent");
+          document.body.append(probe);
+          const accent = getComputedStyle(probe).color;
+          probe.remove();
 
-        return {
-          accent,
-          borderColor: style.borderLeftColor,
-          borderWidth: Number.parseFloat(style.borderLeftWidth),
-        };
-      });
-
-    expect(activeStyle.borderWidth).toBeGreaterThanOrEqual(1);
-    expect(activeStyle.borderColor).toBe(activeStyle.accent);
+          return {
+            borderColorIsAccent: style.borderLeftColor === accent,
+            hasBorder: Number.parseFloat(style.borderLeftWidth) >= 1,
+          };
+        }),
+      )
+      .toEqual({ borderColorIsAccent: true, hasBorder: true });
   });
 
   test("bottom fixed controls share one 56px cluster", async ({ page }) => {

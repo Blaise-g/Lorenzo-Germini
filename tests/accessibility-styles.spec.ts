@@ -1,13 +1,13 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-import { revealBackToTop } from "./support/back-to-top";
+import { BACK_TO_TOP_LABEL, revealBackToTop } from "./support/back-to-top";
 import { contrast } from "./support/color";
 import { COMMAND_MENU_LABEL } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 const focusControls = [
   "Toggle theme",
-  "Back to top",
+  BACK_TO_TOP_LABEL,
   COMMAND_MENU_LABEL,
 ] as const;
 
