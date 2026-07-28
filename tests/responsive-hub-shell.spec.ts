@@ -143,6 +143,79 @@ test.describe("responsive hub shell", () => {
     });
   }
 
+  /* `data-profile-orientation` marks identity surfaces; the masthead carries its
+     own value so the count above sees only band-or-rail. The footer signature is
+     not part of this vocabulary: it attributes the page rather than stating the
+     identity, and it is shared with every other route. */
+  test("the masthead orientation value is distinct from the body surfaces'", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto("/");
+
+    const masthead = page.getByTestId("masthead-inset");
+    await expect(masthead).toHaveAttribute("data-profile-orientation");
+
+    const mastheadValue = await masthead.getAttribute(
+      "data-profile-orientation",
+    );
+    const bodyValues = await Promise.all(
+      [
+        page.getByTestId("mobile-identity"),
+        page.getByRole("complementary", { name: "Profile and page sections" }),
+      ].map((surface) => surface.getAttribute("data-profile-orientation")),
+    );
+
+    /* Spelled out rather than compared as a set: these are the values the
+       "exactly one visible" counts above select on, so a rename has to break
+       here too. */
+    expect(bodyValues).toEqual(["identity", "identity"]);
+    expect(bodyValues).not.toContain(mastheadValue);
+  });
+
+  /* Inverted below 1024: the masthead and the mobile band both state the name
+     there — measured at 375, 768 and 1023, the band's heading sits 38px below
+     the masthead name's box — so the count is legitimately 2 today and this test
+     is green because the expectation fails. #26 removes the band's duplicate;
+     the day it lands this goes red and whoever lands it flips it to a plain
+     assertion. */
+  for (const width of allWidths) {
+    test(`${width}px states the name exactly once`, async ({ page }) => {
+      test.fail(width < 1024, "duplicate name surface, removed by #26");
+
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      expect(await visibleCount(page, "[data-identity-name]")).toBe(1);
+    });
+  }
+
+  /* The inverted assertion only means something if the count it reads moves, so
+     both directions are forced here on a live page: hiding the band's name
+     leaves 1, which is what turns the inverted test red once #26 lands, and
+     hiding every name surface leaves 0, so a page that stated the name nowhere
+     would fail the assertion rather than pass it vacuously. */
+  test("the visible name count moves in both directions when forced", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+
+    expect(await visibleCount(page, "[data-identity-name]")).toBe(2);
+
+    await page.addStyleTag({
+      content: `[data-testid="mobile-identity"] [data-identity-name] {
+        display: none !important;
+      }`,
+    });
+    expect(await visibleCount(page, "[data-identity-name]")).toBe(1);
+
+    await page.addStyleTag({
+      content: "[data-identity-name] { display: none !important; }",
+    });
+    expect(await visibleCount(page, "[data-identity-name]")).toBe(0);
+  });
+
   for (const width of allWidths) {
     test(`${width}px spans the masthead rule edge to edge`, async ({
       page,

@@ -45,13 +45,17 @@ export function HubShell({
         data-testid="masthead-rule"
         className="animate-fade-in-up border-ink border-b-2 print:hidden"
       >
+        {/* Its own orientation value, because this surface coexists with
+            band-or-rail rather than replacing either. */}
         <header
           data-testid="masthead-inset"
+          data-profile-orientation="masthead"
           className={cn(shellInset, "pt-20 pb-4 lg:pt-10")}
         >
           <div className="flex items-baseline justify-between gap-8">
             <p
               data-testid="masthead-name"
+              data-identity-name="true"
               className="font-display text-lg font-semibold tracking-tight"
             >
               {profile.name}
@@ -150,7 +154,10 @@ function ProfileIdentity({
         </div>
         <div className={isRail ? "space-y-2" : "space-y-1"}>
           {!isRail ? (
-            <h1 className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+            <h1
+              data-identity-name="true"
+              className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl"
+            >
               {profile.name}
             </h1>
           ) : null}
