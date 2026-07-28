@@ -1,4 +1,6 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+
+import { RESUME_DATA } from "@/data/resume-data";
 
 import { revealBackToTop } from "./support/back-to-top";
 import { commandMenuTrigger } from "./support/command-palette";
@@ -22,6 +24,21 @@ async function mastheadRuleEdges(page: Page) {
       right: rect.right,
       viewportWidth: document.documentElement.clientWidth,
     };
+  });
+}
+
+/* Line boxes, not wrapping utilities: a Range over the element's text yields one
+   client rect per line box, so a wrap shows up as 2 whatever the class list says.
+   Rects are grouped by rounded top edge because a Range spanning several text
+   nodes can report adjacent rects on the same line. */
+async function lineBoxCount(target: Locator) {
+  return target.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const tops = [...range.getClientRects()]
+      .filter((rect) => rect.width > 0 && rect.height > 0)
+      .map((rect) => Math.round(rect.top));
+    return new Set(tops).size;
   });
 }
 
@@ -139,6 +156,53 @@ test.describe("responsive hub shell", () => {
       expect(rule.right).toBeCloseTo(rule.viewportWidth, 0);
     });
   }
+
+  /* Both halves of the masthead share one flex row with no min-width, so a role
+     slot long enough to wrap steals the width the name needs: a 100-character
+     role sentence leaves the name 125px and breaks it as "Lorenzo / Germini".
+     Soft assertions so each half reports its own count instead of the first
+     failure hiding the second. */
+  for (const width of desktopWidths) {
+    test(`${width}px keeps the masthead name and role on one line each`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      await expect(page.getByTestId("masthead-role")).toBeVisible();
+      expect
+        .soft(await lineBoxCount(page.getByTestId("masthead-name")))
+        .toBe(1);
+      expect
+        .soft(await lineBoxCount(page.getByTestId("masthead-role")))
+        .toBe(1);
+    });
+  }
+
+  /* `roleLabel` is the masthead's own field: the bio keeps the surfaces it
+     already had, and the short label reaches none of them. */
+  test("the masthead role comes from roleLabel, and the bio keeps its surfaces", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto("/");
+
+    await expect(page.getByTestId("masthead-role")).toHaveText(
+      RESUME_DATA.roleLabel,
+    );
+    await expect(page).toHaveTitle(
+      `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
+    );
+
+    const structuredData = await page
+      .locator('script[type="application/ld+json"]')
+      .evaluateAll((scripts) => scripts.map((script) => script.textContent));
+    expect(structuredData.length).toBeGreaterThan(0);
+    expect(
+      structuredData.filter((json) => json?.includes(RESUME_DATA.roleLabel)),
+      "the JSON-LD should not consume the masthead label",
+    ).toEqual([]);
+  });
 
   test("the masthead rule does not move with the shell's horizontal padding", async ({
     page,

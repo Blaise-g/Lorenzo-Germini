@@ -6,6 +6,7 @@ export const RESUME_DATA: ResumeData = {
   initials: "LG",
   location: "Turin, Italy, CET",
   locationLink: "https://www.google.com/maps/place/Torino",
+  roleLabel: "AI Product Engineer",
   about:
     "Full-Stack AI Engineer shipping production systems end-to-end across compliance, health, and education",
   summary:

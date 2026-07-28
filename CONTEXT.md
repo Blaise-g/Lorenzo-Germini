@@ -62,7 +62,9 @@ and surfaces only under print emulation.
 ### Content surfaces
 
 **Identity surface**:
-Any place the site states Lorenzo's role, title, or bio. There are five and nothing
-generates them from each other: `src/data/resume-data.tsx`, `public/llms.txt`,
-`public/llms-full.txt`, the JSON-LD in `src/components/structured-data.tsx`, and route
-metadata. They drift; changing one means changing all.
+Any place the site states Lorenzo's role, title, or bio. There are six and nothing
+generates them from each other: `RESUME_DATA.about` and `RESUME_DATA.roleLabel` — two
+independent fields in `src/data/resume-data.tsx`, the second the masthead's short label —
+`public/llms.txt`, `public/llms-full.txt`, the JSON-LD in
+`src/components/structured-data.tsx`, and route metadata. They drift; changing one means
+changing all.

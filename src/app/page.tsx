@@ -104,9 +104,10 @@ function CurrentHome() {
           actions: <ProfileActions />,
           avatarAlt: RESUME_DATA.name,
           avatarUrl: RESUME_DATA.avatarUrl,
+          bio: RESUME_DATA.about,
           location: RESUME_DATA.location,
           name: RESUME_DATA.name,
-          role: RESUME_DATA.about,
+          roleLabel: RESUME_DATA.roleLabel,
           summary: RESUME_DATA.summary.split("\n\n")[0],
         }}
       >
