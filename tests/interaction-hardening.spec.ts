@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
+import { revealBackToTop } from "./support/back-to-top";
 import {
   commandPaletteInput,
   openCommandPalette,
@@ -88,10 +89,7 @@ test.describe("touch and fixed-chrome geometry", () => {
 
       await expectMinimumTarget(page, "a[href], button", 24);
 
-      await page.evaluate(() => window.scrollTo(0, 600));
-      await expect(
-        page.getByRole("button", { name: "Back to top" }),
-      ).toBeVisible();
+      await revealBackToTop(page);
       await expectMinimumTarget(
         page,
         "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",

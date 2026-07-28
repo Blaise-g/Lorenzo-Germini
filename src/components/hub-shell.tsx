@@ -7,6 +7,13 @@ import {
   type HubDestination,
 } from "@/components/sticky-rail";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { cn } from "@/lib/utils";
+
+/* Shared by the masthead and the body below it, which are separate boxes so the
+   masthead rule can span the viewport. The right padding below xl reserves room
+   for the fixed theme toggle, which is why the inset is not symmetric. */
+const shellInset =
+  "mx-auto max-w-5xl px-6 pr-20 md:px-10 md:pr-20 xl:px-10 print:max-w-none print:px-0";
 
 type HubProfile = {
   actions: ReactNode;
@@ -33,8 +40,14 @@ export function HubShell({
     <div className="min-h-screen">
       <ThemeToggle />
 
-      <div className="mx-auto max-w-5xl px-6 pt-20 pr-20 pb-24 md:px-10 md:pr-20 lg:pt-10 xl:px-10 print:max-w-none print:p-0">
-        <header className="animate-fade-in-up after:border-ink relative pb-4 after:absolute after:bottom-0 after:left-1/2 after:w-screen after:-translate-x-1/2 after:border-b-2 print:hidden">
+      <div
+        data-testid="masthead-rule"
+        className="animate-fade-in-up border-ink border-b-2 print:hidden"
+      >
+        <header
+          data-testid="masthead-inset"
+          className={cn(shellInset, "pt-20 pb-4 lg:pt-10")}
+        >
           <div className="flex items-baseline justify-between gap-8">
             <p className="font-display text-lg font-semibold tracking-tight">
               {profile.name}
@@ -44,7 +57,12 @@ export function HubShell({
             </p>
           </div>
         </header>
+      </div>
 
+      <div
+        data-testid="body-inset"
+        className={cn(shellInset, "pb-24 print:py-0")}
+      >
         <div
           data-testid="mobile-identity"
           data-profile-orientation="identity"
