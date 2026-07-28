@@ -1,13 +1,29 @@
 import { expect, test, type Page } from "@playwright/test";
 
-import {
-  COMMAND_MENU_LABEL,
-  commandMenuTrigger,
-} from "./support/command-palette";
+import { revealBackToTop } from "./support/back-to-top";
+import { commandMenuTrigger } from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
 
 const mobileAndTabletWidths = [375, 768, 1023] as const;
-const desktopWidths = [1024, 1440] as const;
+const desktopWidths = [1024, 1440, 1728] as const;
+const allWidths = [...mobileAndTabletWidths, ...desktopWidths] as const;
+
+/* Border-box edges of the masthead rule against the layout viewport. The rule is
+   a border, so its own box is what has to be flush — clientWidth, not
+   innerWidth, is the width in-flow content can actually reach. */
+async function mastheadRuleEdges(page: Page) {
+  return page.getByTestId("masthead-rule").evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    return {
+      borderWidth: Number.parseFloat(
+        getComputedStyle(element).borderBottomWidth,
+      ),
+      left: rect.left,
+      right: rect.right,
+      viewportWidth: document.documentElement.clientWidth,
+    };
+  });
+}
 
 async function visibleCount(page: Page, selector: string) {
   return page.locator(selector).evaluateAll(
@@ -110,6 +126,41 @@ test.describe("responsive hub shell", () => {
     });
   }
 
+  for (const width of allWidths) {
+    test(`${width}px spans the masthead rule edge to edge`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      const rule = await mastheadRuleEdges(page);
+      expect(rule.borderWidth).toBeGreaterThan(0);
+      expect(rule.left).toBeCloseTo(0, 0);
+      expect(rule.right).toBeCloseTo(rule.viewportWidth, 0);
+    });
+  }
+
+  test("the masthead rule does not move with the shell's horizontal padding", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+
+    const before = await mastheadRuleEdges(page);
+    await page.addStyleTag({
+      content: `[data-testid="shell-inset"] {
+        padding-left: 4px !important;
+        padding-right: 140px !important;
+      }`,
+    });
+    const after = await mastheadRuleEdges(page);
+
+    expect(after.left).toBeCloseTo(before.left, 0);
+    expect(after.right).toBeCloseTo(before.right, 0);
+    expect(after.left).toBeCloseTo(0, 0);
+    expect(after.right).toBeCloseTo(after.viewportWidth, 0);
+  });
+
   test("the rail marks the current destination semantically and with the accent rule", async ({
     page,
   }) => {
@@ -150,10 +201,7 @@ test.describe("responsive hub shell", () => {
   test("bottom fixed controls share one 56px cluster", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
-    await page.evaluate(() => window.scrollTo(0, 600));
-    await expect(
-      page.getByRole("button", { name: "Back to top" }),
-    ).toBeVisible();
+    await revealBackToTop(page);
 
     const cluster = await page.evaluate(() => {
       const fixedAncestor = (element: Element | null) => {
@@ -187,11 +235,7 @@ test.describe("responsive hub shell", () => {
   }) => {
     await page.setViewportSize({ width: 1440, height: 800 });
     await page.goto("/");
-    await page.evaluate(() => window.scrollTo(0, 600));
-
-    await expect(
-      page.getByRole("button", { name: "Back to top" }),
-    ).toBeVisible();
+    await revealBackToTop(page);
     await expect(commandMenuTrigger(page)).toBeHidden();
   });
 

@@ -1,5 +1,6 @@
 import { expect, test, type Locator } from "@playwright/test";
 
+import { revealBackToTop } from "./support/back-to-top";
 import { contrast } from "./support/color";
 import { COMMAND_MENU_LABEL } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
@@ -131,10 +132,7 @@ test.describe("component-owned border and focus styles", () => {
     }) => {
       await setTheme(page, theme);
       await page.reload();
-      await page.evaluate(() => window.scrollTo(0, 600));
-      await expect(
-        page.getByRole("button", { name: "Back to top" }),
-      ).toBeVisible();
+      await revealBackToTop(page);
 
       for (const label of focusControls) {
         await expectVisibleFocus(
