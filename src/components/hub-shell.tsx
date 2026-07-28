@@ -45,10 +45,8 @@ export function HubShell({
         data-testid="masthead-rule"
         className="animate-fade-in-up border-ink border-b-2 print:hidden"
       >
-        {/* The masthead joins the `data-profile-orientation` vocabulary under its
-            own value: it shows at every width alongside whichever of band-or-rail
-            is visible, so it stays outside the "exactly one visible identity
-            surface" count by construction rather than by a test exception. */}
+        {/* Its own orientation value, because this surface coexists with
+            band-or-rail rather than replacing either. */}
         <header
           data-testid="masthead-inset"
           data-profile-orientation="masthead"

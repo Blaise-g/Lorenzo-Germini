@@ -159,22 +159,25 @@ test.describe("responsive hub shell", () => {
     const mastheadValue = await masthead.getAttribute(
       "data-profile-orientation",
     );
-    const bodyValues = await page
-      .locator(
-        '[data-testid="mobile-identity"], [aria-label="Profile and page sections"]',
-      )
-      .evaluateAll((elements) =>
-        elements.map((element) => element.dataset.profileOrientation),
-      );
+    const bodyValues = await Promise.all(
+      [
+        page.getByTestId("mobile-identity"),
+        page.getByRole("complementary", { name: "Profile and page sections" }),
+      ].map((surface) => surface.getAttribute("data-profile-orientation")),
+    );
 
-    expect(bodyValues.length).toBe(2);
+    /* Spelled out rather than compared as a set: these are the values the
+       "exactly one visible" counts above select on, so a rename has to break
+       here too. */
+    expect(bodyValues).toEqual(["identity", "identity"]);
     expect(bodyValues).not.toContain(mastheadValue);
   });
 
   /* Inverted below 1024: the masthead and the mobile band both state the name
-     there, 64px apart, so the count is legitimately 2 today and this test is
-     green because the expectation fails. #26 removes the band's duplicate — the
-     day it lands this goes red and whoever lands it flips it to a plain
+     there — measured at 375, 768 and 1023, the band's heading sits 38px below
+     the masthead name's box — so the count is legitimately 2 today and this test
+     is green because the expectation fails. #26 removes the band's duplicate;
+     the day it lands this goes red and whoever lands it flips it to a plain
      assertion. */
   for (const width of allWidths) {
     test(`${width}px states the name exactly once`, async ({ page }) => {
