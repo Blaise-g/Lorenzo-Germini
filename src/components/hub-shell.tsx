@@ -20,8 +20,9 @@ type HubProfile = {
   avatarAlt: string;
   avatarUrl: string;
   location: string;
+  bio: string;
   name: string;
-  role: string;
+  roleLabel: string;
   summary: string;
 };
 
@@ -49,11 +50,17 @@ export function HubShell({
           className={cn(shellInset, "pt-20 pb-4 lg:pt-10")}
         >
           <div className="flex items-baseline justify-between gap-8">
-            <p className="font-display text-lg font-semibold tracking-tight">
+            <p
+              data-testid="masthead-name"
+              className="font-display text-lg font-semibold tracking-tight"
+            >
               {profile.name}
             </p>
-            <p className="text-faint hidden font-mono text-xs tracking-[0.12em] uppercase lg:block">
-              {profile.role}
+            <p
+              data-testid="masthead-role"
+              className="text-faint hidden font-mono text-xs tracking-[0.12em] uppercase lg:block"
+            >
+              {profile.roleLabel}
             </p>
           </div>
         </header>
@@ -148,7 +155,7 @@ function ProfileIdentity({
             </h1>
           ) : null}
           <p className="text-body text-sm leading-relaxed">
-            {isRail ? profile.summary : profile.role}
+            {isRail ? profile.summary : profile.bio}
           </p>
           {!isRail ? (
             <p className="text-faint font-mono text-xs">{profile.location}</p>

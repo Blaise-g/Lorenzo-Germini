@@ -3,6 +3,10 @@ export type ResumeData = {
   initials: string;
   location: string;
   locationLink: string;
+  /** Masthead only. Short enough to stay on one line at 1024, which `about` — a
+   *  full sentence — is not. Kept separate so rewording the bio cannot silently
+   *  change the role label. */
+  roleLabel: string;
   about: string;
   summary: string;
   avatarUrl: string;
