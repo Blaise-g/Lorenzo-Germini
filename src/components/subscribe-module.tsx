@@ -8,13 +8,13 @@
 //
 // Validation is progressively enhanced: the markup ships `required` +
 // `type="email"` so a JS-less browser still blocks empty and malformed
-// submits natively; once hydrated, an effect sets `novalidate` and the submit
-// handler takes over with the locked error copy and wired alert semantics.
+// submits natively; once hydrated, `novalidate` goes on and the submit handler
+// takes over with the locked error copy and wired alert semantics.
 //
 // This surface cannot confirm a signup — the copy promises a handoff, never
 // success, and there is deliberately no disabled or spinner state.
 
-import { useEffect, useId, useState } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
 import { RESUME_DATA } from "@/data/resume-data";
 
 type Copy = {
@@ -62,6 +62,23 @@ const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const meta = "font-mono text-xs uppercase tracking-[0.12em]";
 
+/* False on the server and through hydration, true once React is driving the
+   client — so the server markup stays the no-JS-safe variant and only then does
+   the submit handler take over validation. `useSyncExternalStore` rather than a
+   mount-effect `setState`: it costs the same one extra render, but expresses
+   "read a value that lives outside React" instead of tripping
+   `react-hooks/set-state-in-effect`. Hoisted to module scope because an inline
+   subscribe re-subscribes on every render; there is nothing to subscribe to. */
+const noopSubscribe = () => () => {};
+
+function useHydrated() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  );
+}
+
 export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const c = lang === "it" ? IT : EN;
   const id = useId();
@@ -71,14 +88,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  /* Without JS the browser's own required/email validation guards the submit;
-     with it, the handler below owns the locked error copy instead of the
-     browser bubbles. Flipped post-hydration so the server markup stays the
-     no-JS-safe variant. */
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const hydrated = useHydrated();
 
   return (
     <section

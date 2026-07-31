@@ -321,20 +321,35 @@ test.describe("identity lockstep", () => {
   const retiredRoleLabel = "Full-Stack AI Engineer";
   const manifests = ["/llms.txt", "/llms-full.txt"] as const;
 
-  /* Agreement with the data module, not a literal: the wording is #52's to
-     rewrite, and this should still hold afterwards. */
+  /* Agreement with the data module, not a literal: the wording is the owner's
+     to rewrite, and this should still hold afterwards. Both `about` and
+     `summary` are asserted — #52 found that guarding only `about` let
+     `llms-full.txt`'s second paragraph drift for a whole release, because the
+     manifests hold a hand-written second copy of the prose rather than reading
+     the field. */
   for (const manifest of manifests) {
-    test(`${manifest} publishes the same bio as the data module`, async ({
-      request,
-    }) => {
-      const response = await request.get(manifest);
-      expect(response.status()).toBe(200);
+    for (const [field, prose] of [
+      ["about", RESUME_DATA.about],
+      ["summary", RESUME_DATA.summary],
+    ] as const) {
+      test(`${manifest} publishes the same ${field} as the data module`, async ({
+        request,
+      }) => {
+        const response = await request.get(manifest);
+        expect(response.status()).toBe(200);
 
-      expect(
-        await response.text(),
-        `${manifest} is hand-maintained and should not fall behind RESUME_DATA.about`,
-      ).toContain(RESUME_DATA.about);
-    });
+        /* The manifests are plain text with hard-wrapped paragraphs elsewhere,
+           so each paragraph is matched on its own rather than the joined
+           string. */
+        const text = await response.text();
+        for (const paragraph of prose.split("\n\n")) {
+          expect(
+            text,
+            `${manifest} is hand-maintained and should not fall behind RESUME_DATA.${field}`,
+          ).toContain(paragraph);
+        }
+      });
+    }
   }
 
   test("no identity surface still claims the retired role label", async ({

@@ -75,20 +75,18 @@ test.describe("Cache Components prerender baseline", () => {
     });
   }
 
-  /* The homepage fallback is the no-variant render, so a stuck boundary looks
-     exactly like a correct bare `/`. Only a variant URL can tell them apart:
-     CurrentHome is the sole homepage rendering that emits reading-measure
-     sections, so seeing them under ?variant= means the fallback never
-     resolved. */
-  test("the homepage boundary resolves past its fallback to the requested variant", async ({
+  /* #26 removed the homepage's only runtime read — the `?variant=` knob — so
+     the route has no Suspense boundary left to stick on and prerenders whole.
+     Asserting the section count is what would catch a reintroduced boundary
+     resolving to a partial page, and a query string must now change nothing. */
+  test("the homepage prerenders whole, with no boundary left to stick on", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.locator("[data-reading-measure]")).toHaveCount(5);
+    await expect(page.locator("[data-reading-measure]")).toHaveCount(6);
 
     await page.goto("/?variant=a");
-    await expect(page.locator("[data-reading-measure]")).toHaveCount(0);
-    await expect(page.locator("main section#writing")).toHaveCount(1);
+    await expect(page.locator("[data-reading-measure]")).toHaveCount(6);
   });
 
   /* Same shape of failure on /writing, where the fallback is the all-defaults

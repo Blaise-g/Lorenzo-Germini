@@ -174,16 +174,11 @@ test.describe("responsive hub shell", () => {
     expect(bodyValues).not.toContain(mastheadValue);
   });
 
-  /* Inverted below 1024: the masthead and the mobile band both state the name
-     there — measured at 375, 768 and 1023, the band's heading sits 38px below
-     the masthead name's box — so the count is legitimately 2 today and this test
-     is green because the expectation fails. #26 removes the band's duplicate;
-     the day it lands this goes red and whoever lands it flips it to a plain
-     assertion. */
+  /* Plain at every width since #26 removed the band's second `<h1>`: the
+     masthead is now the only surface that states the name, and below 1024 the
+     band states the role and location instead. */
   for (const width of allWidths) {
     test(`${width}px states the name exactly once`, async ({ page }) => {
-      test.fail(width < 1024, "duplicate name surface, removed by #26");
-
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
 
@@ -191,24 +186,15 @@ test.describe("responsive hub shell", () => {
     });
   }
 
-  /* The inverted assertion only means something if the count it reads moves, so
-     both directions are forced here on a live page: hiding the band's name
-     leaves 1, which is what turns the inverted test red once #26 lands, and
-     hiding every name surface leaves 0, so a page that stated the name nowhere
-     would fail the assertion rather than pass it vacuously. */
-  test("the visible name count moves in both directions when forced", async ({
-    page,
-  }) => {
+  /* The assertion above only means something if the count it reads can move, so
+     it is forced here on a live page: hiding every name surface leaves 0, so a
+     page that stated the name nowhere would fail the invariant rather than pass
+     it vacuously. Only one direction is left to force — with the band's
+     duplicate gone (#26) there is no second surface to hide. */
+  test("the visible name count moves when forced", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
 
-    expect(await visibleCount(page, "[data-identity-name]")).toBe(2);
-
-    await page.addStyleTag({
-      content: `[data-testid="mobile-identity"] [data-identity-name] {
-        display: none !important;
-      }`,
-    });
     expect(await visibleCount(page, "[data-identity-name]")).toBe(1);
 
     await page.addStyleTag({
@@ -312,8 +298,10 @@ test.describe("responsive hub shell", () => {
     await page.goto("/");
 
     const railNav = page.getByRole("navigation", { name: "Page sections" });
-    const aboutLink = railNav.getByRole("link", { name: "About" });
-    await expect(aboutLink).toHaveAttribute("aria-current", "true");
+    /* Writing is the first destination since #26 made it the page's single
+       primary CTA, so it is what a page at scroll position 0 marks current. */
+    const writingLink = railNav.getByRole("link", { name: "Writing" });
+    await expect(writingLink).toHaveAttribute("aria-current", "true");
 
     await page.locator("#work").scrollIntoViewIfNeeded();
     await expect
@@ -341,6 +329,64 @@ test.describe("responsive hub shell", () => {
         }),
       )
       .toEqual({ borderColorIsAccent: true, hasBorder: true });
+  });
+
+  /* Systems is the last destination and its section is short (87px measured at
+     1440), so at maximum scroll its top never reaches the 28%-of-viewport
+     activation line — the item was unreachable, not merely hard to hit, even by
+     clicking it. */
+  test("the rail marks the last destination once the page is scrolled to the bottom", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto("/");
+
+    const railNav = page.getByRole("navigation", { name: "Page sections" });
+    await railNav.getByRole("link", { name: "Systems" }).click();
+
+    /* Waits on the observable fact — scrolling has stopped — rather than
+       re-implementing the production bottom-of-document predicate, which would
+       weaken this to "when the browser satisfies the expression the code
+       satisfies, the code fires". */
+    await page.waitForFunction(
+      () => {
+        const w = window as Window & { __lastScrollY?: number };
+        const settled = w.__lastScrollY === window.scrollY;
+        w.__lastScrollY = window.scrollY;
+        return settled && window.scrollY > 0;
+      },
+      undefined,
+      { timeout: 5_000, polling: 100 },
+    );
+
+    /* The 0.28 ratio is written out rather than imported from `sticky-rail`: a
+       test that reads the production constant cannot notice the constant
+       changing. Numbers, not a boolean, so a failure prints the distance. */
+    const geometry = await page.locator("#systems").evaluate((section) => ({
+      scrollY: Math.round(window.scrollY),
+      maxScroll: Math.round(
+        document.documentElement.scrollHeight - window.innerHeight,
+      ),
+      systemsTop: Math.round(section.getBoundingClientRect().top),
+      activationLine: Math.round(window.innerHeight * 0.28),
+    }));
+
+    expect(
+      geometry.scrollY,
+      "the Systems anchor must leave the page at maximum scroll",
+    ).toBeGreaterThanOrEqual(geometry.maxScroll - 4);
+
+    /* Guards the guard: if the section ever grows tall enough to clear the
+       activation line on its own, this test stops reproducing the defect and
+       should be retired rather than left passing for the wrong reason. */
+    expect(
+      geometry.systemsTop,
+      "#systems now clears the activation line unaided — retire this test rather than leave it green for the wrong reason",
+    ).toBeGreaterThan(geometry.activationLine);
+
+    await expect
+      .poll(() => railNav.locator('[aria-current="true"]').textContent())
+      .toBe("Systems");
   });
 
   test("bottom fixed controls share one 56px cluster", async ({ page }) => {

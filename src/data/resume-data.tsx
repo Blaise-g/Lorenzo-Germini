@@ -5,7 +5,6 @@ export const RESUME_DATA: ResumeData = {
   name: "Lorenzo Germini",
   initials: "LG",
   location: "Turin, Italy, CET",
-  locationLink: "https://www.google.com/maps/place/Torino",
   roleLabel: "AI Product Engineer",
   newsletter: {
     name: "germinai",
@@ -14,7 +13,37 @@ export const RESUME_DATA: ResumeData = {
   about:
     "AI Product Engineer shipping production systems end-to-end across compliance, health, and education",
   summary:
-    "AI Product Engineer with a generalist mindset, I operate at the intersection of technical execution, product thinking, and business strategy. My track record spans architecting multi-provider LLM infrastructure, agentic RAG systems, and full-stack AI product features — shipped end-to-end in fast-paced environments.\n\nFrom AI and intelligent systems in pharma manufacturing to AI R&D in digital health, founding a GenAI startup, and now building the AI engine behind a compliance platform — each step reinforced one belief: the best AI engineers connect technical depth to real user problems. Outside work, I'm into sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+    "I'm an AI product engineer: I take LLM systems from idea to production and stay responsible for the whole path — the infrastructure, the product decisions, and whether the thing actually helps anyone.\n\nRight now that means building the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications: multi-provider LLM infrastructure, agentic RAG, and the evals that keep both honest. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line: technical depth only matters when it connects to a real user problem.\n\nOutside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+  homepage: {
+    hero: {
+      headline: {
+        lead: "I build AI products end-to-end — and write about ",
+        emphasis: "what actually works",
+        trail: ".",
+      },
+      subhead:
+        "Right now that's the agentic RAG engine and multi-provider LLM infrastructure (OpenAI, Claude, Gemini) behind Complaion, a compliance platform for ISO certifications. Before that: pharma manufacturing, digital health, and a GenAI startup.",
+      cta: "Start with the writing ↓",
+    },
+    writing: {
+      standingLine:
+        "Field notes from building with AI, published on germinai. No definitive guides — things I tried, what broke, and what earned its place.",
+      featured: {
+        title: "Drop the Bloat",
+        excerpt:
+          "My Claude Code sessions started at ~35K tokens of context before I typed anything. A field note on cutting that to 13K — and on knowing when context stops earning its place.",
+        /* The publication, not the post: the feed and archive are both empty at
+           the time of writing, so a /p/<slug> link would be a dead one. Swap in
+           the post URL and add `date` / `readingMinutes` the day it publishes —
+           the teaser renders its meta line only once they exist. */
+        href: "https://lorenzogermini.substack.com",
+      },
+    },
+    earlierRoles:
+      "Burgeon Labs — fine-tuned LMs for abstractive summarisation of biomedical literature, deployed end-to-end. Roche — a gradient-boosted-tree model for fill-parameter tuning on a personalised-medicine prototype, 20% faster than manual. EPFL MSc, Life Sciences Engineering.",
+    systems:
+      "Python · TypeScript · Next.js · Postgres / pgvector · pgai · AWS · OpenAI / Anthropic / Gemini · agentic RAG · evals & tracing · time-series ML",
+  },
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
   contact: {
@@ -62,10 +91,12 @@ export const RESUME_DATA: ResumeData = {
       start: "May 2025",
       end: "Present",
       description: [
-        "Building the AI engine behind Complaion, a compliance automation platform helping European SMEs achieve and maintain ISO certifications.",
-        "Architecting multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG systems, and AI evaluation frameworks.",
-        "Shipping end-to-end AI product features while contributing to product strategy and supporting cross-functional teams with automation workflows.",
+        "Building the AI engine behind Complaion, a compliance automation platform helping European SMEs get and keep ISO certifications.",
+        "Multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG over ISO documentation, and evaluation frameworks that keep both honest in production.",
+        "Ship end-to-end AI product features and automation workflows for cross-functional teams.",
       ],
+      homepageProof:
+        "Multi-provider LLM infrastructure (OpenAI, Anthropic, Gemini), agentic RAG over ISO documentation, and the evaluation harness that keeps both honest in production.",
     },
     {
       company: "Stealth GenAI Startup",
@@ -75,10 +106,12 @@ export const RESUME_DATA: ResumeData = {
       start: "Nov 2024",
       end: "Apr 2025",
       description: [
-        "Spearheaded the development of an EdTech web application product, architecting and implementing the backend infrastructure on AWS (DynamoDB, Amplify, Lambda) and the Generative AI API layer from the ground up.",
-        "Engineered a robust RAG stack with pgai, custom and state-of-the-art parsing pipelines, plus tracing and evaluation workflows to systematically refine prompts, outputs, and retrieval quality across machine-readable and handwritten content.",
-        "Led engineering execution for the MVP in close collaboration with the Product Manager, contributing to team coordination, product strategy, and end-to-end delivery.",
+        "Built the backend and GenAI API layer from zero on AWS (DynamoDB, Amplify, Lambda) for an EdTech product.",
+        "RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, plus tracing and evaluation workflows to tune prompts and retrieval quality.",
+        "Led engineering for the MVP end-to-end, working directly with the product manager.",
       ],
+      homepageProof:
+        "Backend and GenAI API layer from zero on AWS (Lambda, DynamoDB, Amplify); a pgai RAG stack with custom parsing for handwritten input, plus tracing and evals to tune retrieval.",
     },
     {
       company: "GSK",
@@ -88,10 +121,12 @@ export const RESUME_DATA: ResumeData = {
       start: "Sep 2023",
       end: "Oct 2024",
       description: [
-        "Led process optimization initiatives across pharmaceutical utilities, using Python and multi-source sensor data to identify inefficiencies and design water rejection strategies projected to save 10,000 m³ annually.",
-        "Built predictive and anomaly-detection solutions for manufacturing operations, combining semantic NLP and time-series forecasting to improve fault detection and maintenance decision-making.",
-        "Developed operational AI tools, including natural-language interfaces and generative AI use cases, to make plant data more accessible and support smarter production decisions.",
+        "Used Python and multi-source sensor data to find inefficiencies across pharmaceutical utilities; designed water rejection strategies projected to save 10,000 m³ annually.",
+        "Anomaly detection and time-series forecasting for manufacturing operations, plus semantic NLP for fault detection and maintenance decisions.",
+        "Natural-language interfaces and generative AI use cases that made plant data usable on the floor.",
       ],
+      homepageProof:
+        "Time-series forecasting and anomaly detection on plant sensor data, semantic NLP for fault detection, and a water-rejection strategy projected at 10,000 m³/year.",
     },
     {
       company: "Self Employed",
@@ -101,10 +136,10 @@ export const RESUME_DATA: ResumeData = {
       start: "Nov 2022",
       end: "Aug 2023",
       description: [
-        "Taught Math and Physics at my high-school alma mater, reconnecting with my hometown community. Shared my passion for STEM and fostered a renewed sense of purpose before the next chapter of my career.",
-        "Developed an interior design MVP using Stable Diffusion, implementing Dreambooth fine-tuning on personally curated datasets of room designs. Created custom training datasets through careful selection and preprocessing of interior design examples.",
-        "Led comprehensive market research and user outreach efforts, engaging with interior design firms and potential customers to validate product-market fit. Leveraged insights to make a data-driven decision to conclude the project.",
+        "Taught math and physics at my old high school; built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself, then killed it on the evidence after customer discovery.",
       ],
+      homepageProof:
+        "A Stable Diffusion interior-design MVP with Dreambooth fine-tuning on a hand-curated dataset — then killed on the evidence after customer discovery.",
     },
     {
       company: "Burgeon Labs",
@@ -114,9 +149,7 @@ export const RESUME_DATA: ResumeData = {
       start: "Feb 2022",
       end: "Oct 2022",
       description: [
-        "Developed and deployed a Generative AI tool for biomedical literature analysis, leveraging fine-tuned language models trained on curated scientific datasets. Implemented an end-to-end pipeline for abstractive text summarization.",
-        "Collaborated with the CEO to define product management strategies and streamline business processes for the company's first digital health product, successfully establishing a partnership with a renowned clinic.",
-        "Actively engaged with various business functions to understand user needs and drive impactful solutions, demonstrating a strong commitment to improving health outcomes through technology.",
+        "Fine-tuned language models for abstractive summarization of biomedical literature, deployed as an end-to-end pipeline for the company's first digital health product.",
       ],
     },
     {
@@ -127,9 +160,7 @@ export const RESUME_DATA: ResumeData = {
       start: "Jul 2021",
       end: "Oct 2021",
       description: [
-        "Managed development of customized filling machine prototype for personalized drug supply, including hardware-software integration testing and collaboration with external partners.",
-        "Improved tuning of filling prototype by creating a Machine Learning model (gradient-boosted tree) to optimize fill parameter determination for Personalized Medicine solutions, reducing tuning time by 20% compared to manual methods.",
-        "Emphasized the practical applications of machine learning to drive innovation in personalized medicine, showcasing ability to translate technical expertise into real-world impact.",
+        "Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning — 20% faster than manual.",
       ],
     },
   ],
@@ -160,7 +191,7 @@ export const RESUME_DATA: ResumeData = {
         "WhatsApp Bot",
       ],
       description:
-        "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show L'Eredità. Players send 5 clue words (typed or snapped from TV) and the AI finds the single connecting word — having hit 100% accuracy so far, while being built to handle rate-limit abuse and optimize usage.",
+        "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words — typed or snapped from the TV — and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.",
       link: {
         label: "L'Oracolo della Ghigliottina",
         href: "https://ghigliottina.vercel.app/",
@@ -176,7 +207,7 @@ export const RESUME_DATA: ResumeData = {
         "Gradio",
       ],
       description:
-        "Developed a Generative AI powered tool for extracting key takeaways from biomedical papers with adjustable levels of detail. Created an end-to-end pipeline for processing full-text research articles into both detailed analyses and concise TL;DR formats, focusing on longevity and human health domains.",
+        "MSc thesis work: an end-to-end pipeline that turns full-text biomedical papers into either a detailed analysis or a TL;DR, tuned on longevity and human-health literature.",
       link: {
         label: "Biomedical Paper Summarizer",
         href: "https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr",

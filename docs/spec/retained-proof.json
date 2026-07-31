@@ -181,7 +181,8 @@
     {
       "id": "preprocessing",
       "source": "Self Employed",
-      "acceptedAnyOf": ["preprocessing"]
+      "acceptedAnyOf": ["preprocessing", "preprocessed"],
+      "$comment": "#26 compressed this role to one line: 'a hand-curated dataset of room designs I preprocessed myself'. The proof survives, the gerund did not — alias per the maintenance rule in retained-proof.md."
     },
 
     {

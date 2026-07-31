@@ -253,7 +253,7 @@ A real Chromium A4 render of the _current_ print CV measures **3 pages**, page 2
 
 ## 1.8 Small correctness items
 
-- Exactly two production `target="_blank"` links are missing `rel="noopener noreferrer"` — the location link in `src/app/page.tsx` and the project title link in `src/components/project-card.tsx`. Six others already have it. Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
+- One production `target="_blank"` link is missing `rel="noopener noreferrer"` — the project title link in `src/components/project-card.tsx`. Six others already have it. (Was two: the location link in `src/app/page.tsx` was deleted with the globe action post-#26, so that half is moot rather than done.) Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
 - Hover styling on non-interactive skill badges — remove it.
 - Verify `--color-muted-foreground` against AA in both modes at its smallest rendered size.
 - Retire the hardcoded `dateModified: "2026-04-01"` at `src/components/structured-data.tsx:8` in favour of a build-time or data-derived value.
@@ -311,7 +311,8 @@ Migrate `src/app/globals.css`'s `@theme` block and `.dark` overrides to Warm Pri
 
 - Masthead → `lg:grid-cols-[220px_1fr] lg:gap-14` inside `max-w-5xl`; 220px sticky rail + main column at `lg` and up, single ~688px measure below.
 - The rail is `hidden lg:block`. **Below `lg` the rail's content never enters the flow** — not above the `<h1>`, not below the content. The identity band carries it. Above the `<h1>` it buries the positioning statement under ~380px of avatar and bio; below the content it is an orphaned duplicate footer at 80% page depth for +288px of scroll.
-- **The rail ships with a scroll-spy active state** — IntersectionObserver → `aria-current="true"` plus an accent left-border. This is a **condition of the composition, not a polish item**: the 220px column is only 44% filled in every frame, and orientation is its entire justification. Without it, it is a jump menu that is always visible and never informative.
+- **The rail ships with a scroll-spy active state** — `aria-current="true"` plus an accent left-border on the section being read. This is a **condition of the composition, not a polish item**: the 220px column is only 44% filled in every frame, and orientation is its entire justification. Without it, it is a jump menu that is always visible and never informative.
+  - **Amended 2026-07-31 (post-#26):** this line originally specified IntersectionObserver as the mechanism. It is now a rAF-throttled `scroll`/`resize` listener. The observer fires only on threshold crossings, so it could fall silent before the page settled at maximum scroll and never report the final position — which made the last destination unreachable, not merely hard to hit. Measured at 1760×813: `#systems` stops 381px down the viewport against a 228px activation line, and even clicking its own rail link left _Projects_ marked. The **condition** above is unchanged and binding; only the mechanism moved.
 - Main content caps at `max-w-[42rem]`; **only Projects releases the cap, and only at `lg`** (`max-w-[42rem] lg:max-w-none`). Never let a block escape the measure below the breakpoint that gives it a second column — at 1023px Projects rendered **943px wide and single-column** under a page of 672px measures.
 - One **full-bleed hairline** (masthead rule running to the viewport edge, not stopping at the measure) — the single gesture that makes a centred measure read as intentional.
 - Mobile anchor row under the identity band, per [decision 1](#decisions-this-spec-makes).
@@ -425,6 +426,13 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
 
 ## 2.6 Homepage swap
 
+**Landed (#26).** The constraints below are the record of what bound it; what shipped differs from
+this section in three places worth naming. `homepageProof` is a per-role field on `work[]` rather
+than a separate map, and the roles without one (Burgeon Labs, Roche) fold into a single earlier
+line. The rest of the homepage prose lives in `RESUME_DATA.homepage`. And the writing teaser links
+at the publication rather than the post — the germinai feed was still empty on the day it landed,
+so the date and reading-time line render only once those values exist.
+
 **Blocked on:** §2.3 (`/cv` must exist first) and the copy rewrite.
 
 - Composition and shell per §2.2.
@@ -461,7 +469,7 @@ These drift the moment the copy lands, and they drift silently. Do them in the s
 
 - ~~`RESUME_DATA.about` still says "Full-Stack AI Engineer" while the hero says "AI Product Engineer."~~ **Done:** `about` and `summary` now carry the label, and so do both manifests and the generated CV PDF. The retired string survives nowhere in `src/` or `public/`.
 - ~~`hasOccupation.name` is hardcoded; `jobTitle` reads `RESUME_DATA.work[0]?.title`, the employer's job title, not the positioning label.~~ **Done:** both now read `RESUME_DATA.roleLabel` — the dedicated field this bullet called for, added in #44 — and the work history keeps the employer-accurate title. The JSON-LD is built in `src/lib/person-structured-data.ts`, not `src/components/structured-data.tsx` as this bullet and `CONTEXT.md` used to say. Guarded by `tests/content-correctness.spec.ts` ("identity lockstep") and the JSON-LD assertions in `responsive-hub-shell` and `cv-route`.
-- **Still open — `llms-full.txt` paragraph 2 drifted before this work and is unrelated to the label.** It says "From data science in pharma manufacturing"; `RESUME_DATA.summary` says "From AI and intelligent systems in pharma manufacturing". The lockstep test asserts the manifests contain `RESUME_DATA.about`, not `.summary`, so nothing catches this. Fold it into #52's rewrite rather than patching the manifest to match prose that is about to change.
+- ~~**Still open — `llms-full.txt` paragraph 2 drifted before this work and is unrelated to the label.** The lockstep test asserts the manifests contain `RESUME_DATA.about`, not `.summary`, so nothing catches this.~~ **Done in #26:** the drifted paragraph went with the rewrite, and the lockstep test now asserts every paragraph of `.summary` in both manifests, so the silent-drift edge is closed rather than patched.
 - `llms.txt:7` calls the homepage "Full interactive resume and portfolio" — false once `/cv` exists.
 - `llms.txt` / `llms-full.txt` structure adopts #7's key/value manifest shape (from Variant C — the _structure_, not the visual design).
 - OG image and metadata title/description.
@@ -473,7 +481,7 @@ These drift the moment the copy lands, and they drift silently. Do them in the s
 
 ## Prototype teardown
 
-Delete on merge of §2.6: `src/components/prototype/` (all of it) and the dev-only `src/app/writing/page.tsx` prototype. Keep `docs/prototypes/*/NOTES.md` and the screenshots — they are the evidence base for this spec.
+**Half done, deliberately.** §2.6 deleted the homepage direction prototypes — `variant-a|b|c|d.tsx`, `prototype-switcher.tsx`, `writing-data.ts` and the `?variant=` block in `src/app/page.tsx`. What stays is the `/writing` index prototype (`writing-index.tsx`, `writing-feed.ts`, `warm-print.ts`, and the dev-only `src/app/writing/page.tsx`): it is the reference implementation #24 builds the real route from, and #25's subscribe handoff is tested against it. Retire the rest with #24, not before. `docs/prototypes/*/NOTES.md` and the screenshots stay either way — they are the evidence base for this spec.
 
 ---
 

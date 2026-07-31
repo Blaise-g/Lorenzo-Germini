@@ -1,20 +1,24 @@
-import React, { Suspense } from "react";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+/*
+THESIS: The homepage is a positioning statement with the writing as its first
+door, not a chronological résumé that happens to mention essays.
+OWN-WORLD: Warm Print at one reading measure — serif hero, mono metadata,
+terracotta reserved for the accent italic, the section rules, and links.
+STORY: Read what he does, read the essay, then check the proof underneath.
+FIRST VIEWPORT: The `<h1>` and a subhead that names Complaion and the systems
+behind it, above the writing CTA — the fold is where the technical claim is made.
+FORM: Masthead rule, band-or-rail identity, then five sections at 42rem.
+*/
+
+import React from "react";
 import { Metadata } from "next";
 import { Section } from "@/components/ui/section";
-import { GlobeIcon, MailIcon, PhoneIcon } from "lucide-react";
+import { MailIcon, PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RESUME_DATA } from "@/data/resume-data";
 import { ProjectCard } from "@/components/project-card";
 import { StructuredData } from "@/components/structured-data";
 import { cn } from "@/lib/utils";
 import { HubShell } from "@/components/hub-shell";
-import { PrototypeSwitcher } from "@/components/prototype/prototype-switcher";
-import { VariantA } from "@/components/prototype/variant-a";
-import { VariantB } from "@/components/prototype/variant-b";
-import { VariantC } from "@/components/prototype/variant-c";
-import { VariantD } from "@/components/prototype/variant-d";
 
 export const metadata: Metadata = {
   title: `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
@@ -23,66 +27,28 @@ export const metadata: Metadata = {
 
 const HUB_SECTIONS = {
   about: { id: "about", label: "About" },
-  education: { id: "education", label: "Education" },
   projects: { id: "projects", label: "Projects" },
-  skills: { id: "skills", label: "Skills" },
+  systems: { id: "systems", label: "Systems" },
   work: { id: "work", label: "Work" },
+  writing: { id: "writing", label: "Writing" },
 } as const;
 
+/* Writing leads: it is the page's single primary CTA (spec §2.6 constraint 6),
+   so it is also the first destination the rail offers. */
 const HUB_DESTINATIONS = [
+  HUB_SECTIONS.writing,
   HUB_SECTIONS.about,
   HUB_SECTIONS.work,
-  HUB_SECTIONS.education,
-  HUB_SECTIONS.skills,
   HUB_SECTIONS.projects,
+  HUB_SECTIONS.systems,
 ] as const;
 
-// PROTOTYPE (issue #7): dev-only homepage direction variants, switchable via
-// ?variant=a|b|c. Never reads searchParams in production, so the page stays
-// static there. Delete this block + src/components/prototype/ only when the
-// Phase 2 §2.6 homepage swap merges.
-type HomeProps = { searchParams: Promise<{ variant?: string }> };
+const sectionClassName =
+  "animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1";
 
-export default function Page({ searchParams }: HomeProps) {
-  if (process.env.NODE_ENV === "production") return <CurrentHome />;
+const { hero, writing, earlierRoles, systems } = RESUME_DATA.homepage;
 
-  // Cache Components (issue #23): reading searchParams is runtime data, so it
-  // has to sit behind Suspense or it blocks the whole route from prerendering.
-  // The fallback is CurrentHome, which is also what an absent or unknown
-  // ?variant resolves to — so bare `/`, the URL dev actually loads, settles
-  // into the geometry it started with. Production returns above and never
-  // reaches this boundary.
-  return (
-    <>
-      <Suspense fallback={<CurrentHome />}>
-        <SelectedVariant searchParams={searchParams} />
-      </Suspense>
-      <PrototypeSwitcher />
-    </>
-  );
-}
-
-async function SelectedVariant({ searchParams }: HomeProps) {
-  const { variant } = await searchParams;
-  // Issue #8: b1/b2/b3 are visual treatments of the chosen Variant B.
-  // Issue #12: composition is the variable — d = single measure, b1a = amended rail.
-  const variants: Record<string, React.ReactNode> = {
-    a: <VariantA />,
-    b: <VariantB treatment="warm" />,
-    b1: <VariantB treatment="warm" />,
-    b1a: <VariantD composition="rail" />,
-    b2: <VariantB treatment="slate" />,
-    b3: <VariantB treatment="broadsheet" />,
-    c: <VariantC />,
-    d: <VariantD composition="single" />,
-  };
-
-  // Anything unrecognised falls through to the same CurrentHome the boundary
-  // above already painted, so an unknown ?variant costs no swap.
-  return (variant ? variants[variant] : undefined) ?? <CurrentHome />;
-}
-
-function CurrentHome() {
+export default function Page() {
   const commandLinks = [
     {
       url: RESUME_DATA.personalWebsiteUrl,
@@ -93,6 +59,13 @@ function CurrentHome() {
       title: socialMediaLink.name,
     })),
   ];
+
+  /* Roles without hand-written homepage proof fold into one earlier line rather
+     than rendering a CV bullet the homepage was not written for. */
+  const provenRoles = RESUME_DATA.work.filter((work) => work.homepageProof);
+  const earlierRolesSpan = RESUME_DATA.work
+    .filter((work) => !work.homepageProof)
+    .map((work) => work.start.slice(-4));
 
   return (
     <>
@@ -108,165 +81,184 @@ function CurrentHome() {
           location: RESUME_DATA.location,
           name: RESUME_DATA.name,
           roleLabel: RESUME_DATA.roleLabel,
-          summary: RESUME_DATA.summary.split("\n\n")[0],
         }}
       >
+        {/* Hero — the page's only <h1>. */}
+        <Section
+          data-reading-measure="true"
+          className={cn(sectionClassName, "gap-y-0")}
+        >
+          <h1 className="font-display text-[clamp(2rem,5.2vw,3.25rem)] leading-[1.08] font-medium tracking-tight text-pretty">
+            {hero.headline.lead}
+            <em className="text-accent italic">{hero.headline.emphasis}</em>
+            {hero.headline.trail}
+          </h1>
+          <p className="text-body mt-6 text-base leading-relaxed text-pretty print:mt-2 print:text-[12px]">
+            {hero.subhead}
+          </p>
+          <a
+            href={`#${HUB_SECTIONS.writing.id}`}
+            className="text-accent border-accent touch-target mt-7 inline-block self-start border-b-2 pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
+          >
+            {hero.cta}
+          </a>
+        </Section>
+
+        {/* Writing — text-only lead teaser: no numbering, no covers, no
+            subscribe module, so the single CTA stays uncontested (§2.6). */}
+        <Section
+          id={HUB_SECTIONS.writing.id}
+          data-reading-measure="true"
+          className={sectionClassName}
+        >
+          <SectionHeading>Writing</SectionHeading>
+          <p className="text-body text-base leading-relaxed text-pretty print:text-[12px]">
+            {writing.standingLine}
+          </p>
+          <article className="group mt-2">
+            {writing.featured.date && writing.featured.readingMinutes ? (
+              <p className="text-faint font-mono text-xs tracking-[0.12em] uppercase">
+                {new Date(writing.featured.date).toLocaleDateString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}{" "}
+                · {writing.featured.readingMinutes} min read
+              </p>
+            ) : null}
+            <h3 className="font-display mt-2 text-2xl leading-snug sm:text-3xl">
+              <a
+                className="underline-offset-4 group-hover:underline"
+                href={writing.featured.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {writing.featured.title}
+              </a>
+            </h3>
+            <p className="text-body mt-3 text-base leading-relaxed text-pretty print:text-[12px]">
+              {writing.featured.excerpt}
+            </p>
+            <p className="mt-4">
+              <a
+                className="text-accent border-accent touch-target inline-block border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+                href={writing.featured.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Read the essay →
+              </a>
+            </p>
+          </article>
+        </Section>
+
         {/* About */}
         <Section
           id={HUB_SECTIONS.about.id}
           data-reading-measure="true"
-          className="animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1"
+          className={sectionClassName}
         >
           <SectionHeading>About</SectionHeading>
           <div className="text-body space-y-3 text-base leading-relaxed text-pretty print:space-y-1 print:text-[12px] print:leading-[1.35]">
-            {RESUME_DATA.summary.split("\n\n").map((paragraph, i) => (
-              <p key={i}>{paragraph}</p>
+            {RESUME_DATA.summary.split("\n\n").map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
         </Section>
 
-        {/* Work Experience */}
+        {/* Work — one hand-written proof line per role; the CV carries the
+            bullets. */}
         <Section
           id={HUB_SECTIONS.work.id}
           data-reading-measure="true"
-          className="animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1"
+          className={sectionClassName}
         >
-          <SectionHeading>Work Experience</SectionHeading>
-          {RESUME_DATA.work.map((work) => {
-            return (
-              <Card
+          <SectionHeading>Work</SectionHeading>
+          <div className="space-y-7 print:space-y-1">
+            {provenRoles.map((work) => (
+              <div
                 key={`${work.company}-${work.start}`}
-                className="card-hover print-keep-together border-l-border hover:border-l-accent border-l px-6 py-4 print:px-0 print:py-1"
+                className="print-keep-together grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-6"
               >
-                <CardHeader>
-                  <div className="flex flex-col items-start gap-2 text-base sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="font-display flex flex-wrap items-center gap-x-1 gap-y-1 leading-none font-semibold">
-                      {work.link ? (
-                        <a
-                          className="touch-target hover:underline"
-                          href={work.link}
-                        >
-                          {work.company}
-                        </a>
-                      ) : (
-                        <span>{work.company}</span>
-                      )}
-                      <span className="inline-flex gap-x-1">
-                        {work.badges.map((badge) => (
-                          <Badge
-                            variant="secondary"
-                            className="align-middle text-xs print:px-1 print:py-0.5 print:text-[12px] print:leading-tight"
-                            key={badge}
-                          >
-                            {badge}
-                          </Badge>
-                        ))}
-                      </span>
-                    </h3>
-                    <div className="text-faint shrink-0 font-mono text-xs tabular-nums">
-                      {work.start} - {work.end ?? "Present"}
-                    </div>
-                  </div>
-                  <h4 className="text-faint font-mono text-xs leading-none print:text-[12px]">
-                    {work.title}
-                  </h4>
-                </CardHeader>
-                <CardContent className="mt-2 text-sm print:mt-1 print:text-[12px] print:leading-[1.25]">
-                  {typeof work.description === "string" ? (
-                    <p>{work.description}</p>
-                  ) : (
-                    work.description?.map((desc) => {
-                      return (
-                        <p key={desc} className="mb-1">
-                          <span className="mr-2">
-                            {work?.customBullet || "\u2022"}
-                          </span>
-                          {desc}
-                        </p>
-                      );
-                    })
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Section>
-
-        {/* Education */}
-        <Section
-          id={HUB_SECTIONS.education.id}
-          data-reading-measure="true"
-          className="animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1"
-        >
-          <SectionHeading>Education</SectionHeading>
-          {RESUME_DATA.education.map((education) => {
-            return (
-              <Card
-                key={education.school}
-                className="card-hover border-l-border hover:border-l-accent border-l px-6 py-4 print:px-0 print:py-1"
-              >
-                <CardHeader>
-                  <div className="flex flex-col items-start gap-2 text-base sm:flex-row sm:items-center sm:justify-between">
-                    <h3 className="font-display leading-none font-semibold">
-                      {education.school}
-                    </h3>
-                    <div className="text-faint shrink-0 font-mono text-xs tabular-nums">
-                      {education.start} - {education.end}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="mt-2 print:text-[12px]">
-                  {education.degree}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </Section>
-
-        {/* Skills */}
-        <Section
-          id={HUB_SECTIONS.skills.id}
-          data-reading-measure="true"
-          className="animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1"
-        >
-          <SectionHeading>Skills</SectionHeading>
-          <div className="flex flex-wrap gap-1.5">
-            {RESUME_DATA.skills.map((skill) => {
-              return (
-                <Badge
-                  className="border-border bg-ground text-faint cursor-default font-mono print:text-[12px]"
-                  key={skill}
-                >
-                  {skill}
-                </Badge>
-              );
-            })}
+                <p className="text-faint font-mono text-xs tabular-nums sm:pt-1.5">
+                  {work.start} – {work.end ?? "Present"}
+                </p>
+                <div>
+                  <h3 className="font-display text-xl leading-snug">
+                    {work.title} ·{" "}
+                    {work.link ? (
+                      <a
+                        className="touch-target underline-offset-4 hover:underline"
+                        href={work.link}
+                      >
+                        {work.company}
+                      </a>
+                    ) : (
+                      work.company
+                    )}
+                  </h3>
+                  <p className="text-body mt-1.5 text-sm leading-relaxed text-pretty print:text-[12px]">
+                    {work.homepageProof}
+                  </p>
+                </div>
+              </div>
+            ))}
+            <div className="print-keep-together grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-6">
+              <p className="text-faint font-mono text-xs tabular-nums sm:pt-1.5">
+                {earlierRolesSpan.at(-1)} – {earlierRolesSpan.at(0)}
+              </p>
+              <p className="text-faint text-sm leading-relaxed text-pretty print:text-[12px]">
+                {earlierRoles}
+              </p>
+            </div>
           </div>
+          <p className="mt-3 print:hidden">
+            <a
+              href="/cv"
+              className="text-accent border-accent touch-target inline-block border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+            >
+              Full CV →
+            </a>
+          </p>
         </Section>
 
         {/* Projects */}
         <Section
           id={HUB_SECTIONS.projects.id}
           data-reading-measure="true"
-          className="print-projects-section animate-fade-in-up max-w-[42rem] scroll-mt-24 scroll-mb-16 lg:max-w-none print:gap-y-1"
+          className={cn(
+            sectionClassName,
+            "print-projects-section scroll-mb-16 lg:max-w-none",
+          )}
         >
           <SectionHeading ruleClassName="print:my-1">Projects</SectionHeading>
           <div
             data-testid="projects-grid"
             className="grid grid-cols-1 gap-3 lg:-mx-3 lg:grid-cols-2 print:mx-0 print:grid-cols-2 print:gap-2"
           >
-            {RESUME_DATA.projects.map((project) => {
-              return (
-                <ProjectCard
-                  key={project.title}
-                  title={project.title}
-                  description={project.description}
-                  tags={project.techStack}
-                  link={"link" in project ? project.link?.href : undefined}
-                />
-              );
-            })}
+            {RESUME_DATA.projects.map((project) => (
+              <ProjectCard
+                key={project.title}
+                title={project.title}
+                description={project.description}
+                tags={project.techStack}
+                link={"link" in project ? project.link?.href : undefined}
+              />
+            ))}
           </div>
+        </Section>
+
+        {/* Systems — the colophon stack line: the technical nouns a peer scans
+            for, at the foot rather than competing with the proof above. */}
+        <Section
+          id={HUB_SECTIONS.systems.id}
+          data-reading-measure="true"
+          className={sectionClassName}
+        >
+          <SectionHeading>Systems</SectionHeading>
+          <p className="text-body font-mono text-xs leading-relaxed">
+            {systems}
+          </p>
         </Section>
       </HubShell>
     </>
@@ -290,16 +282,6 @@ function ProfileActions() {
           </a>
         </Button>
       ) : null}
-      <Button className="print:size-8" variant="outline" size="icon" asChild>
-        <a
-          href={RESUME_DATA.locationLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Location: ${RESUME_DATA.location}`}
-        >
-          <GlobeIcon className="size-4 print:size-5" />
-        </a>
-      </Button>
       {RESUME_DATA.contact.social.map((social) => (
         <Button
           key={social.name}

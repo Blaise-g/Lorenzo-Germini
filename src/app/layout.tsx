@@ -35,14 +35,18 @@ export const metadata: Metadata = {
     template: `%s | ${RESUME_DATA.name}`,
   },
   description: RESUME_DATA.summary,
+  /* Search strings, not identity surfaces — `CONTEXT.md` enumerates those and
+     this is not one of them. "AI Engineer" stays as a recruiter search alias
+     alongside the positioning label rather than instead of it (#52, deferred
+     item 2). */
   keywords: [
+    RESUME_DATA.roleLabel,
     "AI Engineer",
     "Generative AI",
     "Agents",
     "Agentic AI",
     "Complaion",
     "Machine Learning",
-    "Full Stack Developer",
     "Software Engineer",
     "Lorenzo Germini",
     "Portfolio",

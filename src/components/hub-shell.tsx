@@ -20,10 +20,11 @@ type HubProfile = {
   avatarAlt: string;
   avatarUrl: string;
   location: string;
+  /** Rail only. The band states the role and location instead: below lg the
+   *  hero is one screen away, so a bio there just delays it. */
   bio: string;
   name: string;
   roleLabel: string;
-  summary: string;
 };
 
 export function HubShell({
@@ -41,16 +42,23 @@ export function HubShell({
     <div className="min-h-screen">
       <ThemeToggle />
 
+      {/* Prints: with the band's `<h1>` gone (#26), this is the only surface
+          that states the name, and a printed homepage still has to say whose
+          it is. The role label beside it stays on screen only — the band
+          repeats it directly underneath in print. */}
       <div
         data-testid="masthead-rule"
-        className="animate-fade-in-up border-ink border-b-2 print:hidden"
+        className="animate-fade-in-up border-ink border-b-2"
       >
         {/* Its own orientation value, because this surface coexists with
             band-or-rail rather than replacing either. */}
         <header
           data-testid="masthead-inset"
           data-profile-orientation="masthead"
-          className={cn(shellInset, "pt-20 pb-4 lg:pt-10")}
+          /* pt-12 clears the fixed theme toggle's 52px bottom edge by a hair
+             rather than by 28px: measured, the old pt-20 pushed the phone hero
+             to y=416 on a 375×812 screen, half the fold spent above the `<h1>`. */
+          className={cn(shellInset, "pt-12 pb-4 lg:pt-10 print:pt-0")}
         >
           <div className="flex items-baseline justify-between gap-8">
             <p
@@ -62,7 +70,7 @@ export function HubShell({
             </p>
             <p
               data-testid="masthead-role"
-              className="text-faint hidden font-mono text-xs tracking-[0.12em] uppercase lg:block"
+              className="text-faint hidden font-mono text-xs tracking-[0.12em] uppercase lg:block print:hidden"
             >
               {profile.roleLabel}
             </p>
@@ -97,7 +105,7 @@ export function HubShell({
           ))}
         </nav>
 
-        <div className="grid gap-10 pt-10 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14 print:block print:pt-0">
+        <div className="grid gap-10 pt-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14 lg:pt-10 print:block print:pt-0">
           <aside
             aria-label="Profile and page sections"
             data-profile-orientation="identity"
@@ -132,7 +140,7 @@ function ProfileIdentity({
       className={
         isRail
           ? "space-y-4"
-          : "flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:justify-between print:flex-row print:items-center"
+          : "flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between print:flex-row print:items-center"
       }
     >
       <div className={isRail ? "space-y-4" : "flex items-center gap-4"}>
@@ -140,7 +148,7 @@ function ProfileIdentity({
           className={
             isRail
               ? "border-accent/20 relative size-20 overflow-hidden rounded-sm border-2 grayscale"
-              : "border-accent/20 relative size-20 shrink-0 overflow-hidden rounded-sm border-2 grayscale print:size-24"
+              : "border-accent/20 relative size-14 shrink-0 overflow-hidden rounded-sm border-2 grayscale print:size-24"
           }
         >
           <Image
@@ -153,20 +161,24 @@ function ProfileIdentity({
           />
         </div>
         <div className={isRail ? "space-y-2" : "space-y-1"}>
-          {!isRail ? (
-            <h1
-              data-identity-name="true"
-              className="font-display text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl"
-            >
-              {profile.name}
-            </h1>
-          ) : null}
-          <p className="text-body text-sm leading-relaxed">
-            {isRail ? profile.summary : profile.bio}
-          </p>
-          {!isRail ? (
-            <p className="text-faint font-mono text-xs">{profile.location}</p>
-          ) : null}
+          {isRail ? (
+            <p className="text-body text-sm leading-relaxed">{profile.bio}</p>
+          ) : (
+            /* #26: the band used to restate the name in a second `<h1>`, 38px
+               below the masthead's — two thirds of a 375px fold spent on
+               identity before the hero. It carries the role, the location and
+               the CV route instead; the hero below is the page's only `<h1>`. */
+            <p className="text-faint font-mono text-xs leading-relaxed tracking-[0.12em] uppercase">
+              {profile.roleLabel} · {profile.location}
+              <br />
+              <a
+                href="/cv"
+                className="text-accent decoration-border hover:decoration-accent touch-target underline underline-offset-4"
+              >
+                CV →
+              </a>
+            </p>
+          )}
         </div>
       </div>
       <div className={isRail ? "pt-1" : "shrink-0"}>{profile.actions}</div>
