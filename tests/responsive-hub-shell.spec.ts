@@ -5,6 +5,7 @@ import { RESUME_DATA } from "@/data/resume-data";
 import { revealBackToTop } from "./support/back-to-top";
 import { commandMenuTrigger } from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
+import { personStructuredData } from "./support/structured-data";
 
 const mobileAndTabletWidths = [375, 768, 1023] as const;
 const desktopWidths = [1024, 1440, 1728] as const;
@@ -268,17 +269,11 @@ test.describe("responsive hub shell", () => {
       `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
     );
 
-    const person = await page
-      .locator('script[type="application/ld+json"]')
-      .evaluateAll((scripts) =>
-        scripts
-          .map((script) => JSON.parse(script.textContent ?? "{}"))
-          .find((data) => data["@type"] === "ProfilePage"),
-      );
+    const person = await personStructuredData(page);
 
-    expect(person, "the homepage should emit ProfilePage JSON-LD").toBeTruthy();
-    expect(person.mainEntity.jobTitle).toBe(RESUME_DATA.roleLabel);
-    expect(person.mainEntity.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
+    expect(person, "the homepage should emit Person JSON-LD").toBeTruthy();
+    expect(person.jobTitle).toBe(RESUME_DATA.roleLabel);
+    expect(person.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
 
     /* The positioning label is not the employer's title, so deriving either one
        from the other is the defect this guards. */
@@ -286,7 +281,7 @@ test.describe("responsive hub shell", () => {
       RESUME_DATA.work[0].title,
       "the work history should keep the employer-accurate title",
     ).not.toBe(RESUME_DATA.roleLabel);
-    expect(person.mainEntity.worksFor.name).toBe(RESUME_DATA.work[0].company);
+    expect(person.worksFor.name).toBe(RESUME_DATA.work[0].company);
   });
 
   test("the masthead rule does not move with the shell's horizontal padding", async ({

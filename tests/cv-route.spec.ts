@@ -8,6 +8,7 @@ import retainedProof from "@/../docs/spec/retained-proof.json";
 import { RESUME_DATA } from "@/data/resume-data";
 
 import { openCommandPalette } from "./support/command-palette";
+import { personStructuredData } from "./support/structured-data";
 
 const cvPath = "/cv";
 const pdfFilename = "lorenzo-germini-cv.pdf";
@@ -90,13 +91,7 @@ test.describe("canonical CV route", () => {
   }) => {
     await page.goto(cvPath);
 
-    const person = await page
-      .locator('script[type="application/ld+json"]')
-      .evaluateAll((scripts) =>
-        scripts
-          .map((script) => JSON.parse(script.textContent ?? "{}"))
-          .find((data) => data["@type"] === "Person"),
-      );
+    const person = await personStructuredData(page);
 
     expect(person).toMatchObject({
       "@type": "Person",
@@ -106,8 +101,9 @@ test.describe("canonical CV route", () => {
         name: education.school,
       })),
     });
-    /* Spec §2.7: the occupation states the positioning label, not the
+    /* Spec §2.7: both title fields state the positioning label, not the
        employer's job title — which the work history below still carries. */
+    expect(person.jobTitle).toBe(RESUME_DATA.roleLabel);
     expect(person.hasOccupation).toMatchObject({
       "@type": "Occupation",
       name: RESUME_DATA.roleLabel,
