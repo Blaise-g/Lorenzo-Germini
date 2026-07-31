@@ -193,6 +193,23 @@ test.describe("the one filled control", () => {
       expect(contrast(submit.color, submit.background)).toBeGreaterThanOrEqual(
         4.5,
       );
+
+      /* Decision 3's locked hover: the fill mixes toward ink (darkens in
+         light, lightens in dark) while the label stays unchanged — never an
+         opacity fade of the whole control. */
+      const button = submitButton(page);
+      await button.hover();
+      const hovered = await button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          color: style.color,
+          background: style.backgroundColor,
+          opacity: style.opacity,
+        };
+      });
+      expect(hovered.color).toBe(submit.color);
+      expect(hovered.background).not.toBe(submit.background);
+      expect(hovered.opacity).toBe("1");
     });
   }
 });
@@ -267,12 +284,14 @@ test.describe("Substack link budget (decision 6, locked)", () => {
       await page.goto(route);
       await removeDevOverlay(page);
 
-      /* The budget counts the three promotional surfaces — subscribe,
-         archive, feed — not the essays' own canonical links (`/p/<slug>`),
-         which scale with the index by construction. */
+      /* Decision 6 names the three budgeted surfaces: the subscribe module
+         (a form, not an anchor), the archive link, and the footer subscribe
+         link. The essays' canonical links (`/p/<slug>`) scale with the index
+         by construction, and the RSS link is a separate §2.5 semantics item
+         — neither is in the budget. */
       const count = await page
         .locator(
-          'a[href*="substack.com/subscribe"], a[href*="substack.com/archive"], a[href*="substack.com/feed"]',
+          'a[href*="substack.com/subscribe"], a[href*="substack.com/archive"], form[action*="substack.com/subscribe"]',
         )
         .count();
       expect(count).toBeLessThanOrEqual(2);

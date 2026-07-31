@@ -147,10 +147,13 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
             />
             {/* Decision 3 (locked): the one filled control in the system —
                 solid accent ground, 12px mono uppercase, ≥44px tall. The
-                label inverts with the mode via the accent-foreground token. */}
+                label inverts with the mode via the accent-foreground token;
+                hover is the primary-control mix (darkens in light, lightens
+                in dark, label unchanged) and the ring sits at 2px offset so
+                it reads against the fill. */}
             <button
               type="submit"
-              className={`${meta} bg-accent text-accent-foreground focus-visible:outline-accent min-h-11 shrink-0 self-start rounded-sm px-5 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4`}
+              className={`${meta} primary-control bg-accent text-accent-foreground focus-visible:outline-accent min-h-11 shrink-0 self-start rounded-sm px-5 focus-visible:outline-2 focus-visible:outline-offset-2`}
             >
               {c.button}
             </button>

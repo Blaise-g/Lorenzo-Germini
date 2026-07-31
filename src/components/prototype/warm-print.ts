@@ -5,6 +5,8 @@
 // Delete with the rest of src/components/prototype/ only when the Phase 2 §2.6
 // homepage swap merges.
 
+import { RESUME_DATA } from "@/data/resume-data";
+
 export const t = {
   page: "bg-ground text-ink",
   meta: "font-mono text-xs uppercase tracking-[0.12em]",
@@ -21,5 +23,4 @@ export const t = {
 
 /* Derived from the resume data so the prototype cannot drift from the shipped
    publication URL. */
-import { RESUME_DATA } from "@/data/resume-data";
 export const SUBSTACK_BASE = RESUME_DATA.newsletter.url;
