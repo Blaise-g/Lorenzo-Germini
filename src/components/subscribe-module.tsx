@@ -1,25 +1,21 @@
 "use client";
 
-// PROTOTYPE — the subscribe module (#10 decision 5), as pixels (#13).
+// The subscribe handoff (issue #25, spec §2.5). A GET form whose action IS the
+// Substack subscribe page, so the browser builds `?email=<urlencoded>` itself
+// and Substack prefills its own form. No third-party script, no cookies, no
+// blocked endpoint — and it works with JS off, which is why the action/method
+// are real rather than a window.location.assign.
 //
-// Mechanics: a GET form whose action IS the Substack subscribe page, so the
-// browser builds `?email=<urlencoded>` itself and Substack prefills its own
-// form. No third-party script, no cookies, no blocked endpoint — and it still
-// works with JS off, which is why the action/method are real rather than a
-// window.location.assign.
+// Validation is progressively enhanced: the markup ships `required` +
+// `type="email"` so a JS-less browser still blocks empty and malformed
+// submits natively; once hydrated, an effect sets `novalidate` and the submit
+// handler takes over with the locked error copy and wired alert semantics.
 //
-// #10's constraints, all load-bearing here:
-//   - client leaf only
-//   - it CANNOT confirm the signup → copy promises a handoff, never success
-//   - a real <label>, not a placeholder alone
-//   - invalid + empty states
-//   - ~30–40% text-expansion budget for IT copy (render with ?it=on to check)
-//
-// Delete with the rest of src/components/prototype/ only when the Phase 2 §2.6
-// homepage swap merges.
+// This surface cannot confirm a signup — the copy promises a handoff, never
+// success, and there is deliberately no disabled or spinner state.
 
-import { useId, useState } from "react";
-import { SUBSTACK_BASE, t } from "./warm-print";
+import { useEffect, useId, useRef, useState } from "react";
+import { RESUME_DATA } from "@/data/resume-data";
 
 type Copy = {
   heading: string;
@@ -45,8 +41,8 @@ const EN: Copy = {
   errorInvalid: "That doesn’t look like an email address.",
 };
 
-/* Italian, for the text-expansion budget. Measured on the rendered page rather
-   than estimated: see the notes for the per-string ratios. */
+/* Italian, for the ~30–40% text-expansion budget. Measured on the rendered
+   page rather than estimated. */
 const IT: Copy = {
   heading: "Ricevi i saggi via email",
   standfirst:
@@ -64,34 +60,45 @@ const IT: Copy = {
    Substack's own confirmation email, so this only catches obvious typos. */
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const meta = "font-mono text-xs uppercase tracking-[0.12em]";
+
 export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const c = lang === "it" ? IT : EN;
   const id = useId();
   const inputId = `${id}-email`;
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
+  const formRef = useRef<HTMLFormElement>(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  /* Without JS the browser's own required/email validation guards the submit;
+     with it, the handler below owns the locked error copy instead of the
+     browser bubbles. Set as an attribute post-hydration so the server markup
+     stays the no-JS-safe variant. */
+  useEffect(() => {
+    formRef.current?.setAttribute("novalidate", "");
+  }, []);
 
   return (
     <section
       aria-labelledby={`${id}-heading`}
-      className={`${t.projectRule} border-ink/70 mt-20`}
+      className="border-ink/70 mt-20 border-t-2 pt-4"
     >
       <div className="max-w-[34rem]">
         <h2 id={`${id}-heading`} className="font-display text-2xl leading-snug">
           {c.heading}
         </h2>
-        <p className={`mt-3 text-base leading-relaxed ${t.body}`}>
+        <p className="text-body mt-3 text-base leading-relaxed">
           {c.standfirst}
         </p>
 
         <form
-          action={`${SUBSTACK_BASE}/subscribe`}
+          ref={formRef}
+          action={`${RESUME_DATA.newsletter.url}/subscribe`}
           method="get"
           target="_blank"
           rel="noopener noreferrer"
-          noValidate
           onSubmit={(e) => {
             const email = value.trim();
             if (!email) {
@@ -110,17 +117,18 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
           }}
           className="mt-7"
         >
-          <label htmlFor={inputId} className={`block ${t.meta} ${t.faint}`}>
+          <label htmlFor={inputId} className={`text-faint block ${meta}`}>
             {c.label}
           </label>
-          {/* #13: `flex flex-wrap` never wrapped — min-w-0 flex-1 let the
-              input shrink instead, to 133px at 375, truncating the placeholder
-              mid-word. Stacked below sm, side by side above it. */}
+          {/* flex-wrap cannot fire against min-w-0 flex-1: at 375 the field
+              shrank to 133px and truncated the placeholder mid-word. Stacked
+              below sm, side by side above it. */}
           <div className="mt-2 flex flex-col items-stretch gap-3 sm:flex-row sm:items-start">
             <input
               id={inputId}
               name="email"
               type="email"
+              required
               inputMode="email"
               autoComplete="email"
               value={value}
@@ -137,9 +145,12 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
                   : "border-border focus-visible:border-accent"
               }`}
             />
+            {/* Decision 3 (locked): the one filled control in the system —
+                solid accent ground, 12px mono uppercase, ≥44px tall. The
+                label inverts with the mode via the accent-foreground token. */}
             <button
               type="submit"
-              className={`${t.meta} shrink-0 self-start border-b-2 pt-2 pb-2 ${t.accent} ${t.accentBorder} focus-visible:outline-accent hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4`}
+              className={`${meta} bg-accent text-accent-foreground focus-visible:outline-accent min-h-11 shrink-0 self-start rounded-sm px-5 hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4`}
             >
               {c.button}
             </button>
@@ -157,7 +168,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
               genuinely does not know, and cannot. */}
           <p
             id={hintId}
-            className={`mt-3 text-[13px] leading-relaxed ${t.faint}`}
+            className="text-faint mt-3 text-[13px] leading-relaxed"
           >
             {c.handoff}
           </p>

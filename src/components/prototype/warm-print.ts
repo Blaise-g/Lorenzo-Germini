@@ -19,4 +19,7 @@ export const t = {
   projectRule: "border-t-2 border-current/70 pt-4",
 } as const;
 
-export const SUBSTACK_BASE = "https://lorenzogermini.substack.com";
+/* Derived from the resume data so the prototype cannot drift from the shipped
+   publication URL. */
+import { RESUME_DATA } from "@/data/resume-data";
+export const SUBSTACK_BASE = RESUME_DATA.newsletter.url;

@@ -63,8 +63,16 @@ test.describe("route-shared semantic shell", () => {
       "href",
       "/cv",
     );
-    await expect(footer.locator('a[href*="feed"]')).toHaveCount(0);
-    await expect(footer.locator('a[href*="subscribe"]')).toHaveCount(0);
+    /* Phase 2 footer links, live since the publication URL was confirmed
+       (#24 owner-input gate): destinations exist, so the links render. */
+    await expect(footer.locator('a[href*="feed"]')).toHaveAttribute(
+      "href",
+      "https://lorenzogermini.substack.com/feed",
+    );
+    await expect(footer.locator('a[href*="subscribe"]')).toHaveAttribute(
+      "href",
+      "https://lorenzogermini.substack.com/subscribe",
+    );
   });
 
   for (const route of ["/cv", "/writing", "/route-that-does-not-exist"]) {

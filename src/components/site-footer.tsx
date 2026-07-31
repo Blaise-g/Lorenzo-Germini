@@ -1,5 +1,6 @@
 import { RESUME_DATA } from "@/data/resume-data";
 import { FooterCvLink } from "@/components/footer-cv-link";
+import { FooterSubscribeLink } from "@/components/footer-subscribe-link";
 
 const footerLinkClass =
   "touch-target underline decoration-border underline-offset-4 hover:decoration-accent";
@@ -37,6 +38,10 @@ export function SiteFooter() {
                 </li>
               ) : null}
               <FooterCvLink className={footerLinkClass} />
+              <FooterSubscribeLink
+                className={footerLinkClass}
+                href={`${RESUME_DATA.newsletter.url}/subscribe`}
+              />
               {RESUME_DATA.contact.social.map((social) => (
                 <li key={social.name}>
                   <a
@@ -53,7 +58,13 @@ export function SiteFooter() {
           </nav>
 
           <p className="text-faint font-mono text-xs">
-            agents welcome →{" "}
+            <a
+              className={footerLinkClass}
+              href={`${RESUME_DATA.newsletter.url}/feed`}
+            >
+              RSS feed →
+            </a>{" "}
+            · agents welcome →{" "}
             <a className={footerLinkClass} href="/llms.txt">
               /llms.txt
             </a>
