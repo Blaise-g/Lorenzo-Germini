@@ -31,7 +31,7 @@ import {
   formatDate,
   readingMinutes,
 } from "./writing-feed";
-import { SubscribeModule } from "./subscribe-module";
+import { SubscribeModule } from "@/components/subscribe-module";
 
 export type WritingParams = {
   n: number;
@@ -211,7 +211,6 @@ async function EssayList({ params }: { params: WritingParams }) {
      renumbering #10 decision 4 existed to prevent — and the critique measured
      that no reader can decode the scheme anyway. Date + reading time carry the
      metadata row alone. This also removes the numbers from the homepage teaser. */
-  const showArchive = params.n >= 4;
   const [lead, ...rest] = items;
 
   return (
@@ -223,18 +222,6 @@ async function EssayList({ params }: { params: WritingParams }) {
             <Row key={item.link} item={item} params={params} index={i + 1} />
           ))}
         </div>
-      ) : null}
-      {showArchive ? (
-        <p className={`mt-12 ${t.meta}`}>
-          <a
-            href={`${SUBSTACK_BASE}/archive`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`border-b pb-1 ${t.accent} ${t.accentBorder} hover:opacity-70`}
-          >
-            Read all essays on Substack →
-          </a>
-        </p>
       ) : null}
     </div>
   );
@@ -321,6 +308,23 @@ export function WritingIndex({ params }: { params: WritingParams }) {
           {/* #10 decision 6: placement one of two — the full module at the end
               of the index, after the essays, where intent is highest. */}
           <SubscribeModule lang={params.lang} />
+
+          {/* Spec decision 6 (locked): the archive link sits BELOW the module,
+              not at the end of the list — the end-of-list placement took the
+              reader off-site before the conversion point. Rendered only at 4+
+              posts, with the count-aware transitions. */}
+          {params.n >= 4 ? (
+            <p className={`mt-10 ${t.meta}`}>
+              <a
+                href={`${SUBSTACK_BASE}/archive`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`border-b pb-1 ${t.accent} ${t.accentBorder} hover:opacity-70`}
+              >
+                Read all essays on Substack →
+              </a>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

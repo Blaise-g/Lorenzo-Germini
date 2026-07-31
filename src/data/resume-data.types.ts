@@ -7,6 +7,13 @@ export type ResumeData = {
    *  full sentence — is not. Kept separate so rewording the bio cannot silently
    *  change the role label. */
   roleLabel: string;
+  /** The Substack publication. Publication identity only (germinai), deliberately
+   *  separate from the person identity the single-identity invariant guards —
+   *  the name never feeds a byline, JSON-LD, or the LLM manifests. */
+  newsletter: {
+    name: string;
+    url: string;
+  };
   about: string;
   summary: string;
   avatarUrl: string;
