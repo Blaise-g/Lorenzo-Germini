@@ -8,9 +8,9 @@ export const RESUME_DATA: ResumeData = {
   locationLink: "https://www.google.com/maps/place/Torino",
   roleLabel: "AI Product Engineer",
   about:
-    "Full-Stack AI Engineer shipping production systems end-to-end across compliance, health, and education",
+    "AI Product Engineer shipping production systems end-to-end across compliance, health, and education",
   summary:
-    "Full-Stack AI Engineer with a generalist mindset, I operate at the intersection of technical execution, product thinking, and business strategy. My track record spans architecting multi-provider LLM infrastructure, agentic RAG systems, and full-stack AI product features — shipped end-to-end in fast-paced environments.\n\nFrom AI and intelligent systems in pharma manufacturing to AI R&D in digital health, founding a GenAI startup, and now building the AI engine behind a compliance platform — each step reinforced one belief: the best AI engineers connect technical depth to real user problems. Outside work, I'm into sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+    "AI Product Engineer with a generalist mindset, I operate at the intersection of technical execution, product thinking, and business strategy. My track record spans architecting multi-provider LLM infrastructure, agentic RAG systems, and full-stack AI product features — shipped end-to-end in fast-paced environments.\n\nFrom AI and intelligent systems in pharma manufacturing to AI R&D in digital health, founding a GenAI startup, and now building the AI engine behind a compliance platform — each step reinforced one belief: the best AI engineers connect technical depth to real user problems. Outside work, I'm into sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
   contact: {

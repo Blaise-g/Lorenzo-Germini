@@ -5,7 +5,7 @@ export function buildPersonStructuredData(url: string) {
     "@context": "https://schema.org",
     "@type": "Person",
     name: RESUME_DATA.name,
-    jobTitle: RESUME_DATA.work[0]?.title || "AI Engineer",
+    jobTitle: RESUME_DATA.roleLabel,
     description: RESUME_DATA.summary,
     url,
     image: RESUME_DATA.avatarUrl,
@@ -31,7 +31,7 @@ export function buildPersonStructuredData(url: string) {
     knowsLanguage: ["English", "Italian", "French"],
     hasOccupation: {
       "@type": "Occupation",
-      name: RESUME_DATA.work[0]?.title || "AI Engineer",
+      name: RESUME_DATA.roleLabel,
       occupationalCategory: "15-1299.00",
       occupationLocation: {
         "@type": "City",

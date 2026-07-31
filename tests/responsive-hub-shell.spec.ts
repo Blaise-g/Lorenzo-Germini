@@ -5,6 +5,7 @@ import { RESUME_DATA } from "@/data/resume-data";
 import { revealBackToTop } from "./support/back-to-top";
 import { commandMenuTrigger } from "./support/command-palette";
 import { removeDevOverlay } from "./support/dev-overlay";
+import { personStructuredData } from "./support/structured-data";
 
 const mobileAndTabletWidths = [375, 768, 1023] as const;
 const desktopWidths = [1024, 1440, 1728] as const;
@@ -252,8 +253,9 @@ test.describe("responsive hub shell", () => {
     });
   }
 
-  /* `roleLabel` is the masthead's own field: the bio keeps the surfaces it
-     already had, and the short label reaches none of them. */
+  /* `roleLabel` is the masthead's own field, and per spec §2.7 it is also what
+     the machine-readable identity claims — while the work history keeps the
+     employer's own job title. The two must not collapse into each other. */
   test("the masthead role comes from roleLabel, and the bio keeps its surfaces", async ({
     page,
   }) => {
@@ -267,14 +269,19 @@ test.describe("responsive hub shell", () => {
       `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
     );
 
-    const structuredData = await page
-      .locator('script[type="application/ld+json"]')
-      .evaluateAll((scripts) => scripts.map((script) => script.textContent));
-    expect(structuredData.length).toBeGreaterThan(0);
+    const person = await personStructuredData(page);
+
+    expect(person, "the homepage should emit Person JSON-LD").toBeTruthy();
+    expect(person.jobTitle).toBe(RESUME_DATA.roleLabel);
+    expect(person.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
+
+    /* The positioning label is not the employer's title, so deriving either one
+       from the other is the defect this guards. */
     expect(
-      structuredData.filter((json) => json?.includes(RESUME_DATA.roleLabel)),
-      "the JSON-LD should not consume the masthead label",
-    ).toEqual([]);
+      RESUME_DATA.work[0].title,
+      "the work history should keep the employer-accurate title",
+    ).not.toBe(RESUME_DATA.roleLabel);
+    expect(person.worksFor.name).toBe(RESUME_DATA.work[0].company);
   });
 
   test("the masthead rule does not move with the shell's horizontal padding", async ({

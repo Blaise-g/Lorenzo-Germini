@@ -18,7 +18,7 @@ test.describe("dev server identity", () => {
     ],
     [
       "a body that only resembles ours",
-      "# Lorenzo\n\n> Full-Stack AI Engineer.\n",
+      "# Lorenzo\n\n> AI Product Engineer.\n",
     ],
   ] as const) {
     test(`refuses ${description}`, () => {
@@ -27,7 +27,7 @@ test.describe("dev server identity", () => {
   }
 
   test("trusts this app", () => {
-    const body = `# ${identityMarker}\n\n> Full-Stack AI Engineer.\n`;
+    const body = `# ${identityMarker}\n\n> AI Product Engineer.\n`;
 
     expect(identityRefusal({ status: 200, body })).toBeNull();
   });
