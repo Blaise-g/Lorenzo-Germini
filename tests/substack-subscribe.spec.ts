@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 
 import { contrast } from "./support/color";
 import { removeDevOverlay } from "./support/dev-overlay";
@@ -13,9 +13,11 @@ import { setTheme, themes } from "./support/theme";
 
 const SUBSTACK = "https://lorenzogermini.substack.com";
 
-/* The module lives at the end of the dev /writing index. */
+/* The module lives at the end of the dev /writing index. `stream=off` skips
+   the prototype's simulated streaming delay — the module renders either way,
+   so no test here needs to sit through it. */
 async function gotoWriting(page: Page, query = "") {
-  await page.goto(`/writing${query}`);
+  await page.goto(`/writing${query ? `${query}&` : "?"}stream=off`);
   await removeDevOverlay(page);
 }
 
@@ -29,12 +31,10 @@ function submitButton(page: Page) {
 
 /* Serve any Substack navigation locally so the handoff can be asserted
    without depending on the live publication. */
-function stubSubstack(page: Page) {
-  return page
-    .context()
-    .route("**://lorenzogermini.substack.com/**", (route) =>
-      route.fulfill({ status: 200, contentType: "text/html", body: "ok" }),
-    );
+function stubSubstack(context: BrowserContext) {
+  return context.route("**://lorenzogermini.substack.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "text/html", body: "ok" }),
+  );
 }
 
 test.describe("subscribe module semantics", () => {
@@ -95,7 +95,7 @@ test.describe("subscribe module semantics", () => {
   test("the handoff opens Substack with plus and at-sign correctly encoded", async ({
     page,
   }) => {
-    await stubSubstack(page);
+    await stubSubstack(page.context());
     await gotoWriting(page);
     await expect(page.locator('form[action$="/subscribe"]')).toHaveAttribute(
       "novalidate",
@@ -115,9 +115,7 @@ test.describe("subscribe module semantics", () => {
 
   test("the GET handoff works without JavaScript", async ({ browser }) => {
     const context = await browser.newContext({ javaScriptEnabled: false });
-    await context.route("**://lorenzogermini.substack.com/**", (route) =>
-      route.fulfill({ status: 200, contentType: "text/html", body: "ok" }),
-    );
+    await stubSubstack(context);
     const page = await context.newPage();
     await page.goto("/writing");
 
@@ -327,7 +325,7 @@ test.describe("Substack link budget (decision 6, locked)", () => {
   test("the archive link renders below the subscribe module, only at 4+ posts", async ({
     page,
   }) => {
-    await gotoWriting(page, "?n=6&stream=off");
+    await gotoWriting(page, "?n=6");
 
     const archive = page.getByRole("link", {
       name: "Read all essays on Substack →",
@@ -341,7 +339,7 @@ test.describe("Substack link budget (decision 6, locked)", () => {
     if (!moduleBox || !archiveBox) throw new Error("surfaces not laid out");
     expect(archiveBox.y).toBeGreaterThan(moduleBox.y);
 
-    await gotoWriting(page, "?n=1&stream=off");
+    await gotoWriting(page, "?n=1");
     await expect(
       page.getByRole("link", { name: "Read all essays on Substack →" }),
     ).toHaveCount(0);

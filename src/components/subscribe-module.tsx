@@ -14,7 +14,7 @@
 // This surface cannot confirm a signup — the copy promises a handoff, never
 // success, and there is deliberately no disabled or spinner state.
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { RESUME_DATA } from "@/data/resume-data";
 
 type Copy = {
@@ -68,16 +68,16 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const inputId = `${id}-email`;
   const errorId = `${id}-error`;
   const hintId = `${id}-hint`;
-  const formRef = useRef<HTMLFormElement>(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   /* Without JS the browser's own required/email validation guards the submit;
      with it, the handler below owns the locked error copy instead of the
-     browser bubbles. Set as an attribute post-hydration so the server markup
-     stays the no-JS-safe variant. */
+     browser bubbles. Flipped post-hydration so the server markup stays the
+     no-JS-safe variant. */
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
-    formRef.current?.setAttribute("novalidate", "");
+    setHydrated(true);
   }, []);
 
   return (
@@ -94,7 +94,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
         </p>
 
         <form
-          ref={formRef}
+          noValidate={hydrated}
           action={`${RESUME_DATA.newsletter.url}/subscribe`}
           method="get"
           target="_blank"
