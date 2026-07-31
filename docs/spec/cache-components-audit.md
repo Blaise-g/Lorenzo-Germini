@@ -46,21 +46,23 @@ Verified, not assumed.
 
 ## Fallback geometry
 
-Both boundaries fall back to the render their own default resolves to — `CurrentHome` on `/`, the
-all-defaults `WritingIndex` on `/writing` — so the URL without a query string settles into the
-geometry it started with. Measured, not asserted: `tests/cache-components.spec.ts` holds `/`,
-`/cv`, and `/writing` to cumulative layout shift ≤ 0.01. A null fallback on the same boundary
-measures 0.206, so the budget is doing real work rather than passing vacuously.
+**The homepage boundary is gone as of #26.** The `?variant=` knob went with the direction
+prototypes, taking the route's only runtime read with it, so `/` now prerenders whole and has no
+fallback to hold. What remains is `/writing`, whose boundary falls back to the all-defaults
+`WritingIndex`, so the URL without a query string settles into the geometry it started with.
+Measured, not asserted: `tests/cache-components.spec.ts` holds `/`, `/cv`, and `/writing` to
+cumulative layout shift ≤ 0.01. A null fallback on that boundary measures 0.206, so the budget is
+doing real work rather than passing vacuously.
 
-A `?variant=` or `?n=` URL does swap its fallback for differently shaped content. That is the one
-intended shift — a knob is a request for different content — and it is dev-only either way.
+A `?n=` URL does swap its fallback for differently shaped content. That is the one intended shift
+— a knob is a request for different content — and it is dev-only either way.
 
 ## Verification
 
 - `bun run build` — passes, including `scripts/generate-cv-pdf.mjs`; route table as above.
 - `next start` — `/`, `/cv`, `/sitemap.xml`, `/manifest.webmanifest`, both OG images and the
   generated PDF serve; `/resume` 301s to `/cv`; `/writing` 404s.
-- Dev server log — zero `blocking-route` errors across every route and every `?variant=`/`?n=` URL.
+- Dev server log — zero `blocking-route` errors across every route and every `?n=` URL.
 - `npx tsc --noEmit`, `bun run lint`, and the full Playwright suite pass.
 
 ## Not covered

@@ -4,7 +4,7 @@ import { WARM_PRINT } from "@/lib/warm-print";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${RESUME_DATA.name} - AI Engineer Portfolio`,
+    name: `${RESUME_DATA.name} — ${RESUME_DATA.roleLabel}`,
     short_name: RESUME_DATA.name,
     description: RESUME_DATA.summary,
     start_url: "/",

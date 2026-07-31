@@ -318,14 +318,30 @@ test.describe("print CV baseline", () => {
             }
           }
 
-          for (const work of RESUME_DATA.work) {
-            const descriptions =
-              typeof work.description === "string"
-                ? [work.description]
-                : (work.description ?? []);
-            expectFragmentsOnOnePage(pages, `${work.company} role block`, [
-              work.company,
-              ...descriptions,
+          /* Each route prints its own proof: the CV prints the bullets, and
+             since #26 the homepage prints one hand-written line per role and
+             folds the pre-2023 roles into a single earlier line. Asserting the
+             CV's bullets against the homepage would demand text the homepage
+             deliberately no longer carries. */
+          const roleBlocks =
+            route.label === "homepage"
+              ? RESUME_DATA.work.flatMap((work) =>
+                  work.homepageProof
+                    ? [{ company: work.company, proof: [work.homepageProof] }]
+                    : [],
+                )
+              : RESUME_DATA.work.map((work) => ({
+                  company: work.company,
+                  proof:
+                    typeof work.description === "string"
+                      ? [work.description]
+                      : (work.description ?? []),
+                }));
+
+          for (const { company, proof } of roleBlocks) {
+            expectFragmentsOnOnePage(pages, `${company} role block`, [
+              company,
+              ...proof,
             ]);
           }
 

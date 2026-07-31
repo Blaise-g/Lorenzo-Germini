@@ -343,16 +343,16 @@ test.describe("Warm Print runtime contract", () => {
 
       return {
         body: getComputedStyle(document.body).fontFamily,
+        /* The proof line, not the row's date column beside it — that one is
+           metadata and is asserted as mono below. */
         bodyCopy: getComputedStyle(
-          sectionNamed("Work Experience")!.querySelector(
-            ".print-keep-together p",
+          sectionNamed("Work")!.querySelector(
+            ".print-keep-together p.text-body",
           )!,
         ).fontFamily,
         hero: getComputedStyle(document.querySelector("h1")!).fontFamily,
         metadata: getComputedStyle(
-          sectionNamed("Work Experience")!.querySelector(
-            ".text-faint",
-          ) as HTMLElement,
+          sectionNamed("Work")!.querySelector(".text-faint") as HTMLElement,
         ).fontFamily,
         project: getComputedStyle(
           sectionNamed("Projects")!.querySelector("h3")!,
@@ -360,9 +360,8 @@ test.describe("Warm Print runtime contract", () => {
         projectDescription: getComputedStyle(
           sectionNamed("Projects")!.querySelector("p")!,
         ).fontFamily,
-        role: getComputedStyle(
-          sectionNamed("Work Experience")!.querySelector("h3")!,
-        ).fontFamily,
+        role: getComputedStyle(sectionNamed("Work")!.querySelector("h3")!)
+          .fontFamily,
       };
     });
 

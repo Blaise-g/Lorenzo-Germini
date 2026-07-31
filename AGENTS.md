@@ -36,7 +36,9 @@ reads it too; changing the default means editing both `package.json` and
 **Copy is centralized, and identity surfaces drift.** Content lives in data modules, not
 inline JSX, so it stays cheap to iterate. Any change to a role, title, or bio also has to
 land in `public/llms.txt`, `public/llms-full.txt`, the JSON-LD, and route metadata —
-nothing generates them from the data.
+nothing generates them from the data. A change to `work`, `projects`, `about` or `summary`
+also needs `bun run generate:cv` for the checked-in PDF, with the dev server stopped first:
+it boots its own Next instance and hits the `.next/dev/lock` conflict otherwise.
 
 **Measure in a browser before recording a design decision.** Comments and notes about the
 current visual state have been wrong here.

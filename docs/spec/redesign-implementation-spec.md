@@ -425,6 +425,13 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
 
 ## 2.6 Homepage swap
 
+**Landed (#26).** The constraints below are the record of what bound it; what shipped differs from
+this section in three places worth naming. `homepageProof` is a per-role field on `work[]` rather
+than a separate map, and the roles without one (Burgeon Labs, Roche) fold into a single earlier
+line. The rest of the homepage prose lives in `RESUME_DATA.homepage`. And the writing teaser links
+at the publication rather than the post — the germinai feed was still empty on the day it landed,
+so the date and reading-time line render only once those values exist.
+
 **Blocked on:** §2.3 (`/cv` must exist first) and the copy rewrite.
 
 - Composition and shell per §2.2.
@@ -461,7 +468,7 @@ These drift the moment the copy lands, and they drift silently. Do them in the s
 
 - ~~`RESUME_DATA.about` still says "Full-Stack AI Engineer" while the hero says "AI Product Engineer."~~ **Done:** `about` and `summary` now carry the label, and so do both manifests and the generated CV PDF. The retired string survives nowhere in `src/` or `public/`.
 - ~~`hasOccupation.name` is hardcoded; `jobTitle` reads `RESUME_DATA.work[0]?.title`, the employer's job title, not the positioning label.~~ **Done:** both now read `RESUME_DATA.roleLabel` — the dedicated field this bullet called for, added in #44 — and the work history keeps the employer-accurate title. The JSON-LD is built in `src/lib/person-structured-data.ts`, not `src/components/structured-data.tsx` as this bullet and `CONTEXT.md` used to say. Guarded by `tests/content-correctness.spec.ts` ("identity lockstep") and the JSON-LD assertions in `responsive-hub-shell` and `cv-route`.
-- **Still open — `llms-full.txt` paragraph 2 drifted before this work and is unrelated to the label.** It says "From data science in pharma manufacturing"; `RESUME_DATA.summary` says "From AI and intelligent systems in pharma manufacturing". The lockstep test asserts the manifests contain `RESUME_DATA.about`, not `.summary`, so nothing catches this. Fold it into #52's rewrite rather than patching the manifest to match prose that is about to change.
+- ~~**Still open — `llms-full.txt` paragraph 2 drifted before this work and is unrelated to the label.** The lockstep test asserts the manifests contain `RESUME_DATA.about`, not `.summary`, so nothing catches this.~~ **Done in #26:** the drifted paragraph went with the rewrite, and the lockstep test now asserts every paragraph of `.summary` in both manifests, so the silent-drift edge is closed rather than patched.
 - `llms.txt:7` calls the homepage "Full interactive resume and portfolio" — false once `/cv` exists.
 - `llms.txt` / `llms-full.txt` structure adopts #7's key/value manifest shape (from Variant C — the _structure_, not the visual design).
 - OG image and metadata title/description.
@@ -473,7 +480,7 @@ These drift the moment the copy lands, and they drift silently. Do them in the s
 
 ## Prototype teardown
 
-Delete on merge of §2.6: `src/components/prototype/` (all of it) and the dev-only `src/app/writing/page.tsx` prototype. Keep `docs/prototypes/*/NOTES.md` and the screenshots — they are the evidence base for this spec.
+**Half done, deliberately.** §2.6 deleted the homepage direction prototypes — `variant-a|b|c|d.tsx`, `prototype-switcher.tsx`, `writing-data.ts` and the `?variant=` block in `src/app/page.tsx`. What stays is the `/writing` index prototype (`writing-index.tsx`, `writing-feed.ts`, `warm-print.ts`, and the dev-only `src/app/writing/page.tsx`): it is the reference implementation #24 builds the real route from, and #25's subscribe handoff is tested against it. Retire the rest with #24, not before. `docs/prototypes/*/NOTES.md` and the screenshots stay either way — they are the evidence base for this spec.
 
 ---
 

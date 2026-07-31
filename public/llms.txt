@@ -2,9 +2,18 @@
 
 > AI Product Engineer shipping production systems end-to-end across compliance, health, and education. Based in Turin, Italy.
 
+## Profile
+
+I'm an AI product engineer: I take LLM systems from idea to production and stay responsible for the whole path — the infrastructure, the product decisions, and whether the thing actually helps anyone.
+
+Right now that means building the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications: multi-provider LLM infrastructure, agentic RAG, and the evals that keep both honest. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line: technical depth only matters when it connects to a real user problem.
+
+Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.
+
 ## Professional profile
 
-- [Homepage](https://lorenzo-germini.vercel.app/): Professional hub and portfolio
+- [Homepage](https://lorenzo-germini.vercel.app/): Professional hub, positioning, and the writing
+- [germinai](https://lorenzogermini.substack.com): Field notes on building with AI
 - [CV](https://lorenzo-germini.vercel.app/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
 - [CV PDF](https://lorenzo-germini.vercel.app/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae
 
@@ -20,7 +29,7 @@ Generative AI, LLMs, RAG, Full-Stack Development, Python
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Architecting multi-provider LLM infrastructure, agentic RAG systems, and AI evaluation frameworks.
+- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG over ISO documentation, and evaluation frameworks that keep both honest in production.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
@@ -34,5 +43,5 @@ Generative AI, LLMs, RAG, Full-Stack Development, Python
 
 ## Projects
 
-- L'Oracolo della Ghigliottina: AI game companion for Italy's most-watched quiz show, having hit 100% accuracy so far while handling rate-limit abuse and optimizing usage
-- Biomedical Paper Summarizer: Generative AI tool for extracting key takeaways from biomedical papers
+- L'Oracolo della Ghigliottina: AI game companion for the final round of Italy's most-watched quiz show — 100% accuracy so far, with rate-limit handling
+- Biomedical Paper Summarizer: MSc thesis work — an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR

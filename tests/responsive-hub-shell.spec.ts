@@ -174,16 +174,11 @@ test.describe("responsive hub shell", () => {
     expect(bodyValues).not.toContain(mastheadValue);
   });
 
-  /* Inverted below 1024: the masthead and the mobile band both state the name
-     there — measured at 375, 768 and 1023, the band's heading sits 38px below
-     the masthead name's box — so the count is legitimately 2 today and this test
-     is green because the expectation fails. #26 removes the band's duplicate;
-     the day it lands this goes red and whoever lands it flips it to a plain
-     assertion. */
+  /* Plain at every width since #26 removed the band's second `<h1>`: the
+     masthead is now the only surface that states the name, and below 1024 the
+     band states the role and location instead. */
   for (const width of allWidths) {
     test(`${width}px states the name exactly once`, async ({ page }) => {
-      test.fail(width < 1024, "duplicate name surface, removed by #26");
-
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
 
@@ -191,24 +186,15 @@ test.describe("responsive hub shell", () => {
     });
   }
 
-  /* The inverted assertion only means something if the count it reads moves, so
-     both directions are forced here on a live page: hiding the band's name
-     leaves 1, which is what turns the inverted test red once #26 lands, and
-     hiding every name surface leaves 0, so a page that stated the name nowhere
-     would fail the assertion rather than pass it vacuously. */
-  test("the visible name count moves in both directions when forced", async ({
-    page,
-  }) => {
+  /* The assertion above only means something if the count it reads can move, so
+     it is forced here on a live page: hiding every name surface leaves 0, so a
+     page that stated the name nowhere would fail the invariant rather than pass
+     it vacuously. Only one direction is left to force — with the band's
+     duplicate gone (#26) there is no second surface to hide. */
+  test("the visible name count moves when forced", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");
 
-    expect(await visibleCount(page, "[data-identity-name]")).toBe(2);
-
-    await page.addStyleTag({
-      content: `[data-testid="mobile-identity"] [data-identity-name] {
-        display: none !important;
-      }`,
-    });
     expect(await visibleCount(page, "[data-identity-name]")).toBe(1);
 
     await page.addStyleTag({
@@ -312,8 +298,10 @@ test.describe("responsive hub shell", () => {
     await page.goto("/");
 
     const railNav = page.getByRole("navigation", { name: "Page sections" });
-    const aboutLink = railNav.getByRole("link", { name: "About" });
-    await expect(aboutLink).toHaveAttribute("aria-current", "true");
+    /* Writing is the first destination since #26 made it the page's single
+       primary CTA, so it is what a page at scroll position 0 marks current. */
+    const writingLink = railNav.getByRole("link", { name: "Writing" });
+    await expect(writingLink).toHaveAttribute("aria-current", "true");
 
     await page.locator("#work").scrollIntoViewIfNeeded();
     await expect
