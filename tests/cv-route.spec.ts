@@ -106,9 +106,14 @@ test.describe("canonical CV route", () => {
         name: education.school,
       })),
     });
+    /* Spec §2.7: the occupation states the positioning label, not the
+       employer's job title — which the work history below still carries. */
     expect(person.hasOccupation).toMatchObject({
       "@type": "Occupation",
-      name: RESUME_DATA.work[0].title,
+      name: RESUME_DATA.roleLabel,
+    });
+    expect(person.worksFor).toMatchObject({
+      name: RESUME_DATA.work[0].company,
     });
 
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(

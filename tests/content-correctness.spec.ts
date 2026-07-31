@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { RESUME_DATA } from "@/data/resume-data";
+
 import { contrast } from "./support/color";
 import { openCommandPalette } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
@@ -308,6 +310,85 @@ test.describe("faint metadata legibility", () => {
       ).toBeGreaterThanOrEqual(12);
     });
   }
+});
+
+/* #6 point 1 names the identity label's coupled surfaces — JSON-LD, both llms
+   manifests, OG/metadata — and requires they move in lockstep. Nothing generates
+   the manifests from the data module, so every one is a hand edit. #44 is the
+   prior defect: it landed the label in the masthead alone and left five surfaces
+   claiming the retired one. */
+test.describe("identity lockstep", () => {
+  const retiredRoleLabel = "Full-Stack AI Engineer";
+  const manifests = ["/llms.txt", "/llms-full.txt"] as const;
+
+  /* Agreement with the data module, not a literal: the wording is #52's to
+     rewrite, and this should still hold afterwards. */
+  for (const manifest of manifests) {
+    test(`${manifest} publishes the same bio as the data module`, async ({
+      request,
+    }) => {
+      const response = await request.get(manifest);
+      expect(response.status()).toBe(200);
+
+      expect(
+        await response.text(),
+        `${manifest} is hand-maintained and should not fall behind RESUME_DATA.about`,
+      ).toContain(RESUME_DATA.about);
+    });
+  }
+
+  test("no identity surface still claims the retired role label", async ({
+    page,
+    request,
+  }) => {
+    await page.goto("/");
+
+    const surfaces: { name: string; text: string }[] = [
+      { name: "document title", text: await page.title() },
+      {
+        name: "meta description",
+        text:
+          (await page
+            .locator('meta[name="description"]')
+            .getAttribute("content")) ?? "",
+      },
+      {
+        name: "og:title",
+        text:
+          (await page
+            .locator('meta[property="og:title"]')
+            .getAttribute("content")) ?? "",
+      },
+      {
+        name: "JSON-LD",
+        text: (
+          await page
+            .locator('script[type="application/ld+json"]')
+            .allTextContents()
+        ).join("\n"),
+      },
+      { name: "rendered page", text: await page.locator("body").innerText() },
+    ];
+
+    for (const manifest of manifests) {
+      surfaces.push({
+        name: manifest,
+        text: await (await request.get(manifest)).text(),
+      });
+    }
+
+    expect(
+      surfaces.filter(({ text }) => text.includes(retiredRoleLabel)),
+      `no surface should still say "${retiredRoleLabel}"`,
+    ).toEqual([]);
+
+    /* Guards the assertion above from passing because a surface came back
+       empty and silently matched nothing. */
+    expect(
+      surfaces.filter(({ text }) => text.trim() === ""),
+      "every identity surface should have content to audit",
+    ).toEqual([]);
+  });
 });
 
 test.describe("freshness metadata", () => {

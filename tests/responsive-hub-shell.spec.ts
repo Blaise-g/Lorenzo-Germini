@@ -252,8 +252,9 @@ test.describe("responsive hub shell", () => {
     });
   }
 
-  /* `roleLabel` is the masthead's own field: the bio keeps the surfaces it
-     already had, and the short label reaches none of them. */
+  /* `roleLabel` is the masthead's own field, and per spec §2.7 it is also what
+     the machine-readable identity claims — while the work history keeps the
+     employer's own job title. The two must not collapse into each other. */
   test("the masthead role comes from roleLabel, and the bio keeps its surfaces", async ({
     page,
   }) => {
@@ -267,14 +268,25 @@ test.describe("responsive hub shell", () => {
       `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
     );
 
-    const structuredData = await page
+    const person = await page
       .locator('script[type="application/ld+json"]')
-      .evaluateAll((scripts) => scripts.map((script) => script.textContent));
-    expect(structuredData.length).toBeGreaterThan(0);
+      .evaluateAll((scripts) =>
+        scripts
+          .map((script) => JSON.parse(script.textContent ?? "{}"))
+          .find((data) => data["@type"] === "ProfilePage"),
+      );
+
+    expect(person, "the homepage should emit ProfilePage JSON-LD").toBeTruthy();
+    expect(person.mainEntity.jobTitle).toBe(RESUME_DATA.roleLabel);
+    expect(person.mainEntity.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
+
+    /* The positioning label is not the employer's title, so deriving either one
+       from the other is the defect this guards. */
     expect(
-      structuredData.filter((json) => json?.includes(RESUME_DATA.roleLabel)),
-      "the JSON-LD should not consume the masthead label",
-    ).toEqual([]);
+      RESUME_DATA.work[0].title,
+      "the work history should keep the employer-accurate title",
+    ).not.toBe(RESUME_DATA.roleLabel);
+    expect(person.mainEntity.worksFor.name).toBe(RESUME_DATA.work[0].company);
   });
 
   test("the masthead rule does not move with the shell's horizontal padding", async ({

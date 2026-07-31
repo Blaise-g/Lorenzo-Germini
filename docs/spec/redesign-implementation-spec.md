@@ -459,8 +459,8 @@ Text on the page runs 6.6–13:1, so a white cover out-shouts every word around 
 
 These drift the moment the copy lands, and they drift silently. Do them in the same commit as §2.6.
 
-- `RESUME_DATA.about` still says "Full-Stack AI Engineer" while the hero says "AI Product Engineer."
-- `src/components/structured-data.tsx`: `hasOccupation.name` is the hardcoded string `"AI Engineer"`. `jobTitle` is _not_ hardcoded — it reads `RESUME_DATA.work[0]?.title`, which is the employer's job title ("AI Engineer"), not the positioning label. Both need to say "AI Product Engineer" without overwriting the employer-accurate title in the work history, so the label needs its own field rather than being derived from `work[0]`. (The map recorded both as hardcoded; only the first is.)
+- ~~`RESUME_DATA.about` still says "Full-Stack AI Engineer" while the hero says "AI Product Engineer."~~ **Done:** `about`, `summary`, and both manifests now say "AI Product Engineer". The label is the retired string nowhere in `src/`, `public/`, or the generated CV PDF.
+- ~~`src/components/structured-data.tsx`: `hasOccupation.name` … `jobTitle` reads `RESUME_DATA.work[0]?.title`, the employer's job title, not the positioning label.~~ **Done:** both now read `RESUME_DATA.roleLabel` (the dedicated field this bullet called for, added in #44), and the work history keeps the employer-accurate title. Guarded by `tests/content-correctness.spec.ts` ("identity lockstep") plus the JSON-LD assertions in `responsive-hub-shell` and `cv-route`.
 - `llms.txt:7` calls the homepage "Full interactive resume and portfolio" — false once `/cv` exists.
 - `llms.txt` / `llms-full.txt` structure adopts #7's key/value manifest shape (from Variant C — the _structure_, not the visual design).
 - OG image and metadata title/description.
