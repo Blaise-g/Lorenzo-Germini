@@ -12,7 +12,7 @@ FORM: Masthead rule, band-or-rail identity, then five sections at 42rem.
 import React from "react";
 import { Metadata } from "next";
 import { Section } from "@/components/ui/section";
-import { GlobeIcon, MailIcon, PhoneIcon } from "lucide-react";
+import { MailIcon, PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RESUME_DATA } from "@/data/resume-data";
 import { ProjectCard } from "@/components/project-card";
@@ -282,16 +282,6 @@ function ProfileActions() {
           </a>
         </Button>
       ) : null}
-      <Button className="print:size-8" variant="outline" size="icon" asChild>
-        <a
-          href={RESUME_DATA.locationLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={`Location: ${RESUME_DATA.location}`}
-        >
-          <GlobeIcon className="size-4 print:size-5" />
-        </a>
-      </Button>
       {RESUME_DATA.contact.social.map((social) => (
         <Button
           key={social.name}

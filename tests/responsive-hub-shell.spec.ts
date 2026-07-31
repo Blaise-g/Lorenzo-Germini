@@ -331,6 +331,64 @@ test.describe("responsive hub shell", () => {
       .toEqual({ borderColorIsAccent: true, hasBorder: true });
   });
 
+  /* Systems is the last destination and its section is short (87px measured at
+     1440), so at maximum scroll its top never reaches the 28%-of-viewport
+     activation line — the item was unreachable, not merely hard to hit, even by
+     clicking it. */
+  test("the rail marks the last destination once the page is scrolled to the bottom", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto("/");
+
+    const railNav = page.getByRole("navigation", { name: "Page sections" });
+    await railNav.getByRole("link", { name: "Systems" }).click();
+
+    /* Waits on the observable fact — scrolling has stopped — rather than
+       re-implementing the production bottom-of-document predicate, which would
+       weaken this to "when the browser satisfies the expression the code
+       satisfies, the code fires". */
+    await page.waitForFunction(
+      () => {
+        const w = window as Window & { __lastScrollY?: number };
+        const settled = w.__lastScrollY === window.scrollY;
+        w.__lastScrollY = window.scrollY;
+        return settled && window.scrollY > 0;
+      },
+      undefined,
+      { timeout: 5_000, polling: 100 },
+    );
+
+    /* The 0.28 ratio is written out rather than imported from `sticky-rail`: a
+       test that reads the production constant cannot notice the constant
+       changing. Numbers, not a boolean, so a failure prints the distance. */
+    const geometry = await page.locator("#systems").evaluate((section) => ({
+      scrollY: Math.round(window.scrollY),
+      maxScroll: Math.round(
+        document.documentElement.scrollHeight - window.innerHeight,
+      ),
+      systemsTop: Math.round(section.getBoundingClientRect().top),
+      activationLine: Math.round(window.innerHeight * 0.28),
+    }));
+
+    expect(
+      geometry.scrollY,
+      "the Systems anchor must leave the page at maximum scroll",
+    ).toBeGreaterThanOrEqual(geometry.maxScroll - 4);
+
+    /* Guards the guard: if the section ever grows tall enough to clear the
+       activation line on its own, this test stops reproducing the defect and
+       should be retired rather than left passing for the wrong reason. */
+    expect(
+      geometry.systemsTop,
+      "#systems now clears the activation line unaided — retire this test rather than leave it green for the wrong reason",
+    ).toBeGreaterThan(geometry.activationLine);
+
+    await expect
+      .poll(() => railNav.locator('[aria-current="true"]').textContent())
+      .toBe("Systems");
+  });
+
   test("bottom fixed controls share one 56px cluster", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await page.goto("/");

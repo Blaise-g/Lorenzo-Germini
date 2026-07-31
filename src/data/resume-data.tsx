@@ -5,7 +5,6 @@ export const RESUME_DATA: ResumeData = {
   name: "Lorenzo Germini",
   initials: "LG",
   location: "Turin, Italy, CET",
-  locationLink: "https://www.google.com/maps/place/Torino",
   roleLabel: "AI Product Engineer",
   newsletter: {
     name: "germinai",

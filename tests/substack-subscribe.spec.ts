@@ -50,9 +50,10 @@ test.describe("subscribe module semantics", () => {
     await expect(input).toBeEnabled();
     await expect(input).toBeEditable();
 
-    /* Progressive enhancement: the server markup must NOT carry novalidate
-       (that is what keeps the no-JS path natively validated); hydration adds
-       it so the locked copy replaces the browser bubbles. */
+    /* Progressive enhancement, hydrated half: once JS runs, `novalidate` is on
+       so the locked copy replaces the browser bubbles. The server half — that
+       the markup ships WITHOUT it, keeping the no-JS path natively validated —
+       is asserted in "the GET handoff works without JavaScript" below. */
     const form = page.locator('form[action$="/subscribe"]');
     await expect(form).toHaveAttribute("method", "get");
     await expect(form).toHaveAttribute("novalidate", "");
@@ -118,6 +119,15 @@ test.describe("subscribe module semantics", () => {
     await stubSubstack(context);
     const page = await context.newPage();
     await page.goto("/writing");
+
+    /* The other half of the progressive-enhancement contract, and the half the
+       hydrated assertions above cannot see: the SERVER markup must not carry
+       `novalidate`, or the native validation below has nothing to do. Asserted
+       directly so a change to how `hydrated` is derived cannot quietly ship a
+       server-rendered `novalidate`. */
+    await expect(
+      page.locator('form[action$="/subscribe"]'),
+    ).not.toHaveAttribute("novalidate", "");
 
     /* Native required validation must block an empty submit: no new page. */
     await submitButton(page).click();
