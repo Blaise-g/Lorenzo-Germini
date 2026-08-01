@@ -4,6 +4,18 @@
    named colours) through `normalizeColor` in the page first, otherwise the
    channel parse is silently wrong. */
 
+/** `#rrggbb` to channels, for authored token values that never reach a page. */
+export function hexChannels(hex: string): [number, number, number] {
+  const parsed = hex
+    .slice(1)
+    .match(/.{2}/g)
+    ?.map((channel) => Number.parseInt(channel, 16));
+  if (parsed?.length !== 3 || parsed.some(Number.isNaN)) {
+    throw new Error(`Unable to parse hex color: ${hex}`);
+  }
+  return parsed as [number, number, number];
+}
+
 function channels(color: string): [number, number, number] {
   const parsed = (color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
   if (parsed.length < 3 || parsed.some(Number.isNaN)) {
