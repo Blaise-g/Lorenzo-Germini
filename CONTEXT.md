@@ -61,6 +61,28 @@ and surfaces only under print emulation.
 
 ### Content surfaces
 
+**Essay index**:
+`/writing` — the count-aware list built from the Substack feed. Count-aware means the
+surface changes shape with how many essays exist (0 → no list, 1 → lead plus launch line,
+2–3 → lead plus rows, 4+ → the archive link joins them) and never implies more writing
+exists than does. Nothing on it is numbered.
+_Avoid_: blog, posts page, archive — the archive is Substack's, off-site
+
+**Feed miss**:
+A feed read that produced no essays: unreachable, empty, or malformed. All three are the
+same event to every caller, and all three render as an absent essay surface rather than an
+error. A miss gets its own short cache lifetime, so an absence cached before the first post
+exists cannot outlive it.
+_Avoid_: feed error, fetch failure — the distinction is not one this site can act on
+
+**Fixture state**:
+A canned feed at `/writing/fixture/<state>`, dev-only. Named by essay count (`0`–`6`) or by
+failure: `malformed`, `unreachable`, and `recovering-<miss>` for a miss that is replaced by
+a real feed on the next read. A trailing token — `recovering-malformed-k3f9` — starts an
+independent sequence under its own cache key, so a test can run the recovery from the top
+against a dev server that has already run it. A fixture replaces the network call and
+nothing else, so it exercises the shipped parser, cache and components.
+
 **Identity surface**:
 Any place the site states Lorenzo's role, title, or bio. There are six and nothing
 generates them from each other: `RESUME_DATA.about` and `RESUME_DATA.roleLabel` — two

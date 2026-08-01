@@ -105,7 +105,11 @@ test.describe("touch and fixed-chrome geometry", () => {
     });
   }
 
-  for (const route of ["/", "/cv"] as const) {
+  /* `/writing` is here because decision 2's exclusion zone was written from a
+     collision measured on it — the masthead CV link hit-testing as "Toggle
+     theme" — and the fixture state because the FAB's other measured collision
+     was over an essay excerpt, which the live empty feed does not render. */
+  for (const route of ["/", "/cv", "/writing", "/writing/fixture/6"] as const) {
     for (const width of viewports) {
       test(`${route} fixed chrome does not cover content at ${width}px`, async ({
         page,

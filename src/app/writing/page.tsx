@@ -1,63 +1,69 @@
-// PROTOTYPE ROUTE — dev-only /writing index (issue #13). Never rendered in
-// production: the map is planning-only, so this must not become a live route
-// by accident. Delete with src/components/prototype/ only when the Phase 2
-// §2.6 homepage swap merges.
+/* The essay index (spec §2.5, issue #24).
+ *
+ * No Suspense boundary and no runtime data read: the feed comes from a
+ * `"use cache"` function, so the whole route prerenders and the cache
+ * revalidates behind it. A cold or missed feed therefore costs a reader
+ * nothing — they get the last good render, or an index with no essay surface
+ * on it, never a spinner and never a failed build.
+ *
+ * Every state this route cannot reach with an empty publication lives on the
+ * dev-only `/writing/fixture/[state]` route beside it.
+ */
 
-import { Suspense } from "react";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import {
-  WritingIndex,
-  type WritingParams,
-} from "@/components/prototype/writing-index";
+
+import { WritingIndex } from "@/components/writing-index";
+import { RESUME_DATA } from "@/data/resume-data";
+import { getEssays, SUBSTACK_BASE } from "@/lib/substack";
+
+const writingUrl = new URL("/writing", RESUME_DATA.personalWebsiteUrl).href;
 
 export const metadata: Metadata = {
-  title: "Writing | Lorenzo Germini",
-  description:
-    "Essays on frontier AI, the companies being built on it, and what it does to the economics of software.",
+  title: "Writing",
+  description: RESUME_DATA.writingPage.standfirst,
+  alternates: { canonical: writingUrl },
+  openGraph: {
+    type: "website",
+    url: writingUrl,
+    title: `Writing — ${RESUME_DATA.name}`,
+    description: RESUME_DATA.writingPage.standfirst,
+  },
 };
 
-/* The render every knob defaults to, and so the shape the Suspense fallback
-   below holds until the query string resolves. */
-const DEFAULT_PARAMS: WritingParams = {
-  n: 1,
-  reveal: "mount",
-  stream: true,
-  lang: "en",
-};
+export default async function WritingPage() {
+  const essays = await getEssays();
 
-type WritingProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-export default function WritingPrototypePage({ searchParams }: WritingProps) {
-  if (process.env.NODE_ENV === "production") notFound();
-
-  // Cache Components (issue #23): the query string is runtime data, so the
-  // read moves behind Suspense. The fallback is the all-defaults render, so
-  // bare `/writing` settles into identical geometry; a knobbed URL swaps the
-  // fallback out. Dev-only either way — production 404s above.
   return (
-    <Suspense fallback={<WritingIndex params={DEFAULT_PARAMS} />}>
-      <ParameterizedWritingIndex searchParams={searchParams} />
-    </Suspense>
+    <>
+      <WritingStructuredData />
+      <WritingIndex essays={essays} />
+    </>
   );
 }
 
-async function ParameterizedWritingIndex({ searchParams }: WritingProps) {
-  const sp = await searchParams;
-  const one = (key: string) => {
-    const v = sp[key];
-    return Array.isArray(v) ? v[0] : v;
+/* Minimal `Blog` (§2.7). Per-essay `Article` is deliberately Phase 3: the
+   bodies live on Substack, so marking excerpts up as articles invites
+   duplicate-content ambiguity this page cannot resolve. */
+function WritingStructuredData() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    name: RESUME_DATA.newsletter.name,
+    url: SUBSTACK_BASE,
+    mainEntityOfPage: writingUrl,
+    description: RESUME_DATA.writingPage.standfirst,
+    inLanguage: "en",
+    author: {
+      "@type": "Person",
+      name: RESUME_DATA.name,
+      url: RESUME_DATA.personalWebsiteUrl,
+    },
   };
 
-  const n = Number(one("n"));
-  const params: WritingParams = {
-    n: [1, 2, 3, 4, 5, 6].includes(n) ? n : DEFAULT_PARAMS.n,
-    reveal: one("reveal") === "stagger" ? "stagger" : DEFAULT_PARAMS.reveal,
-    stream: one("stream") === "off" ? false : DEFAULT_PARAMS.stream,
-    lang: one("it") === "on" ? "it" : DEFAULT_PARAMS.lang,
-  };
-
-  return <WritingIndex params={params} />;
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
 }

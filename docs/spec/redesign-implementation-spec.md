@@ -32,7 +32,7 @@ This is the hand-off artifact. It consolidates every decision made on the map in
 | [#12](https://github.com/Blaise-g/Lorenzo-Germini/issues/12) | Composition: 220px sticky rail at `lg`+, single measure below                                         |
 | [#13](https://github.com/Blaise-g/Lorenzo-Germini/issues/13) | `/writing` pixels: grain dropped, numbering dropped, launch line, feed link                           |
 
-Prototype reference code lives in `src/components/prototype/` and `src/app/writing/page.tsx` (dev-only, never merged to production routes). It is **reference, not a starting point** — see [Prototype teardown](#prototype-teardown).
+Prototype reference code is gone as of #24 — see [Prototype teardown](#prototype-teardown). What it evidenced lives in `docs/prototypes/*/NOTES.md` and the screenshots beside them.
 
 ---
 
@@ -353,6 +353,30 @@ This is a **blocker, not a follow-up**: it needs a site-wide prerender audit wit
 
 ## 2.5 `/writing` and the Substack integration
 
+**Landed (#24).** The constraints below are the record of what bound it. Three things
+differ from this section in the shipped route, all for the same reason — the real route
+has no runtime data read, so it prerenders whole:
+
+- The count-aware states are reachable at `/writing/fixture/<state>`, a dev-only route that
+  404s in production, rather than through a `?n=` knob on `/writing` itself. Fixtures go
+  through the real parser and the real cache; only the network call is replaced.
+- `/writing` has no Suspense boundary. The cached feed read prerenders, and a miss or a cold
+  cache costs a reader nothing, so there is no fallback geometry to hold.
+- The `<enclosure>` host allowlist is shared between the parser and `next.config.ts`: a
+  cover from an unlisted host is dropped, because `next/image` throws on one rather than
+  degrading to a broken thumbnail.
+
+Two additions this section did not ask for, both recorded rather than hidden:
+
+- **A line at n=0.** "0 → section absent entirely" leaves the route itself with a plural
+  standfirst above nothing, which reads as an index that broke rather than one that has not
+  started. One faint mono line (`writingPage.awaitingFirst`) says so, and it is gone the
+  moment the first essay exists. It is the only copy on this surface the spec did not lock.
+- **A published dev fallback for the invalidation secret.** Auth is
+  `SUBSTACK_REVALIDATE_SECRET` as specified, and production with it unset refuses every
+  request. Outside production only, an unset variable falls back to a known value, because
+  the Playwright suite reuses a dev server it did not start and so cannot inject one.
+
 **Feed:** native `https://<pub>.substack.com/feed`, **server-side only** — browser `fetch` is CORS-blocked. `fast-xml-parser` (new dependency) in a server `src/lib/substack.ts` with `"use cache"` + `cacheTag('substack-feed')`. No full text is ever hosted locally; entries link out to `/p/<slug>` from the feed's `link`.
 
 **Failure-tolerant fetch.** An unreachable, empty or malformed feed renders the section as **absent** — never a broken or empty centerpiece, never a failed build. This also removes launch-day ordering as a constraint: the site can deploy before the first post exists.
@@ -480,6 +504,10 @@ These drift the moment the copy lands, and they drift silently. Do them in the s
 **Effort: 4h.**
 
 ## Prototype teardown
+
+**Complete (#24).** `src/components/prototype/` and `public/prototype/` are gone; the
+issue-7 notes moved to `docs/prototypes/issue-7/NOTES.md`, beside the screenshots they
+describe. The paragraph below is the record of the intermediate state.
 
 **Half done, deliberately.** §2.6 deleted the homepage direction prototypes — `variant-a|b|c|d.tsx`, `prototype-switcher.tsx`, `writing-data.ts` and the `?variant=` block in `src/app/page.tsx`. What stays is the `/writing` index prototype (`writing-index.tsx`, `writing-feed.ts`, `warm-print.ts`, and the dev-only `src/app/writing/page.tsx`): it is the reference implementation #24 builds the real route from, and #25's subscribe handoff is tested against it. Retire the rest with #24, not before. `docs/prototypes/*/NOTES.md` and the screenshots stay either way — they are the evidence base for this spec.
 

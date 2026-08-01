@@ -21,21 +21,36 @@ below cites the dev log and not just a green build.
 
 ## Per-route findings
 
-| Route                   | Source                           | Runtime data read                                                               | Boundary given                                              | Result             |
-| ----------------------- | -------------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------ |
-| `/`                     | `src/app/page.tsx`               | `searchParams` — **dev only**; production returns `CurrentHome` before the read | `<Suspense>` around `SelectedVariant`, on the dev path only | Static             |
-| `/cv`                   | `src/app/cv/page.tsx`            | none                                                                            | none — genuinely needs none                                 | Static             |
-| `/writing`              | `src/app/writing/page.tsx`       | `searchParams` — **dev only**; production `notFound()`s before the read         | `<Suspense>` around `ParameterizedWritingIndex`             | Static             |
-| `/resume`               | `src/app/resume/route.ts`        | `request.url`                                                                   | n/a — Route Handler                                         | Dynamic, unchanged |
-| `/sitemap.xml`          | `src/app/sitemap.ts`             | none (see `BUILD_DATE` below)                                                   | none                                                        | Static             |
-| `/manifest.webmanifest` | `src/app/manifest.ts`            | none                                                                            | none                                                        | Static             |
-| `/opengraph-image`      | `src/app/opengraph-image.tsx`    | none                                                                            | none                                                        | Static             |
-| `/cv/opengraph-image`   | `src/app/cv/opengraph-image.tsx` | none                                                                            | none                                                        | Static             |
-| `/apple-icon.png`       | file convention                  | none                                                                            | none                                                        | Static             |
-| `/_not-found`           | `src/app/not-found.tsx`          | none                                                                            | none                                                        | Static             |
+| Route                      | Source                                     | Runtime data read                                                               | Boundary given                                              | Result              |
+| -------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------------------- | ------------------- |
+| `/`                        | `src/app/page.tsx`                         | `searchParams` — **dev only**; production returns `CurrentHome` before the read | `<Suspense>` around `SelectedVariant`, on the dev path only | Static              |
+| `/cv`                      | `src/app/cv/page.tsx`                      | none                                                                            | none — genuinely needs none                                 | Static              |
+| `/writing`                 | `src/app/writing/page.tsx`                 | none — the feed is a `"use cache"` read (#24)                                   | none; the cached read prerenders                            | Static, revalidated |
+| `/writing/fixture/[state]` | `src/app/writing/fixture/[state]/page.tsx` | `params` and `searchParams` — **dev only**; production `notFound()`s first      | `<Suspense>` around `FixtureIndex`                          | Partial prerender   |
+| `/api/revalidate/substack` | `src/app/api/revalidate/substack/route.ts` | request headers                                                                 | n/a — Route Handler                                         | Dynamic             |
+| `/resume`                  | `src/app/resume/route.ts`                  | `request.url`                                                                   | n/a — Route Handler                                         | Dynamic, unchanged  |
+| `/sitemap.xml`             | `src/app/sitemap.ts`                       | none (see `BUILD_DATE` below)                                                   | none                                                        | Static              |
+| `/manifest.webmanifest`    | `src/app/manifest.ts`                      | none                                                                            | none                                                        | Static              |
+| `/opengraph-image`         | `src/app/opengraph-image.tsx`              | none                                                                            | none                                                        | Static              |
+| `/cv/opengraph-image`      | `src/app/cv/opengraph-image.tsx`           | none                                                                            | none                                                        | Static              |
+| `/apple-icon.png`          | file convention                            | none                                                                            | none                                                        | Static              |
+| `/_not-found`              | `src/app/not-found.tsx`                    | none                                                                            | none                                                        | Static              |
 
 The route table after the flag is identical to the one before it: everything Static except
 `/resume`, which was already Dynamic. Nothing regressed and nothing newly needed caching.
+
+**Updated by #24.** `/writing` is now the first route with cached data behind it. It reads no
+runtime data at all — the feed comes from `getEssays()` in `src/lib/substack.ts` — so it
+prerenders whole and carries a revalidate window instead of a boundary. `next build` reports
+it as `5m / 15m`, which is the `feedMiss` profile: the live publication is empty, so the
+build cached an absence and gave it the short lifetime the spec requires rather than a
+successful feed's hourly or daily one. That figure is the policy working, not a warning.
+
+The one boundary left in the app is the dev-only fixture route. Its dynamic segment also
+made `usePathname()` a runtime read for `FooterCvLink` and `FooterSubscribeLink` in the
+layout, which reported as `blocking-route` on that route only — both now sit behind a
+`<Suspense fallback={null}>`, which changes nothing on the statically routed pages that
+prerender them.
 
 ### `BUILD_DATE`
 
@@ -48,14 +63,14 @@ Verified, not assumed.
 
 **The homepage boundary is gone as of #26.** The `?variant=` knob went with the direction
 prototypes, taking the route's only runtime read with it, so `/` now prerenders whole and has no
-fallback to hold. What remains is `/writing`, whose boundary falls back to the all-defaults
-`WritingIndex`, so the URL without a query string settles into the geometry it started with.
-Measured, not asserted: `tests/cache-components.spec.ts` holds `/`, `/cv`, and `/writing` to
-cumulative layout shift ≤ 0.01. A null fallback on that boundary measures 0.206, so the budget is
-doing real work rather than passing vacuously.
+fallback to hold. `/writing` lost its `?n=` knob the same way in #24. Measured, not asserted:
+`tests/cache-components.spec.ts` holds `/`, `/cv`, and `/writing` to cumulative layout shift
+≤ 0.01, which is now a guard against either route growing a boundary that shifts the page
+rather than a measurement of one it has.
 
-A `?n=` URL does swap its fallback for differently shaped content. That is the one intended shift
-— a knob is a request for different content — and it is dev-only either way.
+The dev-only fixture route keeps a boundary, falling back to `WritingIndexFallback` — the
+lead's geometry, so the subscribe module under it does not jump. It is excluded from the
+shift budget because a fixture state is a deliberate request for differently shaped content.
 
 ## Verification
 
@@ -65,9 +80,16 @@ A `?n=` URL does swap its fallback for differently shaped content. That is the o
 - Dev server log — zero `blocking-route` errors across every route and every `?n=` URL.
 - `npx tsc --noEmit`, `bun run lint`, and the full Playwright suite pass.
 
-## Not covered
+## The caching path, proven in #24
 
-Issue [#24](https://github.com/Blaise-g/Lorenzo-Germini/issues/24) is the first consumer of
-`"use cache"`, `cacheLife`, and `cacheTag`. This audit establishes the flag and the prerender
-baseline only; no caching directive is exercised anywhere yet, so #24 is where that path first
-gets proven.
+`"use cache"`, `cacheTag`, `cacheLife` and a custom profile are all exercised by
+`getEssays()`, and `revalidateTag` by the invalidation endpoint. Two things worth knowing
+before touching them:
+
+- A custom profile is typed as one `cacheLife` overload per configured name, generated into
+  `.next/dev/types`. A computed `string` therefore does not typecheck against it, and a
+  profile added to `next.config.ts` does not exist to TypeScript until the dev server or a
+  build regenerates the file.
+- `revalidateTag(tag)` without a second argument is deprecated in 16.1. The endpoint passes
+  `"max"`, which is stale-while-revalidate: the first request after invalidation may still
+  be served the stale entry while triggering its regeneration.

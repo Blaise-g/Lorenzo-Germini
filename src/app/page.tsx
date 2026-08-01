@@ -19,6 +19,7 @@ import { ProjectCard } from "@/components/project-card";
 import { StructuredData } from "@/components/structured-data";
 import { cn } from "@/lib/utils";
 import { HubShell } from "@/components/hub-shell";
+import { formatEssayDate } from "@/lib/substack-feed";
 
 export const metadata: Metadata = {
   title: `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
@@ -118,12 +119,8 @@ export default function Page() {
           <article className="group mt-2">
             {writing.featured.date && writing.featured.readingMinutes ? (
               <p className="text-faint font-mono text-xs tracking-[0.12em] uppercase">
-                {new Date(writing.featured.date).toLocaleDateString("en-GB", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}{" "}
-                · {writing.featured.readingMinutes} min read
+                {formatEssayDate(writing.featured.date)} ·{" "}
+                {writing.featured.readingMinutes} min read
               </p>
             ) : null}
             <h3 className="font-display mt-2 text-2xl leading-snug sm:text-3xl">

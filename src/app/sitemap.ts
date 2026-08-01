@@ -16,5 +16,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "yearly",
       priority: 0.8,
     },
+    /* `lastModified` is the build date rather than the newest essay's: the
+       index revalidates from the feed without redeploying, so a build stamp is
+       the only date this file can state truthfully. */
+    {
+      url: new URL("/writing", RESUME_DATA.personalWebsiteUrl).href,
+      lastModified: BUILD_DATE,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
   ];
 }

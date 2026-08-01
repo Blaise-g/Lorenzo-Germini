@@ -3,6 +3,7 @@ import { expect, test, type BrowserContext, type Page } from "@playwright/test";
 import { contrast } from "./support/color";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { setTheme, themes } from "./support/theme";
+import { fixtureRoute } from "./support/writing-fixtures";
 
 /* Issue #25 — the accessible Substack subscribe handoff. The oracle is the
    locked spec (§2.5 subscribe module, decisions 3 and 6) plus the issue's
@@ -13,11 +14,11 @@ import { setTheme, themes } from "./support/theme";
 
 const SUBSTACK = "https://lorenzogermini.substack.com";
 
-/* The module lives at the end of the dev /writing index. `stream=off` skips
-   the prototype's simulated streaming delay — the module renders either way,
-   so no test here needs to sit through it. */
-async function gotoWriting(page: Page, query = "") {
-  await page.goto(`/writing${query ? `${query}&` : "?"}stream=off`);
+/* The module lives at the end of the /writing index and does not depend on the
+   feed, so the live route is the default here. A fixture state is passed only
+   where the count matters — the archive link's placement below the module. */
+async function gotoWriting(page: Page, state?: string, query = "") {
+  await page.goto(state ? fixtureRoute(state, query) : `/writing${query}`);
   await removeDevOverlay(page);
 }
 
@@ -257,7 +258,7 @@ test.describe("geometry and the Italian expansion budget", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 812 });
-    await gotoWriting(page, "?it=on");
+    await gotoWriting(page, "1", "?lang=it");
 
     await expect(
       page.getByRole("heading", { name: "Ricevi i saggi via email" }),
@@ -277,13 +278,13 @@ test.describe("geometry and the Italian expansion budget", () => {
 });
 
 test.describe("Substack link budget (decision 6, locked)", () => {
-  /* stream=off removes the prototype's simulated streaming delay so the
-     archive link's presence is settled before counting. */
   const routes = [
     "/",
     "/cv",
-    "/writing?stream=off",
-    "/writing?n=6&stream=off",
+    "/writing",
+    /* The count that renders the most Substack surfaces at once: subscribe
+       module, archive link, and six outbound essay links. */
+    fixtureRoute("6"),
     "/route-that-does-not-exist",
   ];
 
@@ -335,7 +336,7 @@ test.describe("Substack link budget (decision 6, locked)", () => {
   test("the archive link renders below the subscribe module, only at 4+ posts", async ({
     page,
   }) => {
-    await gotoWriting(page, "?n=6");
+    await gotoWriting(page, "6");
 
     const archive = page.getByRole("link", {
       name: "Read all essays on Substack →",
@@ -349,7 +350,7 @@ test.describe("Substack link budget (decision 6, locked)", () => {
     if (!moduleBox || !archiveBox) throw new Error("surfaces not laid out");
     expect(archiveBox.y).toBeGreaterThan(moduleBox.y);
 
-    await gotoWriting(page, "?n=1");
+    await gotoWriting(page, "1");
     await expect(
       page.getByRole("link", { name: "Read all essays on Substack →" }),
     ).toHaveCount(0);

@@ -15,6 +15,22 @@ export type ResumeData = {
   };
   about: string;
   summary: string;
+  /** Every word of `/writing` that the feed does not supply. The essays, their
+   *  dates and their excerpts come from Substack; this is the frame around
+   *  them, and it is count-aware: `awaitingFirst` replaces the launch line
+   *  before the first post exists, and the launch line itself disappears the
+   *  moment there is a second. */
+  writingPage: {
+    /** Plural on purpose — the count-aware lines below carry the honesty. */
+    standfirst: string;
+    /** Renders at exactly one essay, after the publication date. */
+    cadence: string;
+    /** Renders at zero: the surface must not read as a page that broke. */
+    awaitingFirst: string;
+    leadCta: string;
+    /** Only at 4+, and only below the subscribe module (decision 6). */
+    archiveLabel: string;
+  };
   /** Every word of homepage prose that is not already a CV field. Centralized
    *  here because the positioning is an experiment (spec §2.6 constraint 9):
    *  rewording the hero must cost one edit in one file, never a JSX hunt. */
