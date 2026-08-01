@@ -1,0 +1,41 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 512 512"
+  role="img"
+  aria-label="germinai publication logo"
+>
+  <!--
+    THESIS: An idea germinates into a publication; avoid a personal monogram.
+    OWN-WORLD: Warm paper, ink, and one terracotta growth layer.
+    STORY: The living shoot exits the seed and becomes the lower pages.
+    FIRST VIEWPORT: A centered seed, stem, and open-book crown at icon scale.
+    FORM: Layered sprout-book mark, selected and refined for issue #57.
+  -->
+  <rect width="512" height="512" rx="72" fill="#faf6ef" />
+
+  <!-- The terracotta growth is one unbroken form: embryo, stem, and pages. -->
+  <path
+    fill="#9c3c1c"
+    d="M256 425c-15-48-18-94-8-139-25-35-74-61-159-48l-18-91c77-17 146 9 185 68 39-59 108-85 185-68l-18 91c-85-13-134 13-159 48 10 45 7 91-8 139Z"
+  />
+
+  <!-- Detached ink pages: the finished publication above the living layer. -->
+  <path
+    fill="#1c1917"
+    d="M86 91c63-10 122 12 161 55v72c-39-37-87-57-145-58Z"
+  />
+  <path
+    fill="#1c1917"
+    d="M426 91c-63-10-122 12-161 55v72c39-37 87-57 145-58Z"
+  />
+
+  <!-- The split shell frames, but never replaces, the emerging shoot. -->
+  <path
+    fill="#1c1917"
+    d="M246 304c-39 8-65 41-65 83 0 43 27 75 68 82-14-53-15-109-3-165Z"
+  />
+  <path
+    fill="#1c1917"
+    d="M266 304c39 8 65 41 65 83 0 43-27 75-68 82 14-53 15-109 3-165Z"
+  />
+</svg>

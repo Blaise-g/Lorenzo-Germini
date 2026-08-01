@@ -13,9 +13,9 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: WARM_PRINT.light.accent,
     icons: [
       {
-        src: "/favicon.ico",
+        src: "/germinai-logo.svg",
         sizes: "any",
-        type: "image/x-icon",
+        type: "image/svg+xml",
       },
       {
         src: "/icon-192x192.png",
