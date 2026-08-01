@@ -7,8 +7,9 @@
   },
   "scripts": {
     "dev": "next dev --port ${PLAYWRIGHT_PORT:-3200}",
-    "build": "bun run install:cv-browser && bun run generate:cv && next build",
+    "build": "bun run install:cv-browser && bun run generate:og-fonts && bun run generate:cv && next build",
     "generate:cv": "node scripts/generate-cv-pdf.mjs",
+    "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
     "lint": "eslint .",
@@ -45,6 +46,7 @@
     "pdfjs-dist": "^6.1.200",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "subset-font": "^2.5.0",
     "tailwindcss": "^4",
     "typescript": "^5.7"
   }
