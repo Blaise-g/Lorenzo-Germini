@@ -14,6 +14,15 @@ export const RESUME_DATA: ResumeData = {
     "AI Product Engineer shipping production systems end-to-end across compliance, health, and education",
   summary:
     "I'm an AI product engineer: I take LLM systems from idea to production and stay responsible for the whole path — the infrastructure, the product decisions, and whether the thing actually helps anyone.\n\nRight now that means building the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications: multi-provider LLM infrastructure, agentic RAG, and the evals that keep both honest. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line: technical depth only matters when it connects to a real user problem.\n\nOutside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+  writingPage: {
+    standfirst:
+      "Essays on frontier AI, the companies being built on it, and what it does to the economics of software. Published on germinai.",
+    cadence: "new ones roughly fortnightly",
+    awaitingFirst:
+      "The first essay is not published yet. Subscribe below and it arrives the day it does.",
+    leadCta: "Read the essay →",
+    archiveLabel: "Read all essays on Substack →",
+  },
   homepage: {
     hero: {
       headline: {

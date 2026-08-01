@@ -13,6 +13,7 @@ Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneur
 ## Professional profile
 
 - [Homepage](https://lorenzo-germini.vercel.app/): Professional hub, positioning, and the writing
+- [Writing](https://lorenzo-germini.vercel.app/writing): Essay index, built from the germinai feed; every essay links out to Substack
 - [germinai](https://lorenzogermini.substack.com): Field notes on building with AI
 - [CV](https://lorenzo-germini.vercel.app/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
 - [CV PDF](https://lorenzo-germini.vercel.app/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae

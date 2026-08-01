@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { RESUME_DATA } from "@/data/resume-data";
 import { FooterCvLink } from "@/components/footer-cv-link";
 import { FooterSubscribeLink } from "@/components/footer-subscribe-link";
@@ -37,11 +39,19 @@ export function SiteFooter() {
                   </a>
                 </li>
               ) : null}
-              <FooterCvLink className={footerLinkClass} />
-              <FooterSubscribeLink
-                className={footerLinkClass}
-                href={`${RESUME_DATA.newsletter.url}/subscribe`}
-              />
+              {/* Both read the pathname, which is runtime data on a route
+                  with dynamic segments — without a boundary they block the
+                  whole page there under Cache Components. Every statically
+                  routed page still prerenders them; the fallback is `null`
+                  because each link is already conditional on the route, so an
+                  absent one is a shape the footer holds anyway. */}
+              <Suspense fallback={null}>
+                <FooterCvLink className={footerLinkClass} />
+                <FooterSubscribeLink
+                  className={footerLinkClass}
+                  href={`${RESUME_DATA.newsletter.url}/subscribe`}
+                />
+              </Suspense>
               {RESUME_DATA.contact.social.map((social) => (
                 <li key={social.name}>
                   <a

@@ -48,7 +48,19 @@ runtime data — `searchParams`, `cookies()`, `headers()` — must happen inside
 boundary. A read that a `NODE_ENV` guard keeps out of production still builds green; the
 only report is a `blocking-route` error in the dev server's terminal, not the browser. Read
 the dev log after adding a route. Give a boundary a fallback with the same geometry as what
-replaces it, or it shifts the page.
+replaces it, or it shifts the page. A dynamic segment makes `usePathname()` runtime data
+too, so a route-aware client leaf anywhere in the layout blocks that route — the footer's
+two are behind a boundary for exactly that reason. Custom `cacheLife` profiles are typed
+from `.next/dev/types`, so a new one in `next.config.ts` does not typecheck until the dev
+server or a build has regenerated them.
+
+**`/writing` renders the live Substack feed, which is empty.** Every other state — the
+count-aware transitions, a malformed or unreachable feed, a cached miss recovering — is at
+`/writing/fixture/<state>`, dev-only and 404 in production. Fixtures feed canned XML
+through the real parser and the real cache, so they prove the shipped path. Invalidation is
+`POST /api/revalidate/substack` with `Authorization: Bearer $SUBSTACK_REVALIDATE_SECRET`;
+unset in production it refuses everything, and outside production it falls back to a
+published dev value so the suite can run against a server it did not start.
 
 ## Workflows
 

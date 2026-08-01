@@ -1,6 +1,6 @@
-/* Guards the Cache Components baseline (issue #23).
-   Enabling `cacheComponents` forced the two prototype routes to read their
-   query string behind Suspense. Two things can silently break as a result:
+/* Guards the Cache Components baseline (issue #23), now that #24 has made
+   `/writing` the first real consumer of `"use cache"`. Two things can silently
+   break under the flag:
    a boundary can stick on its fallback, so the URL stops selecting anything;
    and a fallback whose geometry differs from the resolved content can shift
    the page. Both are invisible to the existing suites, which only assert the
@@ -20,14 +20,14 @@ declare global {
    layout shift at or below 0.01." */
 const MAX_CUMULATIVE_LAYOUT_SHIFT = 0.01;
 
-/* Every route at the URL a visitor arrives on, which is also every route whose
-   fallback is supposed to match what replaces it. The suite runs against `bun
-   run dev`, so `/` and `/writing` genuinely stream here — their boundaries are
-   live, and this is what holds them to the budget. `/cv` has no boundary; it
-   is measured so that adding one that shifts the page is caught.
+/* Every route at the URL a visitor arrives on. None of the three has a
+   Suspense boundary any more — the `?variant=` knob went with #26 and the
+   `?n=` knob with #24 — so what this measures is that none of them grows one
+   that shifts the page, and that the cached feed read on `/writing` does not
+   land late enough to move the subscribe module under it.
 
-   Only the `?variant=`/`?n=` URLs are excluded, and only because a knob is a
-   deliberate request for differently shaped content: those swaps are the one
+   The dev-only `/writing/fixture/<state>` route is excluded: a fixture state
+   is a deliberate request for differently shaped content, which is the one
    place a shift is intended. */
 const routesMeasuredForLayoutShift = ["/", "/cv", "/writing"];
 
@@ -89,18 +89,36 @@ test.describe("Cache Components prerender baseline", () => {
     await expect(page.locator("[data-reading-measure]")).toHaveCount(6);
   });
 
-  /* Same shape of failure on /writing, where the fallback is the all-defaults
-     render: ?n= is the only knob whose effect is countable, so it is the one
-     that proves the fallback was replaced rather than kept. */
-  test("the writing boundary resolves past its fallback to the requested count", async ({
+  /* #24 took the last runtime read off `/writing` too: the feed arrives from a
+     `"use cache"` function, so the route prerenders whole and a query string
+     must change nothing on it. */
+  test("the writing index prerenders whole, with no boundary left to stick on", async ({
     page,
   }) => {
-    for (const [route, expectedEntries] of [
-      ["/writing", 1],
-      ["/writing?n=3", 3],
-      ["/writing?n=6", 6],
-    ] as const) {
+    for (const route of ["/writing", "/writing?n=6"]) {
       await page.goto(route);
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+        "Writing",
+      );
+      await expect(
+        page.getByRole("heading", { name: "Get the essays by email" }),
+      ).toBeVisible();
+    }
+  });
+
+  /* The one boundary left in the app is the dev-only fixture route, which
+     reads its state from the URL. It is excluded from the shift budget above —
+     a fixture state is a request for differently shaped content — but it must
+     still resolve past its fallback rather than sticking on the skeleton. */
+  test("the fixture boundary resolves past its fallback to the requested state", async ({
+    page,
+  }) => {
+    for (const [state, expectedEntries] of [
+      ["1", 1],
+      ["3", 3],
+      ["6", 6],
+    ] as const) {
+      await page.goto(`/writing/fixture/${state}`);
       await expect(page.locator("main article")).toHaveCount(expectedEntries);
     }
   });
