@@ -129,49 +129,109 @@ export const FIXTURE_COUNTS = [0, 1, 2, 3, 4, 5, 6] as const;
 
 /* `recovering` is stateful on purpose: it is the only way to observe a cached
    miss being *replaced* by a real feed rather than merely rendering as absent
-   once. It reads empty the first time and populated afterwards.
+   once. The first read is the miss, every read after it returns three essays.
 
-   A suffix (`recovering-<token>`) starts an independent sequence, and — since
-   the state string is also the cache key — an independent cache entry. A test
-   that mints its own token can therefore run the sequence from the top against
-   a dev server that has already run it. */
-const RECOVERING = /^recovering(-[a-z0-9]+)?$/;
+   `recovering-<miss>` picks which miss to recover from — all three must
+   recover, not just the empty one. A trailing token
+   (`recovering-malformed-k3f9`) starts an independent sequence and, since the
+   state string is also the cache key, an independent cache entry: a test that
+   mints its own token can run the sequence from the top against a dev server
+   that has already run it. */
+const RECOVERING =
+  /^recovering(?:-(empty|malformed|unreachable))?(?:-[a-z0-9]+)?$/;
+
+/* One entry per recovery sequence, and tests mint a fresh token per run, so
+   this is capped: a dev server that has run the suite fifty times holds the
+   last few sequences and forgets the rest. An evicted sequence simply starts
+   over, which is the state a test wants anyway. */
+const MAX_RECOVERING_SEQUENCES = 32;
 const recoveringReads = new Map<string, number>();
+
+/** The three shapes a feed read fails in. Every one is an empty essay list to
+ *  the parser's caller — that indistinguishability is the contract. */
+type MissKind = "empty" | "malformed" | "unreachable";
+
+/** What a URL segment asks for, or null when it names no fixture at all. One
+ *  parse, so the route's 404 guard and the feed itself cannot drift apart. */
+type FixtureRequest =
+  | { kind: "count"; count: number }
+  | { kind: "miss"; miss: MissKind }
+  | { kind: "recovering"; miss: MissKind; sequence: string };
 
 export type FixtureFeed =
   /** the bytes a fetch would have returned */
   | { kind: "xml"; xml: string }
   /** the fetch itself fails — DNS, timeout, non-200 */
-  | { kind: "unreachable" }
-  | { kind: "unknown" };
+  | { kind: "unreachable" };
 
-export function substackFixture(state: string): FixtureFeed {
-  if (state === "unreachable") return { kind: "unreachable" };
-  if (state === "malformed") {
-    /* Well-formed enough to fetch, not enough to parse: a Cloudflare
-       interstitial is the shape this actually arrives in. */
-    return { kind: "xml", xml: "<html><body>Just a moment…</body></html>" };
+/* Well-formed enough to fetch, not enough to parse. A Cloudflare interstitial
+   is the shape this actually arrives in. */
+const MALFORMED = "<html><body>Just a moment…</body></html>";
+
+function parseFixtureState(state: string): FixtureRequest | null {
+  const recovering = RECOVERING.exec(state);
+  if (recovering) {
+    return {
+      kind: "recovering",
+      miss: (recovering[1] as MissKind | undefined) ?? "empty",
+      sequence: state,
+    };
   }
-  if (RECOVERING.test(state)) {
-    const reads = recoveringReads.get(state) ?? 0;
-    recoveringReads.set(state, reads + 1);
-    return { kind: "xml", xml: feedXml(reads === 0 ? [] : ITEMS.slice(0, 3)) };
+
+  if (state === "unreachable" || state === "malformed") {
+    return { kind: "miss", miss: state };
   }
 
   const count = Number(state);
-  if (!isFixtureCount(count)) return { kind: "unknown" };
-  return { kind: "xml", xml: feedXml(ITEMS.slice(0, count)) };
+  return isFixtureCount(count) ? { kind: "count", count } : null;
+}
+
+/** The feed a state stands for. An unrecognised state cannot reach here — the
+ *  route 404s on it — and reads as unreachable if it ever does. */
+export function substackFixture(state: string): FixtureFeed {
+  const request = parseFixtureState(state);
+  if (request === null) return { kind: "unreachable" };
+
+  switch (request.kind) {
+    case "count":
+      return { kind: "xml", xml: feedXml(ITEMS.slice(0, request.count)) };
+    case "miss":
+      return missFeed(request.miss);
+    case "recovering":
+      return advanceRecovery(request);
+  }
+}
+
+function advanceRecovery(request: {
+  miss: MissKind;
+  sequence: string;
+}): FixtureFeed {
+  const reads = recoveringReads.get(request.sequence) ?? 0;
+  if (recoveringReads.size >= MAX_RECOVERING_SEQUENCES && reads === 0) {
+    recoveringReads.delete(recoveringReads.keys().next().value!);
+  }
+  recoveringReads.set(request.sequence, reads + 1);
+
+  return reads === 0
+    ? missFeed(request.miss)
+    : { kind: "xml", xml: feedXml(ITEMS.slice(0, 3)) };
+}
+
+function missFeed(miss: MissKind): FixtureFeed {
+  switch (miss) {
+    case "unreachable":
+      return { kind: "unreachable" };
+    case "malformed":
+      return { kind: "xml", xml: MALFORMED };
+    case "empty":
+      return { kind: "xml", xml: feedXml([]) };
+  }
 }
 
 /** Whether a URL segment names a fixture at all — the route 404s if not,
  *  rather than letting a typo render as the empty state. */
 export function isFixtureState(state: string): boolean {
-  return (
-    state === "unreachable" ||
-    state === "malformed" ||
-    RECOVERING.test(state) ||
-    isFixtureCount(Number(state))
-  );
+  return parseFixtureState(state) !== null;
 }
 
 function isFixtureCount(

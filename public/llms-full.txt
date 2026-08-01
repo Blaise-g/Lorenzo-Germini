@@ -84,3 +84,4 @@ Link: https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-su
 germinai -- field notes from building with AI. No definitive guides: things I tried, what broke, and what earned its place.
 Publication: https://lorenzogermini.substack.com
 Feed: https://lorenzogermini.substack.com/feed
+Index: https://lorenzo-germini.vercel.app/writing -- the essays listed on this site; each one links out to Substack, which hosts the full text

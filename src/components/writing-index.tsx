@@ -16,8 +16,9 @@ import { FloatingActionCluster } from "@/components/floating-action-cluster";
 import { SubscribeModule } from "@/components/subscribe-module";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RESUME_DATA } from "@/data/resume-data";
-import { formatEssayDate, type Essay } from "@/lib/substack-feed";
 import { SUBSTACK_ARCHIVE_URL } from "@/lib/substack";
+import { formatEssayDate, type Essay } from "@/lib/substack-feed";
+import { cn } from "@/lib/utils";
 
 /* Locked count-aware transitions (spec §2.5): 0 → no list at all, 1 → lead
    only, 2–3 → lead plus rows, 4+ → the archive link joins them. Only the last
@@ -25,7 +26,14 @@ import { SUBSTACK_ARCHIVE_URL } from "@/lib/substack";
 const ARCHIVE_LINK_AT = 4;
 
 const meta = "font-mono text-xs uppercase tracking-[0.12em]";
-const measure = "mx-auto max-w-[46rem] px-6";
+
+/* The asymmetric right padding is decision 2's exclusion zone, not a taste
+   call: below `lg` this measure runs to the viewport edge, where the fixed
+   theme toggle and the floating cluster sit on top of it — the masthead's CV
+   link hit-tested as "Toggle theme" over 63px² at 375 on the prototype. From
+   `lg` up the measure is centred with margins wider than the chrome, so the
+   reservation is dropped and the column re-centres. */
+const measure = "mx-auto max-w-[46rem] px-6 pr-20 lg:pr-6";
 
 const { writingPage } = RESUME_DATA;
 
@@ -52,7 +60,7 @@ export function WritingIndex({
       <ThemeToggle />
 
       <div className="border-ink border-b-2">
-        <header className={`${measure} pt-12 pb-4 lg:pt-10`}>
+        <header className={cn(measure, "pt-12 pb-4 lg:pt-10")}>
           <div className="flex items-baseline justify-between gap-8">
             <Link
               href="/"
@@ -64,7 +72,10 @@ export function WritingIndex({
             {/* The masthead's other half carries cross-route navigation here
                 rather than the role label: this route has no rail, so it is the
                 only way back to the hub. */}
-            <nav aria-label="Site" className={`text-faint flex gap-5 ${meta}`}>
+            <nav
+              aria-label="Site"
+              className={cn("text-faint flex gap-5", meta)}
+            >
               <Link
                 href="/"
                 className="touch-target hover:text-accent underline-offset-4 hover:underline"
@@ -82,7 +93,7 @@ export function WritingIndex({
         </header>
       </div>
 
-      <div className={`${measure} pb-24`}>
+      <div className={cn(measure, "pb-24")}>
         <div className="max-w-[34rem] pt-12">
           <h1 className="font-display animate-fade-in-up text-4xl leading-[1.1] font-medium tracking-tight">
             Writing
@@ -115,7 +126,7 @@ export function WritingIndex({
         {/* Below the module, never at the end of the list: the end-of-list
             placement took the reader off-site before the conversion point. */}
         {essays.length >= ARCHIVE_LINK_AT ? (
-          <p className={`mt-10 ${meta}`}>
+          <p className={cn("mt-10", meta)}>
             <a
               href={SUBSTACK_ARCHIVE_URL}
               target="_blank"
@@ -133,28 +144,21 @@ export function WritingIndex({
   );
 }
 
-/** The one line that keeps a plural standfirst honest about the actual count. */
+/** The one line that keeps a plural standfirst honest about the actual count:
+ *  before the first essay, the route must not read as an index that broke;
+ *  at exactly one, it must not read as a page with one thing on it. From two
+ *  essays up the list speaks for itself and the line disappears. */
 function CountAwareLine({ essays }: { essays: Essay[] }) {
-  if (essays.length === 0) {
-    return (
-      <p className={`text-faint animate-fade-in-up mt-3 ${meta}`}>
-        {writingPage.awaitingFirst}
-      </p>
-    );
-  }
+  if (essays.length > 1) return null;
 
-  /* Exactly one essay: without this the page read as a page with one thing on
-     it under a standfirst promising essays plural. It disappears at two. */
-  if (essays.length === 1) {
-    return (
-      <p className={`text-faint animate-fade-in-up mt-3 ${meta}`}>
-        First essay published {formatEssayDate(essays[0].publishedAt)} ·{" "}
-        {writingPage.cadence}
-      </p>
-    );
-  }
+  const line =
+    essays.length === 0
+      ? writingPage.awaitingFirst
+      : `First essay published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
 
-  return null;
+  return (
+    <p className={cn("text-faint animate-fade-in-up mt-3", meta)}>{line}</p>
+  );
 }
 
 function Lead({ essay }: { essay: Essay }) {
@@ -174,7 +178,10 @@ function Lead({ essay }: { essay: Essay }) {
         {essay.excerpt}
       </p>
       <span
-        className={`text-accent border-accent mt-4 inline-block border-b pb-1 ${meta}`}
+        className={cn(
+          "text-accent border-accent mt-4 inline-block border-b pb-1",
+          meta,
+        )}
         aria-hidden
       >
         {writingPage.leadCta}
@@ -226,7 +233,7 @@ function EssayLink({ essay }: { essay: Essay }) {
  *  why a body was short (decision 7). */
 function Meta({ essay }: { essay: Essay }) {
   return (
-    <p className={`text-faint ${meta}`}>
+    <p className={cn("text-faint", meta)}>
       <time dateTime={essay.publishedAt}>
         {formatEssayDate(essay.publishedAt)}
       </time>
@@ -235,7 +242,30 @@ function Meta({ essay }: { essay: Essay }) {
   );
 }
 
-function Cover({ essay, size }: { essay: Essay; size: "lead" | "row" }) {
+/* The two treatments side by side, rather than four separate `size ===` tests
+   inside the component. */
+const COVERS = {
+  lead: {
+    /* The LCP element. Not `priority` — deprecated in Next 16 — and not
+       `preload`, which is for images the parser has not reached; this one is
+       in the route's initial HTML. */
+    loading: "eager",
+    fetchPriority: "high",
+    sizes: "(min-width: 768px) 42rem, 100vw",
+    fallbackVisibility: "flex",
+  },
+  row: {
+    loading: "lazy",
+    fetchPriority: undefined,
+    /* A bare `sizes="160px"` served a 160px file into a 325px slot at DPR 2 on
+       every phone, where the row thumb is full width. */
+    sizes: "(min-width: 640px) 160px, 100vw",
+    /* Full width on a phone, the coverless panel is just a large empty box. */
+    fallbackVisibility: "hidden sm:flex",
+  },
+} as const;
+
+function Cover({ essay, size }: { essay: Essay; size: keyof typeof COVERS }) {
   /* 16:9 for rows too: a 4:3 row box cropped ~25% of 16:9 art and decapitated
      Substack's auto-generated title cards. The hairline is functional, not
      decoration — a near-white cover measures 1.04:1 against the paper and
@@ -243,17 +273,17 @@ function Cover({ essay, size }: { essay: Essay; size: "lead" | "row" }) {
      out-shouts every word on the page. */
   const box =
     "border-border relative aspect-[16/9] w-full overflow-hidden rounded-sm border";
+  const cover = COVERS[size];
 
   if (!essay.coverUrl) {
-    /* The feed does not guarantee an `<enclosure>`. Below `sm` the row thumb is
-       full width, where a coverless panel is just a large empty box, so the
-       fallback is dropped there and the row runs text-only. */
+    /* The feed does not guarantee an `<enclosure>`. A missing one gets a
+       typographic panel at the same aspect ratio rather than a gap. */
     return (
       <div
         aria-hidden
-        className={`${box} ${size === "row" ? "hidden sm:flex" : "flex"} items-end bg-current/[0.06]`}
+        className={cn(box, cover.fallbackVisibility, "bg-ink/[0.06] items-end")}
       >
-        <p className={`text-faint p-3 ${meta}`}>
+        <p className={cn("text-faint p-3", meta)}>
           {formatEssayDate(essay.publishedAt)}
         </p>
       </div>
@@ -266,18 +296,11 @@ function Cover({ essay, size }: { essay: Essay; size: "lead" | "row" }) {
         src={essay.coverUrl}
         alt=""
         fill
-        /* A bare `sizes="160px"` served a 160px file into a 325px slot at
-           DPR 2 on every phone, where the row thumb is full width. */
-        sizes={
-          size === "lead"
-            ? "(min-width: 768px) 42rem, 100vw"
-            : "(min-width: 640px) 160px, 100vw"
-        }
-        /* The lead cover is the LCP element. Not `priority` — deprecated in
-           Next 16 — and not `preload`, which is for images the parser has not
-           reached; this one is in the route's initial HTML. */
-        loading={size === "lead" ? "eager" : "lazy"}
-        fetchPriority={size === "lead" ? "high" : undefined}
+        sizes={cover.sizes}
+        loading={cover.loading}
+        fetchPriority={cover.fetchPriority}
+        /* Light covers are knocked back in dark, where they otherwise out-shout
+           every word on the page. */
         className="object-cover dark:brightness-[0.82]"
       />
     </div>
@@ -288,11 +311,11 @@ function Cover({ essay, size }: { essay: Essay; size: "lead" | "row" }) {
  *  module below it does not jump when the essays land. */
 export function WritingIndexFallback() {
   return (
-    <div aria-hidden className={`${measure} space-y-5 pt-14 pb-24`}>
-      <div className="aspect-[16/9] w-full rounded-sm bg-current/[0.06]" />
-      <div className="h-3 w-40 rounded-sm bg-current/[0.06]" />
-      <div className="h-8 w-4/5 rounded-sm bg-current/[0.06]" />
-      <div className="h-4 w-full rounded-sm bg-current/[0.06]" />
+    <div aria-hidden className={cn(measure, "space-y-5 pt-14 pb-24")}>
+      <div className="bg-ink/[0.06] aspect-[16/9] w-full rounded-sm" />
+      <div className="bg-ink/[0.06] h-3 w-40 rounded-sm" />
+      <div className="bg-ink/[0.06] h-8 w-4/5 rounded-sm" />
+      <div className="bg-ink/[0.06] h-4 w-full rounded-sm" />
     </div>
   );
 }

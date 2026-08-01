@@ -77,8 +77,11 @@ _Avoid_: feed error, fetch failure — the distinction is not one this site can 
 
 **Fixture state**:
 A canned feed at `/writing/fixture/<state>`, dev-only. Named by essay count (`0`–`6`) or by
-failure (`malformed`, `unreachable`, `recovering`). It replaces the network call and
-nothing else, so a fixture exercises the shipped parser, cache and components.
+failure: `malformed`, `unreachable`, and `recovering-<miss>` for a miss that is replaced by
+a real feed on the next read. A trailing token — `recovering-malformed-k3f9` — starts an
+independent sequence under its own cache key, so a test can run the recovery from the top
+against a dev server that has already run it. A fixture replaces the network call and
+nothing else, so it exercises the shipped parser, cache and components.
 
 **Identity surface**:
 Any place the site states Lorenzo's role, title, or bio. There are six and nothing

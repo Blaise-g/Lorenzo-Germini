@@ -19,10 +19,16 @@ import {
   REVALIDATE_SECRET,
 } from "./support/writing-fixtures";
 
+/* Serial: `revalidateTag` is global, so a parallel worker's invalidation would
+   land between this file's "still absent" reads and recover an entry the test
+   is asserting is still cached. */
+test.describe.configure({ mode: "serial" });
+
 /** A private recovery sequence and a private cache entry, so this file can run
  *  against a dev server that has already run it. */
-function recoveringState() {
-  return `recovering-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+function recoveringState(miss: string) {
+  const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return `recovering-${miss}-${token}`;
 }
 
 async function essayCount(request: APIRequestContext, state: string) {
@@ -76,32 +82,36 @@ test.describe("the invalidation endpoint", () => {
 });
 
 test.describe("a cached miss recovers", () => {
-  test("the absence is cached, then replaced once the tag is invalidated", async ({
-    request,
-  }) => {
-    const state = recoveringState();
+  /* All three, not just the empty one: they are the same event to every caller
+     precisely so that none of them can get stuck in a way the others do not. */
+  for (const miss of ["empty", "malformed", "unreachable"] as const) {
+    test(`a cached ${miss} feed is replaced once the tag is invalidated`, async ({
+      request,
+    }) => {
+      const state = recoveringState(miss);
 
-    /* The feed reads empty the first time: the surface is absent, and that
-       absence is now in the cache under the short feed-miss profile. */
-    expect(await essayCount(request, state)).toBe(0);
-    /* Still absent — and this is also what proves the entry was cached rather
-       than recomputed: the fixture returns three essays on every read after
-       its first, so a second render of zero can only have come from the
-       cache. Without that, the hourly and daily lifetimes mean nothing. */
-    expect(await essayCount(request, state)).toBe(0);
+      /* The read fails the first time: the surface is absent, and that absence
+         is now in the cache under the short feed-miss profile. */
+      expect(await essayCount(request, state)).toBe(0);
+      /* Still absent — and this is also what proves the entry was cached rather
+         than recomputed: the fixture returns three essays on every read after
+         its first, so a second render of zero can only have come from the
+         cache. Without that, the hourly and daily lifetimes mean nothing. */
+      expect(await essayCount(request, state)).toBe(0);
 
-    expect((await revalidate(request, REVALIDATE_SECRET)).status()).toBe(204);
+      expect((await revalidate(request, REVALIDATE_SECRET)).status()).toBe(204);
 
-    /* Revalidation is request-driven and stale-while-revalidate, so the first
-       request after it may still be served the stale absence while triggering
-       the regeneration that a later request observes. The sequence is what is
-       asserted, not instant recovery. */
-    await expect
-      .poll(() => essayCount(request, state), {
-        message:
-          "the invalidated miss should be replaced by the recovered feed",
-        timeout: 15_000,
-      })
-      .toBe(3);
-  });
+      /* Revalidation is request-driven and stale-while-revalidate, so the first
+         request after it may still be served the stale absence while triggering
+         the regeneration that a later request observes. The sequence is what is
+         asserted, not instant recovery. */
+      await expect
+        .poll(() => essayCount(request, state), {
+          message:
+            "the invalidated miss should be replaced by the recovered feed",
+          timeout: 15_000,
+        })
+        .toBe(3);
+    });
+  }
 });

@@ -303,21 +303,23 @@ test.describe("the cover contract", () => {
 });
 
 test.describe("geometry", () => {
-  for (const width of [375, 768, 1024]) {
-    test(`the index fits ${width} without horizontal overflow`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 900 });
-      await gotoFixture(page, "6");
+  test("the index fits every width without horizontal overflow", async ({
+    page,
+  }) => {
+    /* One navigation, three reflows: the overflow is pure CSS, so re-loading
+       the fixture per width would only spend time. */
+    await gotoFixture(page, "6");
 
+    for (const width of [375, 768, 1024, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
       const overflow = await page.evaluate(
         () =>
           document.documentElement.scrollWidth -
           document.documentElement.clientWidth,
       );
-      expect(overflow).toBeLessThanOrEqual(0);
-    });
-  }
+      expect(overflow, `overflow at ${width}px`).toBeLessThanOrEqual(0);
+    }
+  });
 
   test("the lead outranks the rows, and the h1 outranks the lead", async ({
     page,

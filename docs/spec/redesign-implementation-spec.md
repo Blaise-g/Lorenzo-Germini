@@ -366,6 +366,17 @@ has no runtime data read, so it prerenders whole:
   cover from an unlisted host is dropped, because `next/image` throws on one rather than
   degrading to a broken thumbnail.
 
+Two additions this section did not ask for, both recorded rather than hidden:
+
+- **A line at n=0.** "0 → section absent entirely" leaves the route itself with a plural
+  standfirst above nothing, which reads as an index that broke rather than one that has not
+  started. One faint mono line (`writingPage.awaitingFirst`) says so, and it is gone the
+  moment the first essay exists. It is the only copy on this surface the spec did not lock.
+- **A published dev fallback for the invalidation secret.** Auth is
+  `SUBSTACK_REVALIDATE_SECRET` as specified, and production with it unset refuses every
+  request. Outside production only, an unset variable falls back to a known value, because
+  the Playwright suite reuses a dev server it did not start and so cannot inject one.
+
 **Feed:** native `https://<pub>.substack.com/feed`, **server-side only** — browser `fetch` is CORS-blocked. `fast-xml-parser` (new dependency) in a server `src/lib/substack.ts` with `"use cache"` + `cacheTag('substack-feed')`. No full text is ever hosted locally; entries link out to `/p/<slug>` from the feed's `link`.
 
 **Failure-tolerant fetch.** An unreachable, empty or malformed feed renders the section as **absent** — never a broken or empty centerpiece, never a failed build. This also removes launch-day ordering as a constraint: the site can deploy before the first post exists.

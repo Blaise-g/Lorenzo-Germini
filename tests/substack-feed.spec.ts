@@ -7,7 +7,11 @@
 
 import { expect, test } from "@playwright/test";
 
-import { parseSubstackFeed, readingMinutes } from "../src/lib/substack-feed";
+import {
+  feedCacheProfile,
+  parseSubstackFeed,
+  readingMinutes,
+} from "../src/lib/substack-feed";
 
 const BASE = "https://lorenzogermini.substack.com";
 
@@ -156,5 +160,25 @@ test.describe("reading time (decision 7: a threshold, not a paywall detector)", 
   test("counts words, not markup", () => {
     const markup = `<div class="paragraph long attributes here"><p>${words(300)}</p></div>`;
     expect(readingMinutes(markup)).toBe(readingMinutes(`<p>${words(300)}</p>`));
+  });
+});
+
+test.describe("cache policy (spec §2.5 parts 1 and 2, locked)", () => {
+  test("a miss takes its own profile and never a success lifetime", () => {
+    /* The defect this guards: failure-as-absence under a success lifetime
+       caches "there is no writing" and serves it for up to a day after the
+       first post lands. */
+    expect(feedCacheProfile(0)).toBe("feedMiss");
+  });
+
+  test("successful feeds go hourly until the archive reaches four", () => {
+    expect([1, 2, 3].map(feedCacheProfile)).toEqual([
+      "hours",
+      "hours",
+      "hours",
+    ]);
+    /* Four is where the count-aware rendering stops changing shape on publish,
+       so hourly revalidation stops earning its keep. */
+    expect([4, 6, 40].map(feedCacheProfile)).toEqual(["days", "days", "days"]);
   });
 });

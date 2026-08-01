@@ -47,9 +47,10 @@ async function FixtureIndex({ params, searchParams }: FixtureProps) {
   if (!isFixtureState(state)) notFound();
 
   const query = await searchParams;
+  /* A repeated `?lang=it&lang=it` arrives as an array; take the first rather
+     than silently falling back to English on a knob that was set. */
+  const lang = Array.isArray(query.lang) ? query.lang[0] : query.lang;
   const essays = await getEssays(state);
 
-  return (
-    <WritingIndex essays={essays} lang={query.lang === "it" ? "it" : "en"} />
-  );
+  return <WritingIndex essays={essays} lang={lang === "it" ? "it" : "en"} />;
 }

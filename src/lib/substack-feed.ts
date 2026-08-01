@@ -36,6 +36,24 @@ const WORDS_PER_MINUTE = 230;
 
 const EXCERPT_MAX_CHARS = 260;
 
+/* Locked cache policy, part 1 (spec §2.5): hourly until the archive reaches
+   four posts, then daily; a miss takes its own short profile and never
+   inherits a success lifetime. Four is a chosen operational policy, not a
+   measured optimum — it is where the count-aware rendering stops changing
+   shape on publish, so hourly revalidation stops earning its keep. Nothing
+   else depends on the number.
+
+   It lives here, in the module without `next/*` imports, so the policy is one
+   testable function rather than a branch buried in a cached call. */
+export const DAILY_CACHE_THRESHOLD = 4;
+
+export type FeedCacheProfile = "feedMiss" | "hours" | "days";
+
+export function feedCacheProfile(essayCount: number): FeedCacheProfile {
+  if (essayCount === 0) return "feedMiss";
+  return essayCount >= DAILY_CACHE_THRESHOLD ? "days" : "hours";
+}
+
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",
@@ -77,13 +95,18 @@ export function readingMinutes(body: string | null): number | null {
   return Math.max(1, Math.round(words / WORDS_PER_MINUTE));
 }
 
+/* One formatter for the whole app rather than one per metadata row. UTC, so a
+   date rendered on the server and rehydrated in another zone cannot disagree
+   with itself by a day. */
+const ESSAY_DATE = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
 export function formatEssayDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
+  return ESSAY_DATE.format(new Date(iso));
 }
 
 /* ─── Parsing internals ─── */
@@ -134,7 +157,6 @@ function asNode(value: unknown): FeedNode | null {
 /** Reads a tag whether the parser gave back a string or an attributed node. */
 function text(value: unknown): string | null {
   if (typeof value === "string") return value.trim() || null;
-  if (typeof value === "number") return String(value);
   const node = asNode(value);
   if (node && "#text" in node) return text(node["#text"]);
   return null;
