@@ -1,20 +1,14 @@
 import { ImageResponse } from "next/og";
 
-import { RESUME_DATA } from "@/data/resume-data";
+import { OG_HOME_TEXT } from "@/lib/og-card-text";
 import { OG_FONT, ogFonts } from "@/lib/og-fonts";
-import { displayUrl } from "@/lib/utils";
 import { WARM_PRINT } from "@/lib/warm-print";
 
-export const alt = `${RESUME_DATA.name} — ${RESUME_DATA.roleLabel}`;
+export const alt = `${OG_HOME_TEXT.name} — ${OG_HOME_TEXT.role}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const palette = WARM_PRINT.light;
-const heroClaim = [
-  RESUME_DATA.homepage.hero.headline.lead,
-  RESUME_DATA.homepage.hero.headline.emphasis,
-  RESUME_DATA.homepage.hero.headline.trail,
-].join("");
 
 export default function OpenGraphImage() {
   return new ImageResponse(
@@ -52,7 +46,7 @@ export default function OpenGraphImage() {
             lineHeight: 1,
           }}
         >
-          {RESUME_DATA.name}
+          {OG_HOME_TEXT.name}
         </div>
         <div
           style={{
@@ -67,7 +61,7 @@ export default function OpenGraphImage() {
             marginTop: 22,
           }}
         >
-          {RESUME_DATA.roleLabel}
+          {OG_HOME_TEXT.role}
         </div>
         <div
           style={{
@@ -80,7 +74,7 @@ export default function OpenGraphImage() {
             maxWidth: 820,
           }}
         >
-          {heroClaim}
+          {OG_HOME_TEXT.claim}
         </div>
       </div>
 
@@ -96,10 +90,8 @@ export default function OpenGraphImage() {
           paddingTop: 26,
         }}
       >
-        <div style={{ display: "flex" }}>{RESUME_DATA.location}</div>
-        <div style={{ display: "flex" }}>
-          {displayUrl(RESUME_DATA.personalWebsiteUrl)}
-        </div>
+        <div style={{ display: "flex" }}>{OG_HOME_TEXT.location}</div>
+        <div style={{ display: "flex" }}>{OG_HOME_TEXT.url}</div>
       </div>
     </div>,
     { ...size, fonts: ogFonts() },

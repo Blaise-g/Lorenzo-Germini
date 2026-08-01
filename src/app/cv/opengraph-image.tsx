@@ -1,21 +1,16 @@
 import { ImageResponse } from "next/og";
 
-import { RESUME_DATA } from "@/data/resume-data";
+import { OG_CV_TEXT } from "@/lib/og-card-text";
 import { OG_FONT, ogFonts } from "@/lib/og-fonts";
-import { displayUrl } from "@/lib/utils";
 import { WARM_PRINT } from "@/lib/warm-print";
 
-export const alt = `${RESUME_DATA.name} — Curriculum vitae`;
+export const alt = `${OG_CV_TEXT.name} — ${OG_CV_TEXT.eyebrow}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 const palette = WARM_PRINT.light;
 
 export default function CvOpenGraphImage() {
-  const cvDisplayUrl = displayUrl(
-    new URL("/cv", RESUME_DATA.personalWebsiteUrl).href,
-  );
-
   return new ImageResponse(
     <div
       style={{
@@ -53,7 +48,7 @@ export default function CvOpenGraphImage() {
             textTransform: "uppercase",
           }}
         >
-          Curriculum vitae
+          {OG_CV_TEXT.eyebrow}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <div
@@ -66,7 +61,7 @@ export default function CvOpenGraphImage() {
               lineHeight: 1,
             }}
           >
-            {RESUME_DATA.name}
+            {OG_CV_TEXT.name}
           </div>
           <div
             style={{
@@ -78,7 +73,7 @@ export default function CvOpenGraphImage() {
               maxWidth: 900,
             }}
           >
-            {RESUME_DATA.about}
+            {OG_CV_TEXT.about}
           </div>
         </div>
         <div
@@ -89,7 +84,7 @@ export default function CvOpenGraphImage() {
             fontSize: 20,
           }}
         >
-          {RESUME_DATA.location} · {cvDisplayUrl}
+          {OG_CV_TEXT.meta}
         </div>
       </div>
     </div>,

@@ -40,6 +40,15 @@ nothing generates them from the data. A change to `work`, `projects`, `about` or
 also needs `bun run generate:cv` for the checked-in PDF, with the dev server stopped first:
 it boots its own Next instance and hits the `.next/dev/lock` conflict otherwise.
 
+**The OpenGraph cards draw from subsetted fonts.** `src/assets/fonts` holds subsets cut to
+exactly the characters `src/lib/og-card-text.ts` lists; the full upstream builds sit in
+`vendor/og-fonts`, outside the directory Next's file tracing globs. Card copy therefore goes
+through `og-card-text` rather than `RESUME_DATA` directly, and new copy needs
+`bun run generate:og-fonts` or its unseen characters render as `.notdef` boxes — in a baked
+PNG, where nothing else notices. `build` regenerates the subsets but does not diff them
+against the checked-in ones; the guard against forgetting is the suite reading the shipped
+`cmap` back.
+
 **Measure in a browser before recording a design decision.** Comments and notes about the
 current visual state have been wrong here.
 
