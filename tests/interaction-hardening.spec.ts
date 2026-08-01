@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { revealBackToTop } from "./support/back-to-top";
+import { BACK_TO_TOP_LABEL, revealBackToTop } from "./support/back-to-top";
 import {
   commandPaletteInput,
   openCommandPalette,
@@ -369,6 +369,87 @@ test.describe("command palette", () => {
       await expect(commandPaletteInput(dialog)).toBeFocused();
     });
   }
+});
+
+test.describe("scroll subscriptions", () => {
+  /* Recorded from an init script rather than asserted against the source: what
+     matters is the flag the browser actually received at registration time, and
+     a non-passive scroll listener blocks the compositor until the handler
+     returns — the registration detail that causes touch jank. */
+  async function recordWindowScrollRegistrations(page: Page) {
+    await page.addInitScript(() => {
+      const registrations: { passive: boolean }[] = [];
+      (window as unknown as Record<string, unknown>).__scrollRegistrations =
+        registrations;
+
+      const addEventListener = window.addEventListener.bind(window);
+      window.addEventListener = function patched(
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions,
+      ) {
+        if (type === "scroll") {
+          registrations.push({
+            passive: typeof options === "object" && options.passive === true,
+          });
+        }
+        return addEventListener(
+          type as keyof WindowEventMap,
+          listener as EventListener,
+          options,
+        );
+      } as typeof window.addEventListener;
+    });
+  }
+
+  function scrollRegistrations(page: Page) {
+    return page.evaluate(
+      () =>
+        (window as unknown as { __scrollRegistrations: { passive: boolean }[] })
+          .__scrollRegistrations,
+    );
+  }
+
+  /* 1440 so the rail's gated subscription is live too, 375 so the phone width
+     — where a blocking handler is felt — is covered with only the FAB's. */
+  for (const width of [375, 1440] as const) {
+    test(`every window scroll listener is passive at ${width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await recordWindowScrollRegistrations(page);
+      await page.goto("/");
+
+      /* Both subscriptions register on hydration, and the reveal is the
+         observable proof that the FAB's has: polling on it avoids asserting
+         against an empty list. */
+      await revealBackToTop(page);
+
+      const registrations = await scrollRegistrations(page);
+      expect(
+        registrations.length,
+        "the homepage should register at least one window scroll listener",
+      ).toBeGreaterThan(0);
+      expect(
+        registrations.filter(({ passive }) => !passive),
+        "no window scroll listener should be registered non-passive",
+      ).toEqual([]);
+    });
+  }
+
+  test("back to top hides again below its threshold", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 800 });
+    await page.goto("/");
+
+    await revealBackToTop(page);
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    /* Located by attribute, not by role: once hidden the button leaves the
+       accessibility tree, which is the state under assertion. */
+    await expect(
+      page.locator(`button[aria-label="${BACK_TO_TOP_LABEL}"]`),
+    ).toHaveAttribute("aria-hidden", "true");
+  });
 });
 
 test.describe("keyboard order", () => {
