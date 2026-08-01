@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "next dev --port ${PLAYWRIGHT_PORT:-3200}",
-    "build": "bun run install:cv-browser && bun run generate:og-fonts && bun run generate:cv && next build",
+    "build": "bun run install:cv-browser && bun run generate:brand && bun run generate:og-fonts && bun run generate:cv && next build",
+    "generate:brand": "node scripts/generate-brand-assets.mjs",
     "generate:cv": "node scripts/generate-cv-pdf.mjs",
     "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
