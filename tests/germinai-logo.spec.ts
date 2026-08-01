@@ -12,6 +12,7 @@ const APPROVED_CONCEPT = "vendor/brand/germinai-logo-source.png";
 const WORDMARK_SOURCE = "vendor/brand/germinai-wordmark-source.png";
 const WORDMARK_SQUARE = "public/germinai-wordmark-square.png";
 const WORDMARK = "public/germinai-wordmark.png";
+const SUBSTACK_WORDMARK = "public/germinai-wordmark-substack.png";
 
 const RASTER_ASSETS = [
   { path: "public/icon-192x192.png", size: 192 },
@@ -139,6 +140,37 @@ test.describe("germinai publication mark", () => {
       await imageColors(LOGO_SOURCE),
     );
     expect(await imageColors(WORDMARK)).toEqual(await imageColors(LOGO_SOURCE));
+  });
+
+  test("ships a transparent Substack wordmark at the recommended dimensions", async () => {
+    const { data, info } = await sharp(SUBSTACK_WORDMARK)
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const opaqueColors = new Set<string>();
+    let transparentPixels = 0;
+
+    for (let offset = 0; offset < data.length; offset += info.channels) {
+      const alpha = data[offset + 3];
+      if (alpha === 0) {
+        transparentPixels += 1;
+        continue;
+      }
+      opaqueColors.add(
+        `#${[data[offset], data[offset + 1], data[offset + 2]]
+          .map((channel) => channel.toString(16).padStart(2, "0"))
+          .join("")}`,
+      );
+    }
+
+    expect({
+      channels: info.channels,
+      height: info.height,
+      width: info.width,
+    }).toEqual({ channels: 4, height: 256, width: 1344 });
+    expect(transparentPixels).toBeGreaterThan(info.width * info.height * 0.5);
+    expect(opaqueColors).toEqual(
+      new Set([WARM_PRINT.light.ink, WARM_PRINT.light.accent]),
+    );
   });
 
   test("keeps the growth layer visible at favicon size", async () => {
