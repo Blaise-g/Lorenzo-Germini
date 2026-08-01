@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { useScrollSubscription } from "@/lib/use-scroll-subscription";
 import { cn } from "@/lib/utils";
 
 export type HubDestination = {
@@ -36,68 +37,51 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
      turning the next frame's `scrollHeight` read into a forced reflow. */
   const activeIdRef = React.useRef(activeId);
 
+  /* Resolved once per `destinations` rather than per frame. */
+  const sectionsRef = React.useRef<HTMLElement[]>([]);
+
+  const chooseActiveSection = React.useCallback(() => {
+    const sections = sectionsRef.current;
+    if (sections.length === 0) return;
+
+    const activationLine = window.innerHeight * ACTIVATION_LINE_RATIO;
+    const passed = sections.filter(
+      (section) => section.getBoundingClientRect().top <= activationLine,
+    );
+
+    /* A short final section never reaches the activation line at maximum
+       scroll — measured at 1440×800, `#systems` is 87px tall and stops 368px
+       down the viewport against a 224px line — which left the last
+       destination unreachable rather than merely hard to hit: clicking its own
+       rail link did not mark it. The foot of the document anchors to it. */
+    const next = isAtDocumentFoot()
+      ? sections[sections.length - 1]
+      : (passed.at(-1) ?? sections[0]);
+
+    if (next.id === activeIdRef.current) return;
+    activeIdRef.current = next.id;
+    setActiveId(next.id);
+  }, []);
+
+  /* Re-resolving also re-reads: the subscription itself only resubscribes on its
+     own options, so without this a new `destinations` would leave the marked
+     destination stale until the next scroll. */
   React.useEffect(() => {
-    const sections = destinations.flatMap(({ id }) => {
+    sectionsRef.current = destinations.flatMap(({ id }) => {
       const section = document.getElementById(id);
       return section ? [section] : [];
     });
-    if (sections.length === 0) return;
+    chooseActiveSection();
+  }, [chooseActiveSection, destinations]);
 
-    const chooseActiveSection = () => {
-      const activationLine = window.innerHeight * ACTIVATION_LINE_RATIO;
-      const passed = sections.filter(
-        (section) => section.getBoundingClientRect().top <= activationLine,
-      );
-
-      /* A short final section never reaches the activation line at maximum
-         scroll — measured at 1440×800, `#systems` is 87px tall and stops 368px
-         down the viewport against a 224px line — which left the last
-         destination unreachable rather than merely hard to hit: clicking its own
-         rail link did not mark it. The foot of the document anchors to it. */
-      const next = isAtDocumentFoot()
-        ? sections[sections.length - 1]
-        : (passed.at(-1) ?? sections[0]);
-
-      if (next.id === activeIdRef.current) return;
-      activeIdRef.current = next.id;
-      setActiveId(next.id);
-    };
-
-    let frame = 0;
-    const schedule = () => {
-      if (frame) return;
-      frame = requestAnimationFrame(() => {
-        frame = 0;
-        chooseActiveSection();
-      });
-    };
-
-    /* Scroll-driven rather than an IntersectionObserver: the observer fires only
-       on threshold crossings, so it could fall silent before the page settled at
-       the foot and never report the final position. */
-    const rail = window.matchMedia(RAIL_MEDIA_QUERY);
-    const stopTracking = () => {
-      if (frame) cancelAnimationFrame(frame);
-      frame = 0;
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-    };
-    const trackWhileRailIsPainted = () => {
-      stopTracking();
-      if (!rail.matches) return;
-      window.addEventListener("scroll", schedule, { passive: true });
-      window.addEventListener("resize", schedule);
-      chooseActiveSection();
-    };
-
-    trackWhileRailIsPainted();
-    rail.addEventListener("change", trackWhileRailIsPainted);
-
-    return () => {
-      stopTracking();
-      rail.removeEventListener("change", trackWhileRailIsPainted);
-    };
-  }, [destinations]);
+  /* Scroll-driven rather than an IntersectionObserver: the observer fires only
+     on threshold crossings, so it could fall silent before the page settled at
+     the foot and never report the final position. `resize` because the
+     activation line is a fraction of `innerHeight`. */
+  useScrollSubscription(chooseActiveSection, {
+    alsoOnResize: true,
+    whileMatching: RAIL_MEDIA_QUERY,
+  });
 
   return activeId;
 }
