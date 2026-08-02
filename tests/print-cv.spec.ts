@@ -345,7 +345,16 @@ test.describe("print CV baseline", () => {
             ]);
           }
 
-          for (const project of RESUME_DATA.projects) {
+          /* The homepage grid omits `homepage: false` projects; the CV keeps
+             the complete record. */
+          const printedProjects =
+            route.label === "homepage"
+              ? RESUME_DATA.projects.filter(
+                  (project) => project.homepage !== false,
+                )
+              : RESUME_DATA.projects;
+
+          for (const project of printedProjects) {
             expectFragmentsOnOnePage(pages, `${project.title} project card`, [
               project.title,
               project.description,

@@ -50,9 +50,9 @@ export const RESUME_DATA: ResumeData = {
       },
     },
     earlierRoles:
-      "A Stable Diffusion interior-design MVP — Dreambooth fine-tuning on a hand-curated dataset — killed on the evidence after customer discovery. Burgeon Labs — fine-tuned LMs for abstractive summarisation of biomedical literature, deployed end-to-end. Roche — a gradient-boosted-tree model for fill-parameter tuning on a personalised-medicine prototype, 20% faster than manual. EPFL MSc, Life Sciences Engineering.",
+      "A Stable Diffusion interior-design MVP, killed on the evidence · biomedical-literature summarisation at Burgeon Labs · fill-parameter ML at Roche · EPFL MSc, Life Sciences Engineering",
     systems:
-      "Python · TypeScript · Next.js · Postgres / pgvector · pgai · AWS · OpenAI / Anthropic / Gemini · agentic RAG · evals & tracing · time-series ML",
+      "agent systems · eval harnesses & tracing · end-to-end shipping, coding agents in the loop",
   },
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
   personalWebsiteUrl: CANONICAL_ORIGIN,
@@ -106,7 +106,7 @@ export const RESUME_DATA: ResumeData = {
         "Ship end-to-end AI product features and automation workflows for cross-functional teams.",
       ],
       homepageProof:
-        "Multi-provider LLM infrastructure (OpenAI, Anthropic, Gemini), agentic RAG over ISO documentation, and the evaluation harness that keeps both honest in production.",
+        "The AI engine behind the product: LLM agents doing compliance work over ISO documentation in the background, and the eval harness that shows when they can't be trusted.",
     },
     {
       company: "Stealth GenAI Startup",
@@ -121,7 +121,7 @@ export const RESUME_DATA: ResumeData = {
         "Led engineering for the MVP end-to-end, working directly with the product manager.",
       ],
       homepageProof:
-        "Backend and GenAI API layer from zero on AWS (Lambda, DynamoDB, Amplify); a pgai RAG stack with custom parsing for handwritten input, plus tracing and evals to tune retrieval.",
+        "Backend and GenAI API layer from zero on AWS; a RAG stack with custom parsing for handwritten input, plus the tracing and evals to tune retrieval.",
     },
     {
       company: "GSK",
@@ -190,14 +190,7 @@ export const RESUME_DATA: ResumeData = {
   projects: [
     {
       title: "L'Oracolo della Ghigliottina",
-      techStack: [
-        "Side Project",
-        "Generative AI",
-        "Next.js",
-        "Vercel AI SDK",
-        "Telegram Bot",
-        "WhatsApp Bot",
-      ],
+      techStack: ["Side Project", "Live"],
       description:
         "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words — typed or snapped from the TV — and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.",
       link: {
@@ -214,6 +207,7 @@ export const RESUME_DATA: ResumeData = {
         "Python",
         "Gradio",
       ],
+      homepage: false,
       description:
         "MSc thesis work: an end-to-end pipeline that turns full-text biomedical papers into either a detailed analysis or a TL;DR, tuned on longevity and human-health literature.",
       link: {

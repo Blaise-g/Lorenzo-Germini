@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable oracle for the redesign's binding constraint: no technical proof is lost in the / vs /cv content split. Human rationale lives in retained-proof.md. Derived from src/data/resume-data.tsx at baseline 4ebb010.",
+  "$comment": "Machine-readable oracle for the redesign's binding constraint: no technical proof is lost in the / vs /cv content split. Human rationale lives in retained-proof.md. Derived from src/data/resume-data.tsx at baseline 4ebb010. Amended 2026-08-02 per issue #71's canonical-copy follow-up: the Biomedical Paper Summarizer card and the Ghigliottina stack chips were deliberately removed by the owner, so the four terms the chips alone carried (Next.js, Vercel AI SDK, Telegram, WhatsApp) left the floor with them; the thesis project stayed on the CV surfaces, so its terms (PyTorch, Gradio, full-text) remain protected. Deliberate removal of an artifact is not the accidental softening this manifest guards against.",
   "matching": {
     "target": "concatenated visible text content of the rendered / and /cv routes",
     "caseSensitive": false,
@@ -56,7 +56,6 @@
       "source": "Complaion",
       "acceptedAnyOf": ["automation workflows"]
     },
-
     {
       "id": "aws",
       "source": "Stealth GenAI Startup",
@@ -112,8 +111,11 @@
       "source": "Stealth GenAI Startup",
       "acceptedAnyOf": ["retrieval quality", "tune retrieval"]
     },
-
-    { "id": "python", "source": "GSK", "acceptedAnyOf": ["Python"] },
+    {
+      "id": "python",
+      "source": "GSK",
+      "acceptedAnyOf": ["Python"]
+    },
     {
       "id": "sensor-data",
       "source": "GSK",
@@ -162,7 +164,6 @@
       "source": "GSK",
       "acceptedAnyOf": ["generative AI use cases"]
     },
-
     {
       "id": "stable-diffusion",
       "source": "Self Employed",
@@ -184,7 +185,6 @@
       "acceptedAnyOf": ["preprocessing", "preprocessed"],
       "$comment": "#26 compressed this role to one line: 'a hand-curated dataset of room designs I preprocessed myself'. The proof survives, the gerund did not — alias per the maintenance rule in retained-proof.md."
     },
-
     {
       "id": "biomedical-literature-analysis",
       "source": "Burgeon Labs",
@@ -212,7 +212,6 @@
       "source": "Burgeon Labs",
       "acceptedAnyOf": ["end-to-end pipeline"]
     },
-
     {
       "id": "gradient-boosted-tree",
       "source": "Roche",
@@ -234,49 +233,46 @@
       "source": "Roche",
       "acceptedAnyOf": ["hardware-software integration"]
     },
-
     {
       "id": "skill-generative-ai",
       "source": "skills",
       "acceptedAnyOf": ["Generative AI", "GenAI"]
     },
-    { "id": "skill-llms", "source": "skills", "acceptedAnyOf": ["LLM"] },
-    { "id": "skill-rag", "source": "skills", "acceptedAnyOf": ["RAG"] },
+    {
+      "id": "skill-llms",
+      "source": "skills",
+      "acceptedAnyOf": ["LLM"]
+    },
+    {
+      "id": "skill-rag",
+      "source": "skills",
+      "acceptedAnyOf": ["RAG"]
+    },
     {
       "id": "skill-fullstack",
       "source": "skills",
       "acceptedAnyOf": ["Full-Stack", "Full Stack"]
-    },
-
-    { "id": "nextjs", "source": "projects", "acceptedAnyOf": ["Next.js"] },
-    {
-      "id": "vercel-ai-sdk",
-      "source": "projects",
-      "acceptedAnyOf": ["Vercel AI SDK"]
-    },
-    {
-      "id": "telegram-bot",
-      "source": "projects",
-      "acceptedAnyOf": ["Telegram"]
-    },
-    {
-      "id": "whatsapp-bot",
-      "source": "projects",
-      "acceptedAnyOf": ["WhatsApp"]
     },
     {
       "id": "rate-limiting",
       "source": "projects",
       "acceptedAnyOf": ["rate-limit", "rate limit"]
     },
-    { "id": "pytorch", "source": "projects", "acceptedAnyOf": ["PyTorch"] },
-    { "id": "gradio", "source": "projects", "acceptedAnyOf": ["Gradio"] },
+    {
+      "id": "pytorch",
+      "source": "projects",
+      "acceptedAnyOf": ["PyTorch"]
+    },
+    {
+      "id": "gradio",
+      "source": "projects",
+      "acceptedAnyOf": ["Gradio"]
+    },
     {
       "id": "full-text-articles",
       "source": "projects",
       "acceptedAnyOf": ["full-text research articles", "full-text"]
     },
-
     {
       "id": "typescript",
       "source": "systems-line",
