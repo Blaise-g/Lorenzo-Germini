@@ -104,6 +104,9 @@ export type ResumeData = {
     title: string;
     techStack: string[];
     description: string;
+    /** False keeps the project on the complete-record CV surfaces while the
+     *  homepage grid omits it. Absent means it renders everywhere. */
+    homepage?: boolean;
     link?: {
       label: string;
       href: string;

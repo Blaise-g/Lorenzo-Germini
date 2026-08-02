@@ -241,15 +241,17 @@ export default function Page() {
             data-testid="projects-grid"
             className="grid grid-cols-1 gap-3 lg:-mx-3 lg:grid-cols-2 print:mx-0 print:grid-cols-2 print:gap-2"
           >
-            {RESUME_DATA.projects.map((project) => (
-              <ProjectCard
-                key={project.title}
-                title={project.title}
-                description={project.description}
-                tags={project.techStack}
-                link={"link" in project ? project.link?.href : undefined}
-              />
-            ))}
+            {RESUME_DATA.projects
+              .filter((project) => project.homepage !== false)
+              .map((project) => (
+                <ProjectCard
+                  key={project.title}
+                  title={project.title}
+                  description={project.description}
+                  tags={project.techStack}
+                  link={"link" in project ? project.link?.href : undefined}
+                />
+              ))}
           </div>
         </Section>
 
