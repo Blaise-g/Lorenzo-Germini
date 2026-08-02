@@ -18,8 +18,8 @@ import {
   stubCoverImages,
 } from "./support/writing-fixtures";
 
-const LAUNCH_LINE = /^First essay published/;
-const ARCHIVE_LINK = "Read all essays on Substack →";
+const LAUNCH_LINE = /^First post published/;
+const ARCHIVE_LINK = "Read all posts on Substack →";
 
 async function gotoFixture(page: Page, state: string, query = "") {
   await stubCoverImages(page);
@@ -97,7 +97,7 @@ test.describe("count-aware transitions (locked)", () => {
     await gotoFixture(page, "6");
 
     const moduleBox = await page
-      .getByRole("heading", { name: "Get the essays by email" })
+      .getByRole("heading", { name: "Get the field notes by email" })
       .boundingBox();
     const archiveBox = await page
       .getByRole("link", { name: ARCHIVE_LINK })
@@ -127,12 +127,12 @@ test.describe("failure is absence, never a broken page", () => {
       /* The conversion point survives the failure — this is the surface the
          whole site's primary CTA points at. */
       await expect(
-        page.getByRole("heading", { name: "Get the essays by email" }),
+        page.getByRole("heading", { name: "Get the field notes by email" }),
       ).toBeVisible();
       /* And the page says where the writing is rather than reading as an
          index that broke. */
       await expect(
-        page.getByText(/first essay is not published yet/i),
+        page.getByText(/first post is not published yet/i),
       ).toBeVisible();
 
       expect(failures).toEqual([]);

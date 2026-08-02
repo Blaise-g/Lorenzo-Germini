@@ -261,7 +261,7 @@ test.describe("geometry and the Italian expansion budget", () => {
     await gotoWriting(page, "1", "?lang=it");
 
     await expect(
-      page.getByRole("heading", { name: "Ricevi i saggi via email" }),
+      page.getByRole("heading", { name: "Ricevi gli appunti via email" }),
     ).toBeVisible();
     const submit = page.getByRole("button", { name: "Continua su Substack →" });
     const box = await submit.boundingBox();
@@ -339,12 +339,12 @@ test.describe("Substack link budget (decision 6, locked)", () => {
     await gotoWriting(page, "6");
 
     const archive = page.getByRole("link", {
-      name: "Read all essays on Substack →",
+      name: "Read all posts on Substack →",
     });
     await expect(archive).toBeVisible();
 
     const moduleBox = await page
-      .getByRole("heading", { name: "Get the essays by email" })
+      .getByRole("heading", { name: "Get the field notes by email" })
       .boundingBox();
     const archiveBox = await archive.boundingBox();
     if (!moduleBox || !archiveBox) throw new Error("surfaces not laid out");
@@ -352,7 +352,7 @@ test.describe("Substack link budget (decision 6, locked)", () => {
 
     await gotoWriting(page, "1");
     await expect(
-      page.getByRole("link", { name: "Read all essays on Substack →" }),
+      page.getByRole("link", { name: "Read all posts on Substack →" }),
     ).toHaveCount(0);
   });
 });

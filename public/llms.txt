@@ -1,12 +1,12 @@
 # Lorenzo Germini
 
-> AI Product Engineer shipping production systems end-to-end across compliance, health, and education. Based in Turin, Italy.
+> AI Product Engineer shipping AI products end-to-end across compliance, health, and education. Based in Turin, Italy.
 
 ## Profile
 
-I'm an AI product engineer: I take LLM systems from idea to production and stay responsible for the whole path — the infrastructure, the product decisions, and whether the thing actually helps anyone.
+I'm an AI product engineer: I ship AI products end-to-end — from the models and infrastructure to the interface people actually touch — and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
 
-Right now that means building the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications: multi-provider LLM infrastructure, agentic RAG, and the evals that keep both honest. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line: technical depth only matters when it connects to a real user problem.
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem isn't the plumbing — it's making the agents working in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed — technical depth only matters when it meets a real user problem.
 
 Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.
 

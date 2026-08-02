@@ -68,9 +68,13 @@ export default function Page() {
   /* Roles without hand-written homepage proof fold into one earlier line rather
      than rendering a CV bullet the homepage was not written for. */
   const provenRoles = RESUME_DATA.work.filter((work) => work.homepageProof);
-  const earlierRolesSpan = RESUME_DATA.work
-    .filter((work) => !work.homepageProof)
-    .map((work) => work.start.slice(-4));
+  /* Oldest start year to newest end year, so a folded role that ran into a
+     later year is not undersold by its start date. */
+  const foldedRoles = RESUME_DATA.work.filter((work) => !work.homepageProof);
+  const earlierRolesSpan = [
+    (foldedRoles.at(0)?.end ?? foldedRoles.at(0)?.start)?.slice(-4),
+    foldedRoles.at(-1)?.start.slice(-4),
+  ];
 
   return (
     <>
@@ -147,7 +151,7 @@ export default function Page() {
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Read the essay →
+                Read the field note →
               </a>
             </p>
           </article>
