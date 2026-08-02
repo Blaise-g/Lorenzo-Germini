@@ -1,3 +1,4 @@
+import type { APIRequestContext } from "@playwright/test";
 import { expect, test } from "@playwright/test";
 
 import nextConfig from "@/../next.config";
@@ -140,19 +141,84 @@ test.describe("canonical host lockstep", () => {
   });
 });
 
-/* Host rules never fire on localhost, so the shipped behaviour is only
-   verifiable with `curl` against production (#76's definition of done). What is
-   checkable here is the configuration itself, and the polarity is the part that
-   matters: #68 chose 307 for the publication host precisely because a 308
-   cached in the wild would outlive the later flip to a Substack custom domain,
-   and that distinction is one boolean deep. */
+/* The rules match on the `Host` header, so the shipped behaviour is reachable
+   without a deploy: send the header a browser would never let you set and the
+   real rule runs against the real server. That is what these assert — status
+   line and `location`, the same evidence #76's definition of done asks `curl`
+   for in production.
+
+   The polarity is the part that matters most: #68 chose 307 for the publication
+   hosts precisely because a 308 cached in the wild would outlive the later flip
+   to a Substack custom domain, and that distinction is one boolean deep. */
 test.describe("retired-host redirects", () => {
+  /** No redirect following: `location` is the assertion, and it points off-box. */
+  async function head(request: APIRequestContext, host: string, path: string) {
+    const response = await request.get(path, {
+      headers: { host },
+      maxRedirects: 0,
+    });
+    return { status: response.status(), location: response.headers().location };
+  }
+
+  for (const host of ["germinai.xyz", "www.germinai.xyz"]) {
+    test(`${host} sends every path to the essay index, temporarily`, async ({
+      request,
+    }) => {
+      /* Every path, not just `/`: the publication host is a doorway to the
+         writing, not a mirror of the site, so `/cv` lands there too. */
+      for (const path of ["/", "/cv", "/writing", "/deep/unknown"]) {
+        expect(await head(request, host, path), `${host}${path}`).toEqual({
+          status: 307,
+          location: `${CANONICAL_ORIGIN}/writing`,
+        });
+      }
+    });
+  }
+
+  test(`${retiredHost} keeps its paths, permanently`, async ({ request }) => {
+    for (const [path, destination] of [
+      ["/", CANONICAL_ORIGIN],
+      ["/cv", `${CANONICAL_ORIGIN}/cv`],
+      ["/writing", `${CANONICAL_ORIGIN}/writing`],
+    ]) {
+      expect(
+        await head(request, retiredHost, path),
+        `links already in the wild should survive: ${path}`,
+      ).toEqual({ status: 308, location: destination });
+    }
+  });
+
+  /* The complement of the two tests above: they prove the sanctioned hosts do
+     redirect, this proves nobody else does. A preview deployment or the local
+     dev server picking up a rule would take the suite off-site. */
+  test("no other host is redirected", async ({ request }) => {
+    for (const host of [
+      new URL(CANONICAL_ORIGIN).host,
+      "localhost:3200",
+      "lorenzo-germini-git-some-branch.vercel.app",
+      "evil-germinai.xyz",
+      "germinai.xyz.example.com",
+    ]) {
+      const { status } = await head(request, host, "/");
+      expect(status, `${host} should be served, not redirected`).toBe(200);
+    }
+  });
+
   async function redirectRules() {
     const redirects = nextConfig.redirects;
     expect(redirects, "next.config should declare redirects").toBeTruthy();
     return await redirects!();
   }
 
+  /* Sampling hosts can only ever prove the ones sampled. Reading the rule set
+     itself is what makes "nothing else redirects" exhaustive.
+
+     These two also cover a staleness hole in the HTTP tests above: the dev
+     server restarts when `next.config.ts` changes but not when the imported
+     `site-hosts.ts` does, so against a long-running local server an edit to the
+     host constants can leave the HTTP tests asserting against rules the server
+     compiled minutes ago. This spec reads the config in-process, so it is
+     always looking at the current source. */
   test("every rule is gated on an exact production host", async () => {
     const rules = await redirectRules();
 
@@ -176,38 +242,17 @@ test.describe("retired-host redirects", () => {
     }
   });
 
-  test("the publication hosts land on the essay index, temporarily", async () => {
+  /* #68 named both publication hosts. A rule set that silently stopped
+     covering the `www.` one would still pass every test above that samples it
+     — this is what notices the rule is gone rather than the sample. */
+  test("both publication hosts and the retired host have a rule", async () => {
     const rules = await redirectRules();
-
-    /* The literals, not `PUBLICATION_HOSTS`: #68 named these two hosts, and a
-       rule that silently stopped covering `www.` should fail here. */
-    for (const host of ["germinai.xyz", "www.germinai.xyz"]) {
-      const rule = rules.find((candidate) =>
-        candidate.has?.some((condition) => condition.value === host),
-      );
-
-      expect(rule, `${host} should redirect`).toBeTruthy();
-      expect(rule!.destination).toBe(`${CANONICAL_ORIGIN}/writing`);
-      expect(
-        rule!.permanent,
-        "a permanent redirect would outlive #68's open decision to move the publication",
-      ).toBe(false);
-    }
-  });
-
-  test("the retired deployment host keeps its paths, permanently", async () => {
-    const rules = await redirectRules();
-
-    const rule = rules.find((candidate) =>
-      candidate.has?.some((condition) => condition.value === retiredHost),
+    const gatedHosts = rules.flatMap((rule) =>
+      (rule.has ?? []).map((condition) => condition.value),
     );
 
-    expect(rule, `${retiredHost} should redirect`).toBeTruthy();
-    expect(rule!.source).toBe("/:path*");
-    expect(
-      rule!.destination,
-      "links already in the wild should survive the move",
-    ).toBe(`${CANONICAL_ORIGIN}/:path*`);
-    expect(rule!.permanent).toBe(true);
+    expect(gatedHosts.sort()).toEqual(
+      ["germinai.xyz", "www.germinai.xyz", retiredHost].sort(),
+    );
   });
 });
