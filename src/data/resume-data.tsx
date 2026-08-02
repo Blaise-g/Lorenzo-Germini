@@ -1,4 +1,5 @@
 import { GitHubIcon, LinkedInIcon, XIcon } from "@/components/icons";
+import { CANONICAL_ORIGIN } from "@/lib/site-hosts";
 import { ResumeData } from "./resume-data.types";
 
 export const RESUME_DATA: ResumeData = {
@@ -54,7 +55,7 @@ export const RESUME_DATA: ResumeData = {
       "Python · TypeScript · Next.js · Postgres / pgvector · pgai · AWS · OpenAI / Anthropic / Gemini · agentic RAG · evals & tracing · time-series ML",
   },
   avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
-  personalWebsiteUrl: "https://lorenzo-germini.vercel.app/",
+  personalWebsiteUrl: CANONICAL_ORIGIN,
   contact: {
     email: "lorenzo.germini@icloud.com",
     tel: "+393279220232",

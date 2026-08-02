@@ -1,5 +1,10 @@
 import type { NextConfig } from "next";
 
+import {
+  CANONICAL_ORIGIN,
+  PUBLICATION_HOSTS,
+  RETIRED_DEPLOYMENT_HOST,
+} from "./src/lib/site-hosts";
 import { SUBSTACK_IMAGE_HOSTS } from "./src/lib/substack-image-hosts";
 
 const nextConfig: NextConfig = {
@@ -13,6 +18,32 @@ const nextConfig: NextConfig = {
       revalidate: 300,
       expire: 900,
     },
+  },
+  /* #68 option B: `lorenzogermini.com` is the one canonical host and the other
+     three fold into it. Every rule is `has`-gated on an exact production host,
+     so preview deployments — and localhost, which matches no rule — are
+     untouched and the Playwright suite never sees a redirect. */
+  async redirects() {
+    return [
+      /* The publication's vanity host is a doorway to the essay index, not a
+         mirror of the site: every path lands on `/writing`. Deliberately 307
+         and not 308 — #68 keeps the flip to a Substack custom domain open, and
+         a permanent redirect cached in the wild would outlive the decision. */
+      ...PUBLICATION_HOSTS.map((host) => ({
+        source: "/:path*",
+        has: [{ type: "host" as const, value: host }],
+        destination: `${CANONICAL_ORIGIN}/writing`,
+        permanent: false,
+      })),
+      /* The retired deployment host keeps its paths, so links already in the
+         wild survive the move. Permanent: this one is never coming back. */
+      {
+        source: "/:path*",
+        has: [{ type: "host" as const, value: RETIRED_DEPLOYMENT_HOST }],
+        destination: `${CANONICAL_ORIGIN}/:path*`,
+        permanent: true,
+      },
+    ];
   },
   images: {
     remotePatterns: [

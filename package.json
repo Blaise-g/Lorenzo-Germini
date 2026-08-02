@@ -13,6 +13,7 @@
     "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
+    "verify:hosts": "bun run scripts/verify-production-hosts.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

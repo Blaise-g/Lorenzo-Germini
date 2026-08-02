@@ -4,6 +4,10 @@ import { RESUME_DATA } from "@/data/resume-data";
 
 import { contrast } from "./support/color";
 import { openCommandPalette } from "./support/command-palette";
+import {
+  collectIdentitySurfaces,
+  IDENTITY_MANIFESTS,
+} from "./support/identity-surfaces";
 import { setTheme, themes } from "./support/theme";
 
 /* WCAG 2.1 AA for text below 18.66px (the large-text threshold at normal
@@ -319,7 +323,7 @@ test.describe("faint metadata legibility", () => {
    claiming the retired one. */
 test.describe("identity lockstep", () => {
   const retiredRoleLabel = "Full-Stack AI Engineer";
-  const manifests = ["/llms.txt", "/llms-full.txt"] as const;
+  const manifests = IDENTITY_MANIFESTS;
 
   /* Agreement with the data module, not a literal: the wording is the owner's
      to rewrite, and this should still hold afterwards. Both `about` and
@@ -357,40 +361,7 @@ test.describe("identity lockstep", () => {
     request,
   }) => {
     await page.goto("/");
-
-    const surfaces: { name: string; text: string }[] = [
-      { name: "document title", text: await page.title() },
-      {
-        name: "meta description",
-        text:
-          (await page
-            .locator('meta[name="description"]')
-            .getAttribute("content")) ?? "",
-      },
-      {
-        name: "og:title",
-        text:
-          (await page
-            .locator('meta[property="og:title"]')
-            .getAttribute("content")) ?? "",
-      },
-      {
-        name: "JSON-LD",
-        text: (
-          await page
-            .locator('script[type="application/ld+json"]')
-            .allTextContents()
-        ).join("\n"),
-      },
-      { name: "rendered page", text: await page.locator("body").innerText() },
-    ];
-
-    for (const manifest of manifests) {
-      surfaces.push({
-        name: manifest,
-        text: await (await request.get(manifest)).text(),
-      });
-    }
+    const surfaces = await collectIdentitySurfaces(page, request, manifests);
 
     expect(
       surfaces.filter(({ text }) => text.includes(retiredRoleLabel)),
