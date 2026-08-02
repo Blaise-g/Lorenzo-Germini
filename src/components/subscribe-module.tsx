@@ -29,9 +29,9 @@ type Copy = {
 };
 
 const EN: Copy = {
-  heading: "Get the essays by email",
+  heading: "Get the field notes by email",
   standfirst:
-    "Frontier AI, startups, and the business consequences of both. Roughly fortnightly, no other list.",
+    "Field notes from building with AI, and on the people building on it. When there's something worth the send, no other list.",
   label: "Email address",
   placeholder: "you@company.com",
   button: "Continue on Substack →",
@@ -44,9 +44,9 @@ const EN: Copy = {
 /* Italian, for the ~30–40% text-expansion budget. Measured on the rendered
    page rather than estimated. */
 const IT: Copy = {
-  heading: "Ricevi i saggi via email",
+  heading: "Ricevi gli appunti via email",
   standfirst:
-    "AI di frontiera, startup e le conseguenze economiche di entrambe. Circa ogni due settimane, nessun’altra lista.",
+    "Appunti da chi costruisce con l’AI, e sulle persone che ci costruiscono sopra. Quando c’è qualcosa che vale l’invio, nessun’altra lista.",
   label: "Indirizzo email",
   placeholder: "tu@azienda.com",
   button: "Continua su Substack →",

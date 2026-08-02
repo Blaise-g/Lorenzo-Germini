@@ -12,17 +12,17 @@ export const RESUME_DATA: ResumeData = {
     url: "https://lorenzogermini.substack.com",
   },
   about:
-    "AI Product Engineer shipping production systems end-to-end across compliance, health, and education",
+    "AI Product Engineer shipping AI products end-to-end across compliance, health, and education",
   summary:
-    "I'm an AI product engineer: I take LLM systems from idea to production and stay responsible for the whole path — the infrastructure, the product decisions, and whether the thing actually helps anyone.\n\nRight now that means building the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications: multi-provider LLM infrastructure, agentic RAG, and the evals that keep both honest. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line: technical depth only matters when it connects to a real user problem.\n\nOutside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+    "I'm an AI product engineer: I ship AI products end-to-end — from the models and infrastructure to the interface people actually touch — and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem isn't the plumbing — it's making the agents working in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed — technical depth only matters when it meets a real user problem.\n\nOutside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
   writingPage: {
     standfirst:
-      "Essays on frontier AI, the companies being built on it, and what it does to the economics of software. Published on germinai.",
-    cadence: "new ones roughly fortnightly",
+      "Field notes from building with AI, and on the people building on it. No definitive guides — the advice changes every two days anyway. Published on germinai.",
+    cadence: "new ones when there's something worth the send",
     awaitingFirst:
-      "The first essay is not published yet. Subscribe below and it arrives the day it does.",
-    leadCta: "Read the essay →",
-    archiveLabel: "Read all essays on Substack →",
+      "The first post is not published yet. Subscribe below and it arrives the day it does.",
+    leadCta: "Read the field note →",
+    archiveLabel: "Read all posts on Substack →",
   },
   homepage: {
     hero: {
@@ -32,7 +32,7 @@ export const RESUME_DATA: ResumeData = {
         trail: ".",
       },
       subhead:
-        "Right now that's the agentic RAG engine and multi-provider LLM infrastructure (OpenAI, Claude, Gemini) behind Complaion, a compliance platform for ISO certifications. Before that: pharma manufacturing, digital health, and a GenAI startup.",
+        "Right now that's the AI engine behind Complaion, a compliance platform for ISO certifications — LLM agents doing real compliance work in the background, and the evals that show when they can't be trusted. Before that: pharma manufacturing, digital health, and a GenAI startup.",
       cta: "Start with the writing ↓",
     },
     writing: {
@@ -50,7 +50,7 @@ export const RESUME_DATA: ResumeData = {
       },
     },
     earlierRoles:
-      "Burgeon Labs — fine-tuned LMs for abstractive summarisation of biomedical literature, deployed end-to-end. Roche — a gradient-boosted-tree model for fill-parameter tuning on a personalised-medicine prototype, 20% faster than manual. EPFL MSc, Life Sciences Engineering.",
+      "A Stable Diffusion interior-design MVP — Dreambooth fine-tuning on a hand-curated dataset — killed on the evidence after customer discovery. Burgeon Labs — fine-tuned LMs for abstractive summarisation of biomedical literature, deployed end-to-end. Roche — a gradient-boosted-tree model for fill-parameter tuning on a personalised-medicine prototype, 20% faster than manual. EPFL MSc, Life Sciences Engineering.",
     systems:
       "Python · TypeScript · Next.js · Postgres / pgvector · pgai · AWS · OpenAI / Anthropic / Gemini · agentic RAG · evals & tracing · time-series ML",
   },
@@ -148,8 +148,6 @@ export const RESUME_DATA: ResumeData = {
       description: [
         "Taught math and physics at my old high school; built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself, then killed it on the evidence after customer discovery.",
       ],
-      homepageProof:
-        "A Stable Diffusion interior-design MVP with Dreambooth fine-tuning on a hand-curated dataset — then killed on the evidence after customer discovery.",
     },
     {
       company: "Burgeon Labs",

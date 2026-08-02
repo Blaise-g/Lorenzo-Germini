@@ -101,7 +101,7 @@ test.describe("Cache Components prerender baseline", () => {
         "Writing",
       );
       await expect(
-        page.getByRole("heading", { name: "Get the essays by email" }),
+        page.getByRole("heading", { name: "Get the field notes by email" }),
       ).toBeVisible();
     }
   });

@@ -154,7 +154,7 @@ function CountAwareLine({ essays }: { essays: Essay[] }) {
   const line =
     essays.length === 0
       ? writingPage.awaitingFirst
-      : `First essay published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
+      : `First post published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
 
   return (
     <p className={cn("text-faint animate-fade-in-up mt-3", meta)}>{line}</p>
