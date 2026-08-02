@@ -32,4 +32,4 @@ Allow: /
 User-agent: DeepSeekBot
 Allow: /
 
-Sitemap: https://lorenzo-germini.vercel.app/sitemap.xml
+Sitemap: https://lorenzogermini.com/sitemap.xml

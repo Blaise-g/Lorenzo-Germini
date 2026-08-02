@@ -24,6 +24,10 @@ import { formatEssayDate } from "@/lib/substack-feed";
 export const metadata: Metadata = {
   title: `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
   description: RESUME_DATA.summary,
+  /* The retired hosts 308 here rather than disappearing, so `/` needs the same
+     self-canonical `/cv` and `/writing` already carry — otherwise the redirect
+     source stays indexable as a duplicate of this page. */
+  alternates: { canonical: RESUME_DATA.personalWebsiteUrl },
 };
 
 const HUB_SECTIONS = {

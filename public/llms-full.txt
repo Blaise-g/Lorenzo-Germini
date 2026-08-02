@@ -14,7 +14,7 @@ Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneur
 
 - Email: lorenzo.germini@icloud.com
 - Phone: +393279220232
-- Website: https://lorenzo-germini.vercel.app/
+- Website: https://lorenzogermini.com
 - GitHub: https://github.com/Blaise-g
 - LinkedIn: https://www.linkedin.com/in/lorenzogermini/
 - X/Twitter: https://twitter.com/spleenboi_
@@ -84,4 +84,4 @@ Link: https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-su
 germinai -- field notes from building with AI. No definitive guides: things I tried, what broke, and what earned its place.
 Publication: https://lorenzogermini.substack.com
 Feed: https://lorenzogermini.substack.com/feed
-Index: https://lorenzo-germini.vercel.app/writing -- the essays listed on this site; each one links out to Substack, which hosts the full text
+Index: https://lorenzogermini.com/writing -- the essays listed on this site; each one links out to Substack, which hosts the full text
