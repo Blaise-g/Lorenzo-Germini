@@ -31,8 +31,16 @@ export function ThemeToggle() {
       variant="secondary"
       size="icon"
       onClick={toggleTheme}
+      /* A stable hook, because the accessible name is state now and the suite
+         locates this control for chrome geometry rather than for its label. */
+      data-testid="theme-toggle"
       className="hover:border-accent hover:text-ink fixed top-4 right-4 z-50 rounded-full print:hidden"
-      aria-label="Toggle theme"
+      /* The icon is the only state indicator, and it is invisible to a screen
+         reader: a static "Toggle theme" left a user unable to tell which mode
+         was on. `aria-pressed` reports it, and the label names the mode the
+         control is in rather than the action, so the two agree. */
+      aria-label={theme === "dark" ? "Dark mode" : "Light mode"}
+      aria-pressed={theme === "dark"}
     >
       {theme === "light" ? (
         <Moon className="transition-refined h-4 w-4" />

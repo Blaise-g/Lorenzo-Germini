@@ -21,6 +21,9 @@ export function ProjectCard({ title, description, tags, link }: Props) {
         <div className="space-y-1">
           <CardTitle className="font-display text-base font-semibold">
             {link ? (
+              /* No pulsing dot beside the title: it duplicated the "Live" badge
+                 three lines below with no legend of its own, so the only thing
+                 it added was perpetual motion. */
               <a
                 href={link}
                 target="_blank"
@@ -28,13 +31,15 @@ export function ProjectCard({ title, description, tags, link }: Props) {
                 className="touch-target transition-refined group-hover:text-accent items-center gap-1.5 hover:underline"
               >
                 {title}
-                <span className="bg-accent/60 size-1.5 animate-pulse rounded-full" />
               </a>
             ) : (
               title
             )}
           </CardTitle>
-          <CardDescription className="text-xs print:text-[12px]">
+          {/* 14px, matching the Work proof line above it. At 12px this was the
+              smallest, tightest type on the homepage — in the section holding
+              the shipped artefacts. */}
+          <CardDescription className="text-sm print:text-[12px]">
             {description}
           </CardDescription>
         </div>

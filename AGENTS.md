@@ -26,6 +26,14 @@ value; missing from the print block, print keeps whatever mode was on screen —
 up only under print emulation. Dark mode is class-based via `@variant dark`. PostCSS uses
 `@tailwindcss/postcss`, not `tailwindcss` + `autoprefixer`.
 
+The hand-written component utilities in that file are split across `@layer
+components` and `@layer utilities`, and a new one has to pick a side. Put it in
+`components` if a utility should beat it — `.touch-target` has to lose to
+`print:hidden`, and unlayered or in `utilities` it wins instead and the element
+prints. Put it in `utilities` if it has to beat a utility — `.primary-control:hover`
+is `(0,2,0)` against `bg-accent`, so it only darkens the fill from there. Never
+bare: unlayered beats every layer regardless of specificity.
+
 **One dev server per repo, so `dev` and the test runner share port 3200.** Next holds a
 lock at `.next/dev/lock` for the working directory, not the port — a second `next dev` here
 cannot start on any port, so the suite reuses the one you already have running, and its port

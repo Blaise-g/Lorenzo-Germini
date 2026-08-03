@@ -142,31 +142,96 @@ html {
 }
 
 /* ─── Component utilities ─── */
-.touch-target {
-  display: inline-flex;
-  min-width: 1.5rem;
-  min-height: 1.5rem;
-  align-items: center;
+/* These used to be declared bare, outside every layer, and an unlayered rule
+   beats every layered one regardless of specificity. Tailwind v4 emits its
+   utilities into `@layer utilities`, so an unlayered `.touch-target` made
+   `hidden`, `lg:hidden` and `print:hidden` unable to hide anything carrying it —
+   measured, the homepage hero CTA computed `display: flex` under print emulation
+   and printed.
+   They are split across two layers rather than gathered into one, because the two
+   halves want opposite outcomes against a utility of the same specificity:
+
+   `components` (before `utilities`): every utility wins. `.touch-target` has to
+   lose to `hidden` — that is the whole fix. Note `@layer utilities` would *not*
+   have fixed it: same layer, same specificity, so source order decides, and this
+   file is appended after Tailwind's own utilities.
+
+   `utilities`: specificity decides, and these need to win. `.primary-control:hover`
+   is `(0,2,0)` against `bg-accent`'s `(0,1,0)`, so it beats the fill it is meant
+   to darken. Put in `components` it silently lost, and the one filled control in
+   the system stopped reacting to hover at all. */
+@layer components {
+  .touch-target {
+    position: relative;
+    display: inline-flex;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    align-items: center;
+  }
+
+  /* Thumbs, not conformance. 24px already passes WCAG 2.2 SC 2.5.8; this takes
+     the *hit* area to 44px without touching the box, because raising
+     `min-height` to 2.75rem would reflow the footer row, the CV address block
+     and the section nav — a visible composition change to fix an invisible one.
+     Centred on the target so the expansion is symmetric, and transparent so it
+     changes nothing that is painted. */
+  .touch-target::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    min-width: 44px;
+    min-height: 44px;
+    translate: -50% -50%;
+  }
 }
 
-.card-hover {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
+@layer utilities {
+  /* The portrait's monochrome. `grayscale(1)` alone lands neutral grey against
+     the `ground` role, which is the one place the system's "warm" claim visibly
+     breaks — and it breaks harder the larger the portrait gets.
+     Sampled through the same filter the page applies, these values put the
+     studio backdrop at h=39 — light `ground`'s own hue, to the degree — with the
+     skin and the vest at h=35/36 and the frame two lightness points below
+     ground, so it reads as an object on the page rather than a hole in it. The
+     `brightness` step comes first to give the near-white backdrop headroom:
+     without it the sepia pass drove the highlights to h=60, a green-yellow
+     nothing else on the site goes near. */
+  .portrait-warm {
+    filter: grayscale(1) brightness(0.95) sepia(0.32) saturate(1.2)
+      hue-rotate(-5deg);
+  }
 
-.card-hover:hover {
-  transform: translateY(-2px);
-}
+  /* Dark keeps the same hue and knocks the value back, near the essay covers'
+     established `brightness-[0.82]` rather than inventing a second scale: a
+     near-white studio backdrop is the brightest thing on a dark `ground`, and
+     this frame is larger and more permanent than a cover. */
+  .dark .portrait-warm {
+    filter: grayscale(1) brightness(0.78) sepia(0.32) saturate(1.2)
+      hue-rotate(-5deg);
+  }
 
-.transition-refined {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
+  .card-hover {
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 
-.primary-control:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--color-accent) 92%,
-    var(--color-ink)
-  );
+  .card-hover:hover {
+    transform: translateY(-2px);
+  }
+
+  .transition-refined {
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .primary-control:hover {
+    background-color: color-mix(
+      in srgb,
+      var(--color-accent) 92%,
+      var(--color-ink)
+    );
+  }
 }
 
 @page {
@@ -244,6 +309,17 @@ html {
     transition: none !important;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  /* Both selectors, because the dark rule is a filter rather than a token: the
+     print token block below reassigns colours for `.dark` but cannot reach a
+     `filter`, so printing from dark mode would otherwise put the knocked-back
+     portrait on white paper. This is the same class of drift the token block
+     guards against, one property short of it. */
+  .portrait-warm,
+  .dark .portrait-warm {
+    filter: grayscale(1) sepia(0.28) saturate(1.2) hue-rotate(-8deg)
+      contrast(1.05);
   }
 
   /* ─── Print color overrides ─── */

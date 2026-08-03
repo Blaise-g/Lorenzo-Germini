@@ -47,11 +47,6 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "avatars.githubusercontent.com",
-        pathname: "/**",
-      },
       /* Substack cover art. `<enclosure>` reports `length="0"` and carries no
          intrinsic dimensions, so the index renders every cover with `fill` and
          a fixed aspect ratio. The feed parser drops a cover from any host not

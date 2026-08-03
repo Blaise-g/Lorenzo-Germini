@@ -86,6 +86,19 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
   return activeId;
 }
 
+/** Deliberately without `touch-target`, for the same reason as the footer's
+ *  colophon links: the rail's rows sit on a 28px pitch, so a centred 44px
+ *  overlay reaches 8px into each neighbour — measured at 1024, six links deep.
+ *  Widening the pitch to 44px instead would add 96px to a rail that already has
+ *  to keep `CV →` inside an 800px viewport.
+ *  It costs nothing to give up: the rail is `hidden lg:block`, and each row is a
+ *  220×28px target — well past WCAG 2.2 SC 2.5.8's 24×24 — while the 44px
+ *  expansion exists for thumbs at 375, where this nav does not render at all.
+ *  The floor is still stated explicitly, because `py-1.5` on 12px type is the
+ *  only thing holding it. */
+const railLinkClass =
+  "inline-flex min-h-6 items-center border-l py-1.5 pl-3 underline-offset-4";
+
 export function StickyRailNavigation({
   destinations,
 }: {
@@ -105,9 +118,13 @@ export function StickyRailNavigation({
           <a
             key={id}
             href={`#${id}`}
-            aria-current={isActive ? "true" : undefined}
+            /* `location`, not `true`: this marks a position within the page,
+               which is the token's exact meaning. `true` is the generic
+               fallback and tells a screen reader less. */
+            aria-current={isActive ? "location" : undefined}
             className={cn(
-              "touch-target hover:text-accent border-l py-1.5 pl-3 underline-offset-4 transition-colors hover:underline",
+              railLinkClass,
+              "hover:text-accent transition-colors hover:underline",
               isActive
                 ? "border-l-accent text-accent"
                 : "text-faint border-l-transparent",
@@ -119,7 +136,10 @@ export function StickyRailNavigation({
       })}
       <a
         href="/cv"
-        className="touch-target text-accent decoration-border hover:decoration-accent mt-3 border-l border-l-transparent py-1.5 pl-3 underline underline-offset-4"
+        className={cn(
+          railLinkClass,
+          "text-accent decoration-border hover:decoration-accent mt-3 border-l-transparent underline",
+        )}
       >
         CV →
       </a>

@@ -104,7 +104,7 @@ test.describe("responsive hub shell", () => {
   }
 
   for (const width of desktopWidths) {
-    test(`${width}px uses the 220px sticky rail and two-column projects`, async ({
+    test(`${width}px uses the 220px sticky rail and a measure-aligned Projects grid`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 800 });
@@ -135,12 +135,34 @@ test.describe("responsive hub shell", () => {
       expect(railMetrics.position).toBe("sticky");
       expect(railMetrics.top).toBeGreaterThanOrEqual(24);
 
+      /* The grid follows the count rather than always being two-up (#86): one
+         320px card in a 652px two-column row read as a section that had failed
+         to load, with a left edge 12px outside every sibling's. Under two
+         homepage-visible projects it collapses to one column on the reading
+         measure; from two it holds the wider two-column box. */
+      const homepageProjects = RESUME_DATA.projects.filter(
+        (project) => project.homepage !== false,
+      ).length;
       const projectGrid = page.getByTestId("projects-grid");
       const projectColumns = await projectGrid.evaluate(
         (element) =>
           getComputedStyle(element).gridTemplateColumns.split(" ").length,
       );
-      expect(projectColumns).toBe(2);
+      expect(projectColumns).toBe(homepageProjects < 2 ? 1 : 2);
+
+      /* The defect the collapse exists to fix: the grid's left edge has to line
+         up with every other section's, not sit outside it. */
+      const edges = await page.evaluate(() => {
+        const grid = document.querySelector('[data-testid="projects-grid"]')!;
+        const sibling = document.querySelector(
+          '[data-reading-measure="true"]',
+        )!;
+        return {
+          grid: grid.getBoundingClientRect().left,
+          sibling: sibling.getBoundingClientRect().left,
+        };
+      });
+      expect(Math.abs(edges.grid - edges.sibling)).toBeLessThanOrEqual(1);
     });
   }
 
@@ -301,11 +323,12 @@ test.describe("responsive hub shell", () => {
     /* Writing is the first destination since #26 made it the page's single
        primary CTA, so it is what a page at scroll position 0 marks current. */
     const writingLink = railNav.getByRole("link", { name: "Writing" });
-    await expect(writingLink).toHaveAttribute("aria-current", "true");
+    /* `location`, not `true`: the token for a position within the page. */
+    await expect(writingLink).toHaveAttribute("aria-current", "location");
 
     await page.locator("#work").scrollIntoViewIfNeeded();
     await expect
-      .poll(() => railNav.locator('[aria-current="true"]').textContent())
+      .poll(() => railNav.locator('[aria-current="location"]').textContent())
       .toBe("Work");
 
     /* Polled, not read once: `border-left-color` is a transitioning property, so
@@ -313,7 +336,7 @@ test.describe("responsive hub shell", () => {
        start value — the colour the link is leaving, not the one it is taking. */
     await expect
       .poll(() =>
-        railNav.locator('[aria-current="true"]').evaluate((element) => {
+        railNav.locator('[aria-current="location"]').evaluate((element) => {
           const style = getComputedStyle(element);
           const root = getComputedStyle(document.documentElement);
           const probe = document.createElement("span");
@@ -385,7 +408,7 @@ test.describe("responsive hub shell", () => {
     ).toBeGreaterThan(geometry.activationLine);
 
     await expect
-      .poll(() => railNav.locator('[aria-current="true"]').textContent())
+      .poll(() => railNav.locator('[aria-current="location"]').textContent())
       .toBe("Systems");
   });
 
@@ -484,5 +507,133 @@ test.describe("responsive hub shell", () => {
       visualOrder.map(({ label }) => label),
     );
     expect(inFlowTargets[0]?.top).toBeLessThanOrEqual(800);
+  });
+});
+
+/* #86 item 2 and item 5, which are the same defect from two directions: the
+   masthead held ~600px of dead space between the name and the role at 1024,
+   while `/writing` had zero inbound links from this page at any breakpoint — the
+   homepage's designated primary CTA pointed at the publication and the one
+   honest surface was unreachable. The route links occupy the dead space, and the
+   Writing section's `All writing →` covers the phone. */
+test.describe("the masthead earns its space", () => {
+  for (const width of [1024, 1440] as const) {
+    test(`${width}px offers Writing and CV opposite the name`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      const routes = page.getByTestId("masthead-routes");
+      await expect(routes).toBeVisible();
+      await expect(
+        routes.getByRole("link", { name: "Writing" }),
+      ).toHaveAttribute("href", "/writing");
+      await expect(routes.getByRole("link", { name: "CV" })).toHaveAttribute(
+        "href",
+        "/cv",
+      );
+
+      /* The role label moved up beside the name, so what is left between the two
+         clusters reads as margin rather than as a gap. */
+      const gap = await page.evaluate(() => {
+        const role = document
+          .querySelector('[data-testid="masthead-role"]')!
+          .getBoundingClientRect();
+        const nav = document
+          .querySelector('[data-testid="masthead-routes"]')!
+          .getBoundingClientRect();
+        return nav.left - role.right;
+      });
+      expect(gap).toBeGreaterThan(0);
+      /* The dead space was ~600px. Anything near that means the links did not
+         actually fill it. */
+      expect(gap).toBeLessThan(520);
+    });
+
+    test(`${width}px keeps the masthead box within 84px`, async ({ page }) => {
+      /* The route links must not buy horizontal use of the masthead with
+         vertical growth — at `lg:pt-10` the box measured 86px. */
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+
+      const box = await page.getByTestId("masthead-rule").boundingBox();
+      expect(box!.height).toBeLessThanOrEqual(84);
+    });
+  }
+
+  test("375 reclaims the chrome the old padding held, and still clears the toggle", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto("/");
+
+    /* The source comment used to claim `pt-12` was needed to clear the fixed
+       theme toggle. Measured, the two never overlap horizontally — the name sits
+       at x=24..164 and the toggle at x=315..359 — so the only real constraint is
+       that this box's bottom rule stays below the toggle's bottom edge. */
+    const geometry = await page.evaluate(() => {
+      const masthead = document
+        .querySelector('[data-testid="masthead-rule"]')!
+        .getBoundingClientRect();
+      const name = document
+        .querySelector('[data-testid="masthead-name"]')!
+        .getBoundingClientRect();
+      const toggle = document
+        .querySelector('[data-testid="theme-toggle"]')!
+        .getBoundingClientRect();
+      return { masthead, name, toggle };
+    });
+
+    expect(geometry.masthead.bottom).toBeGreaterThan(geometry.toggle.bottom);
+    /* They never share horizontal space, which is why the box could shrink. */
+    expect(geometry.name.right).toBeLessThan(geometry.toggle.left);
+    /* Was 92px before the trim. */
+    expect(geometry.masthead.height).toBeLessThanOrEqual(70);
+
+    /* No route links here: below lg the dead space does not exist, and this
+       masthead already carries too much. */
+    await expect(page.getByTestId("masthead-routes")).toBeHidden();
+  });
+
+  test("the homepage links to the essay index at every width", async ({
+    page,
+  }) => {
+    /* The orphaning, asserted as the count it was measured as: zero of 28
+       visible links on `/` pointed at `/writing`. */
+    for (const width of [375, 1024] as const) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      const count = await page
+        .locator('main a[href="/writing"]:visible')
+        .count();
+      expect(count, `${width}px should reach /writing`).toBeGreaterThan(0);
+    }
+  });
+});
+
+test.describe("the theme toggle reports its state", () => {
+  test("names the mode and exposes it as a pressed state", async ({ page }) => {
+    /* The label was always "Toggle theme" with no `aria-pressed`, so a screen
+       reader user could not tell which mode was active — the icon was the only
+       indicator. */
+    await page.goto("/");
+    const toggle = page.getByTestId("theme-toggle");
+
+    const before = {
+      label: await toggle.getAttribute("aria-label"),
+      pressed: await toggle.getAttribute("aria-pressed"),
+    };
+    expect(before.pressed).not.toBeNull();
+
+    await toggle.click();
+
+    await expect
+      .poll(() => toggle.getAttribute("aria-pressed"))
+      .not.toBe(before.pressed);
+    /* The name tracks the mode too, so name and state cannot disagree. */
+    await expect
+      .poll(() => toggle.getAttribute("aria-label"))
+      .not.toBe(before.label);
   });
 });

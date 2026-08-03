@@ -50,7 +50,7 @@ const ITEMS: FixtureItem[] = [
     pubDate: "Wed, 24 Jun 2026 07:30:00 GMT",
     cover: `${COVER_HOST}/cover-02.png`,
     excerpt:
-      "L'Italia è piena di aziende che potrebbero usare l'AI domani mattina — e quasi nessuno che gliela costruisce. Appunti da Torino su un mercato scoperto.",
+      "L'Italia è piena di aziende che potrebbero usare l'AI domani mattina — e quasi nessuno che gliela costruisce. Appunti da Cuneo su un mercato scoperto.",
     bodyWords: 1380,
   },
   {

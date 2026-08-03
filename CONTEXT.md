@@ -68,6 +68,14 @@ surface changes shape with how many essays exist (0 → no list, 1 → lead plus
 exists than does. Nothing on it is numbered.
 _Avoid_: blog, posts page, archive — the archive is Substack's, off-site
 
+**Essay** / **field note**:
+Two names for one thing, and the split is deliberate (#71, #74). **Field note** is the
+reader-facing term — what the copy, the links and the publication say. **Essay** is the
+internal term for a feed item, and stays in the code (`getEssays`, `formatEssayDate`,
+`WritingIndex`, the fixture state names) and in this glossary. Reader-facing copy that says
+"essay" is a defect; an identifier that says "field note" is churn.
+_Avoid_: article, post, blog post — and "essay" anywhere a reader can see it
+
 **Feed miss**:
 A feed read that produced no essays: unreachable, empty, or malformed. All three are the
 same event to every caller, and all three render as an absent essay surface rather than an

@@ -9,10 +9,11 @@ exactly how much writing there is.
 FORM: Masthead rule, one reading measure, lead treatment over a row list.
 */
 
-import Image from "next/image";
 import Link from "next/link";
 
+import { CoverImage } from "@/components/cover-image";
 import { FloatingActionCluster } from "@/components/floating-action-cluster";
+import { RouteFrame } from "@/components/route-frame";
 import { SubscribeModule } from "@/components/subscribe-module";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RESUME_DATA } from "@/data/resume-data";
@@ -32,8 +33,13 @@ const meta = "font-mono text-xs uppercase tracking-[0.12em]";
    theme toggle and the floating cluster sit on top of it — the masthead's CV
    link hit-tested as "Toggle theme" over 63px² at 375 on the prototype. From
    `lg` up the measure is centred with margins wider than the chrome, so the
-   reservation is dropped and the column re-centres. */
-const measure = "mx-auto max-w-[46rem] px-6 pr-20 lg:pr-6";
+   reservation is dropped and the column re-centres.
+   The print reset mirrors `HUB_SHELL_INSET`: paper has no fixed theme toggle to
+   reserve room for, and `lg:pr-6` needs 1024px that an ~800px print box never
+   has — so without it the exclusion zone survived into print and put every
+   printed page 56px off-centre. The `@page` margin supplies the margin. */
+const measure =
+  "mx-auto max-w-[46rem] px-6 pr-20 lg:pr-6 print:max-w-none print:px-0";
 
 const { writingPage } = RESUME_DATA;
 
@@ -56,91 +62,93 @@ export function WritingIndex({
   const [lead, ...rows] = essays;
 
   return (
-    <div className="min-h-screen">
-      <ThemeToggle />
+    <RouteFrame measure={measure}>
+      <div className="min-h-screen">
+        <ThemeToggle />
 
-      <div className="border-ink border-b-2">
-        <header className={cn(measure, "pt-12 pb-4 lg:pt-10")}>
-          <div className="flex items-baseline justify-between gap-8">
-            <Link
-              href="/"
-              data-identity-name="true"
-              className="font-display text-lg font-semibold tracking-tight underline-offset-4 hover:underline"
-            >
-              {RESUME_DATA.name}
-            </Link>
-            {/* The masthead's other half carries cross-route navigation here
-                rather than the role label: this route has no rail, so it is the
-                only way back to the hub. */}
-            <nav
-              aria-label="Site"
-              className={cn("text-faint flex gap-5", meta)}
-            >
+        <div className="border-ink border-b-2">
+          <header className={cn(measure, "pt-12 pb-4 lg:pt-10")}>
+            <div className="flex items-baseline justify-between gap-8">
               <Link
                 href="/"
-                className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                data-identity-name="true"
+                className="touch-target font-display text-lg font-semibold tracking-tight underline-offset-4 hover:underline"
               >
-                Home
+                {RESUME_DATA.name}
               </Link>
-              <a
-                href="/cv"
-                className="touch-target hover:text-accent underline-offset-4 hover:underline"
+              {/* The masthead's other half carries cross-route navigation here
+                rather than the role label: this route has no rail, so it is the
+                only way back to the hub. */}
+              <nav
+                aria-label="Site"
+                className={cn("text-faint flex gap-5 print:hidden", meta)}
               >
-                CV
-              </a>
-            </nav>
-          </div>
-        </header>
-      </div>
-
-      <div className={cn(measure, "pb-24")}>
-        <div className="max-w-[34rem] pt-12">
-          <h1 className="font-display animate-fade-in-up text-4xl leading-[1.1] font-medium tracking-tight">
-            Writing
-          </h1>
-          <p className="text-body animate-fade-in-up mt-4 text-base leading-relaxed text-pretty">
-            {writingPage.standfirst}
-          </p>
-          <CountAwareLine essays={essays} />
+                <Link
+                  href="/"
+                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                >
+                  Home
+                </Link>
+                <a
+                  href="/cv"
+                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                >
+                  CV
+                </a>
+              </nav>
+            </div>
+          </header>
         </div>
 
-        {lead ? (
-          <div className="mt-14">
-            <Lead essay={lead} />
-            {rows.length > 0 ? (
-              /* List semantics, so the rows are announced as a set of five
-                 rather than as sections of the lead essay. */
-              <ul className="mt-14 space-y-7">
-                {rows.map((essay) => (
-                  <li key={essay.url} className="border-border border-t pt-7">
-                    <Row essay={essay} />
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+        <div className={cn(measure, "pb-24")}>
+          <div className="max-w-[34rem] pt-12">
+            <h1 className="font-display animate-fade-in-up text-4xl leading-[1.1] font-medium tracking-tight">
+              Writing
+            </h1>
+            <p className="text-body animate-fade-in-up mt-4 text-base leading-relaxed text-pretty">
+              {writingPage.standfirst}
+            </p>
+            <CountAwareLine essays={essays} />
           </div>
-        ) : null}
 
-        <SubscribeModule lang={lang} />
+          {lead ? (
+            <div className="mt-14">
+              <Lead essay={lead} />
+              {rows.length > 0 ? (
+                /* List semantics, so the rows are announced as a set of five
+                 rather than as sections of the lead essay. */
+                <ul className="mt-14 space-y-7">
+                  {rows.map((essay) => (
+                    <li key={essay.url} className="border-border border-t pt-7">
+                      <Row essay={essay} />
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
 
-        {/* Below the module, never at the end of the list: the end-of-list
+          <SubscribeModule lang={lang} />
+
+          {/* Below the module, never at the end of the list: the end-of-list
             placement took the reader off-site before the conversion point. */}
-        {essays.length >= ARCHIVE_LINK_AT ? (
-          <p className={cn("mt-10", meta)}>
-            <a
-              href={SUBSTACK_ARCHIVE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent border-accent touch-target inline-block border-b pb-1 hover:opacity-70"
-            >
-              {writingPage.archiveLabel}
-            </a>
-          </p>
-        ) : null}
-      </div>
+          {essays.length >= ARCHIVE_LINK_AT ? (
+            <p className={cn("mt-10", meta)}>
+              <a
+                href={SUBSTACK_ARCHIVE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-accent border-accent touch-target border-b pb-1 hover:opacity-70"
+              >
+                {writingPage.archiveLabel}
+              </a>
+            </p>
+          ) : null}
+        </div>
 
-      <FloatingActionCluster commandLinks={commandLinks} />
-    </div>
+        <FloatingActionCluster commandLinks={commandLinks} />
+      </div>
+    </RouteFrame>
   );
 }
 
@@ -275,35 +283,34 @@ function Cover({ essay, size }: { essay: Essay; size: keyof typeof COVERS }) {
     "border-border relative aspect-[16/9] w-full overflow-hidden rounded-sm border";
   const cover = COVERS[size];
 
-  if (!essay.coverUrl) {
-    /* The feed does not guarantee an `<enclosure>`. A missing one gets a
-       typographic panel at the same aspect ratio rather than a gap. */
-    return (
-      <div
-        aria-hidden
-        className={cn(box, cover.fallbackVisibility, "bg-ink/[0.06] items-end")}
-      >
-        <p className={cn("text-faint p-3", meta)}>
-          {formatEssayDate(essay.publishedAt)}
-        </p>
-      </div>
-    );
-  }
+  /* The feed does not guarantee an `<enclosure>`, and the URL in one it does
+     carry can still fail. Both land here: a typographic panel at the same
+     aspect ratio rather than a gap or an empty bordered box. */
+  const coverless = (
+    <div
+      aria-hidden
+      className={cn(box, cover.fallbackVisibility, "bg-ink/[0.06] items-end")}
+    >
+      <p className={cn("text-faint p-3", meta)}>
+        {formatEssayDate(essay.publishedAt)}
+      </p>
+    </div>
+  );
+
+  if (!essay.coverUrl) return coverless;
 
   return (
-    <div className={box}>
-      <Image
-        src={essay.coverUrl}
-        alt=""
-        fill
-        sizes={cover.sizes}
-        loading={cover.loading}
-        fetchPriority={cover.fetchPriority}
-        /* Light covers are knocked back in dark, where they otherwise out-shout
-           every word on the page. */
-        className="object-cover dark:brightness-[0.82]"
-      />
-    </div>
+    <CoverImage
+      src={essay.coverUrl}
+      boxClassName={box}
+      sizes={cover.sizes}
+      loading={cover.loading}
+      fetchPriority={cover.fetchPriority}
+      fallback={coverless}
+      /* Light covers are knocked back in dark, where they otherwise out-shout
+         every word on the page. */
+      imageClassName="object-cover dark:brightness-[0.82]"
+    />
   );
 }
 

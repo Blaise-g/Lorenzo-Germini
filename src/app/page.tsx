@@ -67,6 +67,15 @@ export default function Page() {
 
   /* Roles without hand-written homepage proof fold into one earlier line rather
      than rendering a CV bullet the homepage was not written for. */
+  const homepageProjects = RESUME_DATA.projects.filter(
+    (project) => project.homepage !== false,
+  );
+  /* One 320px card in a 652px two-column grid read as a section that had failed
+     to load, and `lg:-mx-3` put its left edge 12px outside every sibling's. A
+     single card takes the reading measure like every other section instead; the
+     grid returns the moment there are two to hold. */
+  const projectsFitTheMeasure = homepageProjects.length < 2;
+
   const provenRoles = RESUME_DATA.work.filter((work) => work.homepageProof);
   /* Oldest start year to newest end year, so a folded role that ran into a
      later year is not undersold by its start date. */
@@ -107,7 +116,10 @@ export default function Page() {
           </p>
           <a
             href={`#${HUB_SECTIONS.writing.id}`}
-            className="text-accent border-accent touch-target mt-7 inline-block self-start border-b-2 pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
+            /* No `inline-block` beside `touch-target`: after the `@layer`
+               move a display utility wins over the class, which changed the
+               computed box and shifted the rows below by up to 2.5px. */
+            className="text-accent border-accent touch-target mt-7 self-start border-b-2 pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
           >
             {hero.cta}
           </a>
@@ -133,7 +145,7 @@ export default function Page() {
             ) : null}
             <h3 className="font-display mt-2 text-2xl leading-snug sm:text-3xl">
               <a
-                className="underline-offset-4 group-hover:underline"
+                className="touch-target underline-offset-4 group-hover:underline"
                 href={writing.featured.href}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -144,14 +156,28 @@ export default function Page() {
             <p className="text-body mt-3 text-base leading-relaxed text-pretty print:text-[12px]">
               {writing.featured.excerpt}
             </p>
-            <p className="mt-4">
+            {/* The lead link keeps pointing at the publication: retargeting it
+                at `/writing` would promise an article and deliver an index.
+                `All writing →` is deliberately the quieter of the two — no
+                accent rule under it — because the field note is the page's
+                single primary CTA (spec §2.6 constraint 6) and two identical
+                buttons here would contest it. */}
+            {/* `gap-y-5`: the two wrap onto separate lines at 375, and their
+                44px hit areas overlapped at anything under 20px. */}
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-5">
               <a
-                className="text-accent border-accent touch-target inline-block border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+                className="text-accent border-accent touch-target border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
                 href={writing.featured.href}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 Read the field note →
+              </a>
+              <a
+                className="text-faint hover:text-accent decoration-border hover:decoration-accent touch-target font-mono text-xs tracking-[0.12em] uppercase underline underline-offset-4 print:hidden"
+                href="/writing"
+              >
+                All writing →
               </a>
             </p>
           </article>
@@ -220,7 +246,7 @@ export default function Page() {
           <p className="mt-3 print:hidden">
             <a
               href="/cv"
-              className="text-accent border-accent touch-target inline-block border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+              className="text-accent border-accent touch-target border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
             >
               Full CV →
             </a>
@@ -233,25 +259,27 @@ export default function Page() {
           data-reading-measure="true"
           className={cn(
             sectionClassName,
-            "print-projects-section scroll-mb-16 lg:max-w-none",
+            "print-projects-section scroll-mb-16",
+            projectsFitTheMeasure ? undefined : "lg:max-w-none",
           )}
         >
           <SectionHeading ruleClassName="print:my-1">Projects</SectionHeading>
           <div
             data-testid="projects-grid"
-            className="grid grid-cols-1 gap-3 lg:-mx-3 lg:grid-cols-2 print:mx-0 print:grid-cols-2 print:gap-2"
+            className={cn(
+              "grid grid-cols-1 gap-3 print:mx-0 print:grid-cols-2 print:gap-2",
+              projectsFitTheMeasure ? undefined : "lg:-mx-3 lg:grid-cols-2",
+            )}
           >
-            {RESUME_DATA.projects
-              .filter((project) => project.homepage !== false)
-              .map((project) => (
-                <ProjectCard
-                  key={project.title}
-                  title={project.title}
-                  description={project.description}
-                  tags={project.techStack}
-                  link={"link" in project ? project.link?.href : undefined}
-                />
-              ))}
+            {homepageProjects.map((project) => (
+              <ProjectCard
+                key={project.title}
+                title={project.title}
+                description={project.description}
+                tags={project.techStack}
+                link={"link" in project ? project.link?.href : undefined}
+              />
+            ))}
           </div>
         </Section>
 

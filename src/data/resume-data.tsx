@@ -5,7 +5,7 @@ import { ResumeData } from "./resume-data.types";
 export const RESUME_DATA: ResumeData = {
   name: "Lorenzo Germini",
   initials: "LG",
-  location: "Turin, Italy, CET",
+  location: "Cuneo, Italy, CET",
   roleLabel: "AI Product Engineer",
   newsletter: {
     name: "germinai",
@@ -54,11 +54,13 @@ export const RESUME_DATA: ResumeData = {
     systems:
       "agent systems · eval harnesses & tracing · end-to-end shipping, coding agents in the loop",
   },
-  avatarUrl: "https://avatars.githubusercontent.com/u/48798069?v=4",
+  /* Root-relative so `next/image` optimizes it: a studio portrait at 4:5, which
+     is the aspect every frame that renders it uses. The JSON-LD absolutizes it
+     against the canonical origin, the one consumer that needs a full URL. */
+  avatarUrl: "/lorenzo-germini-portrait.jpg",
   personalWebsiteUrl: CANONICAL_ORIGIN,
   contact: {
     email: "lorenzo.germini@icloud.com",
-    tel: "+393279220232",
     social: [
       {
         name: "GitHub",
@@ -74,6 +76,10 @@ export const RESUME_DATA: ResumeData = {
         name: "X",
         url: "https://twitter.com/spleenboi_",
         icon: XIcon,
+        /* The printed CV's address row is its only contact surface, so it is
+           trimmed to the routes a hiring reader uses. X stays everywhere the
+           row is not: homepage, footer, command palette. */
+        cv: false,
       },
     ],
   },
