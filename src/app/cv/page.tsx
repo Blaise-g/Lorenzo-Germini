@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { FloatingActionCluster } from "@/components/floating-action-cluster";
+import { BackToTop } from "@/components/back-to-top";
 import { PrintCvButton } from "@/components/print-cv-button";
 import { CV_DOCUMENT_INSET } from "@/app/cv/inset";
 import { RouteFrame } from "@/components/route-frame";
@@ -46,11 +46,6 @@ export const metadata: Metadata = {
   },
 };
 
-const commandLinks = RESUME_DATA.contact.social.map((social) => ({
-  title: social.name,
-  url: social.url,
-}));
-
 /* The anchor row's destinations, in document order. Each `id` is the one
    `CvSection` already puts on its heading, so the row cannot drift out of sync
    with the sections it indexes without a missing-anchor test failing. */
@@ -67,13 +62,14 @@ export default function CvPage() {
     <RouteFrame measure={CV_DOCUMENT_INSET}>
       <div className="cv-route min-h-screen">
         <CvStructuredData />
-        <ThemeToggle />
 
         <article
           data-cv-document
+          /* `pt-12` at every width: the `pt-20` below `lg` was clearance for the
+             fixed theme toggle, which now sits in the header below. */
           className={cn(
             CV_DOCUMENT_INSET,
-            "pt-20 pb-24 lg:pt-12 print:max-w-none print:p-0",
+            "pt-12 pb-24 print:max-w-none print:p-0",
           )}
         >
           {/* The 2px rule is print-only. On paper it closes the document's
@@ -100,7 +96,15 @@ export default function CvPage() {
               </p>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3 font-mono text-xs print:hidden">
+            {/* The toggle rides at the end of the document's control row rather
+              than in a masthead of its own: `/cv` has no nav row to put it in,
+              and measured, the header's right-hand column is not actually
+              top-right — the `about` paragraph's 672px max-content wraps it
+              under the identity block at every width from 375 to 1440. Controls
+              beside controls, and the whole row is `print:hidden` together.
+              `items-center`, because the row mixes a 44px button with a 36px
+              one. */}
+            <div className="mt-5 flex flex-wrap items-center gap-3 font-mono text-xs print:hidden">
               <Button
                 asChild
                 size="lg"
@@ -120,6 +124,9 @@ export default function CvPage() {
               >
                 Back home
               </Link>
+              <div className="ml-auto">
+                <ThemeToggle />
+              </div>
             </div>
 
             {/* Print-only, and the division of labour is what makes that safe:
@@ -304,7 +311,7 @@ export default function CvPage() {
           </div>
         </article>
 
-        <FloatingActionCluster commandLinks={commandLinks} />
+        <BackToTop />
       </div>
     </RouteFrame>
   );

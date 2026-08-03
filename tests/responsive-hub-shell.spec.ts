@@ -2,8 +2,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { RESUME_DATA } from "@/data/resume-data";
 
-import { revealBackToTop } from "./support/back-to-top";
-import { commandMenuTrigger } from "./support/command-palette";
+import {
+  BACK_TO_TOP_MIN_WIDTH,
+  backToTopButton,
+  revealBackToTop,
+} from "./support/back-to-top";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { personStructuredData } from "./support/structured-data";
 
@@ -412,45 +415,72 @@ test.describe("responsive hub shell", () => {
       .toBe("Systems");
   });
 
-  test("bottom fixed controls share one 56px cluster", async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
+  /* Decision 2's bottom-right cluster, now that #89 left one control in it:
+     `BackToTop` positions itself, and the assertion is that it is still the
+     only thing fixed to the bottom-right corner — a second control landing
+     there unpositioned would stack on top of it rather than beside it. */
+  test("back to top is the only fixed bottom-right control", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: BACK_TO_TOP_MIN_WIDTH, height: 800 });
     await page.goto("/");
     await revealBackToTop(page);
 
-    const cluster = await page.evaluate(() => {
-      const fixedAncestor = (element: Element | null) => {
-        let current = element?.parentElement ?? null;
-        while (current && getComputedStyle(current).position !== "fixed") {
-          current = current.parentElement;
-        }
-        return current;
-      };
-      const backToTop = document.querySelector(
-        'button[aria-label="Back to top"]',
+    const corner = () =>
+      page.evaluate(() =>
+        Array.from(
+          document.querySelectorAll<HTMLElement>("main button, main a"),
+        )
+          .filter((element) => {
+            let current: HTMLElement | null = element;
+            while (current) {
+              if (getComputedStyle(current).position === "fixed") return true;
+              current = current.parentElement;
+            }
+            return false;
+          })
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              label: element.getAttribute("aria-label"),
+              rightGap: Math.round(innerWidth - rect.right),
+              bottomGap: Math.round(innerHeight - rect.bottom),
+            };
+          }),
       );
-      const command = document.querySelector(
-        'button[aria-label="Open command menu"]',
-      );
-      const backToTopCluster = fixedAncestor(backToTop);
-      const commandCluster = fixedAncestor(command);
 
-      return {
-        sameCluster:
-          backToTopCluster !== null && backToTopCluster === commandCluster,
-        width: backToTopCluster?.getBoundingClientRect().width,
-      };
-    });
-
-    expect(cluster).toEqual({ sameCluster: true, width: 56 });
+    /* Polled: the reveal transitions through `translate-y-2 scale-95`, so a read
+       taken the moment the button becomes visible catches it 7px short of its
+       resting corner. */
+    await expect
+      .poll(corner)
+      .toEqual([{ label: "Back to top", rightGap: 16, bottomGap: 16 }]);
   });
 
+  /* "In the margin" is the whole condition it survives on since #89: below `xl`
+     there is no margin at the hub's `max-w-5xl` measure, and the button is not
+     painted there rather than reserving a gutter to sit in. */
   test("desktop keeps Back to top available in the margin", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 800 });
     await page.goto("/");
     await revealBackToTop(page);
-    await expect(commandMenuTrigger(page)).toBeHidden();
+
+    /* The margin at 1440 is 208px of empty space, so "available" means it is
+       reachable without covering the measure the reader is in. */
+    const clearance = await page.evaluate(() => {
+      const button = document
+        .querySelector('button[aria-label="Back to top"]')!
+        .getBoundingClientRect();
+      const measure = document
+        .querySelector('[data-testid="body-inset"]')!
+        .getBoundingClientRect();
+      return Math.round(button.left - measure.right);
+    });
+
+    await expect(backToTopButton(page)).toBeVisible();
+    expect(clearance).toBeGreaterThan(0);
   });
 
   test("interactive DOM order follows the mobile visual flow", async ({
@@ -551,45 +581,41 @@ test.describe("the masthead earns its space", () => {
       expect(gap).toBeLessThan(520);
     });
 
-    test(`${width}px keeps the masthead box within 84px`, async ({ page }) => {
-      /* The route links must not buy horizontal use of the masthead with
-         vertical growth — at `lg:pt-10` the box measured 86px. */
+    test(`${width}px keeps the masthead box within 70px`, async ({ page }) => {
+      /* Neither the route links nor the theme toggle may buy horizontal use of
+         the masthead with vertical growth. The ceiling was 84px while the toggle
+         was fixed overhead and this box had to clear it; measured after #89 put
+         the toggle inside the row, it is 70px. */
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
 
       const box = await page.getByTestId("masthead-rule").boundingBox();
-      expect(box!.height).toBeLessThanOrEqual(84);
+      expect(box!.height).toBeLessThanOrEqual(70);
     });
   }
 
-  test("375 reclaims the chrome the old padding held, and still clears the toggle", async ({
-    page,
-  }) => {
+  test("375 reclaims the chrome the old padding held", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
 
-    /* The source comment used to claim `pt-12` was needed to clear the fixed
-       theme toggle. Measured, the two never overlap horizontally — the name sits
-       at x=24..164 and the toggle at x=315..359 — so the only real constraint is
-       that this box's bottom rule stays below the toggle's bottom edge. */
     const geometry = await page.evaluate(() => {
-      const masthead = document
-        .querySelector('[data-testid="masthead-rule"]')!
-        .getBoundingClientRect();
-      const name = document
-        .querySelector('[data-testid="masthead-name"]')!
-        .getBoundingClientRect();
-      const toggle = document
-        .querySelector('[data-testid="theme-toggle"]')!
-        .getBoundingClientRect();
-      return { masthead, name, toggle };
+      const rect = (selector: string) =>
+        document.querySelector(selector)!.getBoundingClientRect();
+      return {
+        masthead: rect('[data-testid="masthead-rule"]'),
+        name: rect('[data-testid="masthead-name"]'),
+        toggle: rect('[data-testid="theme-toggle"]'),
+      };
     });
 
-    expect(geometry.masthead.bottom).toBeGreaterThan(geometry.toggle.bottom);
-    /* They never share horizontal space, which is why the box could shrink. */
+    /* The toggle is inside the box now, so it can no longer set the box's
+       floor from outside it — the padding only has to seat the control. 92px
+       before #26 trimmed it, 66px while the toggle was fixed overhead. */
+    expect(geometry.masthead.height).toBeLessThanOrEqual(62);
+    /* Still true, and now because they are siblings in one row rather than
+       because a reserved gutter kept them apart. */
     expect(geometry.name.right).toBeLessThan(geometry.toggle.left);
-    /* Was 92px before the trim. */
-    expect(geometry.masthead.height).toBeLessThanOrEqual(70);
+    expect(geometry.toggle.bottom).toBeLessThan(geometry.masthead.bottom);
 
     /* No route links here: below lg the dead space does not exist, and this
        masthead already carries too much. */
@@ -635,5 +661,171 @@ test.describe("the theme toggle reports its state", () => {
     await expect
       .poll(() => toggle.getAttribute("aria-label"))
       .not.toBe(before.label);
+  });
+});
+
+/* #89 removed the palette and its floating button, and moved the theme toggle
+   from a fixed top-right slot into the surface that owns each route's controls.
+   Three things have to hold afterwards, and each was broken by the fixed
+   placement it replaces: the control is in flow, its 44px hit area does not
+   steal its neighbours', and no shell reserves a gutter for chrome that is no
+   longer overhead. */
+test.describe("the theme toggle rides in the page's own chrome", () => {
+  const routes = ["/", "/writing", "/cv"] as const;
+
+  for (const route of routes) {
+    for (const width of [375, 768, 1024, 1440] as const) {
+      test(`${route} at ${width}px keeps the toggle in flow with a 44px hit area`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 812 });
+        await page.goto(route);
+
+        const toggle = await page
+          .getByTestId("theme-toggle")
+          .evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            const after = getComputedStyle(element, "::after");
+            let ancestor: Element | null = element;
+            while (ancestor) {
+              if (getComputedStyle(ancestor).position === "fixed") break;
+              ancestor = ancestor.parentElement;
+            }
+            /* Sampled at the hit area's own corners, not the box's: the box is
+               36px and `touch-target` supplies the rest, so a hit area that
+               failed to render would still pass a box-only check. */
+            const hitArea = {
+              left: rect.left + rect.width / 2 - 22,
+              right: rect.left + rect.width / 2 + 22,
+              top: rect.top + rect.height / 2 - 22,
+              bottom: rect.top + rect.height / 2 + 22,
+            };
+            const corners = [
+              [hitArea.left + 1, hitArea.top + 1],
+              [hitArea.right - 1, hitArea.top + 1],
+              [hitArea.left + 1, hitArea.bottom - 1],
+              [hitArea.right - 1, hitArea.bottom - 1],
+            ] as const;
+
+            return {
+              fixedAncestor: ancestor?.tagName ?? null,
+              position: getComputedStyle(element).position,
+              hitWidth: after.width,
+              hitHeight: after.height,
+              /* `document.elementFromPoint` returns the toggle for a point over
+                 its own pseudo-element, so anything else here is a control whose
+                 target the toggle overlaps. */
+              cornersHittingSomethingElse: corners.flatMap(([x, y]) => {
+                const target = document
+                  .elementFromPoint(x, y)
+                  ?.closest("a, button");
+                if (!target || target === element) return [];
+                return [
+                  target.getAttribute("aria-label") ||
+                    target.textContent?.trim().slice(0, 24) ||
+                    target.tagName,
+                ];
+              }),
+            };
+          });
+
+        expect(toggle.position).not.toBe("fixed");
+        expect(toggle.fixedAncestor).toBeNull();
+        expect(toggle.hitWidth).toBe("44px");
+        expect(toggle.hitHeight).toBe("44px");
+        expect(toggle.cornersHittingSomethingElse).toEqual([]);
+      });
+
+      test(`${route} at ${width}px reserves no gutter for fixed chrome`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width, height: 812 });
+        await page.goto(route);
+
+        /* The exclusion zone was `pr-20` against `px-6`, so an asymmetry of 56px
+           is the exact defect. Read off every box that takes a shell inset,
+           because the reservation was duplicated into three of them. */
+        const asymmetric = await page.evaluate(() => {
+          const boxes = document.querySelectorAll<HTMLElement>(
+            '[data-testid="masthead-inset"], [data-testid="body-inset"], [data-cv-document], main header',
+          );
+          return Array.from(boxes).flatMap((box) => {
+            const style = getComputedStyle(box);
+            const left = Number.parseFloat(style.paddingLeft);
+            const right = Number.parseFloat(style.paddingRight);
+            if (Math.abs(left - right) < 1) return [];
+            return [{ left, right, testId: box.dataset.testid ?? box.tagName }];
+          });
+        });
+
+        expect(asymmetric).toEqual([]);
+      });
+    }
+  }
+
+  /* The toggle is a route's last masthead control at every width, so it is also
+     where a keyboard user arrives after the nav — the order the eye reads on a
+     row that now holds both. */
+  test("follows the masthead links in focus order", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 812 });
+    await page.goto("/");
+    await removeDevOverlay(page);
+
+    const focused = async () =>
+      page.evaluate(() => {
+        const active = document.activeElement;
+        return (
+          active?.getAttribute("data-testid") ||
+          active?.textContent?.trim().slice(0, 24) ||
+          active?.tagName ||
+          null
+        );
+      });
+
+    await page.getByTestId("masthead-routes").getByText("Writing").focus();
+    expect(await focused()).toBe("Writing");
+    await page.keyboard.press("Tab");
+    expect(await focused()).toBe("CV");
+    await page.keyboard.press("Tab");
+    expect(await focused()).toBe("theme-toggle");
+  });
+});
+
+test.describe("back to top is painted only where there is margin", () => {
+  for (const width of [375, 768, 1024] as const) {
+    test(`${width}px paints no floating control`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/");
+      await page.evaluate(() => window.scrollTo(0, 900));
+
+      /* Attribute, not role: hidden it leaves the accessibility tree, so a role
+         query would pass on a button that was painted but unnamed. */
+      await expect(
+        page.locator('button[aria-label="Back to top"]'),
+      ).toBeHidden();
+    });
+  }
+
+  test(`${BACK_TO_TOP_MIN_WIDTH}px paints it clear of the measure`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: BACK_TO_TOP_MIN_WIDTH, height: 800 });
+    await page.goto("/");
+    await revealBackToTop(page);
+
+    /* The gate is `xl`, not `lg`, because this is what fails at 1024: the hub's
+       measure is `max-w-5xl` — 1024px — so the button would land on the body
+       text rather than beside it. */
+    const clearance = await page.evaluate(() => {
+      const button = document
+        .querySelector('button[aria-label="Back to top"]')!
+        .getBoundingClientRect();
+      const measure = document
+        .querySelector('[data-testid="body-inset"]')!
+        .getBoundingClientRect();
+      return Math.round(button.left - measure.right);
+    });
+
+    expect(clearance).toBeGreaterThan(0);
   });
 });

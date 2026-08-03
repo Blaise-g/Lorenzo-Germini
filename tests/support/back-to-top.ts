@@ -4,6 +4,12 @@ import { actUntilVisible } from "./hydration";
 
 export const BACK_TO_TOP_LABEL = "Back to top";
 
+/** The narrowest viewport that paints the button at all. It is `hidden xl:block`
+ *  since #89: below `xl` the hub's `max-w-5xl` measure leaves no margin for it to
+ *  sit in, and it used to buy that margin with a 56px right gutter reserved on
+ *  every shell inset. Any test that reveals it has to be at least this wide. */
+export const BACK_TO_TOP_MIN_WIDTH = 1280;
+
 /* Past the 300px threshold the button watches, with room to spare. */
 const REVEAL_OFFSET = 600;
 

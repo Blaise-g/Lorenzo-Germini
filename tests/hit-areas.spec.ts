@@ -65,16 +65,26 @@ async function measureHitAreas(page: import("@playwright/test").Page) {
     });
 
     return interactive.map((el) => {
-      const rect = el.getBoundingClientRect();
+      const own = el.getBoundingClientRect();
       const after = getComputedStyle(el, "::after");
+      const hasOverlay =
+        after.content !== "none" && after.position === "absolute";
       /* The pointer lands on the union of the element's own box and its overlay,
          so the overlay's minimums are what this has to measure — reading the
          element's box alone would report the 24px the fix deliberately left
          alone. */
-      const expands =
-        after.content !== "none" &&
-        after.position === "absolute" &&
-        after.minWidth === "44px";
+      const expands = hasOverlay && after.minWidth === "44px";
+      /* The other overlay in the system is the essay card's: `after:inset-0` over
+         a `relative` article, so the whole card is the target and the anchor's own
+         box is a fraction of it. Measured, `EssayLink` reported 276×25 at 375 once
+         #89 gave `/writing` its full measure back and the title stopped wrapping
+         to two lines — a title one line shorter would have reported it at any
+         point before that, because the anchor was never the hit area. */
+      const stretched = hasOverlay && after.inset === "0px";
+      const rect =
+        stretched && el.offsetParent
+          ? el.offsetParent.getBoundingClientRect()
+          : own;
       const width = expands ? Math.max(rect.width, 44) : rect.width;
       const height = expands ? Math.max(rect.height, 44) : rect.height;
       const centreX = rect.x + rect.width / 2;

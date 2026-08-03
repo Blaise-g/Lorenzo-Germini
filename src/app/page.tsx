@@ -54,17 +54,6 @@ const sectionClassName =
 const { hero, writing, earlierRoles, systems } = RESUME_DATA.homepage;
 
 export default function Page() {
-  const commandLinks = [
-    {
-      url: RESUME_DATA.personalWebsiteUrl,
-      title: "Personal Website",
-    },
-    ...RESUME_DATA.contact.social.map((socialMediaLink) => ({
-      url: socialMediaLink.url,
-      title: socialMediaLink.name,
-    })),
-  ];
-
   /* Roles without hand-written homepage proof fold into one earlier line rather
      than rendering a CV bullet the homepage was not written for. */
   const homepageProjects = RESUME_DATA.projects.filter(
@@ -89,7 +78,6 @@ export default function Page() {
     <>
       <StructuredData />
       <HubShell
-        commandLinks={commandLinks}
         destinations={HUB_DESTINATIONS}
         profile={{
           actions: <ProfileActions />,

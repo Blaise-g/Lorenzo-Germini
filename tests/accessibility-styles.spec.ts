@@ -1,17 +1,27 @@
 import { expect, test, type Locator } from "@playwright/test";
 
-import { BACK_TO_TOP_LABEL, revealBackToTop } from "./support/back-to-top";
+import {
+  BACK_TO_TOP_LABEL,
+  BACK_TO_TOP_MIN_WIDTH,
+  revealBackToTop,
+} from "./support/back-to-top";
 import { contrast } from "./support/color";
-import { COMMAND_MENU_LABEL } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 /* The theme toggle is located by test id rather than by name: its accessible
    name is its state now ("Light mode" / "Dark mode" with `aria-pressed`), so a
    literal label here would assert the mode rather than find the control. */
 const focusControls = [
-  { testId: "theme-toggle", label: "theme toggle" },
-  { name: BACK_TO_TOP_LABEL, label: BACK_TO_TOP_LABEL },
-  { name: COMMAND_MENU_LABEL, label: COMMAND_MENU_LABEL },
+  { testId: "theme-toggle", label: "theme toggle", prepare: async () => {} },
+  {
+    name: BACK_TO_TOP_LABEL,
+    label: BACK_TO_TOP_LABEL,
+    /* Revealed immediately before its own focus, not once for the whole list:
+       since #89 the theme toggle is a masthead control, and `focus()` scrolls it
+       into view — which returns the page to the top and takes `BackToTop` back
+       out of the accessibility tree with it. */
+    prepare: revealBackToTop,
+  },
 ] as const;
 
 async function expectVisibleFocus(control: Locator, label: string) {
@@ -130,14 +140,19 @@ test.describe("component-owned border and focus styles", () => {
       expect(colors.actual).toBe(colors.expected);
     });
 
-    test(`${theme} mode gives floating controls a contrasting keyboard focus indicator`, async ({
+    test(`${theme} mode gives the chrome controls a contrasting keyboard focus indicator`, async ({
       page,
     }) => {
+      /* Wide enough to paint `BackToTop`, which is `hidden xl:block` since #89.
+         The theme toggle is no longer floating chrome at all — it is a masthead
+         control — but the two are still the site's only icon-only buttons, which
+         is what makes an invisible focus ring on either unrecoverable. */
+      await page.setViewportSize({ width: BACK_TO_TOP_MIN_WIDTH, height: 800 });
       await setTheme(page, theme);
       await page.reload();
-      await revealBackToTop(page);
 
       for (const control of focusControls) {
+        await control.prepare(page);
         await expectVisibleFocus(
           "testId" in control
             ? page.getByTestId(control.testId)
