@@ -1,15 +1,14 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-import { BACK_TO_TOP_LABEL, revealBackToTop } from "./support/back-to-top";
 import {
-  commandPaletteInput,
-  openCommandPalette,
-  openCommandPaletteWithShortcut,
-} from "./support/command-palette";
+  BACK_TO_TOP_LABEL,
+  BACK_TO_TOP_MIN_WIDTH,
+  revealBackToTop,
+} from "./support/back-to-top";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { routesUsingTheSharedShell } from "./support/routes";
-import { setTheme, themes } from "./support/theme";
+import { proveHydrated, setTheme, themes } from "./support/theme";
 
 const viewports = [375, 768, 1024, 1440] as const;
 
@@ -89,26 +88,32 @@ test.describe("touch and fixed-chrome geometry", () => {
 
       await expectMinimumTarget(page, "a[href], button", 24);
 
-      await revealBackToTop(page);
+      /* No `revealBackToTop` here: since #89 the button is `hidden xl:block`, so
+         at 375 there is nothing to reveal — which is the point, because it is the
+         thumb zone it used to occupy permanently. */
+      /* The theme toggle is the one exemption, named rather than matched by
+         shape: since #89 it sits in the masthead row, where a 44px box would be
+         the tallest thing in it and would set the header's height — so it carries
+         a 36px box with `touch-target`'s 44px hit area, which
+         `tests/hit-areas.spec.ts` asserts directly. Excluding it by
+         `:not([data-testid])` would have exempted every future icon control that
+         happens to carry a test id. */
       await expectMinimumTarget(
         page,
-        "main a[aria-label]:has(svg), main button[aria-label]:has(svg)",
+        'main a[aria-label]:has(svg), main button[aria-label]:not([data-testid="theme-toggle"]):has(svg)',
         44,
       );
-
-      const dialog = await openCommandPalette(page);
-      const close = dialog.getByRole("button", { name: "Close" });
-      const closeBox = await close.boundingBox();
-      expect(closeBox, "dialog close control should be visible").not.toBeNull();
-      expect(closeBox!.width).toBeGreaterThanOrEqual(44);
-      expect(closeBox!.height).toBeGreaterThanOrEqual(44);
     });
   }
 
   /* `/writing` is here because decision 2's exclusion zone was written from a
      collision measured on it — the masthead CV link hit-testing as "Toggle
-     theme" — and the fixture state because the FAB's other measured collision
-     was over an essay excerpt, which the live empty feed does not render. */
+     theme" — and the fixture state because the second measured collision was
+     over an essay excerpt, which the live empty feed does not render.
+     Since #89 `BackToTop` is the only fixed control left, and the toggle stays in
+     the selector deliberately: it is in flow now, so the `position: fixed`
+     ancestor filter below drops it, and it would come back the moment anything
+     re-fixed it. */
   for (const route of ["/", "/cv", "/writing", "/writing/fixture/6"] as const) {
     for (const width of viewports) {
       test(`${route} fixed chrome does not cover content at ${width}px`, async ({
@@ -129,7 +134,7 @@ test.describe("touch and fixed-chrome geometry", () => {
           const collisions = await page.evaluate(() => {
             const fixedChrome = Array.from(
               document.querySelectorAll<HTMLElement>(
-                'button[data-testid="theme-toggle"], button[aria-label="Back to top"], button[aria-label="Open command menu"], main > p.fixed',
+                'button[data-testid="theme-toggle"], button[aria-label="Back to top"]',
               ),
             ).filter((element) => {
               const style = getComputedStyle(element);
@@ -343,30 +348,45 @@ test.describe("motion, theme initialization, and accessibility", () => {
   }
 });
 
-test.describe("command palette", () => {
-  const triggers = [
-    ["the shortcut", openCommandPaletteWithShortcut],
-    ["the button", openCommandPalette],
-  ] as const;
+/* #89, finding 3: the palette bound Ctrl/Cmd+J and called `preventDefault` on
+   it, which is the browser's own Downloads shortcut on Windows and Linux — a
+   personal site quietly taking a browser chord away from the reader. The palette
+   is gone, so nothing here may claim a chord at all; asserted for K as well
+   because ⌘K/Ctrl+K is the convention a re-added palette would reach for, and it
+   is the browser's search-bar focus chord. */
+test.describe("browser keyboard shortcuts", () => {
+  for (const route of ["/", "/cv", "/writing"] as const) {
+    test(`${route} leaves the browser's own chords uncancelled`, async ({
+      page,
+    }) => {
+      await page.goto(route);
+      /* Hydration first: a listener registered after the dispatch below would
+         make this pass for the wrong reason. */
+      await proveHydrated(page);
 
-  for (const [name, open] of triggers) {
-    test(`${name} survives a hydration delay`, async ({ page }) => {
-      /* `commit` returns as soon as the document starts arriving, so the trigger
-         below is guaranteed to fire before hydration once the scripts it needs
-         are stalled — which is what makes a dropped trigger certain here instead
-         of the 1-in-6 it was when only a busy dev server produced the delay.
+      const cancelled = await page.evaluate(() =>
+        ["j", "k"].flatMap((key) =>
+          [
+            { ctrlKey: true, metaKey: false },
+            { ctrlKey: false, metaKey: true },
+          ].flatMap((modifiers) => {
+            const event = new KeyboardEvent("keydown", {
+              key,
+              bubbles: true,
+              cancelable: true,
+              ...modifiers,
+            });
+            document.dispatchEvent(event);
+            if (!event.defaultPrevented) return [];
+            return [`${modifiers.ctrlKey ? "Ctrl" : "Meta"}+${key}`];
+          }),
+        ),
+      );
 
-         Only the build's own chunks are held: stalling every `.js` would also
-         catch the HMR client and analytics, which hydration does not wait on and
-         which added two seconds of dead time. */
-      await page.route("**/_next/static/**/*.js", async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        await route.continue();
-      });
-      await page.goto("/", { waitUntil: "commit" });
-
-      const dialog = await open(page);
-      await expect(commandPaletteInput(dialog)).toBeFocused();
+      expect(cancelled).toEqual([]);
+      /* And nothing opened: a chord that toggled a surface without cancelling
+         the event would slip past the check above. */
+      await expect(page.getByRole("dialog")).toHaveCount(0);
     });
   }
 });
@@ -410,9 +430,10 @@ test.describe("scroll subscriptions", () => {
     );
   }
 
-  /* 1440 so the rail's gated subscription is live too, 375 so the phone width
-     — where a blocking handler is felt — is covered with only the FAB's. */
-  for (const width of [375, 1440] as const) {
+  /* 1024 for the rail's gated subscription, `BACK_TO_TOP_MIN_WIDTH` for
+     `BackToTop`'s: both are width-gated now, and the two gates do not open at
+     the same width. */
+  for (const width of [1024, BACK_TO_TOP_MIN_WIDTH] as const) {
     test(`every window scroll listener is passive at ${width}px`, async ({
       page,
     }) => {
@@ -420,22 +441,38 @@ test.describe("scroll subscriptions", () => {
       await recordWindowScrollRegistrations(page);
       await page.goto("/");
 
-      /* Both subscriptions register on hydration, and the reveal is the
-         observable proof that the FAB's has: polling on it avoids asserting
-         against an empty list. */
-      await revealBackToTop(page);
+      /* Polled, because a subscription registers on hydration and an empty list
+         would otherwise pass for the wrong reason. */
+      await expect
+        .poll(async () => (await scrollRegistrations(page)).length, {
+          message: "the homepage should register a window scroll listener",
+        })
+        .toBeGreaterThan(0);
 
       const registrations = await scrollRegistrations(page);
-      expect(
-        registrations.length,
-        "the homepage should register at least one window scroll listener",
-      ).toBeGreaterThan(0);
       expect(
         registrations.filter(({ passive }) => !passive),
         "no window scroll listener should be registered non-passive",
       ).toEqual([]);
     });
   }
+
+  /* The other half of the gate, and the reason the phone width left the sweep
+     above: below `xl` `BackToTop` is not painted, so it must not be listening
+     either — a scroll handler feeding a `display: none` control is exactly what
+     `whileMatching` exists to avoid. */
+  test("no window scroll listener registers at a phone width", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await recordWindowScrollRegistrations(page);
+    await page.goto("/");
+    /* Proving hydration first, so an empty list here is a gate holding rather
+       than a page that has not started. */
+    await proveHydrated(page);
+
+    expect(await scrollRegistrations(page)).toEqual([]);
+  });
 
   test("back to top hides again below its threshold", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 800 });

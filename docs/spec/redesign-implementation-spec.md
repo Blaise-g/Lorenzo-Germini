@@ -42,11 +42,13 @@ Nine questions were handed to #11 marked _"the spec must decide."_ They are
 decided here rather than buried in a phase. A tenth decision was added after
 the runnable Ambient Current prototype detour produced real-browser evidence.
 
-1. **Mobile navigation below `lg`.** A mono anchor row (`Writing · Work · Projects · CV`) sits directly under the identity band, in the normal document flow. It must clear the fixed theme toggle — see item 2. Rationale: as built, _neither_ composition in #12 offered a phone visitor any route to Writing except scrolling past Work, and `/writing`'s always-visible mono nav row was measured working at every width.
+1. **Mobile navigation below `lg`.** A mono anchor row (`Writing · Work · Projects · CV`) sits directly under the identity band, in the normal document flow. ~~It must clear the fixed theme toggle — see item 2.~~ (Nothing to clear since #89 — see item 2 and ADR-0003.) Rationale: as built, _neither_ composition in #12 offered a phone visitor any route to Writing except scrolling past Work, and `/writing`'s always-visible mono nav row was measured working at every width.
 
 2. **Fixed chrome gets reserved gutters, top and bottom.** The theme toggle, `BackToTop` and the command FAB may not overlap content at any width.
+
+   > **The prohibition stands. The mechanism below is retired — superseded by ADR-0003 (#89).** The palette and its FAB are gone, the theme toggle is in flow in each route's own control surface, and `BackToTop` is painted only from `xl` where the margin beside the measure is empty. So nothing reserves a horizontal gutter, and all three insets are symmetric: the reservation was costing every phone paragraph 15% of its measure to keep two controls off text they only crossed while scrolling. The gutters below are kept as the record of the collisions they were written from, which are still the reason nothing may be fixed here without margin to sit in.
    - **Top-right:** below `lg` the masthead reserves `pr-12`, and no in-flow interactive element may enter the top-right 56×56 box.
-   - **Bottom-right:** below `lg` the page reserves `pb-20` on its last in-flow block, and the FAB and `BackToTop` share one stacked cluster in a 56px-wide bottom-right column rather than being placed independently. Above `lg` they may sit in the margin, which is 752px wide at 1440 and empty.
+   - **Bottom-right:** below `lg` the page reserves `pb-20` on its last in-flow block, and the FAB and `BackToTop` share one stacked cluster in a 56px-wide bottom-right column rather than being placed independently. Above `lg` they may sit in the margin, which is 752px wide at 1440 and empty. (`SiteFooter`'s `pb-20` survives #89 as page-end space, not as clearance — there is nothing fixed below `xl` to clear.)
 
    Rationale: two measured collisions — 63px² of the `/writing` CV link hit-testing as "Toggle theme" at 375, and up to 640px² of command FAB over the essay excerpt. The second is a _bottom_-right collision, which a top-right exclusion zone alone does not prevent.
 
@@ -190,7 +192,7 @@ This keeps the defaults and lets utilities win. **Do not simply delete them** �
 
 ## 1.2 Focus indicators (WCAG 2.4.7)
 
-`ThemeToggle`, `BackToTop` and the command FAB have **no visible focus indicator at all** — focused computed style is byte-identical to unfocused, and `:focus-visible` does match on all three. Fixed by 1.1 in principle; verify each of the three individually by keyboard, because their Tailwind ring utilities may now win and resolve to transparent stops.
+`ThemeToggle`, `BackToTop` and the command FAB (retired in #89) have **no visible focus indicator at all** — focused computed style is byte-identical to unfocused, and `:focus-visible` does match on all three. Fixed by 1.1 in principle; verify each of the three individually by keyboard, because their Tailwind ring utilities may now win and resolve to transparent stops.
 
 Also: `--color-ring` is `hsl(245 45% 46%)` (`#4941aa`) and the ring's 2px inner halo measures `#fbfaf9` on `#faf6ef` = **1.03:1** — invisible. Give the inner halo a real value, or drop to a single 3px ring. The ring must measure ≥3:1 against both the element and the page ground.
 
@@ -334,7 +336,7 @@ masthead · identity band (below `lg`) · sticky rail with scroll-spy nav · mob
 - `Cmd+P` must also behave: `<title>` exactly `Lorenzo-Germini-CV`, `@page { size: A4; margin: 14mm }`, `break-inside: avoid` per role block, and a mono hint line about unchecking browser headers/footers.
 - **Print CSS is two blocks**: a **global baseline** (hide chrome, neutralise `position: fixed`, force white ground + near-black ink for `:root` **and** `.dark`) plus a **`/cv`-scoped** block for page breaks and document specifics. One block scoped to `/cv` leaves `Cmd+P` on the homepage emitting warm paper and dark tokens.
 - **Content split — no duplicated _layout_, not no shared facts.** The homepage keeps a body-contrast mono systems line, per-role `homepageProof`, and the one-line credential. `/cv` holds full role bullets, full degrees with institutions and dates, the enriched skills taxonomy, and full contact. Read the ticket before narrowing this: as originally locked it cut the homepage from 18 proof statements to 4 and deleted **every** technical noun in the data — multi-provider LLM infrastructure, agentic RAG, evaluation frameworks, pgai, tracing — because the layout renders `description[0]`, and `description[0]` for Complaion is the business sentence. That violates the audit's one binding constraint.
-- Discoverability: mono `CV →` in the sticky rail, repeated in the footer; command-menu **Print** becomes context-dependent (**View CV** off-route, **Print CV** on-route).
+- Discoverability: mono `CV →` in the sticky rail, repeated in the footer, and in the masthead route links from `lg`. ~~command-menu **Print** becomes context-dependent (**View CV** off-route, **Print CV** on-route)~~ — the palette carried that pair and retired with it in #89; off-route the CV is a visible link, on-route printing is the document's own `Print CV` button.
 - An **"Updated \<month year\>"** line — the highest-trust-per-byte element on the surface, and it retires the hardcoded `dateModified`.
 - `/cv` gets `Person` / `alumniOf` / `hasOccupation` JSON-LD, not the homepage's `ProfilePage`.
 - `/cv` needs **its own OG image**. It currently inherits a dark slate-indigo card captioned "Full-Stack AI Engineer" — a palette this redesign abandons and a title it replaces. For many recipients the OG card _is_ the CV's first impression.
@@ -607,8 +609,8 @@ Nothing below is a manual eyeball check unless it says so.
 
 ## Touch targets
 
-- Every link and control is **≥24×24 CSS px** at 375 (SC 2.5.8 is a two-dimensional minimum; the map's "purely height" note was an observation about _this_ codebase's failures, not a narrower rule). Icon controls ≥44×44.
-- No fixed chrome overlaps or clips content at any width from 375 to 1440. **Hit-test both corners:** `document.elementFromPoint` on the top-right masthead cluster and on the bottom-right FAB cluster. The measured failures were 63px² top-right and up to 640px² bottom-right.
+- Every link and control is **≥24×24 CSS px** at 375 (SC 2.5.8 is a two-dimensional minimum; the map's "purely height" note was an observation about _this_ codebase's failures, not a narrower rule). Icon controls ≥44×44 — as a **hit** area, which since #87 a 24px box plus `.touch-target`'s centred overlay satisfies without a 44px box. The theme toggle is the case that needs the distinction (ADR-0003): a 44px box in the masthead row would set the header's height, so it ships 36px with the overlay.
+- No fixed chrome overlaps or clips content at any width from 375 to 1440. **Hit-test both corners:** `document.elementFromPoint` on the top-right masthead cluster and on the bottom-right `BackToTop` corner. The measured failures were 63px² top-right and up to 640px² bottom-right. Per ADR-0003 the top-right corner holds no fixed control at all since #89, and the bottom-right one is painted only from `xl` — so this now reads as "nothing may be fixed where there is no margin for it", not "reserve a gutter for it".
 
 ## Print / PDF
 

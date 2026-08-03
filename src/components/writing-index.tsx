@@ -11,8 +11,8 @@ FORM: Masthead rule, one reading measure, lead treatment over a row list.
 
 import Link from "next/link";
 
+import { BackToTop } from "@/components/back-to-top";
 import { CoverImage } from "@/components/cover-image";
-import { FloatingActionCluster } from "@/components/floating-action-cluster";
 import { RouteFrame } from "@/components/route-frame";
 import { SubscribeModule } from "@/components/subscribe-module";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,32 +28,22 @@ const ARCHIVE_LINK_AT = 4;
 
 const meta = "font-mono text-xs uppercase tracking-[0.12em]";
 
-/* The asymmetric right padding is decision 2's exclusion zone, not a taste
-   call: below `lg` this measure runs to the viewport edge, where the fixed
-   theme toggle and the floating cluster sit on top of it — the masthead's CV
-   link hit-tested as "Toggle theme" over 63px² at 375 on the prototype. From
-   `lg` up the measure is centred with margins wider than the chrome, so the
-   reservation is dropped and the column re-centres.
-   The print reset mirrors `HUB_SHELL_INSET`: paper has no fixed theme toggle to
-   reserve room for, and `lg:pr-6` needs 1024px that an ~800px print box never
-   has — so without it the exclusion zone survived into print and put every
-   printed page 56px off-centre. The `@page` margin supplies the margin.
+/* Symmetric since #89. The `pr-20 lg:pr-6` that stood here was decision 2's
+   top-right exclusion zone: below `lg` this measure runs to the viewport edge,
+   where the fixed theme toggle sat on top of it — the masthead's CV link
+   hit-tested as "Toggle theme" over 63px² at 375 on the prototype. The toggle is
+   in the masthead now, so the collision it guarded against cannot happen, and
+   the zone's own side effects go with it — one of them was that the reservation
+   survived into print and put every printed page 56px off-centre.
 
    Exported for symmetry with `HUB_SHELL_INSET` and `CV_DOCUMENT_INSET`, not
    because anything outside this module needs it yet: two of the three insets
    being importable and this one being private made the set look like two shared
    values and one local detail, when all three are the same kind of thing. */
 export const WRITING_MEASURE_INSET =
-  "mx-auto max-w-[46rem] px-6 pr-20 lg:pr-6 print:max-w-none print:px-0";
+  "mx-auto max-w-[46rem] px-6 print:max-w-none print:px-0";
 
 const { writingPage } = RESUME_DATA;
-
-/* Same set `/cv` offers: the route has no rail, so the palette is the only
-   place the off-site profiles live. */
-const commandLinks = RESUME_DATA.contact.social.map((social) => ({
-  title: social.name,
-  url: social.url,
-}));
 
 export function WritingIndex({
   essays,
@@ -69,11 +59,11 @@ export function WritingIndex({
   return (
     <RouteFrame measure={WRITING_MEASURE_INSET}>
       <div className="min-h-screen">
-        <ThemeToggle />
-
         <div className="border-ink border-b-2">
-          <header className={cn(WRITING_MEASURE_INSET, "pt-12 pb-4 lg:pt-10")}>
-            <div className="flex items-baseline justify-between gap-8">
+          {/* `py-3`, where `pt-12 pb-4 lg:pt-10` stood: the top value was
+            clearance for the fixed toggle, which is inside this row now. */}
+          <header className={cn(WRITING_MEASURE_INSET, "py-3 lg:py-4")}>
+            <div className="flex items-center justify-between gap-8">
               <Link
                 href="/"
                 data-identity-name="true"
@@ -84,23 +74,29 @@ export function WritingIndex({
               {/* The masthead's other half carries cross-route navigation here
                 rather than the role label: this route has no rail, so it is the
                 only way back to the hub. */}
-              <nav
-                aria-label="Site"
-                className={cn("text-faint flex gap-5 print:hidden", meta)}
-              >
-                <Link
-                  href="/"
-                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
+              {/* `gap-6` between the links and the toggle, `gap-5` inside the
+                links: see `hub-shell.tsx` — at gap-5 the toggle's 44px hit area
+                crossed `CV`'s. */}
+              <div className="flex items-center gap-6">
+                <nav
+                  aria-label="Site"
+                  className={cn("text-faint flex gap-5 print:hidden", meta)}
                 >
-                  Home
-                </Link>
-                <a
-                  href="/cv"
-                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
-                >
-                  CV
-                </a>
-              </nav>
+                  <Link
+                    href="/"
+                    className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                  >
+                    Home
+                  </Link>
+                  <a
+                    href="/cv"
+                    className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                  >
+                    CV
+                  </a>
+                </nav>
+                <ThemeToggle />
+              </div>
             </div>
           </header>
         </div>
@@ -151,7 +147,7 @@ export function WritingIndex({
           ) : null}
         </div>
 
-        <FloatingActionCluster commandLinks={commandLinks} />
+        <BackToTop />
       </div>
     </RouteFrame>
   );

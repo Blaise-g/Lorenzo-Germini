@@ -3,7 +3,6 @@ import { expect, test } from "@playwright/test";
 import { RESUME_DATA } from "@/data/resume-data";
 
 import { contrast } from "./support/color";
-import { openCommandPalette } from "./support/command-palette";
 import {
   collectIdentitySurfaces,
   IDENTITY_MANIFESTS,
@@ -48,42 +47,6 @@ test.describe("outbound link hardening", () => {
       links.filter(({ isSameOrigin }) => isSameOrigin),
       "internal links should stay in the tab",
     ).toEqual([]);
-  });
-
-  /* The command menu navigates with window.open rather than an anchor, so it is
-     invisible to the rel audit above and needs its own check: without
-     windowFeatures the opened tab keeps a live window.opener. */
-  test("the command menu opens links without handing over an opener", async ({
-    page,
-  }) => {
-    await page.goto("/");
-
-    const calls: (string | undefined)[] = [];
-    await page.exposeFunction("recordWindowOpen", (features?: string) => {
-      calls.push(features);
-    });
-    await page.evaluate(() => {
-      window.open = (
-        _url?: string | URL,
-        _target?: string,
-        features?: string,
-      ) => {
-        (
-          window as unknown as {
-            recordWindowOpen: (features?: string) => void;
-          }
-        ).recordWindowOpen(features);
-        return null;
-      };
-    });
-
-    await openCommandPalette(page);
-    await page.getByRole("option", { name: /GitHub/i }).click();
-
-    expect(calls, "the command menu should have opened a window").toHaveLength(
-      1,
-    );
-    expect(calls[0] ?? "").toContain("noopener");
   });
 
   /* #19: Substack attributes inbound traffic from the Referer header, and the
@@ -206,11 +169,13 @@ test.describe("faint metadata legibility", () => {
       page,
     }) => {
       await setTheme(page, theme);
-      /* The command-menu hint only renders at xl and up, so measure wide
-         enough to include the historical smallest metadata element. */
+      /* Wide, because the masthead role label and the rail's metadata only
+         render from `lg` and they are the smallest faint elements left — the
+         command-menu hint's `kbd` used to be the smallest, and #89 removed the
+         palette it belonged to. */
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto("/");
-      await expect(page.locator("kbd").first()).toBeVisible();
+      await expect(page.getByTestId("masthead-role")).toBeVisible();
 
       const measurements = await page.evaluate(() => {
         const normalizeColor = (value: string) => {

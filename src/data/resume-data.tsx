@@ -78,7 +78,7 @@ export const RESUME_DATA: ResumeData = {
         icon: XIcon,
         /* The printed CV's address row is its only contact surface, so it is
            trimmed to the routes a hiring reader uses. X stays everywhere the
-           row is not: homepage, footer, command palette. */
+           row is not: the homepage and the footer. */
         cv: false,
       },
     ],

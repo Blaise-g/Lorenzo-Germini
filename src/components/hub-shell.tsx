@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { FloatingActionCluster } from "@/components/floating-action-cluster";
+import { BackToTop } from "@/components/back-to-top";
 import { RouteFrame } from "@/components/route-frame";
 import { SectionAnchorRow } from "@/components/section-anchor-row";
 import {
@@ -13,12 +13,14 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 /* Shared by the masthead and the body below it, which are separate boxes so the
-   masthead rule can span the viewport. The right padding below xl reserves room
-   for the fixed theme toggle, which is why the inset is not symmetric.
+   masthead rule can span the viewport. Symmetric since #89 put the theme toggle
+   in the masthead: the `pr-20` that stood here reserved a 56px exclusion zone
+   for the toggle in its fixed top-right slot, and with the control in flow there
+   is nothing overhead to reserve against.
    Exported because the footer takes it too — its rule has to end where this
    shell's content ends. */
 export const HUB_SHELL_INSET =
-  "mx-auto max-w-5xl px-6 pr-20 md:px-10 md:pr-20 xl:px-10 print:max-w-none print:px-0";
+  "mx-auto max-w-5xl px-6 md:px-10 print:max-w-none print:px-0";
 
 type HubProfile = {
   actions: ReactNode;
@@ -34,20 +36,16 @@ type HubProfile = {
 
 export function HubShell({
   children,
-  commandLinks,
   destinations,
   profile,
 }: {
   children: ReactNode;
-  commandLinks: { title: string; url: string }[];
   destinations: readonly HubDestination[];
   profile: HubProfile;
 }) {
   return (
     <RouteFrame measure={HUB_SHELL_INSET}>
       <div className="min-h-screen">
-        <ThemeToggle />
-
         {/* Prints: with the band's `<h1>` gone (#26), this is the only surface
           that states the name, and a printed homepage still has to say whose
           it is. The role label beside it stays on screen only — the band
@@ -61,20 +59,17 @@ export function HubShell({
           <header
             data-testid="masthead-inset"
             data-profile-orientation="masthead"
-            /* The old comment here claimed `pt-12` was needed to clear the fixed
-             theme toggle. Measured, that reasoning is wrong: at 375 the name
-             sits at x=24..164 and the toggle at x=315..359, so they never
-             overlap horizontally and vertical clearance was never the
-             constraint. The real one is that this box's bottom rule stays below
-             the toggle's 60px bottom edge — `pt-5` puts it at y=64, which holds
-             it while returning 28px of the 303px of chrome that sat above the
-             `<h1>` on a 375×812 screen. */
-            /* `lg:pt-9`, not the old `lg:pt-10`: the route links' 44px hit-area
-               row measures 24px against the name's 28px, and at pt-10 the box
-               came to 86px against the 84px it is held to. */
-            className={cn(HUB_SHELL_INSET, "pt-5 pb-4 lg:pt-9 print:pt-0")}
+            /* Symmetric and tight since the toggle came in flow (#89). Every
+               earlier value here was clearance for the fixed toggle overhead —
+               `pt-12` for a claimed vertical overlap that measurement disproved,
+               then `pt-5`/`lg:pt-9` to keep this box's bottom rule below the
+               toggle's 60px bottom edge. Neither constraint exists now: the
+               toggle is inside this box, so the padding only has to seat a 36px
+               control against the rule, and `py-3` measures 62px at 375 against
+               the 66px `pt-5` held and 70px at 1024 against 82px. */
+            className={cn(HUB_SHELL_INSET, "py-3 lg:py-4 print:pt-0")}
           >
-            <div className="flex items-baseline justify-between gap-8">
+            <div className="flex items-center justify-between gap-8">
               {/* The role label rides beside the name rather than opposite it.
                 Held at the far edge it left ~600px of dead space between the
                 two at 1024, which the route links now occupy — so what is left
@@ -100,24 +95,32 @@ export function HubShell({
                 ≥lg only: below it the dead space this fills does not exist, and
                 the Writing section's own `All writing →` covers the phone
                 without adding to a masthead already carrying too much. */}
-              <nav
-                aria-label="Site"
-                data-testid="masthead-routes"
-                className="text-faint hidden gap-5 font-mono text-xs tracking-[0.12em] uppercase lg:flex print:hidden"
-              >
-                <Link
-                  href="/writing"
-                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
+              {/* One cluster, because the toggle now sits here too: `gap-6`
+                rather than the links' own `gap-5`, so the toggle's 44px hit area
+                and `CV`'s do not overlap — measured, at gap-5 they crossed by
+                1px and a tap on the link's right edge hit-tested as the
+                toggle. */}
+              <div className="flex items-center gap-6">
+                <nav
+                  aria-label="Site"
+                  data-testid="masthead-routes"
+                  className="text-faint hidden gap-5 font-mono text-xs tracking-[0.12em] uppercase lg:flex print:hidden"
                 >
-                  Writing
-                </Link>
-                <Link
-                  href="/cv"
-                  className="touch-target hover:text-accent underline-offset-4 hover:underline"
-                >
-                  CV
-                </Link>
-              </nav>
+                  <Link
+                    href="/writing"
+                    className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                  >
+                    Writing
+                  </Link>
+                  <Link
+                    href="/cv"
+                    className="touch-target hover:text-accent underline-offset-4 hover:underline"
+                  >
+                    CV
+                  </Link>
+                </nav>
+                <ThemeToggle />
+              </div>
             </div>
           </header>
         </div>
@@ -160,7 +163,7 @@ export function HubShell({
           </div>
         </div>
 
-        <FloatingActionCluster commandLinks={commandLinks} />
+        <BackToTop />
       </div>
     </RouteFrame>
   );

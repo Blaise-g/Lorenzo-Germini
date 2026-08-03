@@ -5,7 +5,6 @@ import path from "node:path";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 import { contrast } from "./support/color";
-import { openCommandPaletteWithShortcut } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
 const colorRoles = [
@@ -179,7 +178,13 @@ test.describe("Warm Print runtime contract", () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await setTheme(page, theme);
       await page.goto("/");
-      await page.getByText("Press", { exact: false }).scrollIntoViewIfNeeded();
+      /* Scrolled to the foot, where the smallest faint type on the page is: the
+         colophon's 12px sentence. It used to scroll to the command-menu hint,
+         which sat just above it and left with the palette (#89). */
+      await page
+        .getByRole("contentinfo")
+        .getByText("agents welcome", { exact: false })
+        .scrollIntoViewIfNeeded();
 
       const values = await page.evaluate((roles) => {
         const root = getComputedStyle(document.documentElement);
@@ -246,7 +251,6 @@ test.describe("Warm Print runtime contract", () => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await setTheme(page, theme);
       await page.goto("/");
-      await openCommandPaletteWithShortcut(page);
 
       const primitives = await page.evaluate(() => {
         const effectiveBackground = (element: HTMLElement) => {
@@ -274,15 +278,15 @@ test.describe("Warm Print runtime contract", () => {
           };
         };
 
+        /* The palette's own primitives — a selected `cmdk` item, the dialog
+           surface, and the shortcut hint's `kbd` — left this set with #89. The
+           theme toggle joins it: it is the `secondary` button variant's only
+           instance on the page, and since #89 it renders against the masthead
+           rather than over the page as fixed chrome. */
         return {
           badge: metrics('[data-slot="badge"]'),
-          commandItem: metrics(
-            "[cmdk-item][data-selected=true]",
-            "borderLeftColor",
-          ),
           contactButton: metrics('a[aria-label="Email"]'),
-          dialog: metrics('[role="dialog"]'),
-          keyboardHint: metrics("kbd"),
+          themeToggle: metrics('[data-testid="theme-toggle"]'),
         };
       });
 

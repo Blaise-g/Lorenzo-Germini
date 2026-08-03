@@ -7,7 +7,6 @@ import { expect, test } from "@playwright/test";
 import retainedProof from "@/../docs/spec/retained-proof.json";
 import { RESUME_DATA } from "@/data/resume-data";
 
-import { openCommandPalette } from "./support/command-palette";
 import { personStructuredData } from "./support/structured-data";
 
 const cvPath = "/cv";
@@ -125,12 +124,25 @@ test.describe("canonical CV route", () => {
     );
   });
 
-  test("offers View CV off-route and Print CV on-route", async ({ page }) => {
+  /* Spec §2's context-dependent CV action, without the palette that used to
+     carry it (#89): reaching `/cv` is a visible link off-route, and printing is
+     the document's own button on-route. Both halves in one test, because the
+     defect is the pair coming apart — a route with no way in, or a document with
+     no way to paper. */
+  test("offers a visible route to the CV off-route and prints it on-route", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await openCommandPalette(page);
-    const viewCv = page.getByRole("option", { name: "View CV" });
-    await expect(viewCv).toBeVisible();
-    await viewCv.click();
+
+    /* `main`, not the whole page: the footer's CV link is not the one a reader
+       at the top of the homepage can reach. */
+    const cvLinks = page.locator('main a[href="/cv"]:visible');
+    expect(
+      await cvLinks.count(),
+      "the homepage should offer at least one visible route to /cv",
+    ).toBeGreaterThan(0);
+    await cvLinks.first().click();
     await expect(page).toHaveURL(/\/cv$/);
 
     await page.evaluate(() => {
@@ -138,8 +150,7 @@ test.describe("canonical CV route", () => {
         document.documentElement.dataset.printCalled = "true";
       };
     });
-    await openCommandPalette(page);
-    const printCv = page.getByRole("option", { name: "Print CV" });
+    const printCv = page.getByRole("button", { name: "Print CV" });
     await expect(printCv).toBeVisible();
     await printCv.click();
     await expect(page.locator("html")).toHaveAttribute(
@@ -302,7 +313,7 @@ test.describe("the CV contact row", () => {
     }
 
     /* Dropped by the `cv: false` data flag, not by a hardcoded name filter, so X
-       stays on the homepage, the footer and the command palette. */
+       stays on the homepage and in the footer. */
     await expect(
       address.getByRole("link", { name: "X", exact: true }),
     ).toHaveCount(0);

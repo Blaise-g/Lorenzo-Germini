@@ -34,7 +34,16 @@ export function ThemeToggle() {
       /* A stable hook, because the accessible name is state now and the suite
          locates this control for chrome geometry rather than for its label. */
       data-testid="theme-toggle"
-      className="hover:border-accent hover:text-ink fixed top-4 right-4 z-50 rounded-full print:hidden"
+      /* In flow since #89, placed by whichever masthead renders it: fixed at
+         `top-4 right-4` it sat in the top-right band on its own, and every
+         shell paid for it twice — an asymmetric `pr-20` gutter so the nav could
+         not slide under it, and top padding so the masthead rule cleared its
+         bottom edge. Nothing here positions it; the caller does. */
+      /* `h-9 w-9` over the `icon` size's 44px box, with `touch-target` supplying
+         the 44px *hit* area: in a masthead row the 44px box is the tallest thing
+         in it, so it — not the name — would set the header's height. Same trade
+         the footer and section-nav links already take. */
+      className="touch-target hover:border-accent hover:text-ink h-9 w-9 rounded-full print:hidden"
       /* The icon is the only state indicator, and it is invisible to a screen
          reader: a static "Toggle theme" left a user unable to tell which mode
          was on. `aria-pressed` reports it, and the label names the mode the
