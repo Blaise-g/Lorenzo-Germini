@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { CV_DOCUMENT_INSET, RouteFrame } from "@/components/route-frame";
+import { CV_DOCUMENT_INSET } from "@/app/cv/inset";
+import { RouteFrame } from "@/components/route-frame";
 
 export default function NotFound() {
   return (

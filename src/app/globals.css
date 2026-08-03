@@ -3,6 +3,22 @@
 /* ─── Class-based dark mode ─── */
 @variant dark (&:where(.dark, .dark *));
 
+/* ─── Coarse-pointer variant ─── */
+/* `lg` is a viewport width, not an input device. iPad landscape is 1024 wide with
+   no pointer, so every `lg:`-gated surface can still be driven by a thumb — the
+   sticky rail's `hidden lg:block` is the one where that matters, because its rows
+   sit on a 28px pitch. Measured: `(pointer: coarse)` does match at 1024 under
+   touch, so the distinction is expressible rather than theoretical. */
+/* Block form with `@slot`, not the parenthesised shorthand: the shorthand takes
+   a selector — which is what `dark` above is — and silently emits nothing for an
+   at-rule, so `coarse:` classes compiled to no CSS at all and every row stayed
+   at 28px with the media query matching. */
+@custom-variant coarse {
+  @media (pointer: coarse) {
+    @slot;
+  }
+}
+
 /* ─── Theme tokens ─── */
 @theme {
   /* Typography */

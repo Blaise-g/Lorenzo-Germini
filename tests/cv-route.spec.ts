@@ -44,10 +44,13 @@ test.describe("canonical CV route", () => {
     const mainText = normalizeWhitespace(
       await page.getByRole("main").innerText(),
     );
+    /* `innerText`, so this is what the screen publishes. The contact values are
+       deliberately absent from it — the address row is print-only now, and the
+       footer carries the same contacts on screen — so they are asserted against
+       the printed document in "the CV contact row" below rather than loosened
+       into a `textContent` read that would pass for a hidden element too. */
     for (const value of [
       RESUME_DATA.summary,
-      RESUME_DATA.contact.email,
-      RESUME_DATA.location,
       ...RESUME_DATA.skills,
       ...RESUME_DATA.skillGroups.flatMap((group) => [
         group.name,
@@ -80,9 +83,6 @@ test.describe("canonical CV route", () => {
     const download = page.getByRole("link", { name: "Download CV (PDF)" });
     await expect(download).toHaveAttribute("href", `/${pdfFilename}`);
     await expect(download).toHaveAttribute("download", pdfFilename);
-    await expect(
-      page.getByText(/uncheck browser headers and footers/i),
-    ).toBeVisible();
   });
 
   test("publishes CV-specific structured and social metadata", async ({
@@ -257,11 +257,16 @@ test("the build-generated PDF is current, readable, and single-column", async ()
   expect(sectionOrder).toEqual([...sectionOrder].sort((a, b) => a - b));
 });
 
-/* #85: the contact surfaces. The number came out of all six of them, the address
-   row was trimmed rather than deleted — `SiteFooter`'s inner div is
-   `print:hidden`, so this row is the printed CV's only contact surface and
-   deleting it ships a PDF a reader cannot reply to — and the browser hint that
-   was baked into the shipped artefact now stays on screen. */
+/* #85: the contact surfaces. The number came out of all six of them, and the
+   address row was trimmed rather than deleted — `SiteFooter`'s inner div is
+   `print:hidden`, so on paper this row is the printed CV's only contact surface
+   and deleting it ships a PDF a reader cannot reply to.
+   It is print-only now (#74 follow-up): the footer carries the same email and
+   socials on screen, so the row was a repetition there and the sole contact
+   surface on paper. That asymmetry is the thing worth pinning — a `print:flex`
+   that regressed to `flex` would look harmless on screen while quietly
+   restoring the duplication, and one that lost `print:flex` would ship an
+   unanswerable PDF. Both directions are asserted below. */
 test.describe("the CV contact row", () => {
   test("carries no phone number, on the page or in the JSON-LD", async ({
     page,
@@ -278,8 +283,11 @@ test.describe("the CV contact row", () => {
   test("keeps email, location, site, GitHub and LinkedIn, and drops X", async ({
     page,
   }) => {
+    /* Under print, because that is the only medium the row renders in now. */
+    await page.emulateMedia({ media: "print" });
     await page.goto(cvPath);
     const address = page.locator("address");
+    await expect(address).toBeVisible();
 
     /* Location and GitHub stay against the owner's instinct and with his
        agreement: the CV body carries no code link anywhere else, so this row is
@@ -300,6 +308,11 @@ test.describe("the CV contact row", () => {
     ).toHaveCount(0);
     const x = RESUME_DATA.contact.social.find((social) => social.name === "X");
     expect(x?.cv).toBe(false);
+
+    /* Back to screen for the footer, which is `print:hidden` — `getByRole` reads
+       the accessibility tree, so a `display: none` footer has no links in it at
+       all and this would pass for the wrong reason under print. */
+    await page.emulateMedia({ media: "screen" });
     await expect(
       page
         .getByRole("contentinfo")
@@ -307,19 +320,62 @@ test.describe("the CV contact row", () => {
     ).toHaveCount(1);
   });
 
-  test("keeps the browser hint on screen and off the page", async ({
+  test("is off the screen, where the footer already carries the same contacts", async ({
     page,
   }) => {
+    await page.goto(cvPath);
+
+    await expect(page.locator("address")).toBeHidden();
+
+    /* The reason it can go: the same email and every social link are reachable
+       on screen from the footer. If this ever stops holding, the row has to come
+       back rather than the assertion above being relaxed.
+       By `href`, not by name: the footer labels the link "Email" rather than
+       spelling the address out, and it is the destination that has to match. */
+    const footer = page.getByRole("contentinfo");
+    await expect(
+      footer.locator(`a[href="mailto:${RESUME_DATA.contact.email}"]`),
+    ).toHaveCount(1);
+    for (const social of RESUME_DATA.contact.social) {
+      await expect(
+        footer.getByRole("link", { name: social.name, exact: true }),
+      ).toHaveCount(1);
+    }
+  });
+
+  test("no longer carries the browser print hint on any medium", async ({
+    page,
+  }) => {
+    /* It was `print:hidden` rather than absent, which is how it came to be baked
+       into the shipped PDF in the first place — `pdftotext` found it there. Gone
+       outright now, so assert absence rather than invisibility: a hint that
+       returns as `print:hidden` would satisfy a `toBeHidden()` under print. */
     const hint = /uncheck browser headers and footers/i;
 
     await page.goto(cvPath);
-    await expect(page.getByText(hint)).toBeVisible();
+    await expect(page.getByText(hint)).toHaveCount(0);
 
-    /* The defect: with no `print:hidden` it computed `display: block` between the
-       role line and the address block, and `pdftotext` found it in the checked-in
-       file served behind "Download CV (PDF)". */
     await page.emulateMedia({ media: "print" });
-    await expect(page.getByText(hint)).toBeHidden();
+    await expect(page.getByText(hint)).toHaveCount(0);
+  });
+
+  test("the header's 2px rule is print-only, now the row below it is", async ({
+    page,
+  }) => {
+    /* The rule closed the header against the body, and with the address row in
+       it that is what it read as. Print-only once the row left: on screen it sat
+       directly beneath the button group as a stray divider, and the section nav
+       under it carries its own rule. Asserted as computed width on both media,
+       because `border-b-ink` stays either way — only the width moves. */
+    const header = page.locator("header.cv-header");
+    const borderWidth = () =>
+      header.evaluate((el) => getComputedStyle(el).borderBottomWidth);
+
+    await page.goto(cvPath);
+    expect(await borderWidth()).toBe("0px");
+
+    await page.emulateMedia({ media: "print" });
+    expect(await borderWidth()).toBe("2px");
   });
 });
 

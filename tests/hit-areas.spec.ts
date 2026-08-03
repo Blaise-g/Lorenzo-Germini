@@ -148,21 +148,25 @@ test.describe("effective hit areas", () => {
     }
   }
 
-  test("the sticky rail holds the 24px floor without the 44px overlay", async ({
+  /* The nav, not the whole `complementary`: the aside also holds the profile's
+     action cluster, whose four links sit side by side on one row. They share a
+     `y`, so a vertical-pitch assertion reads them as a 44px overlap — the
+     horizontal sweep above is what covers those. */
+  const railLinks = (page: import("@playwright/test").Page) =>
+    page.getByRole("navigation", { name: "Page sections" }).getByRole("link");
+
+  test("the sticky rail holds the 24px floor for a fine pointer", async ({
     page,
   }) => {
-    /* The rail opts out of the expansion — on a 28px pitch a centred 44px
-       overlay reaches into both neighbours, and widening the pitch would push
-       `CV →` out of an 800px viewport. It renders only at `lg`, where there is a
-       pointer, and each row is 220px wide. The floor still has to hold, and
-       `py-1.5` on 12px type is all that holds it. */
+    /* The rail opts out of `.touch-target`, and the pitch is why: at 28px a
+       centred 44px overlay reaches 8px into each neighbour, so the overlay
+       collides with itself at any pitch below 44. A cursor does not need the
+       expansion — each row is 220×28, well past SC 2.5.8's 24×24 — but the floor
+       still has to hold, and `py-1.5` on 12px type is all that holds it. */
     await page.setViewportSize({ width: 1024, height: 900 });
     await page.goto("/");
 
-    const rail = page.getByRole("complementary", {
-      name: "Profile and page sections",
-    });
-    const links = await rail.getByRole("link").all();
+    const links = await railLinks(page).all();
     expect(links.length).toBeGreaterThan(0);
 
     for (const link of links) {
@@ -171,6 +175,68 @@ test.describe("effective hit areas", () => {
       expect(box!.height).toBeGreaterThanOrEqual(24);
       expect(box!.width).toBeGreaterThanOrEqual(24);
     }
+  });
+
+  test.describe("the sticky rail under a coarse pointer", () => {
+    /* iPad landscape is 1024 wide with no pointer, which is the case the rail's
+       old reasoning assumed away: `lg` is a viewport width, not an input device.
+       `hasTouch` is what makes `(pointer: coarse)` match in Chromium. */
+    test.use({ hasTouch: true, viewport: { width: 1024, height: 800 } });
+
+    test("grows every row to a real 44px box, not an overlay", async ({
+      page,
+    }) => {
+      await page.goto("/");
+
+      /* The premise. If this stops matching, the rows below silently fall back
+         to 28px and the rest of this file would not notice. */
+      expect(
+        await page.evaluate(() => matchMedia("(pointer: coarse)").matches),
+      ).toBe(true);
+
+      const links = await railLinks(page).all();
+      expect(links.length).toBeGreaterThan(0);
+
+      for (const link of links) {
+        const box = await link.boundingBox();
+        /* The box itself, deliberately — an overlay cannot solve this at a
+           sub-44px pitch, so the fix widens the row rather than painting a
+           larger hit area over it. */
+        expect(box!.height).toBeGreaterThanOrEqual(43.5);
+      }
+    });
+
+    test("keeps `CV →` inside the 800px viewport #86 holds it to", async ({
+      page,
+    }) => {
+      /* The cost of the expansion, and the reason it was thought impossible:
+         the previous note here put it at ~96px, which would not have fitted.
+         Measured, the rail's last row ends at 790px against 694px for a fine
+         pointer — inside 800, and the rail is `lg:sticky lg:top-8`, so any
+         scrolling lifts it further clear. 10px of margin is thin, which is why
+         this is asserted rather than left to the comment. */
+      await page.goto("/");
+
+      const box = await railLinks(page).last().boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.y + box!.height).toBeLessThanOrEqual(800);
+    });
+
+    test("expands no row into its neighbour's", async ({ page }) => {
+      /* The 44px pitch is what makes the expansion safe, so it is asserted
+         directly rather than left to the sweep above: rows that meet exactly at
+         44px are the intended outcome, and overlap is the failure. */
+      await page.goto("/");
+
+      const boxes = await Promise.all(
+        (await railLinks(page).all()).map((link) => link.boundingBox()),
+      );
+
+      for (let i = 1; i < boxes.length; i++) {
+        const overlap = boxes[i - 1]!.y + boxes[i - 1]!.height - boxes[i]!.y;
+        expect(overlap).toBeLessThanOrEqual(0.5);
+      }
+    });
   });
 
   test("the colophon's inline links still hold the 24px WCAG floor", async ({
