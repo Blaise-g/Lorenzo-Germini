@@ -50,7 +50,12 @@ async function normalizedSquare(sourcePath) {
     .toBuffer();
 }
 
-const source = await normalizedSquare("vendor/brand/germinai-logo-source.png");
+const publicationSource = await normalizedSquare(
+  "vendor/brand/germinai-logo-source.png",
+);
+const personalMark = await normalizedSquare(
+  "vendor/brand/lorenzo-germini-mark-source.png",
+);
 const wordmarkSquare = await normalizedSquare(
   "vendor/brand/germinai-wordmark-source.png",
 );
@@ -124,7 +129,8 @@ const substackWordmark = await sharp(substackCanvas, {
   .png()
   .toBuffer();
 
-await writeFile(resolve(root, "public/germinai-logo.png"), source);
+await writeFile(resolve(root, "public/germinai-logo.png"), publicationSource);
+await writeFile(resolve(root, "public/lorenzo-germini-mark.png"), personalMark);
 await writeFile(
   resolve(root, "public/germinai-wordmark-square.png"),
   wordmarkSquare,
@@ -143,7 +149,7 @@ const pngTargets = [
 
 await Promise.all(
   pngTargets.map(async (target) => {
-    const output = await sharp(source)
+    const output = await sharp(personalMark)
       .resize(target.size, target.size)
       .png()
       .toBuffer();
@@ -154,7 +160,7 @@ await Promise.all(
 const faviconSizes = [16, 32, 48];
 const faviconFrames = await Promise.all(
   faviconSizes.map((size) =>
-    sharp(source).resize(size, size).ensureAlpha().png().toBuffer(),
+    sharp(personalMark).resize(size, size).ensureAlpha().png().toBuffer(),
   ),
 );
 const directorySize = 6 + faviconFrames.length * 16;
