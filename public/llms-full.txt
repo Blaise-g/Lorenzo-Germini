@@ -1,6 +1,6 @@
 # Lorenzo Germini -- Full Resume
 
-> AI Product Engineer shipping AI products end-to-end across compliance, health, and education. Based in Turin, Italy, CET.
+> AI Product Engineer shipping AI products end-to-end across compliance, health, and education. Based in Cuneo, Italy, CET.
 
 ## Summary
 
@@ -13,7 +13,6 @@ Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneur
 ## Contact
 
 - Email: lorenzo.germini@icloud.com
-- Phone: +393279220232
 - Website: https://lorenzogermini.com
 - GitHub: https://github.com/Blaise-g
 - LinkedIn: https://www.linkedin.com/in/lorenzogermini/

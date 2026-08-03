@@ -47,7 +47,6 @@ test.describe("canonical CV route", () => {
     for (const value of [
       RESUME_DATA.summary,
       RESUME_DATA.contact.email,
-      RESUME_DATA.contact.tel,
       RESUME_DATA.location,
       ...RESUME_DATA.skills,
       ...RESUME_DATA.skillGroups.flatMap((group) => [
@@ -256,4 +255,103 @@ test("the build-generated PDF is current, readable, and single-column", async ()
   ].map((section) => extracted.indexOf(section));
   expect(sectionOrder.every((index) => index >= 0)).toBe(true);
   expect(sectionOrder).toEqual([...sectionOrder].sort((a, b) => a - b));
+});
+
+/* #85: the contact surfaces. The number came out of all six of them, the address
+   row was trimmed rather than deleted — `SiteFooter`'s inner div is
+   `print:hidden`, so this row is the printed CV's only contact surface and
+   deleting it ships a PDF a reader cannot reply to — and the browser hint that
+   was baked into the shipped artefact now stays on screen. */
+test.describe("the CV contact row", () => {
+  test("carries no phone number, on the page or in the JSON-LD", async ({
+    page,
+  }) => {
+    await page.goto(cvPath);
+
+    await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+    await expect(page.getByText("3279220232")).toHaveCount(0);
+
+    const person = await personStructuredData(page);
+    expect(person).not.toHaveProperty("telephone");
+  });
+
+  test("keeps email, location, site, GitHub and LinkedIn, and drops X", async ({
+    page,
+  }) => {
+    await page.goto(cvPath);
+    const address = page.locator("address");
+
+    /* Location and GitHub stay against the owner's instinct and with his
+       agreement: the CV body carries no code link anywhere else, so this row is
+       the printed CV's only route to it, and location is what a hiring reader
+       filters on. */
+    await expect(address).toContainText(RESUME_DATA.contact.email);
+    await expect(address).toContainText(RESUME_DATA.location);
+    for (const name of ["GitHub", "LinkedIn"]) {
+      await expect(
+        address.getByRole("link", { name, exact: true }),
+      ).toHaveCount(1);
+    }
+
+    /* Dropped by the `cv: false` data flag, not by a hardcoded name filter, so X
+       stays on the homepage, the footer and the command palette. */
+    await expect(
+      address.getByRole("link", { name: "X", exact: true }),
+    ).toHaveCount(0);
+    const x = RESUME_DATA.contact.social.find((social) => social.name === "X");
+    expect(x?.cv).toBe(false);
+    await expect(
+      page
+        .getByRole("contentinfo")
+        .getByRole("link", { name: "X", exact: true }),
+    ).toHaveCount(1);
+  });
+
+  test("keeps the browser hint on screen and off the page", async ({
+    page,
+  }) => {
+    const hint = /uncheck browser headers and footers/i;
+
+    await page.goto(cvPath);
+    await expect(page.getByText(hint)).toBeVisible();
+
+    /* The defect: with no `print:hidden` it computed `display: block` between the
+       role line and the address block, and `pdftotext` found it in the checked-in
+       file served behind "Download CV (PDF)". */
+    await page.emulateMedia({ media: "print" });
+    await expect(page.getByText(hint)).toBeHidden();
+  });
+});
+
+/* #87: `/cv` is 4,430px tall at 375 across six sections and carried no `<nav>` at
+   all — landmark navigation offered `main` and `contentinfo` and nothing else,
+   and the only route out was a "Back home" text link wedged between two
+   buttons. */
+test.describe("the CV section nav", () => {
+  test("exposes a navigation landmark whose anchors all resolve", async ({
+    page,
+  }) => {
+    await page.goto(cvPath);
+
+    const nav = page.getByRole("navigation", { name: "On this page" });
+    await expect(nav).toBeVisible();
+
+    const links = await nav.getByRole("link").all();
+    expect(links.length).toBeGreaterThan(0);
+
+    for (const link of links) {
+      const href = await link.getAttribute("href");
+      expect(href).toMatch(/^#/);
+      /* A row that indexes an id nothing carries is worse than no row. */
+      await expect(page.locator(href!)).toHaveCount(1);
+    }
+  });
+
+  test("does not print", async ({ page }) => {
+    await page.goto(cvPath);
+    await page.emulateMedia({ media: "print" });
+    await expect(
+      page.getByRole("navigation", { name: "On this page" }),
+    ).toBeHidden();
+  });
 });

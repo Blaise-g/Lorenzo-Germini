@@ -13,6 +13,7 @@ import { contrast } from "./support/color";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { setTheme, themes } from "./support/theme";
 import {
+  breakCoverImages,
   essayTitles,
   fixtureRoute,
   stubCoverImages,
@@ -363,5 +364,64 @@ test.describe("geometry", () => {
     for (const width of widths) {
       expect(width).toBeLessThanOrEqual(560);
     }
+  });
+});
+
+/* #86: `Cover` fell back when the feed carried no `<enclosure>` at all, but never
+   when the URL in one it did carry failed to load. A CDN 404 therefore rendered
+   the bordered box with nothing inside it — and at the launch state that empty
+   386px lead box pushed the title to y≈780, below the fold at 1024×900. The one
+   essay on the site, invisible. */
+test.describe("a cover that fails to load", () => {
+  /** Serves a 404 for every optimizer request, which is what a dead CDN URL
+   *  looks like to the browser. */
+  test("falls back to the same coverless panel the missing-enclosure case gets", async ({
+    page,
+  }) => {
+    await breakCoverImages(page);
+    await page.goto(fixtureRoute("1"));
+
+    const lead = page.locator("main article").first();
+
+    /* The image is replaced, not merely broken: a broken `<img>` still occupies
+       the box and still renders the browser's own placeholder glyph. */
+    await expect(lead.locator("img")).toHaveCount(0);
+    await expect(lead.locator("[aria-hidden='true']").first()).toBeVisible();
+  });
+
+  test("carries the date, so the box says something rather than nothing", async ({
+    page,
+  }) => {
+    /* Deliberately not a geometry assertion: the panel holds the same 16:9 box a
+       loaded cover would, so nothing above or below it moves — which is the
+       point, and also means position cannot tell the two apart. What changes is
+       that the box stops being empty. */
+    await breakCoverImages(page);
+    await page.goto(fixtureRoute("1"));
+
+    await expect(
+      page.locator("main article [aria-hidden='true']").first(),
+    ).not.toBeEmpty();
+  });
+
+  test("does not double the panel's hairline", async ({ page }) => {
+    /* The fallback replaces the wrapper rather than filling it — rendered inside
+       the box, the panel's own border would sit on top of the wrapper's. */
+    await breakCoverImages(page);
+    await page.goto(fixtureRoute("1"));
+
+    const panel = page.locator("main article [aria-hidden='true']").first();
+    const nestedBorders = await panel.evaluate((el) => {
+      let depth = 0;
+      let node: Element | null = el;
+      while (node && node !== document.body) {
+        if (Number.parseFloat(getComputedStyle(node).borderTopWidth) > 0) {
+          depth += 1;
+        }
+        node = node.parentElement;
+      }
+      return depth;
+    });
+    expect(nestedBorders).toBe(1);
   });
 });

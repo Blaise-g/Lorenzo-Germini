@@ -5,10 +5,13 @@ import { contrast } from "./support/color";
 import { COMMAND_MENU_LABEL } from "./support/command-palette";
 import { setTheme, themes } from "./support/theme";
 
+/* The theme toggle is located by test id rather than by name: its accessible
+   name is its state now ("Light mode" / "Dark mode" with `aria-pressed`), so a
+   literal label here would assert the mode rather than find the control. */
 const focusControls = [
-  "Toggle theme",
-  BACK_TO_TOP_LABEL,
-  COMMAND_MENU_LABEL,
+  { testId: "theme-toggle", label: "theme toggle" },
+  { name: BACK_TO_TOP_LABEL, label: BACK_TO_TOP_LABEL },
+  { name: COMMAND_MENU_LABEL, label: COMMAND_MENU_LABEL },
 ] as const;
 
 async function expectVisibleFocus(control: Locator, label: string) {
@@ -134,10 +137,12 @@ test.describe("component-owned border and focus styles", () => {
       await page.reload();
       await revealBackToTop(page);
 
-      for (const label of focusControls) {
+      for (const control of focusControls) {
         await expectVisibleFocus(
-          page.getByRole("button", { name: label }),
-          label,
+          "testId" in control
+            ? page.getByTestId(control.testId)
+            : page.getByRole("button", { name: control.name }),
+          control.label,
         );
       }
     });

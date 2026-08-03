@@ -8,13 +8,12 @@ export function buildPersonStructuredData(url: string) {
     jobTitle: RESUME_DATA.roleLabel,
     description: RESUME_DATA.summary,
     url,
-    image: RESUME_DATA.avatarUrl,
+    image: new URL(RESUME_DATA.avatarUrl, RESUME_DATA.personalWebsiteUrl).href,
     sameAs: RESUME_DATA.contact.social.map((social) => social.url),
     email: RESUME_DATA.contact.email,
-    telephone: RESUME_DATA.contact.tel,
     address: {
       "@type": "PostalAddress",
-      addressLocality: "Turin",
+      addressLocality: "Cuneo",
       addressRegion: "Piedmont",
       addressCountry: "IT",
     },
@@ -35,7 +34,7 @@ export function buildPersonStructuredData(url: string) {
       occupationalCategory: "15-1299.00",
       occupationLocation: {
         "@type": "City",
-        name: "Turin",
+        name: "Cuneo",
       },
       skills: RESUME_DATA.skillGroups
         .flatMap((group) => group.skills)

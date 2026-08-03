@@ -91,9 +91,13 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const hydrated = useHydrated();
 
   return (
+    /* Does not print. An email field is not a thing paper can do, and the
+       submit button is the system's one solid accent fill — under
+       `print-color-adjust: exact` it laid a solid block of the print `accent`
+       role onto the page. */
     <section
       aria-labelledby={`${id}-heading`}
-      className="border-ink/70 mt-20 border-t-2 pt-4"
+      className="border-ink/70 mt-20 border-t-2 pt-4 print:hidden"
     >
       <div className="max-w-[34rem]">
         <h2 id={`${id}-heading`} className="font-display text-2xl leading-snug">
@@ -149,7 +153,9 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
                 setValue(e.target.value);
                 if (error) setError(null);
               }}
-              className={`placeholder:text-faint min-w-0 border-b-2 bg-transparent px-1 py-2 text-base focus-visible:outline-none sm:flex-1 ${
+              /* `min-h-11` matches the submit button beside it: the field
+                 measured 42px, two short of the 44px the button already had. */
+              className={`placeholder:text-faint min-h-11 min-w-0 border-b-2 bg-transparent px-1 py-2 text-base focus-visible:outline-none sm:flex-1 ${
                 error
                   ? "border-accent"
                   : "border-border focus-visible:border-accent"

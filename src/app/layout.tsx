@@ -6,7 +6,6 @@ import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import React from "react";
 import { RESUME_DATA } from "@/data/resume-data";
-import { SiteFooter } from "@/components/site-footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -108,8 +107,6 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem("theme");if(t==="dark"||(!t&&matchMedia("(prefers-color-scheme:dark)").matches)){document.documentElement.classList.add("dark")}}catch(e){}})()`,
           }}
         />
-        <link rel="preconnect" href="https://avatars.githubusercontent.com" />
-        <link rel="dns-prefetch" href="https://avatars.githubusercontent.com" />
       </head>
       <body className="antialiased">
         <a
@@ -118,14 +115,11 @@ export default function RootLayout({
         >
           Skip to content
         </a>
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="scroll-mt-12 focus-visible:shadow-none"
-        >
-          {children}
-        </main>
-        <SiteFooter />
+        {/* `<main>` and the footer come from `RouteFrame`, which each shell
+            renders with its own inset — the footer's rule has to end where the
+            content above it ends, and only the shell knows where that is. Both
+            stay direct children of `<body>`. */}
+        {children}
         <Analytics />
         <SpeedInsights />
       </body>

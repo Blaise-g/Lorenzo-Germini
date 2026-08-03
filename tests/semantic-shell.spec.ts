@@ -40,10 +40,11 @@ test.describe("route-shared semantic shell", () => {
       "href",
       "mailto:lorenzo.germini@icloud.com",
     );
-    await expect(footer.getByRole("link", { name: "Phone" })).toHaveAttribute(
-      "href",
-      "tel:+393279220232",
-    );
+    /* No Phone link: the number came out of every surface in #85, and the render
+       site is conditional on `contact.tel` so an absent one drops the link
+       rather than rendering an empty `tel:`. */
+    await expect(footer.getByRole("link", { name: "Phone" })).toHaveCount(0);
+    await expect(footer.locator('a[href^="tel:"]')).toHaveCount(0);
 
     const socialDestinations = {
       GitHub: "https://github.com/Blaise-g",
@@ -121,5 +122,90 @@ test.describe("route-shared semantic shell", () => {
       footerOrder: "0",
       mainBeforeFooter: true,
     });
+  });
+});
+
+/* The footer used `container mx-auto px-4 pr-16 md:px-16` with an inner
+   `max-w-3xl` — geometry that appeared in none of the three shells. Measured at
+   1024 the last rule on every page missed the content above it: 16px inside on
+   `/cv`, a 40px overhang both sides on `/writing`, and a third distinct left
+   edge on `/`. Each shell now hands the footer its own inset (`RouteFrame`),
+   which is why the footer takes a prop rather than reading the pathname — that
+   is runtime data on a route with dynamic segments, and hoisting it out of the
+   footer's existing `<Suspense>` boundary would block the route under Cache
+   Components. */
+test.describe("the footer aligns to its host route", () => {
+  /* The element whose padding box defines each route's content column. */
+  const contentBox = {
+    "/": '[data-testid="body-inset"]',
+    "/cv": "[data-cv-document]",
+    "/writing": "main h1",
+  } as const;
+
+  for (const [route, selector] of Object.entries(contentBox)) {
+    test(`${route} ends the footer rule where its content ends`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 1024, height: 900 });
+      await page.goto(route);
+
+      const edges = await page.evaluate((contentSelector) => {
+        const inner = (element: Element) => {
+          const style = getComputedStyle(element);
+          const rect = element.getBoundingClientRect();
+          return {
+            left: rect.left + Number.parseFloat(style.paddingLeft),
+            right: rect.right - Number.parseFloat(style.paddingRight),
+          };
+        };
+
+        /* The footer's rule is the inner div's top border, so its box is what
+           has to line up — not the `<footer>`'s own padding box. */
+        const rule = document
+          .querySelector("body > footer")!
+          .firstElementChild!.getBoundingClientRect();
+
+        return {
+          content: inner(document.querySelector(contentSelector)!),
+          rule: { left: rule.left, right: rule.right },
+        };
+      }, selector);
+
+      /* `/writing`'s `<h1>` sits in a narrower 34rem box by design, so the
+         comparison there is against its measure's left edge, which the h1 shares.
+         Both other routes compare the full column. */
+      expect(
+        Math.abs(edges.rule.left - edges.content.left),
+      ).toBeLessThanOrEqual(1);
+      if (route !== "/writing") {
+        expect(
+          Math.abs(edges.rule.right - edges.content.right),
+        ).toBeLessThanOrEqual(1);
+      }
+    });
+  }
+
+  test("every route still exposes exactly one contentinfo", async ({
+    page,
+  }) => {
+    /* `RouteFrame` moved `<main>` and the footer out of the root layout into the
+       shells, so a shell that forgets one — or a route that renders two — is a
+       real failure mode now. The 404 has no shell of its own and takes the
+       default inset. */
+    for (const route of [
+      "/",
+      "/cv",
+      "/writing",
+      "/route-that-does-not-exist",
+    ]) {
+      await page.goto(route);
+      await expect(page.getByRole("contentinfo")).toHaveCount(1);
+      await expect(page.getByRole("main")).toHaveCount(1);
+      /* Nested inside `main`, `contentinfo` is not exposed as a landmark. */
+      expect(
+        await page.locator("main footer").count(),
+        `${route} must not nest the footer inside main`,
+      ).toBe(0);
+    }
   });
 });

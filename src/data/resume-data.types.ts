@@ -61,15 +61,24 @@ export type ResumeData = {
     /** The colophon stack line (spec decision 4 keeps it at the foot). */
     systems: string;
   };
+  /** Root-relative, so `next/image` optimizes it. Consumers that need an
+   *  absolute URL — the JSON-LD `image` — resolve it against
+   *  `personalWebsiteUrl` themselves. Always 4:5. */
   avatarUrl: string;
   personalWebsiteUrl: string;
   contact: {
     email: string;
-    tel: string;
+    /** Optional so removing the number is a one-line data edit rather than a
+     *  code change. Every render site guards on it. */
+    tel?: string;
     social: {
       name: string;
       url: string;
       icon: React.ComponentType;
+      /** False keeps the profile on every screen surface while the printed CV's
+       *  address row omits it. Absent means it renders everywhere. Mirrors the
+       *  `homepage` flag on `projects`. */
+      cv?: boolean;
     }[];
   };
   education: {

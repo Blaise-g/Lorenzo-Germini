@@ -129,7 +129,7 @@ test.describe("touch and fixed-chrome geometry", () => {
           const collisions = await page.evaluate(() => {
             const fixedChrome = Array.from(
               document.querySelectorAll<HTMLElement>(
-                'button[aria-label="Toggle theme"], button[aria-label="Back to top"], button[aria-label="Open command menu"], main > p.fixed',
+                'button[data-testid="theme-toggle"], button[aria-label="Back to top"], button[aria-label="Open command menu"], main > p.fixed',
               ),
             ).filter((element) => {
               const style = getComputedStyle(element);

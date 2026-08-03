@@ -23,9 +23,20 @@ const PIXEL_PNG = Buffer.from(
   "base64",
 );
 
+const OPTIMIZER_ROUTE = "**/_next/image**";
+
 export function stubCoverImages(target: BrowserContext | Page) {
-  return target.route("**/_next/image**", (route) =>
+  return target.route(OPTIMIZER_ROUTE, (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: PIXEL_PNG }),
+  );
+}
+
+/** The other half of the same intercept: proves `CoverImage`'s `onError` path,
+ *  which no amount of feed shaping can reach — the URL has to fail in the
+ *  browser. */
+export function breakCoverImages(target: BrowserContext | Page) {
+  return target.route(OPTIMIZER_ROUTE, (route) =>
+    route.fulfill({ status: 404, contentType: "text/plain", body: "gone" }),
   );
 }
 
