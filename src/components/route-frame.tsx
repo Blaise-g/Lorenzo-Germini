@@ -14,13 +14,14 @@ import { SiteFooter } from "@/components/site-footer";
    direct children of `<body>`: `contentinfo` nested inside `main` is not
    exposed as a landmark. */
 
-/** `/cv`'s document box, and the widest single-column measure on the site — so
- *  it is also what a surface with no shell of its own (the 404) uses. That
- *  caller passes it explicitly: as a default it silently gave every future
- *  shell-less route `/cv`'s geometry, which is the drift this component exists
- *  to stop. */
-export const CV_DOCUMENT_INSET =
-  "mx-auto max-w-4xl px-6 pr-20 sm:px-10 sm:pr-20 lg:px-12 print:max-w-none print:px-0";
+/* No inset constant lives here. `CV_DOCUMENT_INSET` used to, which made this
+   module — the one every shell mounts — change whenever `/cv`'s geometry did.
+   Each measure now sits with the surface that owns it: `src/app/cv/inset.ts`,
+   `HUB_SHELL_INSET` in `hub-shell.tsx`, and `/writing`'s in `writing-index.tsx`.
+   They are deliberately not gathered into one module: ADR 0002's argument is
+   that a measure says something only its own shell cares about, and a shared
+   home invites the union type that ADR rejects. The cost is the
+   `print:max-w-none print:px-0` tail written out three times. */
 
 export function RouteFrame({
   children,

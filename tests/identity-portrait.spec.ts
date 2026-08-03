@@ -15,6 +15,9 @@ import { setTheme, themes } from "./support/theme";
 
 const RAIL = { width: 144, height: 180 };
 const BAND = { width: 56, height: 70 };
+/** The band's printed slot: `print:h-[120px] print:w-24`, deliberately larger
+ *  than the screen band because paper has no rail to carry the portrait. */
+const BAND_PRINT = { width: 96, height: 120 };
 
 test("the portrait is local and 4:5, not a remote avatar", async ({
   request,
@@ -46,7 +49,8 @@ test("the rail frame is 144×180 and declares that width to the optimizer", asyn
   expect(Math.round(box!.height)).toBe(RAIL.height);
 
   /* `sizes` has to match the slot: the previous `80px` served a file narrower
-     than the 144px box, and the band's `96px` served one wider than its 56px. */
+     than the 144px box. The rail is drawn in one medium, so one element covers
+     it — unlike the band, which the test below splits. */
   await expect(frame.locator("img")).toHaveAttribute(
     "sizes",
     `${RAIL.width}px`,
@@ -65,10 +69,72 @@ test("the band frame is 56×70 and declares that width to the optimizer", async 
   expect(Math.round(box!.width)).toBe(BAND.width);
   expect(Math.round(box!.height)).toBe(BAND.height);
 
-  await expect(frame.locator("img")).toHaveAttribute(
+  /* Two elements, one per medium, because `sizes` takes no print condition and
+     this one frame is 56px on screen and 96px on paper. The screen element is
+     the visible one here; the print element is asserted below. */
+  await expect(frame.locator("img:visible")).toHaveAttribute(
     "sizes",
     `${BAND.width}px`,
   );
+});
+
+test("the band serves its 96px printed slot rather than upscaling the 56px file", async ({
+  page,
+}) => {
+  /* The defect this splits: with a single `sizes="56px"` element, print at DPR 1
+     picked the 64w candidate for a 96px slot — a ~1.5× upscale on the one
+     surface where the portrait is deliberately largest. Raising the shared value
+     to `96px` instead cost the screen 128w → 256w at DPR 2, which is the
+     regression #86 fixed by moving off `96px`. Two elements cost nothing,
+     because a hidden image is never fetched — asserted in the next test. */
+  await page.emulateMedia({ media: "print" });
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.goto("/");
+
+  const frame = page.getByTestId("mobile-identity").locator(".portrait-warm");
+  const box = await frame.boundingBox();
+  expect(box).not.toBeNull();
+  expect(Math.round(box!.width)).toBe(BAND_PRINT.width);
+  expect(Math.round(box!.height)).toBe(BAND_PRINT.height);
+
+  const printed = frame.locator("img:visible");
+  await expect(printed).toHaveAttribute("sizes", `${BAND_PRINT.width}px`);
+
+  /* The assertion that matters is the file the browser actually chose, not the
+     declaration: `sizes` is only an input to candidate selection. */
+  await expect
+    .poll(async () =>
+      printed.evaluate((img: HTMLImageElement) =>
+        img.currentSrc
+          ? new URL(img.currentSrc, location.href).searchParams.get("w")
+          : null,
+      ),
+    )
+    .toBe(String(BAND_PRINT.width));
+});
+
+test("only the medium's own portrait is fetched, so the split costs nothing", async ({
+  page,
+}) => {
+  /* The premise the two-element split rests on, and the one a previous pass got
+     wrong: `loading="lazy"` on a `display: none` image does not merely defer the
+     request, it never makes it — a hidden image has no box, so no viewport
+     proximity to trigger on. If that ever stopped holding, every page would pay
+     for portraits it does not paint and the split would become a real cost. */
+  const widths: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url(), "http://localhost");
+    if (url.pathname.startsWith("/_next/image")) {
+      widths.push(url.searchParams.get("w")!);
+    }
+  });
+
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/", { waitUntil: "networkidle" });
+
+  /* At ≥lg the rail is the only painted variant: its 144px slot at DPR 1 takes
+     the 256w candidate, and neither band element is requested at all. */
+  expect(widths).toEqual(["256"]);
 });
 
 test("both slots are 4:5, so neither centre-crops the face", () => {

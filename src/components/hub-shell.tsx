@@ -166,6 +166,33 @@ export function HubShell({
   );
 }
 
+/** One `<Image>` per slot the portrait is actually drawn into, so each declares
+ *  its own `sizes`. Never `priority`: the variants render on every route with at
+ *  least one inside a `display: none` ancestor, and a preload is not
+ *  media-gated — so `priority` would cost a `rel=preload` per element and pull a
+ *  256w file for a slot the medium hid. The portrait is not the LCP element; the
+ *  hero `<h1>` is. */
+function PortraitImage({
+  className,
+  profile,
+  sizes,
+}: {
+  className?: string;
+  profile: HubProfile;
+  sizes: string;
+}) {
+  return (
+    <Image
+      src={profile.avatarUrl}
+      alt={profile.avatarAlt}
+      fill
+      sizes={sizes}
+      loading="lazy"
+      className={cn("object-cover", className)}
+    />
+  );
+}
+
 function ProfileIdentity({
   profile,
   variant,
@@ -196,27 +223,36 @@ function ProfileIdentity({
               : "border-accent/20 portrait-warm relative h-[70px] w-14 shrink-0 overflow-hidden rounded-sm border-2 print:h-[120px] print:w-24"
           }
         >
-          <Image
-            src={profile.avatarUrl}
-            alt={profile.avatarAlt}
-            fill
-            /* The slot, measured, not a guess: the rail frame is 144px wide and
-               the band's 56px. A bare value wider than the slot serves a file
-               the layout never uses; one narrower upscales on every phone. */
-            sizes={isRail ? "144px" : "56px"}
-            /* Never `priority` here. Both variants render on every route, one
-               always inside a `display: none` ancestor, and a preload is not
-               media-gated — so `priority` costs two `rel=preload` tags and pulls
-               a 256w file for the slot the breakpoint hid. Measured at 1024:
-               lazy, the hidden band takes 64w against the rail's 256w.
-               It is still requested — `loading=lazy` defers on viewport
-               proximity and a `display: none` image has none — so the second
-               request only goes away by rendering one variant instead of two,
-               which is what keeps this server-rendered and shift-free.
-               The portrait is not the LCP element; the hero `<h1>` is. */
-            loading="lazy"
-            className="object-cover"
-          />
+          {isRail ? (
+            <PortraitImage profile={profile} sizes="144px" />
+          ) : (
+            <>
+              {/* The band is drawn into two different slots — 56px on a phone
+                screen, 96px on paper (`print:w-24` above, deliberately enlarged
+                because print has no rail to carry the portrait). `sizes` takes
+                no print condition, so one element cannot declare both: at
+                `56px` the printed slot gets a 64w file and upscales ~1.5×, and
+                at `96px` every phone pays for it — measured, 128w → 256w at DPR
+                2 and 256w → 384w at DPR 3, which is the regression #86 fixed by
+                moving this off `96px` in the first place.
+                Two elements cost nothing instead, because a hidden one is never
+                fetched: measured at 1024, the only image request on screen is
+                the rail's 256w, and the band's arrives only once print media
+                makes it displayed. Splitting the slot splits the request with
+                it — each variant loads in exactly the medium it is sized for,
+                and neither medium pays for the other. */}
+              <PortraitImage
+                profile={profile}
+                sizes="56px"
+                className="print:hidden"
+              />
+              <PortraitImage
+                profile={profile}
+                sizes="96px"
+                className="hidden print:block"
+              />
+            </>
+          )}
         </div>
         <div className={isRail ? "space-y-2" : "space-y-1"}>
           {isRail ? (

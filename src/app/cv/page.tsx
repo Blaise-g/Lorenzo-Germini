@@ -16,7 +16,8 @@ import type { ReactNode } from "react";
 
 import { FloatingActionCluster } from "@/components/floating-action-cluster";
 import { PrintCvButton } from "@/components/print-cv-button";
-import { CV_DOCUMENT_INSET, RouteFrame } from "@/components/route-frame";
+import { CV_DOCUMENT_INSET } from "@/app/cv/inset";
+import { RouteFrame } from "@/components/route-frame";
 import { SectionAnchorRow } from "@/components/section-anchor-row";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -75,7 +76,13 @@ export default function CvPage() {
             "pt-20 pb-24 lg:pt-12 print:max-w-none print:p-0",
           )}
         >
-          <header className="cv-header border-b-ink border-b-2 pb-6 print:pb-2">
+          {/* The 2px rule is print-only. On paper it closes the document's
+            masthead against the body below it, which is what it was for. On
+            screen it used to sit under the address row and read as the end of
+            the header block; with the address now print-only it landed directly
+            beneath the buttons and read as a stray divider instead. The section
+            nav below carries its own rule, so nothing on screen needs this one. */}
+          <header className="cv-header border-b-ink pb-6 print:border-b-2 print:pb-2">
             <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
               <div>
                 <p className="text-accent font-mono text-xs font-semibold tracking-[0.16em] uppercase">
@@ -115,26 +122,18 @@ export default function CvPage() {
               </Link>
             </div>
 
-            {/* A browser instruction, so it belongs on the screen and nowhere
-              near the document. Without `print:hidden` it rendered between the
-              role line and the address block — and shipped inside the
-              downloadable PDF, where `pdftotext` found it. */}
-            <p className="text-faint mt-3 font-mono text-xs print:hidden">
-              For clean output, uncheck browser headers and footers.
-            </p>
-
-            {/* `SiteFooter`'s inner div is `print:hidden`, so this row is the
-              printed CV's only contact surface — it cannot be deleted as a
-              repetition without shipping a PDF a reader cannot reply to. It is
-              trimmed instead. Location stays because it is what a hiring reader
-              filters on, and GitHub because the CV body carries no code link
-              anywhere else.
-
-              `gap-y-5` is the 44px hit areas, not rhythm: this row wraps to
-              several lines at 375, and a 28px pitch under 44px targets puts each
-              line's hit area inside its neighbour's. Print keeps the tight
-              original — paper has no thumbs. */}
-            <address className="text-faint mt-4 flex flex-wrap gap-x-4 gap-y-5 font-mono text-xs not-italic print:mt-2 print:gap-y-1 print:text-[9pt]">
+            {/* Print-only, and the division of labour is what makes that safe:
+              `SiteFooter`'s inner div is `print:hidden` and already carries the
+              email and every social link on screen, so this row was the same
+              contact surface twice over — while on paper, where the footer is
+              gone, it is the only one. Deleting it outright would ship a PDF a
+              reader cannot reply to; keeping it on screen only repeated the
+              footer a few hundred pixels above it.
+              Location stays because it is what a hiring reader filters on, and
+              GitHub because the CV body carries no code link anywhere else.
+              The old `gap-y-5` went with the screen: it bought 44px hit areas
+              for a row that wraps at 375, and paper has no thumbs. */}
+            <address className="text-faint hidden flex-wrap gap-x-4 font-mono text-xs not-italic print:mt-2 print:flex print:gap-y-1 print:text-[9pt]">
               <a
                 className="touch-target"
                 href={`mailto:${RESUME_DATA.contact.email}`}

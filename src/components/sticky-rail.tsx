@@ -86,18 +86,30 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
   return activeId;
 }
 
-/** Deliberately without `touch-target`, for the same reason as the footer's
- *  colophon links: the rail's rows sit on a 28px pitch, so a centred 44px
- *  overlay reaches 8px into each neighbour — measured at 1024, six links deep.
- *  Widening the pitch to 44px instead would add 96px to a rail that already has
- *  to keep `CV →` inside an 800px viewport.
- *  It costs nothing to give up: the rail is `hidden lg:block`, and each row is a
- *  220×28px target — well past WCAG 2.2 SC 2.5.8's 24×24 — while the 44px
- *  expansion exists for thumbs at 375, where this nav does not render at all.
- *  The floor is still stated explicitly, because `py-1.5` on 12px type is the
- *  only thing holding it. */
+/** Deliberately without `touch-target`, and it is the pitch that rules it out:
+ *  the rows sit 28px apart, so a centred 44px overlay reaches 8px into each
+ *  neighbour — measured at 1024, four pairs overlapping by 16px plus
+ *  `Systems`×`CV →` by 4px. An overlay cannot be the answer here at any pitch
+ *  below 44px, because it is the overlay itself that collides.
+ *
+ *  So under a coarse pointer the *box* grows to 44px instead — `py-3.5` on 12px
+ *  type — which is a real 220×44 target with nothing to overlap, and no reliance
+ *  on `.touch-target`'s geometry. `lg` is a width, not an input device: iPad
+ *  landscape is 1024 with no pointer, which is the case the old reasoning here
+ *  ("≥lg means there is a mouse") quietly assumed away.
+ *
+ *  Fine pointers keep the tight 28px rail, where 220×28 is already well past
+ *  WCAG 2.2 SC 2.5.8's 24×24 and a cursor does not need more. Measured at
+ *  1024×800, the coarse rail puts `CV →`'s bottom at 790px against the 694px it
+ *  sits at for a mouse — inside the 800px #86 holds it to, with 10px to spare,
+ *  and the rail is `lg:sticky lg:top-8`, so scrolling lifts it well clear
+ *  either way. The old note here priced this at ~96px, which would not have
+ *  fitted; the real cost is the six rows going 28px → 44px.
+ *
+ *  The 24px floor stays stated, because `py-1.5` on 12px type is the only thing
+ *  holding it for fine pointers. */
 const railLinkClass =
-  "inline-flex min-h-6 items-center border-l py-1.5 pl-3 underline-offset-4";
+  "inline-flex min-h-6 items-center border-l py-1.5 pl-3 underline-offset-4 coarse:py-3.5";
 
 export function StickyRailNavigation({
   destinations,

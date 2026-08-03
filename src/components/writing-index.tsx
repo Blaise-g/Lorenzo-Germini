@@ -37,8 +37,13 @@ const meta = "font-mono text-xs uppercase tracking-[0.12em]";
    The print reset mirrors `HUB_SHELL_INSET`: paper has no fixed theme toggle to
    reserve room for, and `lg:pr-6` needs 1024px that an ~800px print box never
    has — so without it the exclusion zone survived into print and put every
-   printed page 56px off-centre. The `@page` margin supplies the margin. */
-const measure =
+   printed page 56px off-centre. The `@page` margin supplies the margin.
+
+   Exported for symmetry with `HUB_SHELL_INSET` and `CV_DOCUMENT_INSET`, not
+   because anything outside this module needs it yet: two of the three insets
+   being importable and this one being private made the set look like two shared
+   values and one local detail, when all three are the same kind of thing. */
+export const WRITING_MEASURE_INSET =
   "mx-auto max-w-[46rem] px-6 pr-20 lg:pr-6 print:max-w-none print:px-0";
 
 const { writingPage } = RESUME_DATA;
@@ -62,12 +67,12 @@ export function WritingIndex({
   const [lead, ...rows] = essays;
 
   return (
-    <RouteFrame measure={measure}>
+    <RouteFrame measure={WRITING_MEASURE_INSET}>
       <div className="min-h-screen">
         <ThemeToggle />
 
         <div className="border-ink border-b-2">
-          <header className={cn(measure, "pt-12 pb-4 lg:pt-10")}>
+          <header className={cn(WRITING_MEASURE_INSET, "pt-12 pb-4 lg:pt-10")}>
             <div className="flex items-baseline justify-between gap-8">
               <Link
                 href="/"
@@ -100,7 +105,7 @@ export function WritingIndex({
           </header>
         </div>
 
-        <div className={cn(measure, "pb-24")}>
+        <div className={cn(WRITING_MEASURE_INSET, "pb-24")}>
           <div className="max-w-[34rem] pt-12">
             <h1 className="font-display animate-fade-in-up text-4xl leading-[1.1] font-medium tracking-tight">
               Writing
@@ -318,7 +323,10 @@ function Cover({ essay, size }: { essay: Essay; size: keyof typeof COVERS }) {
  *  module below it does not jump when the essays land. */
 export function WritingIndexFallback() {
   return (
-    <div aria-hidden className={cn(measure, "space-y-5 pt-14 pb-24")}>
+    <div
+      aria-hidden
+      className={cn(WRITING_MEASURE_INSET, "space-y-5 pt-14 pb-24")}
+    >
       <div className="bg-ink/[0.06] aspect-[16/9] w-full rounded-sm" />
       <div className="bg-ink/[0.06] h-3 w-40 rounded-sm" />
       <div className="bg-ink/[0.06] h-8 w-4/5 rounded-sm" />
