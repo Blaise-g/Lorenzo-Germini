@@ -81,10 +81,19 @@ async function measureHitAreas(page: import("@playwright/test").Page) {
          to two lines — a title one line shorter would have reported it at any
          point before that, because the anchor was never the hit area. */
       const stretched = hasOverlay && after.inset === "0px";
-      const rect =
-        stretched && el.offsetParent
-          ? el.offsetParent.getBoundingClientRect()
-          : own;
+      /* `offsetParent` is the abs containing block for every case in this
+         codebase — the essay card's `relative` article — but it is not that in
+         general: `transform`, `filter` and `contain` establish one without
+         `position`. So the walk is checked rather than assumed. An overlay whose
+         `offsetParent` is not positioned reports its own box and fails the 44px
+         sweep, rather than silently passing on a box that is not its target. */
+      const container =
+        stretched &&
+        el.offsetParent &&
+        getComputedStyle(el.offsetParent).position !== "static"
+          ? el.offsetParent
+          : null;
+      const rect = container ? container.getBoundingClientRect() : own;
       const width = expands ? Math.max(rect.width, 44) : rect.width;
       const height = expands ? Math.max(rect.height, 44) : rect.height;
       const centreX = rect.x + rect.width / 2;

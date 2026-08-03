@@ -8,7 +8,7 @@ import {
 } from "./support/back-to-top";
 import { removeDevOverlay } from "./support/dev-overlay";
 import { routesUsingTheSharedShell } from "./support/routes";
-import { setTheme, themes } from "./support/theme";
+import { proveHydrated, setTheme, themes } from "./support/theme";
 
 const viewports = [375, 768, 1024, 1440] as const;
 
@@ -91,14 +91,16 @@ test.describe("touch and fixed-chrome geometry", () => {
       /* No `revealBackToTop` here: since #89 the button is `hidden xl:block`, so
          at 375 there is nothing to reveal — which is the point, because it is the
          thumb zone it used to occupy permanently. */
-      /* The theme toggle is excluded by `:not([data-testid])`: since #89 it sits
-         in the masthead row, where a 44px box would be the tallest thing in it
-         and would set the header's height — so it carries a 36px box with
-         `touch-target`'s 44px hit area instead, which is asserted directly in
-         the hit-area test below. */
+      /* The theme toggle is the one exemption, named rather than matched by
+         shape: since #89 it sits in the masthead row, where a 44px box would be
+         the tallest thing in it and would set the header's height — so it carries
+         a 36px box with `touch-target`'s 44px hit area, which
+         `tests/hit-areas.spec.ts` asserts directly. Excluding it by
+         `:not([data-testid])` would have exempted every future icon control that
+         happens to carry a test id. */
       await expectMinimumTarget(
         page,
-        "main a[aria-label]:has(svg), main button[aria-label]:not([data-testid]):has(svg)",
+        'main a[aria-label]:has(svg), main button[aria-label]:not([data-testid="theme-toggle"]):has(svg)',
         44,
       );
     });
@@ -359,15 +361,8 @@ test.describe("browser keyboard shortcuts", () => {
     }) => {
       await page.goto(route);
       /* Hydration first: a listener registered after the dispatch below would
-         make this pass for the wrong reason. The theme toggle is the client
-         component every route carries, and its `aria-pressed` flipping on click
-         is the observable proof that this route's handlers have committed. */
-      const toggle = page.getByTestId("theme-toggle");
-      const pressed = await toggle.getAttribute("aria-pressed");
-      await toggle.click();
-      await expect
-        .poll(() => toggle.getAttribute("aria-pressed"))
-        .not.toBe(pressed);
+         make this pass for the wrong reason. */
+      await proveHydrated(page);
 
       const cancelled = await page.evaluate(() =>
         ["j", "k"].flatMap((key) =>
@@ -472,14 +467,9 @@ test.describe("scroll subscriptions", () => {
     await page.setViewportSize({ width: 375, height: 800 });
     await recordWindowScrollRegistrations(page);
     await page.goto("/");
-    /* The toggle's click proves hydration has run, so an empty list here is a
-       gate holding rather than a page that has not started. */
-    const toggle = page.getByTestId("theme-toggle");
-    const pressed = await toggle.getAttribute("aria-pressed");
-    await toggle.click();
-    await expect
-      .poll(() => toggle.getAttribute("aria-pressed"))
-      .not.toBe(pressed);
+    /* Proving hydration first, so an empty list here is a gate holding rather
+       than a page that has not started. */
+    await proveHydrated(page);
 
     expect(await scrollRegistrations(page)).toEqual([]);
   });

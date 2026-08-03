@@ -12,7 +12,7 @@ import { setTheme, themes } from "./support/theme";
    name is its state now ("Light mode" / "Dark mode" with `aria-pressed`), so a
    literal label here would assert the mode rather than find the control. */
 const focusControls = [
-  { testId: "theme-toggle", label: "theme toggle", prepare: async () => {} },
+  { testId: "theme-toggle", label: "theme toggle" },
   {
     name: BACK_TO_TOP_LABEL,
     label: BACK_TO_TOP_LABEL,
@@ -152,7 +152,7 @@ test.describe("component-owned border and focus styles", () => {
       await page.reload();
 
       for (const control of focusControls) {
-        await control.prepare(page);
+        if ("prepare" in control) await control.prepare(page);
         await expectVisibleFocus(
           "testId" in control
             ? page.getByTestId(control.testId)

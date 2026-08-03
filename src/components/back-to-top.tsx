@@ -47,10 +47,14 @@ export function BackToTop() {
     });
   };
 
-  /* The wrapper carries the width gate, not the button: `hidden` and the
-     `inline-flex` in `buttonVariants` are both utilities in the same layer, so
-     which one wins is decided by their order in the emitted stylesheet rather
-     than by the order they are written in here. */
+  /* The wrapper owns placement and the width gate; the button owns only its
+     reveal. That split is what keeps the animated `translate-y-2` off the
+     element being positioned, which is how the deleted cluster had it too.
+     (An earlier comment here claimed the wrapper was needed because `hidden`
+     and `buttonVariants`' `inline-flex` are same-layer utilities whose order in
+     the stylesheet decides. That is not the constraint: `cn` is `twMerge`, which
+     resolves the display group before any CSS is consulted — checked, it drops
+     `inline-flex` and keeps `hidden xl:inline-flex`.) */
   return (
     <div className="fixed right-4 bottom-4 z-50 hidden xl:block print:hidden">
       <Button

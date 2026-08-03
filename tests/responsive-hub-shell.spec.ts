@@ -4,7 +4,10 @@ import { RESUME_DATA } from "@/data/resume-data";
 
 import {
   BACK_TO_TOP_MIN_WIDTH,
+  BACK_TO_TOP_SELECTOR,
   backToTopButton,
+  backToTopClearance,
+  fixedControls,
   revealBackToTop,
 } from "./support/back-to-top";
 import { removeDevOverlay } from "./support/dev-overlay";
@@ -426,35 +429,16 @@ test.describe("responsive hub shell", () => {
     await page.goto("/");
     await revealBackToTop(page);
 
-    const corner = () =>
-      page.evaluate(() =>
-        Array.from(
-          document.querySelectorAll<HTMLElement>("main button, main a"),
-        )
-          .filter((element) => {
-            let current: HTMLElement | null = element;
-            while (current) {
-              if (getComputedStyle(current).position === "fixed") return true;
-              current = current.parentElement;
-            }
-            return false;
-          })
-          .map((element) => {
-            const rect = element.getBoundingClientRect();
-            return {
-              label: element.getAttribute("aria-label"),
-              rightGap: Math.round(innerWidth - rect.right),
-              bottomGap: Math.round(innerHeight - rect.bottom),
-            };
-          }),
-      );
+    /* Polled on the button's own opacity, not on the sweep: the reveal
+       transitions through `translate-y-2 scale-95`, so a corner read taken the
+       moment it becomes visible catches it 7px short of its resting place — but
+       polling the sweep itself would re-resolve styles for every link in `main`
+       every 100ms to wait out one transition. */
+    await expect(backToTopButton(page)).toHaveCSS("opacity", "1");
 
-    /* Polled: the reveal transitions through `translate-y-2 scale-95`, so a read
-       taken the moment the button becomes visible catches it 7px short of its
-       resting corner. */
-    await expect
-      .poll(corner)
-      .toEqual([{ label: "Back to top", rightGap: 16, bottomGap: 16 }]);
+    expect(await fixedControls(page)).toEqual([
+      { label: "Back to top", rightGap: 16, bottomGap: 16 },
+    ]);
   });
 
   /* "In the margin" is the whole condition it survives on since #89: below `xl`
@@ -469,18 +453,8 @@ test.describe("responsive hub shell", () => {
 
     /* The margin at 1440 is 208px of empty space, so "available" means it is
        reachable without covering the measure the reader is in. */
-    const clearance = await page.evaluate(() => {
-      const button = document
-        .querySelector('button[aria-label="Back to top"]')!
-        .getBoundingClientRect();
-      const measure = document
-        .querySelector('[data-testid="body-inset"]')!
-        .getBoundingClientRect();
-      return Math.round(button.left - measure.right);
-    });
-
     await expect(backToTopButton(page)).toBeVisible();
-    expect(clearance).toBeGreaterThan(0);
+    expect(await backToTopClearance(page, "body-inset")).toBeGreaterThan(0);
   });
 
   test("interactive DOM order follows the mobile visual flow", async ({
@@ -675,7 +649,12 @@ test.describe("the theme toggle rides in the page's own chrome", () => {
 
   for (const route of routes) {
     for (const width of [375, 768, 1024, 1440] as const) {
-      test(`${route} at ${width}px keeps the toggle in flow with a 44px hit area`, async ({
+      /* One navigation per route × width, asserting both halves of the same
+         placement: the control is in flow with its own 44px hit area, and no
+         inset reserves a gutter for the fixed chrome it used to be. Split across
+         two tests these paid for two page loads to read two independent
+         measurements off one layout. */
+      test(`${route} at ${width}px puts the toggle in flow and reserves no gutter`, async ({
         page,
       }) => {
         await page.setViewportSize({ width, height: 812 });
@@ -686,11 +665,6 @@ test.describe("the theme toggle rides in the page's own chrome", () => {
           .evaluate((element) => {
             const rect = element.getBoundingClientRect();
             const after = getComputedStyle(element, "::after");
-            let ancestor: Element | null = element;
-            while (ancestor) {
-              if (getComputedStyle(ancestor).position === "fixed") break;
-              ancestor = ancestor.parentElement;
-            }
             /* Sampled at the hit area's own corners, not the box's: the box is
                36px and `touch-target` supplies the rest, so a hit area that
                failed to render would still pass a box-only check. */
@@ -708,7 +682,6 @@ test.describe("the theme toggle rides in the page's own chrome", () => {
             ] as const;
 
             return {
-              fixedAncestor: ancestor?.tagName ?? null,
               position: getComputedStyle(element).position,
               hitWidth: after.width,
               hitHeight: after.height,
@@ -730,17 +703,15 @@ test.describe("the theme toggle rides in the page's own chrome", () => {
           });
 
         expect(toggle.position).not.toBe("fixed");
-        expect(toggle.fixedAncestor).toBeNull();
         expect(toggle.hitWidth).toBe("44px");
         expect(toggle.hitHeight).toBe("44px");
         expect(toggle.cornersHittingSomethingElse).toEqual([]);
-      });
 
-      test(`${route} at ${width}px reserves no gutter for fixed chrome`, async ({
-        page,
-      }) => {
-        await page.setViewportSize({ width, height: 812 });
-        await page.goto(route);
+        /* The toggle is not merely unpositioned but outside every fixed
+           container: `BackToTop` is the only control allowed to be in one. */
+        expect(
+          (await fixedControls(page)).map(({ label }) => label),
+        ).not.toContain("Light mode");
 
         /* The exclusion zone was `pr-20` against `px-6`, so an asymmetry of 56px
            is the exact defect. Read off every box that takes a shell inset,
@@ -789,10 +760,33 @@ test.describe("the theme toggle rides in the page's own chrome", () => {
     await page.keyboard.press("Tab");
     expect(await focused()).toBe("theme-toggle");
   });
+
+  /* Below `lg` the masthead carries no route links, so the toggle is the first
+     thing in it — and the widths where the row is tightest are the ones where a
+     control landing out of order is least recoverable. */
+  for (const width of [375, 768] as const) {
+    test(`${width}px reaches the toggle as the masthead's first stop`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 812 });
+      await page.goto("/");
+      await removeDevOverlay(page);
+
+      /* From the document start, so this measures the tab order a reader
+         actually walks rather than one seeded by a `focus()` call. The skip link
+         is the site's first stop on every route. */
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("link", { name: /skip/i })).toBeFocused();
+      await page.keyboard.press("Tab");
+      await expect(page.getByTestId("theme-toggle")).toBeFocused();
+    });
+  }
 });
 
 test.describe("back to top is painted only where there is margin", () => {
-  for (const width of [375, 768, 1024] as const) {
+  /* `BACK_TO_TOP_MIN_WIDTH - 1` is the one that holds the constant to the `xl:`
+     class beside it: move either without the other and this pair fails. */
+  for (const width of [375, 768, 1024, BACK_TO_TOP_MIN_WIDTH - 1] as const) {
     test(`${width}px paints no floating control`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
@@ -800,9 +794,7 @@ test.describe("back to top is painted only where there is margin", () => {
 
       /* Attribute, not role: hidden it leaves the accessibility tree, so a role
          query would pass on a button that was painted but unnamed. */
-      await expect(
-        page.locator('button[aria-label="Back to top"]'),
-      ).toBeHidden();
+      await expect(page.locator(BACK_TO_TOP_SELECTOR)).toBeHidden();
     });
   }
 
@@ -816,16 +808,6 @@ test.describe("back to top is painted only where there is margin", () => {
     /* The gate is `xl`, not `lg`, because this is what fails at 1024: the hub's
        measure is `max-w-5xl` — 1024px — so the button would land on the body
        text rather than beside it. */
-    const clearance = await page.evaluate(() => {
-      const button = document
-        .querySelector('button[aria-label="Back to top"]')!
-        .getBoundingClientRect();
-      const measure = document
-        .querySelector('[data-testid="body-inset"]')!
-        .getBoundingClientRect();
-      return Math.round(button.left - measure.right);
-    });
-
-    expect(clearance).toBeGreaterThan(0);
+    expect(await backToTopClearance(page, "body-inset")).toBeGreaterThan(0);
   });
 });

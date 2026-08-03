@@ -56,7 +56,9 @@ an exclusion zone, and that is what this ADR spends.
 with a 36px control in it, and `tests/responsive-hub-shell.spec.ts` holds the masthead box to
 70px — a ceiling that was 84px while the toggle was overhead. A 44px box does not fit under it.
 
-**Nothing reserves space for fixed chrome any more, so anything newly fixed collides on
-arrival.** `tests/responsive-hub-shell.spec.ts` asserts symmetric padding on every inset and
+**No shell reserves a horizontal gutter any more, so anything newly fixed collides on
+arrival.** One vertical reservation outlives this decision: `SiteFooter`'s `pb-20`, which
+decision 2 asked for as bottom-right clearance and which now reads as page-end space —
+below `xl` there is nothing fixed to clear, and above it the button sits in the margin. `tests/responsive-hub-shell.spec.ts` asserts symmetric padding on every inset and
 that `BackToTop` is the only fixed control; `tests/interaction-hardening.spec.ts` hit-tests the
 corners at four widths and asserts no route cancels Ctrl/Cmd+J or Ctrl/Cmd+K.
