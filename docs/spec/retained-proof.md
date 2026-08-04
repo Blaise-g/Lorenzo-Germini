@@ -21,6 +21,8 @@ Two entries use `requiredAllOf`, both for the same reason: **the figure carries 
 
 `additive: true` marks terms that are **not** in `resume-data.tsx` today. They enter with the redesign's systems line and are protected from that point on, so the test can be run against the current site by filtering them out.
 
+The flag is **dormant as of 2026-08-04**: the last entries carrying it left with the systems line that was to introduce them, so no live entry uses it. The flag itself remains valid — an entry for a term the data has not shipped yet should still declare it.
+
 ## Scope
 
 This is a **floor**, not a target. It asserts that nothing is lost. It says nothing about whether the homepage is technical _enough_ — that is a separate pair of tests in the spec:

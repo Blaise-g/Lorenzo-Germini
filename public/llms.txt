@@ -4,17 +4,17 @@
 
 ## Profile
 
-I'm an AI product engineer: I ship AI products end-to-end — from the models and infrastructure to the interface people actually touch — and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
+I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
 
-These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem isn't the plumbing — it's making the agents working in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed — technical depth only matters when it meets a real user problem.
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.
 
-Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.
+Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
 
 ## Professional profile
 
 - [Homepage](https://lorenzogermini.com): Professional hub, positioning, and the writing
 - [Writing](https://lorenzogermini.com/writing): Essay index, built from the germinai feed; every essay links out to Substack
-- [germinai](https://lorenzogermini.substack.com): Field notes on building with AI
+- [germinai](https://lorenzogermini.substack.com): Field notes, mostly on building with AI
 - [CV](https://lorenzogermini.com/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
 - [CV PDF](https://lorenzogermini.com/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae
 
@@ -26,11 +26,11 @@ Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneur
 
 ## Skills
 
-Generative AI, LLMs, RAG, Full-Stack Development, Python
+LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG over ISO documentation, and evaluation frameworks that keep both honest in production.
+- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
@@ -44,5 +44,5 @@ Generative AI, LLMs, RAG, Full-Stack Development, Python
 
 ## Projects
 
-- L'Oracolo della Ghigliottina: AI game companion for the final round of Italy's most-watched quiz show — 100% accuracy so far, with rate-limit handling
-- Biomedical Paper Summarizer: MSc thesis work — an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR
+- L'Oracolo della Ghigliottina: AI game companion for the final round of Italy's most-watched quiz show. 100% accuracy so far, with rate-limit handling
+- Biomedical Paper Summarizer: MSc thesis work, an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR
