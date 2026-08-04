@@ -86,6 +86,18 @@ test.describe("parsing a well-formed feed", () => {
     /* No body, so no computed reading time — and no invented label for it. */
     expect(essay.readingMinutes).toBeNull();
   });
+
+  test("decodes numeric HTML entities in the rendered excerpt", () => {
+    const [essay] = parseSubstackFeed(
+      feed(
+        item({
+          body: "<p>I&#8217;ve trimmed it; it&#x2019;s cleaner &amp; readable.</p>",
+        }),
+      ),
+    );
+
+    expect(essay.excerpt).toBe("I’ve trimmed it; it’s cleaner & readable.");
+  });
 });
 
 test.describe("resilience", () => {
