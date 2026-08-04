@@ -212,20 +212,34 @@ function stripHtml(html: string): string {
 }
 
 /* `content:encoded` arrives inside CDATA, so its entities survive the XML
-   parse as literal text. Only the five that actually appear in prose. */
+   parse as literal text. Decode the named prose entities plus valid decimal
+   and hexadecimal Unicode references emitted by Substack. */
 const ENTITIES: Record<string, string> = {
   "&amp;": "&",
   "&lt;": "<",
   "&gt;": ">",
   "&quot;": '"',
-  "&#39;": "'",
   "&nbsp;": " ",
 };
 
 function decodeEntities(value: string): string {
   return value.replace(
-    /&(amp|lt|gt|quot|#39|nbsp);/g,
-    (entity) => ENTITIES[entity] ?? entity,
+    /&(amp|lt|gt|quot|nbsp|#(\d+)|#x([\da-f]+));/gi,
+    (
+      entity,
+      _reference,
+      decimal: string | undefined,
+      hex: string | undefined,
+    ) => {
+      if (!decimal && !hex) return ENTITIES[entity.toLowerCase()] ?? entity;
+
+      const reference = decimal ?? hex;
+      if (!reference) return entity;
+      const codePoint = Number.parseInt(reference, hex ? 16 : 10);
+      const isSurrogate = codePoint >= 0xd800 && codePoint <= 0xdfff;
+      if (codePoint === 0 || codePoint > 0x10ffff || isSurrogate) return entity;
+      return String.fromCodePoint(codePoint);
+    },
   );
 }
 
