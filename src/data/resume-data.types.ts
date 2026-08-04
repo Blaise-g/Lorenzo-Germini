@@ -17,16 +17,13 @@ export type ResumeData = {
   summary: string;
   /** Every word of `/writing` that the feed does not supply. The essays, their
    *  dates and their excerpts come from Substack; this is the frame around
-   *  them, and it is count-aware: `awaitingFirst` replaces the launch line
-   *  before the first post exists, and the launch line itself disappears the
-   *  moment there is a second. */
+   *  them, and it is count-aware: the launch line appears for the first post
+   *  and disappears the moment there is a second. */
   writingPage: {
     /** Plural on purpose — the count-aware lines below carry the honesty. */
     standfirst: string;
     /** Renders at exactly one essay, after the publication date. */
     cadence: string;
-    /** Renders at zero: the surface must not read as a page that broke. */
-    awaitingFirst: string;
     leadCta: string;
     /** Only at 4+, and only below the subscribe module (decision 6). */
     archiveLabel: string;
