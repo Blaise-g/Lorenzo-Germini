@@ -153,17 +153,13 @@ export function WritingIndex({
   );
 }
 
-/** The one line that keeps a plural standfirst honest about the actual count:
- *  before the first essay, the route must not read as an index that broke;
- *  at exactly one, it must not read as a page with one thing on it. From two
- *  essays up the list speaks for itself and the line disappears. */
+/** The launch line keeps a plural standfirst honest while there is one essay.
+ *  At zero the feed-backed surface goes absent; from two essays up the list
+ *  speaks for itself. */
 function CountAwareLine({ essays }: { essays: Essay[] }) {
-  if (essays.length > 1) return null;
+  if (essays.length !== 1) return null;
 
-  const line =
-    essays.length === 0
-      ? writingPage.awaitingFirst
-      : `First post published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
+  const line = `First post published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
 
   return (
     <p className={cn("text-faint animate-fade-in-up mt-3", meta)}>{line}</p>

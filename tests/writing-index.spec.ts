@@ -4,8 +4,8 @@
    semantics, the cover image contract, and a surface that goes absent instead
    of breaking when the feed does.
 
-   Everything runs against `/writing/fixture/<state>` — the live publication is
-   empty, so it can prove exactly one of these states. */
+   Everything runs against `/writing/fixture/<state>` so every count and failure
+   state stays reproducible after the live publication changes. */
 
 import { expect, test, type Page } from "@playwright/test";
 
@@ -130,11 +130,11 @@ test.describe("failure is absence, never a broken page", () => {
       await expect(
         page.getByRole("heading", { name: "Get the field notes by email" }),
       ).toBeVisible();
-      /* And the page says where the writing is rather than reading as an
-         index that broke. */
+      /* After launch, a failed or empty feed must not revive the retired claim
+         that the first post has not been published. */
       await expect(
         page.getByText(/first post is not published yet/i),
-      ).toBeVisible();
+      ).toHaveCount(0);
 
       expect(failures).toEqual([]);
     });

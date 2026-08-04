@@ -610,6 +610,22 @@ test.describe("the masthead earns its space", () => {
       expect(count, `${width}px should reach /writing`).toBeGreaterThan(0);
     }
   });
+
+  test("the featured field note links to its published canonical URL", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const canonicalPost =
+      "https://lorenzogermini.substack.com/p/drop-the-bloat";
+    await expect(
+      page.getByRole("link", { name: "Drop the Bloat", exact: true }),
+    ).toHaveAttribute("href", canonicalPost);
+    await expect(
+      page.getByRole("link", { name: "Read the field note →", exact: true }),
+    ).toHaveAttribute("href", canonicalPost);
+    await expect(page.getByText("4 Aug 2026 · 5 min read")).toBeVisible();
+  });
 });
 
 test.describe("the theme toggle reports its state", () => {

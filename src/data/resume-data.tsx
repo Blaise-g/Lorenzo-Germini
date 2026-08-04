@@ -19,8 +19,6 @@ export const RESUME_DATA: ResumeData = {
     standfirst:
       "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai.",
     cadence: "new ones when there's something worth the send",
-    awaitingFirst:
-      "The first post is not published yet. Subscribe below and it arrives the day it does.",
     leadCta: "Read the field note →",
     archiveLabel: "Read all posts on Substack →",
   },
@@ -42,11 +40,11 @@ export const RESUME_DATA: ResumeData = {
         title: "Drop the Bloat",
         excerpt:
           "Everything you hand a coding agent, it has to carry. Mine was hauling 35K tokens of instructions before I typed a word. A field note on cutting that to 13K, and on knowing when context stops earning its place.",
-        /* The publication, not the post: the feed and archive are both empty at
-           the time of writing, so a /p/<slug> link would be a dead one. Swap in
-           the post URL and add `date` / `readingMinutes` the day it publishes —
-           the teaser renders its meta line only once they exist. */
-        href: "https://lorenzogermini.substack.com",
+        /* Hand-pinned to the live post rather than derived from the feed: the
+           homepage teaser is authored independently from the writing index. */
+        href: "https://lorenzogermini.substack.com/p/drop-the-bloat",
+        date: "2026-08-04T11:17:27.000Z",
+        readingMinutes: 5,
       },
     },
     earlierRoles: [
