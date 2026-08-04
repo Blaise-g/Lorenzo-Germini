@@ -56,8 +56,8 @@ export type ResumeData = {
         readingMinutes?: number;
       };
     };
-    /** One line covering every role with no `homepageProof` of its own. */
-    earlierRoles: string;
+    /** One item per role with no `homepageProof` of its own, stacked one per line. */
+    earlierRoles: readonly string[];
     /** The colophon stack line (spec decision 4 keeps it at the foot). */
     systems: string;
   };

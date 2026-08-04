@@ -78,8 +78,14 @@ export default function CvPage() {
             the header block; with the address now print-only it landed directly
             beneath the buttons and read as a stray divider instead. The section
             nav below carries its own rule, so nothing on screen needs this one. */}
-          <header className="cv-header border-b-ink pb-6 print:border-b-2 print:pb-2">
-            <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-3">
+          <header className="cv-header border-b-ink pb-4 print:border-b-2 print:pb-2">
+            {/* No wrap on this row: the identity column shrinks around its text,
+              so the toggle holds the document's top-right corner at every width
+              — the corner the old justify-between column never reached, because
+              the `about` paragraph's 672px max-content wrapped it under the
+              identity block. Still in flow per ADR-0003; `/cv`'s toggle just
+              lives in the masthead row like `/` and `/writing`'s do. */}
+            <div className="flex items-start justify-between gap-x-6">
               <div>
                 <p className="text-accent font-mono text-xs font-semibold tracking-[0.16em] uppercase">
                   Curriculum vitae
@@ -90,20 +96,15 @@ export default function CvPage() {
                 <p className="text-body mt-2 max-w-2xl text-base leading-relaxed print:mt-1 print:text-[12px]">
                   {RESUME_DATA.about}
                 </p>
+                <p className="text-faint mt-2 font-mono text-xs tabular-nums print:mt-1">
+                  Updated {BUILD_MONTH_YEAR}
+                </p>
               </div>
-              <p className="text-faint font-mono text-xs tabular-nums">
-                Updated {BUILD_MONTH_YEAR}
-              </p>
+              <div className="print:hidden">
+                <ThemeToggle />
+              </div>
             </div>
 
-            {/* The toggle rides at the end of the document's control row rather
-              than in a masthead of its own: `/cv` has no nav row to put it in,
-              and measured, the header's right-hand column is not actually
-              top-right — the `about` paragraph's 672px max-content wraps it
-              under the identity block at every width from 375 to 1440. Controls
-              beside controls, and the whole row is `print:hidden` together.
-              `items-center`, because the row mixes a 44px button with a 36px
-              one. */}
             <div className="mt-5 flex flex-wrap items-center gap-3 font-mono text-xs print:hidden">
               <Button
                 asChild
@@ -124,9 +125,6 @@ export default function CvPage() {
               >
                 Back home
               </Link>
-              <div className="ml-auto">
-                <ThemeToggle />
-              </div>
             </div>
 
             {/* Print-only, and the division of labour is what makes that safe:
@@ -179,15 +177,20 @@ export default function CvPage() {
             pattern as the homepage's anchor row rather than a second treatment:
             `/cv` already runs a third masthead against the site's two. No
             `lg:hidden` here — `/cv` has no sticky rail to hand over to. */}
-          <SectionAnchorRow destinations={CV_SECTIONS} className="mt-6" />
+          <SectionAnchorRow destinations={CV_SECTIONS} className="mt-4" />
 
           {/* The printed gaps are wider than they were, and the reason is the
               page break rather than taste. Taking the phone, the X entry and the
               browser hint out of the header pulled ~3 lines up the document,
               which moved the A4 break past content that used to start page two:
               page one measured 98% full against a 25% stub. Widened, the two
-              pages measure 90% and 37%. Measured on both paper sizes. */}
-          <div className="mt-7 space-y-8 print:mt-3 print:space-y-5">
+              pages measure 90% and 37%. Measured on both paper sizes.
+              Widened once more with the 2026-08 copy pass, which dropped a
+              Complaion bullet and tightened three more: A4 page one went back
+              to 99% against a 27% stub, splitting the Selected systems section
+              across the break. At `print:space-y-6` the whole section starts
+              page two — A4 measures 89% and 38%, Letter 95% and 41%. */}
+          <div className="mt-7 space-y-8 print:mt-3 print:space-y-6">
             <CvSection id="cv-profile" title="Profile">
               <div className="text-body max-w-[74ch] space-y-3 text-sm leading-relaxed print:max-w-none print:space-y-1 print:text-[9pt] print:leading-[1.3]">
                 {RESUME_DATA.summary.split("\n\n").map((paragraph) => (

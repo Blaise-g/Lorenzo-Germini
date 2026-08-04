@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable oracle for the redesign's binding constraint: no technical proof is lost in the / vs /cv content split. Human rationale lives in retained-proof.md. Derived from src/data/resume-data.tsx at baseline 4ebb010. Amended 2026-08-02 per issue #71's canonical-copy follow-up: the Biomedical Paper Summarizer card and the Ghigliottina stack chips were deliberately removed by the owner, so the four terms the chips alone carried (Next.js, Vercel AI SDK, Telegram, WhatsApp) left the floor with them; the thesis project stayed on the CV surfaces, so its terms (PyTorch, Gradio, full-text) remain protected. Deliberate removal of an artifact is not the accidental softening this manifest guards against.",
+  "$comment": "Machine-readable oracle for the redesign's binding constraint: no technical proof is lost in the / vs /cv content split. Human rationale lives in retained-proof.md. Derived from src/data/resume-data.tsx at baseline 4ebb010. Amended 2026-08-02 per issue #71's canonical-copy follow-up: the Biomedical Paper Summarizer card and the Ghigliottina stack chips were deliberately removed by the owner, so the four terms the chips alone carried (Next.js, Vercel AI SDK, Telegram, WhatsApp) left the floor with them; the thesis project stayed on the CV surfaces, so its terms (PyTorch, Gradio, full-text) remain protected. Deliberate removal of an artifact is not the accidental softening this manifest guards against. Amended 2026-08-03 per the owner's copy pass: the Complaion multi-provider LLM infrastructure bullet was dropped as a claim that no longer proves anything (\"just API calls\"), so the four terms it alone carried (multi-provider-llm-infra, provider-openai, provider-anthropic, provider-gemini) left the floor with it; the bullet that replaced it names agentic RAG over ISO documentation and its evaluation frameworks, which the agentic-rag, iso-certification and eval-frameworks entries already protect. Amended 2026-08-04 per the owner's skills rewrite: the skills list is now LLM agents / RAG / Evals & tracing / Full-stack development / Python, grouped as AI systems and Product engineering (which adds Coding agents in the loop). The umbrella terms went with it — \"Generative AI\" and \"LLMs\" read as repeated and out of place next to the roles that demonstrate them — so skill-generative-ai and skill-llms are removed, replaced by skill-llm-agents, skill-evals-tracing and skill-coding-agents, which name what the skills now claim. The owner also dropped the redesign's \"Data systems\" group and TypeScript, so the three never-shipped additive entries (typescript, pgvector, postgres) leave with the systems line that was to introduce them: Postgres and pgvector proved nothing the experience section claims, and the store the RAG work actually ran on stays protected by the pgai entry. Note that removing skill-generative-ai does not unprotect the phrase everywhere — genai-api-layer and genai-use-cases still hold \"GenAI API layer\" and \"generative AI use cases\", both sourced from work bullets that still exist. Same rule as the earlier amendments: deliberate removal by the owner is not the accidental softening this manifest guards against.",
   "matching": {
     "target": "concatenated visible text content of the rendered / and /cv routes",
     "caseSensitive": false,
@@ -16,30 +16,6 @@
       "id": "iso-certification",
       "source": "Complaion",
       "acceptedAnyOf": ["ISO"]
-    },
-    {
-      "id": "multi-provider-llm-infra",
-      "source": "Complaion",
-      "acceptedAnyOf": [
-        "multi-provider LLM infrastructure",
-        "multi-provider LLM"
-      ]
-    },
-    {
-      "id": "provider-openai",
-      "source": "Complaion",
-      "acceptedAnyOf": ["OpenAI"]
-    },
-    {
-      "id": "provider-anthropic",
-      "source": "Complaion",
-      "acceptedAnyOf": ["Claude", "Anthropic"],
-      "$comment": "resume-data says 'Claude'; the prototype's homepageProof says 'Anthropic'. Either satisfies the constraint."
-    },
-    {
-      "id": "provider-gemini",
-      "source": "Complaion",
-      "acceptedAnyOf": ["Gemini"]
     },
     {
       "id": "agentic-rag",
@@ -234,14 +210,9 @@
       "acceptedAnyOf": ["hardware-software integration"]
     },
     {
-      "id": "skill-generative-ai",
+      "id": "skill-llm-agents",
       "source": "skills",
-      "acceptedAnyOf": ["Generative AI", "GenAI"]
-    },
-    {
-      "id": "skill-llms",
-      "source": "skills",
-      "acceptedAnyOf": ["LLM"]
+      "acceptedAnyOf": ["LLM agents"]
     },
     {
       "id": "skill-rag",
@@ -249,9 +220,19 @@
       "acceptedAnyOf": ["RAG"]
     },
     {
+      "id": "skill-evals-tracing",
+      "source": "skills",
+      "acceptedAnyOf": ["Evals & tracing", "evals"]
+    },
+    {
       "id": "skill-fullstack",
       "source": "skills",
       "acceptedAnyOf": ["Full-Stack", "Full Stack"]
+    },
+    {
+      "id": "skill-coding-agents",
+      "source": "skills",
+      "acceptedAnyOf": ["Coding agents in the loop", "coding agents"]
     },
     {
       "id": "rate-limiting",
@@ -272,25 +253,6 @@
       "id": "full-text-articles",
       "source": "projects",
       "acceptedAnyOf": ["full-text research articles", "full-text"]
-    },
-    {
-      "id": "typescript",
-      "source": "systems-line",
-      "acceptedAnyOf": ["TypeScript"],
-      "additive": true
-    },
-    {
-      "id": "pgvector",
-      "source": "systems-line",
-      "acceptedAnyOf": ["pgvector"],
-      "additive": true
-    },
-    {
-      "id": "postgres",
-      "source": "systems-line",
-      "acceptedAnyOf": ["Postgres", "PostgreSQL"],
-      "additive": true,
-      "$comment": "Split out from the prototype's 'Postgres / pgvector' string — two independent terms, not one."
     }
   ]
 }

@@ -4,11 +4,11 @@
 
 ## Summary
 
-I'm an AI product engineer: I ship AI products end-to-end — from the models and infrastructure to the interface people actually touch — and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
+I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
 
-These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem isn't the plumbing — it's making the agents working in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed — technical depth only matters when it meets a real user problem.
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.
 
-Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.
+Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
 
 ## Contact
 
@@ -20,25 +20,26 @@ Outside work: sports, GenAI side projects, and rabbit holes on tech entrepreneur
 
 ## Skills
 
-- Generative AI
-- LLMs (Large Language Models)
+- LLM agents (Large Language Model agents)
 - RAG (Retrieval-Augmented Generation)
-- Full-Stack Development
+- Evals & tracing
+- Full-stack development
 - Python
+- Coding agents in the loop
 
 ## Work Experience
 
 ### AI Engineer at Complaion (May 2025 - Present)
-Location: Turin, Italy
-- Building the AI engine behind Complaion, a compliance automation platform helping European SMEs get and keep ISO certifications.
-- Multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG over ISO documentation, and evaluation frameworks that keep both honest in production.
-- Ship end-to-end AI product features and automation workflows for cross-functional teams.
+Location: Cuneo, Italy
+- Building the AI engine behind Complaion, a compliance automation platform that helps European SMEs get and keep ISO certifications.
+- Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.
+- Shipping AI product features and automation workflows end-to-end, from prototype to production.
 
 ### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
-Location: Turin, Italy
+Location: Cuneo, Italy
 - Built the backend and GenAI API layer from zero on AWS (DynamoDB, Amplify, Lambda) for an EdTech product.
 - RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, plus tracing and evaluation workflows to tune prompts and retrieval quality.
-- Led engineering for the MVP end-to-end, working directly with the product manager.
+- Led MVP engineering, managing two other developers.
 
 ### AI Engineer at GSK (Sep 2023 - Oct 2024)
 Location: Saint-Amand-les-Eaux, France
@@ -56,7 +57,7 @@ Location: Geneva, Switzerland
 
 ### Summer Intern at Roche - Think Tank in Innovation & Sustainability (Jul 2021 - Oct 2021)
 Location: Basel, Switzerland
-- Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning -- 20% faster than manual.
+- Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning, 20% faster than manual.
 
 ## Education
 
@@ -70,7 +71,7 @@ Polytechnic of Turin, 2017-2020
 
 ### L'Oracolo della Ghigliottina
 Tech Stack: Generative AI, Next.js, Vercel AI SDK, Telegram Bot, WhatsApp Bot
-AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words -- typed or snapped from the TV -- and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.
+AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words, typed or snapped from the TV, and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.
 Link: https://ghigliottina.vercel.app/
 
 ### Biomedical Paper Summarizer
@@ -80,7 +81,7 @@ Link: https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-su
 
 ## Writing
 
-germinai -- field notes from building with AI. No definitive guides: things I tried, what broke, and what earned its place.
+germinai -- field notes, mostly from building with AI. No definitive guides. Things I tried, what broke, and what earned its place.
 Publication: https://lorenzogermini.substack.com
 Feed: https://lorenzogermini.substack.com/feed
 Index: https://lorenzogermini.com/writing -- the essays listed on this site; each one links out to Substack, which hosts the full text

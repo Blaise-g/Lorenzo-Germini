@@ -104,7 +104,7 @@ they hold a second copy of the prose rather than reading a field.
 A control that belongs to the site rather than to the page's content: the theme toggle and
 `BackToTop`. Since #89 (ADR-0003) neither is _floating_ chrome by default — the toggle is
 **in flow**, placed by whichever surface owns that route's controls (the masthead row on `/`
-and `/writing`, the document control row on `/cv`), and `BackToTop` is fixed only from `xl`,
+and `/writing`, the top-right of the document masthead on `/cv`), and `BackToTop` is fixed only from `xl`,
 where the margin beside the measure is empty. A chrome control that is fixed has to sit in
 margin that already exists; it may not reserve a gutter to sit in, because that gutter is
 charged to every paragraph on every route at every height.

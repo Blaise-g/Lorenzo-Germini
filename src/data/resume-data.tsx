@@ -14,10 +14,10 @@ export const RESUME_DATA: ResumeData = {
   about:
     "AI Product Engineer shipping AI products end-to-end across compliance, health, and education",
   summary:
-    "I'm an AI product engineer: I ship AI products end-to-end — from the models and infrastructure to the interface people actually touch — and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem isn't the plumbing — it's making the agents working in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed — technical depth only matters when it meets a real user problem.\n\nOutside work: sports, GenAI side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+    "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
   writingPage: {
     standfirst:
-      "Field notes from building with AI, and on the people building on it. No definitive guides — the advice changes every two days anyway. Published on germinai.",
+      "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai.",
     cadence: "new ones when there's something worth the send",
     awaitingFirst:
       "The first post is not published yet. Subscribe below and it arrives the day it does.",
@@ -27,21 +27,21 @@ export const RESUME_DATA: ResumeData = {
   homepage: {
     hero: {
       headline: {
-        lead: "I build AI products end-to-end — and write about ",
+        lead: "I build AI products end-to-end and write about ",
         emphasis: "what actually works",
         trail: ".",
       },
       subhead:
-        "Right now that's the AI engine behind Complaion, a compliance platform for ISO certifications — LLM agents doing real compliance work in the background, and the evals that show when they can't be trusted. Before that: pharma manufacturing, digital health, and a GenAI startup.",
+        "Right now that's the AI engine behind Complaion, a compliance platform for ISO certifications: LLM agents doing real compliance work in the background, and the evals that show when they can't be trusted. Before that: pharma manufacturing, digital health, and a GenAI startup.",
       cta: "Start with the writing ↓",
     },
     writing: {
       standingLine:
-        "Field notes from building with AI, published on germinai. No definitive guides — things I tried, what broke, and what earned its place.",
+        "Field notes, mostly from building with AI, published on germinai. No definitive guides. Things I tried, what broke, and what earned its place.",
       featured: {
         title: "Drop the Bloat",
         excerpt:
-          "My Claude Code sessions started at ~35K tokens of context before I typed anything. A field note on cutting that to 13K — and on knowing when context stops earning its place.",
+          "Everything you hand a coding agent, it has to carry. Mine was hauling 35K tokens of instructions before I typed a word. A field note on cutting that to 13K, and on knowing when context stops earning its place.",
         /* The publication, not the post: the feed and archive are both empty at
            the time of writing, so a /p/<slug> link would be a dead one. Swap in
            the post URL and add `date` / `readingMinutes` the day it publishes —
@@ -49,8 +49,12 @@ export const RESUME_DATA: ResumeData = {
         href: "https://lorenzogermini.substack.com",
       },
     },
-    earlierRoles:
-      "A Stable Diffusion interior-design MVP, killed on the evidence · biomedical-literature summarisation at Burgeon Labs · fill-parameter ML at Roche · EPFL MSc, Life Sciences Engineering",
+    earlierRoles: [
+      "A Stable Diffusion interior-design MVP, killed on the evidence",
+      "Biomedical-literature summarisation at Burgeon Labs",
+      "Fill-parameter ML at Roche",
+      "EPFL MSc, Life Sciences Engineering",
+    ],
     systems:
       "agent systems · eval harnesses & tracing · end-to-end shipping, coding agents in the loop",
   },
@@ -102,14 +106,14 @@ export const RESUME_DATA: ResumeData = {
     {
       company: "Complaion",
       link: "https://www.complaion.com/",
-      badges: ["Turin, Italy"],
+      badges: ["Cuneo, Italy"],
       title: "AI Engineer",
       start: "May 2025",
       end: "Present",
       description: [
-        "Building the AI engine behind Complaion, a compliance automation platform helping European SMEs get and keep ISO certifications.",
-        "Multi-provider LLM infrastructure (OpenAI, Claude, Gemini), agentic RAG over ISO documentation, and evaluation frameworks that keep both honest in production.",
-        "Ship end-to-end AI product features and automation workflows for cross-functional teams.",
+        "Building the AI engine behind Complaion, a compliance automation platform that helps European SMEs get and keep ISO certifications.",
+        "Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.",
+        "Shipping AI product features and automation workflows end-to-end, from prototype to production.",
       ],
       homepageProof:
         "The AI engine behind the product: LLM agents doing compliance work over ISO documentation in the background, and the eval harness that shows when they can't be trusted.",
@@ -117,14 +121,14 @@ export const RESUME_DATA: ResumeData = {
     {
       company: "Stealth GenAI Startup",
       link: "",
-      badges: ["Turin, Italy"],
+      badges: ["Cuneo, Italy"],
       title: "Founding AI Engineer",
       start: "Nov 2024",
       end: "Apr 2025",
       description: [
         "Built the backend and GenAI API layer from zero on AWS (DynamoDB, Amplify, Lambda) for an EdTech product.",
         "RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, plus tracing and evaluation workflows to tune prompts and retrieval quality.",
-        "Led engineering for the MVP end-to-end, working directly with the product manager.",
+        "Led MVP engineering, managing two other developers.",
       ],
       homepageProof:
         "Backend and GenAI API layer from zero on AWS; a RAG stack with custom parsing for handwritten input, plus the tracing and evals to tune retrieval.",
@@ -174,23 +178,25 @@ export const RESUME_DATA: ResumeData = {
       start: "Jul 2021",
       end: "Oct 2021",
       description: [
-        "Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning — 20% faster than manual.",
+        "Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning, 20% faster than manual.",
       ],
     },
   ],
-  skills: ["Generative AI", "LLMs", "RAG", "Full-Stack Development", "Python"],
+  skills: [
+    "LLM agents",
+    "RAG",
+    "Evals & tracing",
+    "Full-stack development",
+    "Python",
+  ],
   skillGroups: [
     {
       name: "AI systems",
-      skills: ["Generative AI", "LLMs", "RAG"],
+      skills: ["LLM agents", "RAG", "Evals & tracing"],
     },
     {
       name: "Product engineering",
-      skills: ["Full-Stack Development", "TypeScript", "Python"],
-    },
-    {
-      name: "Data systems",
-      skills: ["Postgres", "pgvector"],
+      skills: ["Full-stack development", "Python", "Coding agents in the loop"],
     },
   ],
   projects: [
@@ -198,7 +204,7 @@ export const RESUME_DATA: ResumeData = {
       title: "L'Oracolo della Ghigliottina",
       techStack: ["Side Project", "Live"],
       description:
-        "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words — typed or snapped from the TV — and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.",
+        "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words, typed or snapped from the TV, and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.",
       link: {
         label: "L'Oracolo della Ghigliottina",
         href: "https://ghigliottina.vercel.app/",

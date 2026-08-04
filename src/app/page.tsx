@@ -226,9 +226,11 @@ export default function Page() {
               <p className="text-faint font-mono text-xs tabular-nums sm:pt-1.5">
                 {earlierRolesSpan.at(-1)} – {earlierRolesSpan.at(0)}
               </p>
-              <p className="text-faint text-sm leading-relaxed text-pretty print:text-[12px]">
-                {earlierRoles}
-              </p>
+              <ul className="text-faint space-y-1 text-sm leading-relaxed text-pretty print:text-[12px]">
+                {earlierRoles.map((role) => (
+                  <li key={role}>{role}</li>
+                ))}
+              </ul>
             </div>
           </div>
           <p className="mt-3 print:hidden">
