@@ -82,10 +82,6 @@ export const RESUME_DATA: ResumeData = {
         name: "X",
         url: "https://twitter.com/spleenboi_",
         icon: XIcon,
-        /* The printed CV's address row is its only contact surface, so it is
-           trimmed to the routes a hiring reader uses. X stays everywhere the
-           row is not: the homepage and the footer. */
-        cv: false,
       },
     ],
   },

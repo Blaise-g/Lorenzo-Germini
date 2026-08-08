@@ -94,10 +94,6 @@ export type ResumeData = {
       name: string;
       url: string;
       icon: React.ComponentType;
-      /** False keeps the profile on every screen surface while the printed CV's
-       *  address row omits it. Absent means it renders everywhere. Mirrors the
-       *  `homepage` flag on `projects`. */
-      cv?: boolean;
     }[];
   };
   education: {
