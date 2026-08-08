@@ -1,8 +1,11 @@
 # Issue citations inside `src/` use `GH-100`, not `#100`
 
-The design-system guard in `tests/warm-print-design-system.spec.ts` walks every `.css`/`.ts`/`.tsx`
-file under `src/` and flags anything shaped like a colour, so palette values cannot escape the
-token layer (ADR-0001). Its pattern reads `#100` through `#9999` as `#rgb`/`#rgba` triples. Citing
+Decided in #107.
+
+The design-system guard (`tests/support/design-system-guard.ts`, driven by
+`tests/warm-print-design-system.spec.ts`) walks every `.css`/`.ts`/`.tsx` file under `src/` and
+flags anything shaped like a colour, so palette values cannot escape the token layer (ADR-0001).
+Its pattern reads `#100` through `#9999` as `#rgb`/`#rgba` triples. Citing
 issues in source comments is this repo's house style, and its issue numbers crossed 100 during the
 current milestone — so every future citation in a `src/` comment was going to fail the guard. It
 already did once, and was worked around in `src/data/resume-data.types.ts` as `(issue 100)`, which
@@ -35,11 +38,15 @@ palette literal.
 ## Consequences
 
 **The guard stays blunt, and a bare `#NNN` is still a violation.** Nothing was narrowed. What
-changed is that a 3- or 4-digit all-decimal match now reports how to cite an issue instead of
-failing with a bare `src/foo.ts: #110`. That message is the only thing keeping this convention from
-rotting — the next author writes `(#110)` out of habit and gets a signpost rather than a trap. A 6-
-or 8-digit match keeps the plain report, because it cannot be an issue number and the hint would be
-misdirection.
+changed is that a 3- or 4-digit all-decimal match now names both readings rather than failing with
+a bare `src/foo.ts: #110`. That message is the only thing keeping this convention from rotting —
+the next author writes `(#110)` out of habit and gets a signpost rather than a trap.
+
+It offers both readings because at 3-4 digits neither can be ruled out: `#333` is a real shorthand
+grey and `#110` is a real issue, and a message that assumed the issue reading would tell someone
+who had just leaked a palette value to convert it into a citation. So it leads with the reading the
+guard exists for — the colour belongs in the token layer — and offers `GH-` numbering second. A 6-
+or 8-digit match cannot be an issue number at all and keeps the plain report.
 
 **The convention is scoped to `src/`, and deliberately not repo-wide.** `CONTEXT.md`, `docs/`, PR
 and issue bodies keep `#100`, where the hash _is_ a working link and no guard runs. Do not

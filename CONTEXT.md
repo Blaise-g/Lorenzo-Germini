@@ -59,6 +59,13 @@ The invariant that all three token sets declare the same role names. Enforced by
 test over `globals.css`, because a role missing from the print set is invisible on screen
 and surfaces only under print emulation.
 
+**Design-system guard**:
+The static scan in `tests/support/design-system-guard.ts` that walks `src/` and reports
+anything holding a colour outside the token layer, plus the retired shadcn/ui aliases and
+effects. Deliberately blunt — it reads comments too — which is why issue citations inside
+`src/` are written `GH-100` rather than `#100` (ADR-0004). Call it the design-system guard,
+not the palette guard: it covers more than colour.
+
 ### Content surfaces
 
 **Essay index**:

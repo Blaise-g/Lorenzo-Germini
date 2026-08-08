@@ -5,7 +5,7 @@ import path from "node:path";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 import { contrast } from "./support/color";
-import { colorSyntax, describeViolation } from "./support/design-system-guard";
+import { extractBlock, scanSource } from "./support/design-system-guard";
 import { setTheme, themes } from "./support/theme";
 
 const colorRoles = [
@@ -19,29 +19,6 @@ const colorRoles = [
 ] as const;
 
 const expectedTokens = colorRoles.map((role) => `--color-${role}`);
-
-function extractBlock(source: string, marker: string, fromIndex = 0) {
-  const markerIndex = source.indexOf(marker, fromIndex);
-  if (markerIndex === -1) throw new Error(`Missing CSS block: ${marker}`);
-
-  const openingBrace = source.indexOf("{", markerIndex + marker.length);
-  if (openingBrace === -1) throw new Error(`Unclosed CSS block: ${marker}`);
-
-  let depth = 0;
-  for (let index = openingBrace; index < source.length; index += 1) {
-    if (source[index] === "{") depth += 1;
-    if (source[index] === "}") depth -= 1;
-    if (depth === 0) {
-      return {
-        body: source.slice(openingBrace + 1, index),
-        end: index + 1,
-        start: markerIndex,
-      };
-    }
-  }
-
-  throw new Error(`Unclosed CSS block: ${marker}`);
-}
 
 function colorTokenNames(source: string) {
   return [...source.matchAll(/(--color-[a-z-]+)\s*:/g)]
@@ -117,77 +94,42 @@ test("the three color token sets declare exactly the seven Warm Print roles", as
 });
 
 test("palette values, retired aliases, grain, and the border shim stay out of source", async () => {
-  const srcRoot = path.join(process.cwd(), "src");
-  const files = await sourceFiles(srcRoot);
+  const files = await sourceFiles(path.join(process.cwd(), "src"));
   const violations: string[] = [];
-  const retiredUtility =
-    /(?:--color-|(?:bg|text|border|ring|outline|decoration)-)(?:background|foreground|card(?:-foreground)?|popover(?:-foreground)?|primary(?:-foreground)?|secondary(?:-foreground)?|muted(?:-foreground)?|destructive(?:-foreground)?|input|ring)\b/g;
-  const builtInPalette =
-    /(?:bg|text|border|ring|outline|decoration)-(?:black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-[0-9]+)?(?:\/[0-9]+)?\b/g;
-  const retiredEffects =
-    /\b(?:BORDER_SHIM|GRAIN_URL)\b|feTurbulence|mix-blend-/g;
 
   for (const file of files) {
     const relativePath = path.relative(process.cwd(), file);
-    const source = await readFile(file, "utf8");
-    let searchable = source;
-
-    if (relativePath === "src/app/globals.css") {
-      const theme = extractBlock(searchable, "@theme");
-      const dark = extractBlock(searchable, ".dark", theme.end);
-      const letterPrint = extractBlock(searchable, "@media print and");
-      const print = extractBlock(searchable, "@media print", letterPrint.end);
-      const ranges = [theme, dark, print].sort((a, b) => b.start - a.start);
-      for (const range of ranges) {
-        searchable =
-          searchable.slice(0, range.start) + searchable.slice(range.end);
-      }
-
-      const primaryHoverMix =
-        /color-mix\(\s*in srgb,\s*var\(--color-accent\)\s*92%,\s*var\(--color-ink\)\s*\)/g;
-      const hoverMixes = searchable.match(primaryHoverMix) ?? [];
-      if (hoverMixes.length !== 1) {
-        violations.push(
-          `${relativePath}: expected one role-derived primary hover mix`,
-        );
-      }
-      searchable = searchable.replace(primaryHoverMix, "");
-    }
-
-    const patterns =
-      relativePath === "src/lib/warm-print.ts"
-        ? [retiredUtility, builtInPalette, retiredEffects]
-        : [colorSyntax, retiredUtility, builtInPalette, retiredEffects];
-
-    for (const pattern of patterns) {
-      for (const match of searchable.matchAll(pattern)) {
-        violations.push(describeViolation(relativePath, match[0]));
-      }
-    }
+    violations.push(...scanSource(relativePath, await readFile(file, "utf8")));
   }
 
   expect(violations).toEqual([]);
 });
 
-/* The guard above can only ever prove that today's source is clean. These prove
-   it would still bite — the trade-off ADR-0004 turned down was one that quietly
-   stopped catching four shipped palette values. */
-test("the colour pattern still catches every shape of palette literal", () => {
+/* The walk above can only prove that today's source is clean. These drive the
+   same scanner with source of their own, so the exemptions it carries stay
+   pinned — the trade-off ADR-0004 turned down was one that quietly stopped
+   catching four shipped palette values. */
+const ordinary = "src/components/hub-shell.tsx";
+
+test("the guard still catches every shape of palette literal", () => {
   const mustCatch = [
     ...Object.values(WARM_PRINT).flatMap((palette) => Object.values(palette)),
     "bg-[#100]",
     "#333",
     "color: rgb(28, 25, 23)",
     "oklch(0.98 0.01 80)",
-    "color-mix(in srgb, red, blue)",
+    "text-slate-500",
+    "GRAIN_URL",
   ];
 
   for (const source of mustCatch) {
-    expect(source.match(colorSyntax), `should flag: ${source}`).not.toBeNull();
+    expect(scanSource(ordinary, source), `should flag: ${source}`).not.toEqual(
+      [],
+    );
   }
 });
 
-test("the colour pattern is blind to GH- issue citations", () => {
+test("the guard is blind to GH- issue citations", () => {
   const citations = [
     "/* Symmetric since GH-89 put the theme toggle in flow. */",
     "// owner-approved copy (GH-100), and a SERP",
@@ -196,23 +138,56 @@ test("the colour pattern is blind to GH- issue citations", () => {
   ];
 
   for (const source of citations) {
-    expect(source.match(colorSyntax), `should ignore: ${source}`).toBeNull();
+    expect(scanSource(ordinary, source), `should ignore: ${source}`).toEqual(
+      [],
+    );
   }
 });
 
-test("a bare #NNN violation says how to cite an issue instead", () => {
-  expect(describeViolation("src/foo.ts", "#110")).toBe(
-    "src/foo.ts: #110 — if this is an issue reference, cite it as GH-110 " +
-      "(ADR-0004); the guard reads #110 as a colour",
-  );
+test("an ambiguous #NNN violation offers both readings", () => {
+  expect(scanSource("src/foo.ts", "(#110)")).toEqual([
+    "src/foo.ts: #110 — a colour here belongs in the token layer; " +
+      "if it is an issue reference, cite it as GH-110 (ADR-0004)",
+  ]);
 
   /* Six digits cannot be an issue number, so the hint would be misdirection. */
-  expect(describeViolation("src/foo.ts", "#171412")).toBe(
+  expect(scanSource("src/foo.ts", 'color: "#171412"')).toEqual([
     "src/foo.ts: #171412",
-  );
-  expect(describeViolation("src/foo.ts", "#9c3c1c")).toBe(
-    "src/foo.ts: #9c3c1c",
-  );
+  ]);
+});
+
+test("the palette source is exempt from colour syntax, and nothing else", () => {
+  const palette = "src/lib/warm-print.ts";
+
+  expect(scanSource(palette, 'ground: "#faf6ef"')).toEqual([]);
+  expect(scanSource(ordinary, 'ground: "#faf6ef"')).toEqual([
+    `${ordinary}: #faf6ef`,
+  ]);
+  expect(scanSource(palette, "GRAIN_URL")).toEqual([`${palette}: GRAIN_URL`]);
+});
+
+test("globals.css is exempt inside its token blocks, and nothing else", () => {
+  const hoverMix =
+    "color-mix(in srgb, var(--color-accent) 92%, var(--color-ink))";
+  const globals = (stray: string) => `@theme { --color-ink: #1c1917; }
+.dark { --color-ink: #ece7de; }
+@media print and (min-width: 1px) { .x { margin: 0; } }
+@media print { :root, .dark { --color-ink: #0d0d0d; } }
+.primary-control:hover { background: ${hoverMix}; }
+${stray}`;
+
+  expect(scanSource("src/app/globals.css", globals(""))).toEqual([]);
+  expect(
+    scanSource("src/app/globals.css", globals(".x { color: #7a2f16; }")),
+  ).toEqual(["src/app/globals.css: #7a2f16"]);
+
+  /* The hover mix is role-derived and allowed exactly once; a second one is a
+     second hand-mixed colour. */
+  expect(
+    scanSource("src/app/globals.css", globals(`.y { color: ${hoverMix}; }`)),
+  ).toEqual([
+    "src/app/globals.css: expected one role-derived primary hover mix",
+  ]);
 });
 
 test.describe("Warm Print runtime contract", () => {
