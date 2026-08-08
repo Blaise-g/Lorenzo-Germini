@@ -85,9 +85,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  other: {
-    author: RESUME_DATA.name,
-  },
 };
 
 export default function RootLayout({
