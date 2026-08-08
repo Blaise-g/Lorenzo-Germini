@@ -279,9 +279,7 @@ test.describe("responsive hub shell", () => {
     await expect(page.getByTestId("masthead-role")).toHaveText(
       RESUME_DATA.roleLabel,
     );
-    await expect(page).toHaveTitle(
-      `${RESUME_DATA.name} | ${RESUME_DATA.about}`,
-    );
+    await expect(page).toHaveTitle(RESUME_DATA.metaTitle);
 
     const person = await personStructuredData(page);
 
