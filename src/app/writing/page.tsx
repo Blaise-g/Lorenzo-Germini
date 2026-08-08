@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 
 import { WritingIndex } from "@/components/writing-index";
 import { RESUME_DATA } from "@/data/resume-data";
+import { PERSON_REFERENCE } from "@/lib/person-structured-data";
 import { getEssays, SUBSTACK_BASE } from "@/lib/substack";
 
 const writingUrl = new URL("/writing", RESUME_DATA.personalWebsiteUrl).href;
@@ -64,11 +65,7 @@ function WritingStructuredData() {
     mainEntityOfPage: writingUrl,
     description: RESUME_DATA.writingPage.standfirst,
     inLanguage: "en",
-    author: {
-      "@type": "Person",
-      name: RESUME_DATA.name,
-      url: RESUME_DATA.personalWebsiteUrl,
-    },
+    author: PERSON_REFERENCE,
   };
 
   return (
