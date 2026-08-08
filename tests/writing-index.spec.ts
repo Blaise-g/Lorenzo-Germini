@@ -9,8 +9,11 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { PERSON_ID } from "@/lib/person-structured-data";
+
 import { contrast } from "./support/color";
 import { removeDevOverlay } from "./support/dev-overlay";
+import { structuredDataNode } from "./support/structured-data";
 import { setTheme, themes } from "./support/theme";
 import {
   breakCoverImages,
@@ -200,19 +203,15 @@ test.describe("essay semantics", () => {
   test("the index publishes minimal Blog structured data", async ({ page }) => {
     await page.goto("/writing");
 
-    const blog = await page
-      .locator('script[type="application/ld+json"]')
-      .evaluateAll((scripts) =>
-        scripts
-          .map((script) => JSON.parse(script.textContent ?? "{}"))
-          .find((data) => data["@type"] === "Blog"),
-      );
+    const blog = await structuredDataNode(page, "Blog");
 
     expect(blog).toMatchObject({
       "@type": "Blog",
       name: "germinai",
       url: "https://lorenzogermini.substack.com",
-      author: { "@type": "Person", name: "Lorenzo Germini" },
+      /* The author is an `@id` reference to the one Person entity, asserted in
+         detail by tests/structured-data-graph.spec.ts (#103). */
+      author: { "@id": PERSON_ID },
     });
   });
 });
