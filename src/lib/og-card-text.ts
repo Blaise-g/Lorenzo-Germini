@@ -33,13 +33,23 @@ export const OG_CV_TEXT = {
   name: RESUME_DATA.name,
 } as const;
 
+export const OG_WRITING_TEXT = {
+  eyebrow: "Writing",
+  meta: `${RESUME_DATA.newsletter.name} · ${displayUrl(
+    new URL("/writing", RESUME_DATA.personalWebsiteUrl).href,
+  )}`,
+  name: RESUME_DATA.name,
+  standfirst: RESUME_DATA.writingPage.standfirst,
+} as const;
+
 /**
- * The eyebrow as the shaper sees it. The CV card sets `textTransform:
- * "uppercase"` on it, which Satori applies before shaping, so the lowercase
- * forms in `OG_CV_TEXT.eyebrow` are never drawn and the uppercase ones would
+ * The eyebrows as the shaper sees them. The cards set `textTransform:
+ * "uppercase"` on them, which Satori applies before shaping, so the lowercase
+ * forms in the copy above are never drawn and the uppercase ones would
  * otherwise be missing from the subset.
  */
 const cvEyebrowDrawn = OG_CV_TEXT.eyebrow.toUpperCase();
+const writingEyebrowDrawn = OG_WRITING_TEXT.eyebrow.toUpperCase();
 
 /**
  * Every string the cards put in front of the shaper, in the form it is drawn.
@@ -49,6 +59,7 @@ const cvEyebrowDrawn = OG_CV_TEXT.eyebrow.toUpperCase();
 export const OG_DRAWN_COPY: readonly string[] = [
   ...Object.values(OG_HOME_TEXT),
   ...Object.values({ ...OG_CV_TEXT, eyebrow: cvEyebrowDrawn }),
+  ...Object.values({ ...OG_WRITING_TEXT, eyebrow: writingEyebrowDrawn }),
 ];
 
 /**
@@ -57,15 +68,17 @@ export const OG_DRAWN_COPY: readonly string[] = [
  * face that ships its full glyph set.
  */
 const OG_FACE_TEXT: Record<OgFace, readonly string[]> = {
-  display: [OG_HOME_TEXT.name, OG_CV_TEXT.name],
+  display: [OG_HOME_TEXT.name, OG_CV_TEXT.name, OG_WRITING_TEXT.name],
   displayItalic: [OG_HOME_TEXT.role],
   mono: [
     OG_HOME_TEXT.location,
     OG_HOME_TEXT.url,
     cvEyebrowDrawn,
     OG_CV_TEXT.meta,
+    writingEyebrowDrawn,
+    OG_WRITING_TEXT.meta,
   ],
-  text: [OG_HOME_TEXT.claim, OG_CV_TEXT.about],
+  text: [OG_HOME_TEXT.claim, OG_CV_TEXT.about, OG_WRITING_TEXT.standfirst],
 };
 
 /** One face's character set, assembled once so the subsetter and the suite

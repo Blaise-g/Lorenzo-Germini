@@ -82,6 +82,11 @@ export type ResumeData = {
   personalWebsiteUrl: string;
   contact: {
     email: string;
+    /** The `@` form of the X profile in `social`, for `twitter:creator`. Stored
+     *  rather than parsed out of the URL because every route that declares its
+     *  own `twitter` object replaces the layout's wholesale and has to restate
+     *  the handle (GH-102). */
+    xHandle: string;
     /** Optional so removing the number is a one-line data edit rather than a
      *  code change. Every render site guards on it. */
     tel?: string;

@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${RESUME_DATA.name} — CV`,
     description: cvDescription,
+    creator: RESUME_DATA.contact.xHandle,
   },
 };
 
