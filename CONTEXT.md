@@ -92,13 +92,19 @@ against a dev server that has already run it. A fixture replaces the network cal
 nothing else, so it exercises the shipped parser, cache and components.
 
 **Identity surface**:
-Any place the site states Lorenzo's role, title, or bio. There are six and nothing
+Any place the site states Lorenzo's role, title, or bio. There are eight and nothing
 generates them from each other: `RESUME_DATA.about` and `RESUME_DATA.roleLabel` — two
 independent fields in `src/data/resume-data.tsx`, the second the masthead's short label and
-the JSON-LD's `jobTitle`/`hasOccupation` — `public/llms.txt`, `public/llms-full.txt`, the
-JSON-LD built in `src/lib/person-structured-data.ts`, and route metadata. They drift;
-changing one means changing all. The hand-written manifests drift the worst, because only
-they hold a second copy of the prose rather than reading a field.
+the JSON-LD's `jobTitle`/`hasOccupation` — `RESUME_DATA.metaTitle` and
+`RESUME_DATA.metaDescription`, the snippet-length pair the `<head>` and the web manifest
+read (#101), `public/llms.txt`, `public/llms-full.txt`, the JSON-LD built in
+`src/lib/person-structured-data.ts`, and route metadata. They drift; changing one means
+changing all. The hand-written manifests drift the worst, because only they hold a second
+copy of the prose rather than reading a field.
+
+The `meta` pair is the one place a length ceiling, not just accuracy, is part of the
+surface: a SERP truncates a title past ~60 characters and a description past ~160, so the
+short forms exist precisely because the long ones cannot be trimmed at read time.
 
 **Chrome control**:
 A control that belongs to the site rather than to the page's content: the theme toggle and

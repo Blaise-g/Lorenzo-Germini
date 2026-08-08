@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${RESUME_DATA.name} — ${RESUME_DATA.roleLabel}`,
     short_name: RESUME_DATA.name,
-    description: RESUME_DATA.summary,
+    description: RESUME_DATA.metaDescription,
     start_url: "/",
     display: "standalone",
     background_color: WARM_PRINT.light.ground,

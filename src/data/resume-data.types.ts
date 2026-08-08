@@ -15,6 +15,23 @@ export type ResumeData = {
   };
   about: string;
   summary: string;
+  /** The `<title>` the search engines get, whole — name and separator included.
+   *  Under 60 characters, the point where a SERP truncates; #99 found the
+   *  title it replaced shipping at 110, rendering as `…shipping AI products
+   *  end-to…`.
+   *
+   *  Stored rather than assembled from `name` and `roleLabel`, which today
+   *  would produce it exactly: it is owner-approved copy (issue 100), and a SERP
+   *  title should not silently rewrite itself because the masthead label was
+   *  reworded. `metadata-length.spec.ts` asserts it still contains both, so
+   *  the drift that buys is visible rather than silent. */
+  metaTitle: string;
+  /** `meta description`, `og:description`, `twitter:description` and the web
+   *  manifest. Under 160 characters and a single paragraph — `summary` is a
+   *  three-paragraph bio and shipped as a 901-character `meta` tag with four
+   *  newlines in it (#99). Not a second bio: `summary` keeps the on-page prose,
+   *  the JSON-LD `description` and both `llms` manifests, where length helps. */
+  metaDescription: string;
   /** Every word of `/writing` that the feed does not supply. The essays, their
    *  dates and their excerpts come from Substack; this is the frame around
    *  them, and it is count-aware: the launch line appears for the first post

@@ -15,6 +15,9 @@ export const RESUME_DATA: ResumeData = {
     "AI Product Engineer shipping AI products end-to-end across compliance, health, and education",
   summary:
     "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+  metaTitle: "Lorenzo Germini | AI Product Engineer",
+  metaDescription:
+    "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai.",
   writingPage: {
     standfirst:
       "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai.",

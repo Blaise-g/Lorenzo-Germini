@@ -30,10 +30,10 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   metadataBase: new URL(RESUME_DATA.personalWebsiteUrl),
   title: {
-    default: `${RESUME_DATA.name} - ${RESUME_DATA.about}`,
+    default: RESUME_DATA.metaTitle,
     template: `%s | ${RESUME_DATA.name}`,
   },
-  description: RESUME_DATA.summary,
+  description: RESUME_DATA.metaDescription,
   /* Search strings, not identity surfaces — `CONTEXT.md` enumerates those and
      this is not one of them. "AI Engineer" stays as a recruiter search alias
      alongside the positioning label rather than instead of it (#52, deferred
@@ -64,14 +64,14 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: RESUME_DATA.personalWebsiteUrl,
-    title: `${RESUME_DATA.name} - ${RESUME_DATA.about}`,
-    description: RESUME_DATA.summary,
+    title: RESUME_DATA.metaTitle,
+    description: RESUME_DATA.metaDescription,
     siteName: RESUME_DATA.name,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${RESUME_DATA.name} - ${RESUME_DATA.about}`,
-    description: RESUME_DATA.summary,
+    title: RESUME_DATA.metaTitle,
+    description: RESUME_DATA.metaDescription,
     creator: "@spleenboi_",
   },
   robots: {
