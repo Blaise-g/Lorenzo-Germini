@@ -16,7 +16,7 @@ const REVEAL_THRESHOLD_PX = 300;
    is `max-w-5xl` — 1024px, so at a 1024px viewport it fills the screen and the
    button lands on the body text at every scroll position between the two
    reserved paddings. At 1280 the hub's content edge is 168px clear of it.
-   Below that the button is not painted at all (#89): it used to keep off the
+   Below that the button is not painted at all (GH-89): it used to keep off the
    text by way of a 56px right gutter reserved on every shell inset at every
    height, which cost each phone paragraph 15% of its measure for a control that
    only shortens a scroll. */

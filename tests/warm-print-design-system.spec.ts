@@ -5,6 +5,7 @@ import path from "node:path";
 import { WARM_PRINT } from "@/lib/warm-print";
 
 import { contrast } from "./support/color";
+import { colorSyntax, describeViolation } from "./support/design-system-guard";
 import { setTheme, themes } from "./support/theme";
 
 const colorRoles = [
@@ -119,8 +120,6 @@ test("palette values, retired aliases, grain, and the border shim stay out of so
   const srcRoot = path.join(process.cwd(), "src");
   const files = await sourceFiles(srcRoot);
   const violations: string[] = [];
-  const colorSyntax =
-    /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|color-mix)\(/g;
   const retiredUtility =
     /(?:--color-|(?:bg|text|border|ring|outline|decoration)-)(?:background|foreground|card(?:-foreground)?|popover(?:-foreground)?|primary(?:-foreground)?|secondary(?:-foreground)?|muted(?:-foreground)?|destructive(?:-foreground)?|input|ring)\b/g;
   const builtInPalette =
@@ -162,12 +161,58 @@ test("palette values, retired aliases, grain, and the border shim stay out of so
 
     for (const pattern of patterns) {
       for (const match of searchable.matchAll(pattern)) {
-        violations.push(`${relativePath}: ${match[0]}`);
+        violations.push(describeViolation(relativePath, match[0]));
       }
     }
   }
 
   expect(violations).toEqual([]);
+});
+
+/* The guard above can only ever prove that today's source is clean. These prove
+   it would still bite — the trade-off ADR-0004 turned down was one that quietly
+   stopped catching four shipped palette values. */
+test("the colour pattern still catches every shape of palette literal", () => {
+  const mustCatch = [
+    ...Object.values(WARM_PRINT).flatMap((palette) => Object.values(palette)),
+    "bg-[#100]",
+    "#333",
+    "color: rgb(28, 25, 23)",
+    "oklch(0.98 0.01 80)",
+    "color-mix(in srgb, red, blue)",
+  ];
+
+  for (const source of mustCatch) {
+    expect(source.match(colorSyntax), `should flag: ${source}`).not.toBeNull();
+  }
+});
+
+test("the colour pattern is blind to GH- issue citations", () => {
+  const citations = [
+    "/* Symmetric since GH-89 put the theme toggle in flow. */",
+    "// owner-approved copy (GH-100), and a SERP",
+    "/* The essay index (spec §2.5, GH-24). */",
+    "* the regression GH-1006 fixed by",
+  ];
+
+  for (const source of citations) {
+    expect(source.match(colorSyntax), `should ignore: ${source}`).toBeNull();
+  }
+});
+
+test("a bare #NNN violation says how to cite an issue instead", () => {
+  expect(describeViolation("src/foo.ts", "#110")).toBe(
+    "src/foo.ts: #110 — if this is an issue reference, cite it as GH-110 " +
+      "(ADR-0004); the guard reads #110 as a colour",
+  );
+
+  /* Six digits cannot be an issue number, so the hint would be misdirection. */
+  expect(describeViolation("src/foo.ts", "#171412")).toBe(
+    "src/foo.ts: #171412",
+  );
+  expect(describeViolation("src/foo.ts", "#9c3c1c")).toBe(
+    "src/foo.ts: #9c3c1c",
+  );
 });
 
 test.describe("Warm Print runtime contract", () => {

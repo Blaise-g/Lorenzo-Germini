@@ -1,4 +1,4 @@
-/* Dev-only fixture states for the essay index (#24).
+/* Dev-only fixture states for the essay index (GH-24).
  *
  * The publication is live and empty, so every count-aware transition, the
  * malformed and unreachable feeds, and the recovery from a cached miss are

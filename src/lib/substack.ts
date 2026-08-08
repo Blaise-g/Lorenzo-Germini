@@ -1,4 +1,4 @@
-/* The one door to the Substack *network* (spec §2.5, issue #24). The `Essay`
+/* The one door to the Substack *network* (spec §2.5, GH-24). The `Essay`
  * shape and the presentation helpers around it live in `substack-feed.ts`,
  * which components can import; this module cannot be one of their imports
  * because it is server-only.

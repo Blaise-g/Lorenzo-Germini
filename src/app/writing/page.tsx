@@ -1,4 +1,4 @@
-/* The essay index (spec §2.5, issue #24).
+/* The essay index (spec §2.5, GH-24).
  *
  * No Suspense boundary and no runtime data read: the feed comes from a
  * `"use cache"` function, so the whole route prerenders and the cache

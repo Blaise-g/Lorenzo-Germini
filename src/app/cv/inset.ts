@@ -12,7 +12,7 @@
  *  which argues the inset should stay an unconstrained class string per shell
  *  and is the reason there is no registry of these.
  *
- *  Symmetric since #89: the `pr-20 sm:pr-20` it carried reserved a 56px column
+ *  Symmetric since GH-89: the `pr-20 sm:pr-20` it carried reserved a 56px column
  *  for the theme toggle's fixed top-right slot, and the toggle is in `/cv`'s own
  *  header now. */
 export const CV_DOCUMENT_INSET =

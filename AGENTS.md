@@ -34,6 +34,11 @@ prints. Put it in `utilities` if it has to beat a utility — `.primary-control:
 is `(0,2,0)` against `bg-accent`, so it only darkens the fill from there. Never
 bare: unlayered beats every layer regardless of specificity.
 
+A test guards that layer by flagging anything colour-shaped under `src/`, and it reads `#100`
+as an `#rgb` triple. So issue citations in `src/` comments are written `GH-100`; everywhere
+else — docs, PRs, issues — keeps `#100`. ADR-0004 has the why, and why the guard was not
+narrowed instead.
+
 **One dev server per repo, so `dev` and the test runner share port 3200.** Next holds a
 lock at `.next/dev/lock` for the working directory, not the port — a second `next dev` here
 cannot start on any port, so the suite reuses the one you already have running, and its port
