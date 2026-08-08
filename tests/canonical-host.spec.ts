@@ -89,12 +89,21 @@ test.describe("canonical host lockstep", () => {
     });
   }
 
-  test("robots.txt advertises the sitemap on the canonical origin", async ({
+  /* #105(2) added the manifest pointer: `/llms.txt` was linked only from the
+     footer colophon, so a crawler that reads robots first had no way to find
+     it. `robots.txt` has no directive for that, hence a comment — which makes
+     its absolute URL one more hand-written copy of the origin, and so part of
+     this lockstep rather than a discoverability check of its own. */
+  test("robots.txt advertises the sitemap and the manifest on the canonical origin", async ({
     request,
   }) => {
     const robots = await (await request.get("/robots.txt")).text();
 
     expect(robots).toContain(`Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`);
+    expect(
+      robots,
+      "robots.txt should name /llms.txt so crawlers can discover it",
+    ).toContain(`${CANONICAL_ORIGIN}/llms.txt`);
   });
 
   test("every sitemap entry is on the canonical origin", async ({
