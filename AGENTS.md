@@ -34,6 +34,15 @@ prints. Put it in `utilities` if it has to beat a utility — `.primary-control:
 is `(0,2,0)` against `bg-accent`, so it only darkens the fill from there. Never
 bare: unlayered beats every layer regardless of specificity.
 
+**The design-system guard is blunt on purpose, so `src/` cites issues as `GH-100`.** It
+flags anything colour-shaped anywhere under `src/` — comments included — which keeps palette
+values inside the token layer, and means it reads `#100` as an `#rgb` triple. Citations in
+`src/` are therefore written `GH-100`; everywhere else — docs, PRs, issues — keeps `#100`,
+where the hash is a working link and no guard runs. ADR-0004 has the why, and why the guard
+was not narrowed instead. It lives in `tests/support/design-system-guard.ts`; its two
+exemptions (`globals.css` token blocks, `warm-print.ts`) are pinned by tests, so widening one
+is a deliberate act.
+
 **One dev server per repo, so `dev` and the test runner share port 3200.** Next holds a
 lock at `.next/dev/lock` for the working directory, not the port — a second `next dev` here
 cannot start on any port, so the suite reuses the one you already have running, and its port

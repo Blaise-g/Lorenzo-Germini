@@ -1,7 +1,7 @@
 import type { HubDestination } from "@/components/sticky-rail";
 import { cn } from "@/lib/utils";
 
-/* The in-page anchor row, shared by the hub shell and `/cv`. #87 asked `/cv` to
+/* The in-page anchor row, shared by the hub shell and `/cv`. GH-87 asked `/cv` to
    reuse the homepage's pattern rather than invent a second one — the site
    already carries three different masthead treatments, and a second anchor row
    drifting from the first is how that happens again.

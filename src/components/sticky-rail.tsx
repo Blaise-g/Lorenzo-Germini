@@ -101,7 +101,7 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
  *  Fine pointers keep the tight 28px rail, where 220×28 is already well past
  *  WCAG 2.2 SC 2.5.8's 24×24 and a cursor does not need more. Measured at
  *  1024×800, the coarse rail puts `CV →`'s bottom at 790px against the 694px it
- *  sits at for a mouse — inside the 800px #86 holds it to, with 10px to spare,
+ *  sits at for a mouse — inside the 800px GH-86 holds it to, with 10px to spare,
  *  and the rail is `lg:sticky lg:top-8`, so scrolling lifts it well clear
  *  either way. The old note here priced this at ~96px, which would not have
  *  fitted; the real cost is the six rows going 28px → 44px.

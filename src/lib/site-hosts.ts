@@ -1,5 +1,5 @@
 /**
- * Every host this site answers on, and the one it is canonical on (#68 option B).
+ * Every host this site answers on, and the one it is canonical on (GH-68 option B).
  *
  * Shared by two consumers that must never disagree: `next.config.ts`, which
  * turns the retired hosts into redirect rules, and `RESUME_DATA`, from which

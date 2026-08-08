@@ -76,7 +76,7 @@ export const FONT_FILES: OgFontFile[] = [
  * The upstream builds' directory is deliberately *not* named here. Tracing globs
  * a directory off any `path.join(process.cwd(), …)` it can see, and every page
  * imports this module — a constant for `vendor/og-fonts` in this file puts all
- * 481KB of full build back into six page bundles, which is the cost #43 removed.
+ * 481KB of full build back into six page bundles, which is the cost GH-43 removed.
  * The subsetter holds that path instead.
  */
 const subsetDir = path.join(process.cwd(), "src", "assets", "fonts");

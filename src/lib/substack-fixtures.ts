@@ -1,4 +1,4 @@
-/* Feed fixtures for the dev-only `/writing/fixture/[state]` route (#24).
+/* Feed fixtures for the dev-only `/writing/fixture/[state]` route (GH-24).
  *
  * The publication is live but empty, so every count-aware transition, every
  * failure mode and the recovery from a cached miss are only reachable through

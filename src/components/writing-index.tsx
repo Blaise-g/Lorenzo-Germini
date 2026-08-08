@@ -28,7 +28,7 @@ const ARCHIVE_LINK_AT = 4;
 
 const meta = "font-mono text-xs uppercase tracking-[0.12em]";
 
-/* Symmetric since #89. The `pr-20 lg:pr-6` that stood here was decision 2's
+/* Symmetric since GH-89. The `pr-20 lg:pr-6` that stood here was decision 2's
    top-right exclusion zone: below `lg` this measure runs to the viewport edge,
    where the fixed theme toggle sat on top of it — the masthead's CV link
    hit-tested as "Toggle theme" over 63px² at 375 on the prototype. The toggle is

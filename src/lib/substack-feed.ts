@@ -1,4 +1,4 @@
-/* Substack RSS → the `Essay` shape the index renders (spec §2.5, issue #24).
+/* Substack RSS → the `Essay` shape the index renders (spec §2.5, GH-24).
  *
  * Deliberately pure and free of `next/*` and `server-only` imports: fetching,
  * caching and cache lifetimes live in `substack.ts`, so everything that can go
@@ -69,7 +69,7 @@ export function parseSubstackFeed(xml: string): Essay[] {
   const essays: Essay[] = [];
   /* One `<item>` per language version is a live possibility — the publication
      has "Additional post languages" enabled and how Substack represents that
-     in RSS is unverified (#24). De-duplicating on the canonical link keeps a
+     in RSS is unverified (GH-24). De-duplicating on the canonical link keeps a
      doubled entry from shifting the count-aware thresholds; it costs nothing
      if the risk turns out to be empty. */
   const seen = new Set<string>();

@@ -13,7 +13,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 
 /* Shared by the masthead and the body below it, which are separate boxes so the
-   masthead rule can span the viewport. Symmetric since #89 put the theme toggle
+   masthead rule can span the viewport. Symmetric since GH-89 put the theme toggle
    in the masthead: the `pr-20` that stood here reserved a 56px exclusion zone
    for the toggle in its fixed top-right slot, and with the control in flow there
    is nothing overhead to reserve against.
@@ -46,7 +46,7 @@ export function HubShell({
   return (
     <RouteFrame measure={HUB_SHELL_INSET}>
       <div className="min-h-screen">
-        {/* Prints: with the band's `<h1>` gone (#26), this is the only surface
+        {/* Prints: with the band's `<h1>` gone (GH-26), this is the only surface
           that states the name, and a printed homepage still has to say whose
           it is. The role label beside it stays on screen only — the band
           repeats it directly underneath in print. */}
@@ -59,7 +59,7 @@ export function HubShell({
           <header
             data-testid="masthead-inset"
             data-profile-orientation="masthead"
-            /* Symmetric and tight since the toggle came in flow (#89). Every
+            /* Symmetric and tight since the toggle came in flow (GH-89). Every
                earlier value here was clearance for the fixed toggle overhead —
                `pt-12` for a claimed vertical overlap that measurement disproved,
                then `pt-5`/`lg:pt-9` to keep this box's bottom rule below the
@@ -236,7 +236,7 @@ function ProfileIdentity({
                 no print condition, so one element cannot declare both: at
                 `56px` the printed slot gets a 64w file and upscales ~1.5×, and
                 at `96px` every phone pays for it — measured, 128w → 256w at DPR
-                2 and 256w → 384w at DPR 3, which is the regression #86 fixed by
+                2 and 256w → 384w at DPR 3, which is the regression GH-86 fixed by
                 moving this off `96px` in the first place.
                 Two elements cost nothing instead, because a hidden one is never
                 fetched: measured at 1024, the only image request on screen is
@@ -261,7 +261,7 @@ function ProfileIdentity({
           {isRail ? (
             <p className="text-body text-sm leading-relaxed">{profile.bio}</p>
           ) : (
-            /* #26: the band used to restate the name in a second `<h1>`, 38px
+            /* GH-26: the band used to restate the name in a second `<h1>`, 38px
                below the masthead's — two thirds of a 375px fold spent on
                identity before the hero. It carries the role, the location and
                the CV route instead; the hero below is the page's only `<h1>`. */

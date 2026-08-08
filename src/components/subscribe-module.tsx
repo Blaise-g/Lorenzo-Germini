@@ -1,6 +1,6 @@
 "use client";
 
-// The subscribe handoff (issue #25, spec §2.5). A GET form whose action IS the
+// The subscribe handoff (GH-25, spec §2.5). A GET form whose action IS the
 // Substack subscribe page, so the browser builds `?email=<urlencoded>` itself
 // and Substack prefills its own form. No third-party script, no cookies, no
 // blocked endpoint — and it works with JS off, which is why the action/method

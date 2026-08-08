@@ -34,7 +34,7 @@ export function ThemeToggle() {
       /* A stable hook, because the accessible name is state now and the suite
          locates this control for chrome geometry rather than for its label. */
       data-testid="theme-toggle"
-      /* In flow since #89, placed by whichever masthead renders it: fixed at
+      /* In flow since GH-89, placed by whichever masthead renders it: fixed at
          `top-4 right-4` it sat in the top-right band on its own, and every
          shell paid for it twice — an asymmetric `pr-20` gutter so the nav could
          not slide under it, and top padding so the masthead rule cleared its
