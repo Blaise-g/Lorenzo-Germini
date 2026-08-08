@@ -179,8 +179,7 @@ test.describe("print CV baseline", () => {
                 section.querySelector(":scope h2")?.textContent?.trim() ===
                 name,
             );
-          const projects =
-            sectionNamed("Projects") ?? sectionNamed("Selected systems");
+          const projects = sectionNamed("Projects");
           const visibleTextElements = Array.from(
             document.querySelectorAll<HTMLElement>("#main-content *"),
           ).filter((element) => {

@@ -27,7 +27,7 @@ import { buildPersonStructuredData } from "@/lib/person-structured-data";
 import { cn, displayUrl } from "@/lib/utils";
 
 const cvUrl = new URL("/cv", RESUME_DATA.personalWebsiteUrl).href;
-const cvDescription = `Curriculum vitae for ${RESUME_DATA.name}, covering work in AI product engineering, education, technical skills, and selected systems.`;
+const cvDescription = `Curriculum vitae for ${RESUME_DATA.name}, covering work in AI product engineering, education, technical skills, and projects.`;
 
 export const metadata: Metadata = {
   title: { absolute: "Lorenzo-Germini-CV" },
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
 const CV_SECTIONS = [
   { id: "cv-profile", label: "Profile" },
   { id: "cv-experience", label: "Experience" },
-  { id: "cv-selected-systems", label: "Selected systems" },
+  { id: "cv-projects", label: "Projects" },
   { id: "cv-education", label: "Education" },
   { id: "cv-skills", label: "Skills" },
 ] as const;
@@ -133,42 +133,26 @@ export default function CvPage() {
               email and every social link on screen, so this row was the same
               contact surface twice over — while on paper, where the footer is
               gone, it is the only one. Deleting it outright would ship a PDF a
-              reader cannot reply to; keeping it on screen only repeated the
-              footer a few hundred pixels above it.
-              Location stays because it is what a hiring reader filters on, and
-              GitHub because the CV body carries no code link anywhere else.
-              The old `gap-y-5` went with the screen: it bought 44px hit areas
-              for a row that wraps at 375, and paper has no thumbs. */}
-            <address className="text-faint hidden flex-wrap gap-x-4 font-mono text-xs not-italic print:mt-2 print:flex print:gap-y-1 print:text-[9pt]">
-              <a
-                className="touch-target"
-                href={`mailto:${RESUME_DATA.contact.email}`}
-              >
+              reader cannot reply to. The socials are not here (GH-113): the
+              footer carries them on screen, and on paper the site link is the
+              hop to them. Location stays because a hiring reader filters on it.
+              No `.touch-target` on these links, and that is the alignment fix
+              rather than a tidy-up. The class is `inline-flex` with a 24px
+              `min-height`, so under this row's `stretch` the links centred their
+              text in a box taller than the bare `<span>`'s and the location sat
+              4px above them — measured, in the shipped PDF. On a row that never
+              renders on screen the 44px hit overlay it exists for is unreachable
+              anyway, so the box was pure cost. `items-baseline` is belt and
+              braces: with the class gone the row already aligns, and this keeps
+              it aligned if an item ever arrives carrying its own box. */}
+            <address className="text-faint hidden flex-wrap items-baseline gap-x-4 font-mono text-xs not-italic print:mt-2 print:flex print:gap-y-1 print:text-[9pt]">
+              <a href={`mailto:${RESUME_DATA.contact.email}`}>
                 {RESUME_DATA.contact.email}
               </a>
-              {RESUME_DATA.contact.tel ? (
-                <a
-                  className="touch-target"
-                  href={`tel:${RESUME_DATA.contact.tel}`}
-                >
-                  {RESUME_DATA.contact.tel}
-                </a>
-              ) : null}
               <span>{RESUME_DATA.location}</span>
-              <a className="touch-target" href={RESUME_DATA.personalWebsiteUrl}>
+              <a href={RESUME_DATA.personalWebsiteUrl}>
                 {displayUrl(RESUME_DATA.personalWebsiteUrl)}
               </a>
-              {RESUME_DATA.contact.social
-                .filter((social) => social.cv !== false)
-                .map((social) => (
-                  <a
-                    key={social.name}
-                    className="touch-target"
-                    href={social.url}
-                  >
-                    {social.name}
-                  </a>
-                ))}
             </address>
           </header>
 
@@ -180,18 +164,18 @@ export default function CvPage() {
             `lg:hidden` here — `/cv` has no sticky rail to hand over to. */}
           <SectionAnchorRow destinations={CV_SECTIONS} className="mt-4" />
 
-          {/* The printed gaps are wider than they were, and the reason is the
-              page break rather than taste. Taking the phone, the X entry and the
-              browser hint out of the header pulled ~3 lines up the document,
-              which moved the A4 break past content that used to start page two:
-              page one measured 98% full against a 25% stub. Widened, the two
-              pages measure 90% and 37%. Measured on both paper sizes.
-              Widened once more with the 2026-08 copy pass, which dropped a
-              Complaion bullet and tightened three more: A4 page one went back
-              to 99% against a 27% stub, splitting the Selected systems section
-              across the break. At `print:space-y-6` the whole section starts
-              page two — A4 measures 89% and 38%, Letter 95% and 41%. */}
-          <div className="mt-7 space-y-8 print:mt-3 print:space-y-6">
+          {/* These gaps are set by the page break, not by taste, and they are
+              squeezed from both sides. Tighten them and page one fills to 98-99%
+              and splits the Projects section across the break; loosen the
+              document above them and page two empties below the one-third floor
+              `print-cv.spec.ts` enforces. Both failures have happened.
+              GH-113 hit the second: dropping `.touch-target` from the address
+              row above took ~8px out of the masthead, which pulled a block onto
+              page one and left a 25% stub — hence `space-y-7` where this was
+              `space-y-6`. A4 now fills 85% and 38%, Letter 90% and 41%, measured
+              off the shipped PDF (`pdftotext -bbox`, deepest text `yMax` over
+              page height). Re-measure that way, not in the browser. */}
+          <div className="mt-7 space-y-8 print:mt-3 print:space-y-7">
             <CvSection id="cv-profile" title="Profile">
               <div className="text-body max-w-[74ch] space-y-3 text-sm leading-relaxed print:max-w-none print:space-y-1 print:text-[9pt] print:leading-[1.3]">
                 {RESUME_DATA.summary.split("\n\n").map((paragraph) => (
@@ -248,7 +232,7 @@ export default function CvPage() {
               </div>
             </CvSection>
 
-            <CvSection id="cv-selected-systems" title="Selected systems">
+            <CvSection id="cv-projects" title="Projects">
               <div className="space-y-4 print:space-y-3">
                 {RESUME_DATA.projects.map((project) => (
                   <article

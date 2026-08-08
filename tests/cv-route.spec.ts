@@ -6,6 +6,7 @@ import { expect, test } from "@playwright/test";
 
 import retainedProof from "@/../docs/spec/retained-proof.json";
 import { RESUME_DATA } from "@/data/resume-data";
+import { displayUrl } from "@/lib/utils";
 
 import { personStructuredData } from "./support/structured-data";
 
@@ -284,7 +285,7 @@ test("the build-generated PDF is current, readable, and single-column", async ()
   const sectionOrder = [
     "PROFILE",
     "EXPERIENCE",
-    "SELECTED SYSTEMS",
+    "PROJECTS",
     "EDUCATION",
     "SKILLS",
   ].map((section) => extracted.indexOf(section));
@@ -315,34 +316,58 @@ test.describe("the CV contact row", () => {
     expect(person).not.toHaveProperty("telephone");
   });
 
-  test("keeps email, location, site, GitHub and LinkedIn, and drops X", async ({
+  test("carries email, location and the site, and no social links", async ({
     page,
   }) => {
     /* Under print, because that is the only medium the row renders in now. */
     await page.emulateMedia({ media: "print" });
     await page.goto(cvPath);
+    /* Before any geometry read: fallback metrics put the items on different
+       bottoms and the alignment assertion below would fail on the font, not
+       the layout. */
+    await page.evaluate(() => document.fonts.ready);
     const address = page.locator("address");
     await expect(address).toBeVisible();
 
-    /* Location and GitHub stay against the owner's instinct and with his
-       agreement: the CV body carries no code link anywhere else, so this row is
-       the printed CV's only route to it, and location is what a hiring reader
-       filters on. */
     await expect(address).toContainText(RESUME_DATA.contact.email);
     await expect(address).toContainText(RESUME_DATA.location);
-    for (const name of ["GitHub", "LinkedIn"]) {
+    /* The site link is what makes dropping the socials defensible — it is the
+       paper reader's only hop to them — so it is asserted rather than left to
+       the geometry check below, which would fail with a misleading message. */
+    await expect(
+      address.getByRole("link", {
+        name: displayUrl(RESUME_DATA.personalWebsiteUrl),
+        exact: true,
+      }),
+    ).toHaveCount(1);
+
+    /* Asserted over the whole data list rather than the two names that were
+       dropped, so adding a fourth social cannot quietly reach the printed row. */
+    for (const social of RESUME_DATA.contact.social) {
       await expect(
-        address.getByRole("link", { name, exact: true }),
-      ).toHaveCount(1);
+        address.getByRole("link", { name: social.name, exact: true }),
+      ).toHaveCount(0);
     }
 
-    /* Dropped by the `cv: false` data flag, not by a hardcoded name filter, so X
-       stays on the homepage and in the footer. */
-    await expect(
-      address.getByRole("link", { name: "X", exact: true }),
-    ).toHaveCount(0);
-    const x = RESUME_DATA.contact.social.find((social) => social.name === "X");
-    expect(x?.cv).toBe(false);
+    /* The row aligns on one baseline. `.touch-target` used to break it: the
+       class is `inline-flex` with a 24px `min-height`, so under `stretch` the
+       links centred their text in a box taller than the bare location
+       `<span>`'s and the location printed 4px high. Measured on rendered text
+       rather than asserted on the class, because the class is one mechanism and
+       the alignment is the requirement. A tolerance rather than equality —
+       these land on `.5` boundaries, where rounding would fail on a 0.02px
+       difference and pass a 0.9px one. */
+    const bottoms = await address.evaluate((element) => {
+      const range = document.createRange();
+      return Array.from(element.children).map((child) => {
+        range.selectNodeContents(child);
+        return range.getBoundingClientRect().bottom;
+      });
+    });
+    expect(bottoms.length).toBe(3);
+    expect(Math.max(...bottoms) - Math.min(...bottoms)).toBeLessThanOrEqual(
+      0.5,
+    );
 
     /* Back to screen for the footer, which is `print:hidden` — `getByRole` reads
        the accessibility tree, so a `display: none` footer has no links in it at

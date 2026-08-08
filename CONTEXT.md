@@ -113,6 +113,27 @@ The `meta` pair is the one place a length ceiling, not just accuracy, is part of
 surface: a SERP truncates a title past ~60 characters and a description past ~160, so the
 short forms exist precisely because the long ones cannot be trimmed at read time.
 
+**Project**:
+A built thing with a title, a stack and a description. It is the same set everywhere it
+appears — cards on `/`, entries under **Projects** on `/cv` — so the two surfaces cannot
+describe different work.
+_Avoid_: selected systems, work, portfolio piece — and "system" for anything in this set
+
+**System**:
+A technical noun in the homepage colophon line — the stack a peer scans for. Systems are not
+Projects and the two sections are not versions of each other: a Project is something built, a
+System is something built _with_.
+_Avoid_: using it for a Project, or as a grander synonym for one
+
+**Contact surface**:
+Any place the site publishes a way to reach Lorenzo. Which ones exist depends on the medium,
+and that asymmetry is the term's whole content: on screen the footer carries the email and
+every social link, so the `/cv` address row would be the same surface twice; on paper the
+footer is gone, so that row is the only one, and a CV shipped without it is a document a
+reader cannot answer. That is why the printed row is trimmed rather than deleted, and why
+what it keeps is decided by what a reader on paper cannot otherwise reach.
+_Avoid_: contact block, contact info — the term is about publication, not layout
+
 **Chrome control**:
 A control that belongs to the site rather than to the page's content: the theme toggle and
 `BackToTop`. Since #89 (ADR-0003) neither is _floating_ chrome by default — the toggle is
