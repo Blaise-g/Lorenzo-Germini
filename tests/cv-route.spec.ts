@@ -170,6 +170,30 @@ test.describe("canonical CV route", () => {
     expect(sitemap).toContain(
       new URL(cvPath, RESUME_DATA.personalWebsiteUrl).href,
     );
+    /* #104's other half: the PDF duplicates a page the sitemap already lists,
+       and its canonical consolidates onto that page, so it stays out. Asserted
+       beside the positive case because the pair is one claim — the sitemap
+       names the page, not the file. */
+    expect(sitemap).not.toContain(pdfFilename);
+  });
+
+  /* #104: the PDF is crawlable and Google indexes PDFs, so it points at `/cv`
+     rather than competing with it. The expected URL is spelled out rather than
+     derived: `RESUME_DATA.personalWebsiteUrl` *is* the `CANONICAL_ORIGIN` the
+     config builds the header from, so composing it here would let both sides
+     drift together and still pass. */
+  test("serves the CV PDF with a canonical Link header, and still serves the PDF", async ({
+    request,
+  }) => {
+    const pdf = await request.get(`/${pdfFilename}`);
+
+    expect(pdf.status()).toBe(200);
+    expect(pdf.headers()["content-type"]).toContain("application/pdf");
+    /* Not `toContain`: the whole header value, so a second `rel` or a truncated
+       URL fails rather than passing on a substring. */
+    expect(pdf.headers().link).toBe(
+      '<https://lorenzogermini.com/cv>; rel="canonical"',
+    );
   });
 });
 
