@@ -17,6 +17,7 @@ import { RESUME_DATA } from "@/data/resume-data";
 import { getEssays, SUBSTACK_BASE } from "@/lib/substack";
 
 const writingUrl = new URL("/writing", RESUME_DATA.personalWebsiteUrl).href;
+const writingSocialTitle = `Writing — ${RESUME_DATA.name}`;
 
 export const metadata: Metadata = {
   title: "Writing",
@@ -25,8 +26,18 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: writingUrl,
-    title: `Writing — ${RESUME_DATA.name}`,
+    title: writingSocialTitle,
     description: RESUME_DATA.writingPage.standfirst,
+  },
+  /* Declared even though the layout already sets `card` and `creator`: a
+     `twitter` object here replaces the layout's, and without one every
+     `twitter:*` field on this route — title included — falls back to the
+     homepage's (GH-102). */
+  twitter: {
+    card: "summary_large_image",
+    title: writingSocialTitle,
+    description: RESUME_DATA.writingPage.standfirst,
+    creator: RESUME_DATA.contact.xHandle,
   },
 };
 

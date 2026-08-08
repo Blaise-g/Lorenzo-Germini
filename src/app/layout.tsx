@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: RESUME_DATA.metaTitle,
     description: RESUME_DATA.metaDescription,
-    creator: "@spleenboi_",
+    creator: RESUME_DATA.contact.xHandle,
   },
   robots: {
     index: true,

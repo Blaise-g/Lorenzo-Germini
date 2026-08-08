@@ -66,6 +66,7 @@ export const RESUME_DATA: ResumeData = {
   personalWebsiteUrl: CANONICAL_ORIGIN,
   contact: {
     email: "lorenzo.germini@icloud.com",
+    xHandle: "@spleenboi_",
     social: [
       {
         name: "GitHub",
