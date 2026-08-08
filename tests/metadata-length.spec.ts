@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { RESUME_DATA } from "@/data/resume-data";
 
@@ -15,14 +15,44 @@ const maxDescription = 160;
 /** And a SERP title at ~60. */
 const maxTitle = 60;
 
-async function metaContent(
-  page: import("@playwright/test").Page,
-  selector: string,
-) {
-  return page.locator(`head ${selector}`).getAttribute("content");
+/** Asserts the tag exists before narrowing, so callers read `.length` without
+    a non-null assertion and a missing tag fails as itself rather than as a
+    length error. */
+async function metaContent(page: Page, selector: string) {
+  const content = await page
+    .locator(`head ${selector}`)
+    .getAttribute("content");
+
+  expect(content, `should serve ${selector}`).toBeTruthy();
+
+  return content!;
 }
 
-for (const path of ["/", "/cv", "/writing"] as const) {
+/** `source` names the field the copy comes from: every route's description is
+    a different `RESUME_DATA` field, so a failure here is only actionable if it
+    says which one to shorten. */
+function expectSnippetDescription(
+  content: string,
+  { label, source }: { label: string; source: string },
+) {
+  expect(
+    content.length,
+    `${label} is ${content.length} characters; shorten ${source}`,
+  ).toBeLessThanOrEqual(maxDescription);
+  /* A newline is what made the shipped tag three paragraphs. */
+  expect(content, `${label} should be one paragraph`).not.toContain("\n");
+}
+
+/* Every route, not just the one #101 changed: the ceiling is a property of the
+   surface rather than of this fix, and `/writing` currently sits at 159 of the
+   160 — one word added to its standfirst would ship a truncated snippet. */
+const routes = [
+  { path: "/", source: "RESUME_DATA.metaDescription" },
+  { path: "/cv", source: "`cvDescription` in src/app/cv/page.tsx" },
+  { path: "/writing", source: "RESUME_DATA.writingPage.standfirst" },
+] as const;
+
+for (const { path, source } of routes) {
   test(`${path} serves a snippet-sized title and description`, async ({
     page,
   }) => {
@@ -34,16 +64,10 @@ for (const path of ["/", "/cv", "/writing"] as const) {
     );
 
     const description = await metaContent(page, 'meta[name="description"]');
-    expect(description, `${path} should serve a meta description`).toBeTruthy();
-    expect(
-      description!.length,
-      `meta description on ${path}: ${description}`,
-    ).toBeLessThanOrEqual(maxDescription);
-    /* A newline is what made the shipped tag three paragraphs. */
-    expect(
-      description,
-      `meta description on ${path} should be one paragraph`,
-    ).not.toContain("\n");
+    expectSnippetDescription(description, {
+      label: `meta description on ${path}`,
+      source,
+    });
   });
 }
 
@@ -59,12 +83,10 @@ test("the homepage social descriptions are snippet-sized too", async ({
     'meta[property="og:description"]',
     'meta[name="twitter:description"]',
   ]) {
-    const content = await metaContent(page, selector);
-    expect(content, `/ should serve ${selector}`).toBeTruthy();
-    expect(content!.length, `${selector}: ${content}`).toBeLessThanOrEqual(
-      maxDescription,
-    );
-    expect(content, `${selector} should be one paragraph`).not.toContain("\n");
+    expectSnippetDescription(await metaContent(page, selector), {
+      label: selector,
+      source: "RESUME_DATA.metaDescription",
+    });
   }
 });
 
@@ -78,4 +100,19 @@ test("the long summary keeps its JSON-LD role", async ({ page }) => {
 
   expect(person, "the homepage should emit Person JSON-LD").toBeTruthy();
   expect(person.description).toBe(RESUME_DATA.summary);
+});
+
+/* `metaTitle` is stored whole rather than assembled from `name` and
+   `roleLabel`, because it is owner-approved copy (#100) and a SERP title
+   should not silently rewrite itself when the masthead label is reworded. That
+   choice is only safe if the drift it permits is visible, which is this. */
+test("the meta title still agrees with the fields it restates", async () => {
+  expect(
+    RESUME_DATA.metaTitle,
+    "the <title> should still name the person the masthead names",
+  ).toContain(RESUME_DATA.name);
+  expect(
+    RESUME_DATA.metaTitle,
+    "the <title> should still carry the masthead's role label",
+  ).toContain(RESUME_DATA.roleLabel);
 });
