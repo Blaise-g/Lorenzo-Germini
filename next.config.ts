@@ -45,6 +45,26 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  /* #104: the CV PDF duplicates `/cv`, is crawlable, and Google indexes PDFs,
+     so a canonical `Link` folds its ranking signals onto the HTML page while
+     leaving the file findable for anyone searching for it directly — chosen
+     over `noindex` in #99. Unconditional, unlike the host-gated redirects
+     above: the origin it names is the canonical one every production host folds
+     into anyway, so the header is correct on all of them, and a `has`-gate
+     would only make the rule untestable locally. */
+  async headers() {
+    return [
+      {
+        source: "/lorenzo-germini-cv.pdf",
+        headers: [
+          {
+            key: "Link",
+            value: `<${CANONICAL_ORIGIN}/cv>; rel="canonical"`,
+          },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       /* Substack cover art. `<enclosure>` reports `length="0"` and carries no
