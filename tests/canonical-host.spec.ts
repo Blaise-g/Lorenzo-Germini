@@ -94,16 +94,33 @@ test.describe("canonical host lockstep", () => {
      it. `robots.txt` has no directive for that, hence a comment — which makes
      its absolute URL one more hand-written copy of the origin, and so part of
      this lockstep rather than a discoverability check of its own. */
-  test("robots.txt advertises the sitemap and the manifest on the canonical origin", async ({
+  test("robots.txt advertises the sitemap and both manifests on the canonical origin", async ({
     request,
   }) => {
     const robots = await (await request.get("/robots.txt")).text();
 
     expect(robots).toContain(`Sitemap: ${CANONICAL_ORIGIN}/sitemap.xml`);
+    for (const manifest of IDENTITY_MANIFESTS) {
+      expect(
+        robots,
+        `robots.txt should name ${manifest} so crawlers can discover it`,
+      ).toContain(`${CANONICAL_ORIGIN}${manifest}`);
+    }
+  });
+
+  /* #116: `llms-full.txt` held ~5 KB of exactly the detail the is-agentic scan
+     of 2026-08-24 called missing, and was linked from nowhere — so an agent
+     that found `llms.txt` still could not reach it. Asserted on the canonical
+     origin because that is the only spelling the audit above permits. */
+  test("llms.txt links llms-full.txt from its link list", async ({
+    request,
+  }) => {
+    const text = await (await request.get("/llms.txt")).text();
+
     expect(
-      robots,
-      "robots.txt should name /llms.txt so crawlers can discover it",
-    ).toContain(`${CANONICAL_ORIGIN}/llms.txt`);
+      text,
+      "the long-form manifest should be one hop from the short one",
+    ).toContain(`${CANONICAL_ORIGIN}/llms-full.txt`);
   });
 
   test("every sitemap entry is on the canonical origin", async ({

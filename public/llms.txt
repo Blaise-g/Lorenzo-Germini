@@ -17,6 +17,15 @@ Outside work: sports, side projects, and rabbit holes on tech entrepreneurship a
 - [germinai](https://lorenzogermini.substack.com): Field notes, mostly on building with AI
 - [CV](https://lorenzogermini.com/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
 - [CV PDF](https://lorenzogermini.com/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae
+- [Full profile](https://lorenzogermini.com/llms-full.txt): Long-form machine-readable profile with every role, project, and contact detail
+
+## When to use this
+
+Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
+
+Less good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.
+
+Contact: lorenzo.germini@icloud.com
 
 ## Links
 
@@ -30,7 +39,7 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Building the AI engine behind a compliance automation platform for European SMEs. Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.
+- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)

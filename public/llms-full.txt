@@ -10,6 +10,14 @@ These days that's the AI engine behind Complaion, a compliance platform for Euro
 
 Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
 
+## When to use this
+
+Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
+
+Less good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.
+
+Contact: lorenzo.germini@icloud.com
+
 ## Contact
 
 - Email: lorenzo.germini@icloud.com
@@ -31,8 +39,8 @@ Outside work: sports, side projects, and rabbit holes on tech entrepreneurship a
 
 ### AI Engineer at Complaion (May 2025 - Present)
 Location: Cuneo, Italy
-- Building the AI engine behind Complaion, a compliance automation platform that helps European SMEs get and keep ISO certifications.
-- Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.
+- Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.
+- Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
 - Shipping AI product features and automation workflows end-to-end, from prototype to production.
 
 ### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
@@ -43,7 +51,7 @@ Location: Cuneo, Italy
 
 ### AI Engineer at GSK (Sep 2023 - Oct 2024)
 Location: Saint-Amand-les-Eaux, France
-- Used Python and multi-source sensor data to find inefficiencies across pharmaceutical utilities; designed water rejection strategies projected to save 10,000 m3 annually.
+- Used Python and multi-source sensor data to find inefficiencies across pharmaceutical utilities; designed water rejection strategies projected to save 10,000 m³ annually.
 - Anomaly detection and time-series forecasting for manufacturing operations, plus semantic NLP for fault detection and maintenance decisions.
 - Natural-language interfaces and generative AI use cases that made plant data usable on the floor.
 

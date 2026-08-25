@@ -15,6 +15,20 @@ export type ResumeData = {
   };
   about: string;
   summary: string;
+  /** What kinds of work Lorenzo is the right person for, and what he is not.
+   *  Written for an agent deciding whether he fits a brief: the exclusions are
+   *  the load-bearing half, because a profile that fits everything rules out
+   *  nothing (GH-116). Rendered nowhere in the HTML — its consumers are the two
+   *  `llms` manifests, where it becomes the `When to use this` section.
+   *
+   *  Here rather than typed straight into those static files so the identity
+   *  lockstep guard covers it: the manifests are hand-maintained, and GH-52 is
+   *  the prior defect where prose only they held drifted for a release. Split
+   *  into paragraphs on `\n\n`, which is how that guard matches them. The
+   *  contact line the section ends with is not in here — it comes from
+   *  `contact.email`, which already exists and would otherwise be a second
+   *  copy. */
+  agentGuidance: string;
   /** The `<title>` the search engines get, whole — name and separator included.
    *  Under 60 characters, the point where a SERP truncates; GH-99 found the
    *  title it replaced shipping at 110, rendering as `…shipping AI products

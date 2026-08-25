@@ -15,6 +15,8 @@ export const RESUME_DATA: ResumeData = {
     "AI Product Engineer shipping AI products end-to-end across compliance, health, and education",
   summary:
     "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+  agentGuidance:
+    "Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.\n\nLess good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.",
   metaTitle: "Lorenzo Germini | AI Product Engineer",
   metaDescription:
     "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai.",
@@ -109,8 +111,8 @@ export const RESUME_DATA: ResumeData = {
       start: "May 2025",
       end: "Present",
       description: [
-        "Building the AI engine behind Complaion, a compliance automation platform that helps European SMEs get and keep ISO certifications.",
-        "Agentic RAG over ISO documentation and the evaluation frameworks that show when it can't be trusted in production.",
+        "Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.",
+        "Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.",
         "Shipping AI product features and automation workflows end-to-end, from prototype to production.",
       ],
       homepageProof:
