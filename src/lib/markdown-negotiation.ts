@@ -101,3 +101,29 @@ export function prefersMarkdown(accept: string | null): boolean {
 
   return markdown > 0 && markdown >= htmlQuality(accepted);
 }
+
+/**
+ * The `alternates` fragment advertising a route's markdown sibling, for a route
+ * to spread beside its canonical (GH-127).
+ *
+ * Derived from the map rather than restated per route, so a route cannot name a
+ * sibling that does not negotiate, and so the map stays the one place a fourth
+ * negotiable route is declared. `types` is Next's `rel="alternate"` channel and
+ * the href resolves against `metadataBase`, so the sibling path is enough.
+ *
+ * An unmapped path throws: metadata is evaluated when the route is rendered, so
+ * a route advertising a sibling the proxy would never serve fails the build
+ * rather than shipping a dead alternate nobody looks at.
+ */
+export function markdownAlternate(path: string): {
+  types: Record<string, string>;
+} {
+  const sibling = MARKDOWN_NEGOTIABLE[path];
+  if (sibling === undefined) {
+    throw new Error(
+      `${path} has no markdown sibling to advertise; add it to MARKDOWN_NEGOTIABLE and src/proxy.ts's matcher first.`,
+    );
+  }
+
+  return { types: { [MARKDOWN_MEDIA_TYPE]: sibling } };
+}
