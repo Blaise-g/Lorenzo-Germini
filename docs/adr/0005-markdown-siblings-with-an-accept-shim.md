@@ -54,8 +54,8 @@ route.
 verified client asks for it. The addressable set is whatever `llms.txt` declares, because that is
 the index agents actually follow — the scan confirmed all five of its current links resolve.
 
-**Generated markdown is the first content surface that reads `RESUME_DATA` at request time rather
-than being a second copy of it**, which is a narrowing of the identity-surface drift problem, not a
+**Generated markdown is the first content surface that renders `RESUME_DATA` rather than holding a
+second copy of it**, which is a narrowing of the identity-surface drift problem, not a
 widening. If `public/llms.txt` or `public/llms-full.txt` are later converted to route handlers on
 the same reasoning, the `public/` copies must be deleted in the same commit — a static file and a
 route at one path conflict — and `tests/dev-server-identity.spec.ts` uses `/llms.txt` as its
