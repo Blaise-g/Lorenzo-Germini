@@ -58,7 +58,12 @@ const nextConfig: NextConfig = {
          middleware-appended one is stripped by the CDN? Throwaway. */
       {
         source: "/:path(cv|writing)",
-        headers: [{ key: "Vary", value: "Accept" }],
+        headers: [
+          { key: "Vary", value: "Accept" },
+          /* Control: proves the rule matched, so a missing `Vary` above is a
+             strip and not an unmatched `source`. */
+          { key: "x-probe-config", value: "matched" },
+        ],
       },
       {
         source: "/lorenzo-germini-cv.pdf",

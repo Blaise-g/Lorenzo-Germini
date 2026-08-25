@@ -142,6 +142,11 @@ export function renderWritingMarkdown(): string {
  */
 export function markdownResponse(body: string): Response {
   return new Response(body, {
-    headers: { "content-type": "text/markdown; charset=utf-8" },
+    headers: {
+      "content-type": "text/markdown; charset=utf-8",
+      /* GH-118 probe: does a route-handler `Vary` survive the CDN? */
+      vary: "Accept",
+      "x-probe-route": "matched",
+    },
   });
 }
