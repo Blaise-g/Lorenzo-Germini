@@ -23,6 +23,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { RESUME_DATA } from "@/data/resume-data";
 import { BUILD_DATE_ISO, BUILD_MONTH_YEAR } from "@/lib/build-metadata";
+import { markdownAlternate } from "@/lib/markdown-negotiation";
 import { buildPersonStructuredData } from "@/lib/person-structured-data";
 import { cn, displayUrl } from "@/lib/utils";
 
@@ -32,7 +33,7 @@ const cvDescription = `Curriculum vitae for ${RESUME_DATA.name}, covering work i
 export const metadata: Metadata = {
   title: { absolute: "Lorenzo-Germini-CV" },
   description: cvDescription,
-  alternates: { canonical: cvUrl },
+  alternates: { canonical: cvUrl, ...markdownAlternate("/cv") },
   openGraph: {
     type: "profile",
     url: cvUrl,

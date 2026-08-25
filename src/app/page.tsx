@@ -15,6 +15,7 @@ import { Section } from "@/components/ui/section";
 import { MailIcon, PhoneIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { RESUME_DATA } from "@/data/resume-data";
+import { markdownAlternate } from "@/lib/markdown-negotiation";
 import { ProjectCard } from "@/components/project-card";
 import { StructuredData } from "@/components/structured-data";
 import { cn } from "@/lib/utils";
@@ -27,7 +28,10 @@ export const metadata: Metadata = {
   /* The retired hosts 308 here rather than disappearing, so `/` needs the same
      self-canonical `/cv` and `/writing` already carry — otherwise the redirect
      source stays indexable as a duplicate of this page. */
-  alternates: { canonical: RESUME_DATA.personalWebsiteUrl },
+  alternates: {
+    canonical: RESUME_DATA.personalWebsiteUrl,
+    ...markdownAlternate("/"),
+  },
 };
 
 const HUB_SECTIONS = {

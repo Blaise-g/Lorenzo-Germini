@@ -4,6 +4,7 @@ import { RESUME_DATA } from "@/data/resume-data";
 import {
   MARKDOWN_MEDIA_TYPE,
   MARKDOWN_NEGOTIABLE,
+  markdownAlternate,
 } from "@/lib/markdown-negotiation";
 import { CANONICAL_ORIGIN } from "@/lib/site-hosts";
 import { config as proxyConfig } from "@/proxy";
@@ -88,6 +89,35 @@ test.describe("markdown content negotiation", () => {
       ).toContain("rsc");
     });
 
+    test(`${route} advertises ${sibling} in its head`, async ({ page }) => {
+      /* #127: the sibling's existence should travel with the page, so an agent
+         that fetched the HTML learns about markdown without already knowing to
+         read `llms.txt` or `robots.txt`. `page.goto` rather than `request`: this
+         is the one assertion here about the HTML response, and a browser's own
+         `Accept` is what selects it — so a locator can scope to the head, which
+         is where the criterion says the advertisement lives. */
+      await page.goto(route);
+      const advertised = page.locator(
+        `head link[rel="alternate"][type="${MARKDOWN_MEDIA_TYPE}"]`,
+      );
+
+      /* Exactly one: an agent that found two would have to guess which sibling
+         is this route's. */
+      await expect(
+        advertised,
+        `${route} should advertise exactly one markdown alternate`,
+      ).toHaveCount(1);
+
+      /* Absolute, and this route's own sibling. Pinning the whole URL is what
+         proves the advertisement points at the artifact negotiation serves: it
+         fixes the path to the sibling, which the first test in this loop already
+         holds equal to the negotiated body. */
+      await expect(
+        advertised,
+        `${route} should advertise ${sibling} as its markdown alternate`,
+      ).toHaveAttribute("href", `${CANONICAL_ORIGIN}${sibling}`);
+    });
+
     test(`${route} still serves HTML to a browser`, async ({ request }) => {
       const response = await request.get(route, {
         headers: { Accept: browserAccept },
@@ -131,6 +161,16 @@ test.describe("markdown content negotiation", () => {
       expect(response.headers()["content-type"]).toContain("text/html");
     });
   }
+
+  /* The helper is what keeps the advertisement derived from the map, so the
+     failure mode worth pinning is a route naming a sibling the map does not
+     hold: metadata is evaluated when the route renders, so throwing here means
+     that route fails rather than quietly shipping a dead alternate. */
+  test("advertising an unmapped path fails loudly", () => {
+    expect(() => markdownAlternate("/lorenzo-germini-cv.pdf")).toThrow(
+      /no markdown sibling/,
+    );
+  });
 
   test("a path with no markdown sibling is left alone", async ({ request }) => {
     const response = await request.get("/lorenzo-germini-cv.pdf", {

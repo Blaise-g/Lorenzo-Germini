@@ -14,6 +14,7 @@ import type { Metadata } from "next";
 
 import { WritingIndex } from "@/components/writing-index";
 import { RESUME_DATA } from "@/data/resume-data";
+import { markdownAlternate } from "@/lib/markdown-negotiation";
 import { PERSON_REFERENCE } from "@/lib/person-structured-data";
 import { getEssays, SUBSTACK_BASE } from "@/lib/substack";
 
@@ -23,7 +24,7 @@ const writingSocialTitle = `Writing — ${RESUME_DATA.name}`;
 export const metadata: Metadata = {
   title: "Writing",
   description: RESUME_DATA.writingPage.standfirst,
-  alternates: { canonical: writingUrl },
+  alternates: { canonical: writingUrl, ...markdownAlternate("/writing") },
   openGraph: {
     type: "website",
     url: writingUrl,

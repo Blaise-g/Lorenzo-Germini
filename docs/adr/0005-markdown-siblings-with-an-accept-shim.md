@@ -94,6 +94,35 @@ guess.
 URLs, not novelty — but it is a reason to look at what each says before writing the root sibling's
 body, rather than after.
 
+**The not-found shell has no markdown representation — amended in #128 for the 404.** The rescan of
+2026-08-25 (#123) records `agent-friendly-404` at 50%, and it stays there because the two mechanisms
+that would close it were tried and rejected, one of them at the dev server.
+
+A catch-all route handler can return a 404 whose body is markdown and whose `Content-Type` says so,
+and it cannot render the shell: `notFound()` called from a route handler does
+not render `not-found.tsx`, because a route handler does not render React at all. Measured against
+the dev server, it returns a bare 404 with an empty body — a blank page for every human who mistypes
+a URL, which trades the humans' page away for the agents' content type. The mirror of it fails the
+other way: a catch-all _page_ renders the shell but has no way to set a content type, and a page and
+a route handler cannot share a route segment. There is no branch that serves both audiences from one
+place, because there is no one place.
+
+What remains is the proxy holding a generated list of known paths and rewriting only what is not on
+it. That is refused on two counts. It fails open: a real route missing from the generated list would
+be treated as unknown and answered as a 404 for markdown clients only, silently, while every browser
+kept getting the page — the failure mode a manifest of paths always has, and the one hardest to
+notice. And it reinstates a `/404.md` route, which the no-invented-paths rule above excludes on its
+own terms: nothing verified probes it, and unlike `/index.md` it must never be declared in
+`llms.txt`. So `agent-friendly-404` stays partial by choice, alongside the three checks #115 refused
+on merit rather than deferred — the trust-anchor pages, the employer's contact details, and the
+brand-name search position.
+
+This does not foreclose the representation, only the three routes to it examined here. A mechanism
+that renders the shell to humans and markdown to agents without a blank-page fallback, and without a
+hand-generated list that fails open, can be proposed on its merits — Next gaining a way for one
+segment to negotiate its own content type would be enough. Re-running either of the two above would
+not be.
+
 **q-values are honoured; `406` is not built.** The acceptmarkdown.com spec asks for both, and
 neither appears in the failed check's recorded detail. #119 built the first — a header that ranks
 HTML above markdown, by q-value or by a wildcard, gets HTML — and left the second, because a `406`
