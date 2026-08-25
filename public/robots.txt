@@ -34,4 +34,7 @@ Allow: /
 
 # LLM-readable summary: https://lorenzogermini.com/llms.txt
 # Full LLM-readable profile: https://lorenzogermini.com/llms-full.txt
+# Homepage as markdown: https://lorenzogermini.com/index.md
+# CV as markdown: https://lorenzogermini.com/cv.md
+# Writing as markdown: https://lorenzogermini.com/writing.md
 Sitemap: https://lorenzogermini.com/sitemap.xml

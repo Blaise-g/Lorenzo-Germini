@@ -8,8 +8,10 @@ import { cn } from "@/lib/utils";
 const underline = "underline decoration-border underline-offset-4";
 
 /** The nav's links: discrete targets on their own rows, so they take the 44px
- *  hit-area expansion. */
-const footerLinkClass = `touch-target ${underline} hover:decoration-accent`;
+ *  hit-area expansion. Exported because the not-found shell's recovery links are
+ *  the same kind of target and have to stay the same language — a second hand
+ *  copy of the string would let the two drift silently (GH-121). */
+export const footerLinkClass = `touch-target ${underline} hover:decoration-accent`;
 
 /** The colophon's links, deliberately without `touch-target`. These two sit
  *  inline inside one running 12px sentence that wraps, where a 44px hit area

@@ -99,19 +99,29 @@ against a dev server that has already run it. A fixture replaces the network cal
 nothing else, so it exercises the shipped parser, cache and components.
 
 **Identity surface**:
-Any place the site states Lorenzo's role, title, or bio. There are eight and nothing
-generates them from each other: `RESUME_DATA.about` and `RESUME_DATA.roleLabel` — two
+Any place the site states Lorenzo's role, title, or bio. Eight of them are hand-maintained
+and nothing generates them from each other: `RESUME_DATA.about` and `RESUME_DATA.roleLabel` — two
 independent fields in `src/data/resume-data.tsx`, the second the masthead's short label and
 the JSON-LD's `jobTitle`/`hasOccupation` — `RESUME_DATA.metaTitle` and
 `RESUME_DATA.metaDescription`, the snippet-length pair the `<head>` and the web manifest
 read (#101), `public/llms.txt`, `public/llms-full.txt`, the JSON-LD built in
 `src/lib/person-structured-data.ts`, and route metadata. They drift; changing one means
 changing all. The hand-written manifests drift the worst, because only they hold a second
-copy of the prose rather than reading a field.
+copy of the prose rather than reading a field. The **markdown siblings** below are the
+exception #117 added, and the only one: they read the fields, so they cannot fall behind.
 
 The `meta` pair is the one place a length ceiling, not just accuracy, is part of the
 surface: a SERP truncates a title past ~60 characters and a description past ~160, so the
 short forms exist precisely because the long ones cannot be trimmed at read time.
+
+**Markdown sibling**:
+A `.md` URL that publishes a surface's content as markdown for an agent to read, generated from
+`RESUME_DATA` rather than hand-written. Siblings are the addressable form — declared in
+`public/llms.txt`, curlable, assertable by a test that fetches a URL — and `Accept: text/markdown`
+negotiation in `src/proxy.ts` is a second door onto the same artifact, not a second copy of it
+(ADR-0005). A hand-written markdown file is not a sibling; it is one more hand-maintained identity surface.
+_Avoid_: markdown mirror, markdown twin, `.md` variant — "variant" is the CDN's word for a
+cached negotiation outcome, and the two must not be confused
 
 **Project**:
 A built thing with a title, a stack and a description. It is the same set everywhere it

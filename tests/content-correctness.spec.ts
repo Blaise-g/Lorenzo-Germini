@@ -1,11 +1,13 @@
 import { expect, test } from "@playwright/test";
 
 import { RESUME_DATA } from "@/data/resume-data";
+import { MARKDOWN_MEDIA_TYPE } from "@/lib/markdown-negotiation";
 
 import { contrast } from "./support/color";
 import {
   collectIdentitySurfaces,
   IDENTITY_MANIFESTS,
+  MARKDOWN_SIBLINGS,
 } from "./support/identity-surfaces";
 import { setTheme, themes } from "./support/theme";
 
@@ -282,10 +284,12 @@ test.describe("faint metadata legibility", () => {
 });
 
 /* #6 point 1 names the identity label's coupled surfaces — JSON-LD, both llms
-   manifests, OG/metadata — and requires they move in lockstep. Nothing generates
-   the manifests from the data module, so every one is a hand edit. #44 is the
-   prior defect: it landed the label in the masthead alone and left five surfaces
-   claiming the retired one. */
+   manifests, OG/metadata — and requires they move in lockstep. #44 is the prior
+   defect: it landed the label in the masthead alone and left five surfaces
+   claiming the retired one. The two `llms` manifests are hand edits, so this
+   loop is looking for a stale one; the markdown siblings #117 added render the
+   fields, so for them it is asserting the generator reads the field this test
+   names rather than some neighbouring one. */
 test.describe("identity lockstep", () => {
   const retiredRoleLabel = "Full-Stack AI Engineer";
   const manifests = IDENTITY_MANIFESTS;
@@ -318,7 +322,7 @@ test.describe("identity lockstep", () => {
         for (const paragraph of prose.split("\n\n")) {
           expect(
             text,
-            `${manifest} is hand-maintained and should not fall behind RESUME_DATA.${field}`,
+            `${manifest} should not fall behind RESUME_DATA.${field}`,
           ).toContain(paragraph);
         }
       });
@@ -377,7 +381,7 @@ test.describe("identity lockstep", () => {
 
       expect(
         guardedBullets.filter((bullet) => !text.includes(bullet)),
-        `${manifest} is hand-maintained and should not fall behind RESUME_DATA.work`,
+        `${manifest} should not fall behind RESUME_DATA.work`,
       ).toEqual([]);
     });
   }
@@ -401,6 +405,38 @@ test.describe("identity lockstep", () => {
       "every identity surface should have content to audit",
     ).toEqual([]);
   });
+});
+
+/* #117: the siblings are declared in `llms.txt` as markdown, so an agent that
+   followed the index has already committed to parsing markdown by the time it
+   reads the body. Everything they *say* is covered by the identity lockstep
+   above, which they joined; what only these can check is that the promise on
+   the wrapper is kept — a route that fell through to the app shell would answer
+   200 with an HTML document and pass every content assertion in this file. */
+test.describe("markdown siblings", () => {
+  for (const sibling of MARKDOWN_SIBLINGS) {
+    test(`${sibling} serves markdown, not the app shell`, async ({
+      request,
+    }) => {
+      const response = await request.get(sibling);
+
+      expect(response.status()).toBe(200);
+      expect(
+        response.headers()["content-type"],
+        `${sibling} is declared as markdown and must be served as markdown`,
+      ).toContain(MARKDOWN_MEDIA_TYPE);
+
+      const body = await response.text();
+      expect(
+        body.startsWith(`# ${RESUME_DATA.name}`),
+        `${sibling} should open with a markdown heading, got: ${body.slice(0, 60)}`,
+      ).toBe(true);
+      expect(
+        body.toLowerCase(),
+        `${sibling} should not be an HTML document`,
+      ).not.toContain("<html");
+    });
+  }
 });
 
 test.describe("freshness metadata", () => {

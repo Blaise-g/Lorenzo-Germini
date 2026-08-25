@@ -13,9 +13,12 @@ Outside work: sports, side projects, and rabbit holes on tech entrepreneurship a
 ## Professional profile
 
 - [Homepage](https://lorenzogermini.com): Professional hub, positioning, and the writing
+- [Homepage as markdown](https://lorenzogermini.com/index.md): The same hub as markdown, generated from the profile data
 - [Writing](https://lorenzogermini.com/writing): Essay index, built from the germinai feed; every essay links out to Substack
+- [Writing as markdown](https://lorenzogermini.com/writing.md): The same frame as markdown, generated from the profile data
 - [germinai](https://lorenzogermini.substack.com): Field notes, mostly on building with AI
 - [CV](https://lorenzogermini.com/cv): Canonical curriculum vitae with full experience, education, skills, and contact details
+- [CV as markdown](https://lorenzogermini.com/cv.md): The same CV as markdown, generated from the profile data
 - [CV PDF](https://lorenzogermini.com/lorenzo-germini-cv.pdf): Downloadable build-synchronized curriculum vitae
 - [Full profile](https://lorenzogermini.com/llms-full.txt): Long-form machine-readable profile with every role, project, and contact detail
 
