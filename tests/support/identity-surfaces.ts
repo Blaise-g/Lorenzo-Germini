@@ -5,18 +5,17 @@ import type { APIRequestContext, Page } from "@playwright/test";
  *
  * The hand-written ones drift, and the drift is the defect (#44 shipped a new
  * role label in the masthead alone and left five surfaces claiming the retired
- * one). The markdown siblings are the exception #117 added: they are generated
- * from `RESUME_DATA` at request time, so they are audited here to prove the
- * generator agrees with the data module rather than to catch a stale hand edit.
- * A guard is only as good as its surface list, so the list lives here once
- * rather than once per spec.
+ * one). The markdown siblings are the exception #117 added: they render the
+ * fields, so they are audited here to prove the generator reads the field each
+ * test names rather than to catch a stale hand edit. A guard is only as good as
+ * its surface list, so the list lives here once rather than once per spec.
  */
 export type IdentitySurface = { name: string; text: string };
 
 /**
- * The markdown siblings (#117): `.md` URLs generated from `RESUME_DATA`, one per
- * surface `llms.txt` declares. No `/index.md` — the homepage's sibling would be
- * a path no verified client probes (ADR-0005).
+ * The markdown siblings (#117): `.md` URLs rendered from `RESUME_DATA`, one per
+ * surface `llms.txt` declares. ADR-0005 has the set and why the homepage is not
+ * in it.
  */
 export const MARKDOWN_SIBLINGS = ["/cv.md", "/writing.md"] as const;
 

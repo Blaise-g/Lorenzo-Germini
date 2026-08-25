@@ -1,25 +1,26 @@
 import { RESUME_DATA } from "@/data/resume-data";
+import { SUBSTACK_FEED_URL } from "@/lib/substack";
 
 /**
- * The markdown an agent reads, generated from `RESUME_DATA` at request time.
+ * The markdown an agent reads, rendered from `RESUME_DATA` rather than written
+ * out a second time (GH-117; ADR-0005 for the decision and the sibling set).
  *
- * A markdown sibling is a `.md` URL that publishes a surface's content as
- * markdown (CONTEXT.md, ADR-0005). Generated rather than hand-written on
- * purpose: `public/llms.txt` and `public/llms-full.txt` are the only identity
- * surfaces holding a second copy of the prose, which is exactly why they drift
- * the worst, and GH-117 exists so the markdown surfaces cannot join them.
- *
- * Which paths exist follows from what `llms.txt` already declares, minus the
- * homepage — its sibling would be `/index.md`, which no verified client probes
- * (ADR-0005). So `/cv.md` and `/writing.md`, and nothing invented alongside.
+ * `public/llms.txt` and `public/llms-full.txt` are the only identity surfaces
+ * holding their own copy of the prose, which is why they drift the worst, and
+ * this module exists so the markdown surfaces cannot join them. Both routes
+ * prerender: nothing here reads the request, so the generation happens at build
+ * and the freshness guarantee is the deploy, exactly as for every other surface
+ * `RESUME_DATA` feeds.
  */
 
-/** Blocks are joined by a blank line, which is the only separator markdown needs. */
-const document = (blocks: readonly string[]) =>
-  `${blocks.filter((block) => block !== "").join("\n\n")}\n`;
+/** Empty parts drop out, so an absent optional field costs no blank line. */
+const join = (separator: string, parts: readonly string[]) =>
+  parts.filter((part) => part !== "").join(separator);
 
-const lines = (items: readonly string[]) =>
-  items.filter((item) => item !== "").join("\n");
+/** A blank line between blocks is the only separator markdown needs. */
+const document = (blocks: readonly string[]) => `${join("\n\n", blocks)}\n`;
+
+const lines = (items: readonly string[]) => join("\n", items);
 
 const site = (path: string) =>
   new URL(path, RESUME_DATA.personalWebsiteUrl).href;
@@ -63,7 +64,7 @@ const roleBlock = (role: (typeof RESUME_DATA.work)[number]) =>
   lines([
     `### ${role.title} at ${role.company} (${role.start} - ${role.end})`,
     role.badges.length > 0 ? `Location: ${role.badges.join(", ")}` : "",
-    role.link === "" ? "" : `Link: ${role.link}`,
+    role.link ? `Link: ${role.link}` : "",
     ...[role.description].flat().map((bullet) => `- ${bullet}`),
   ]);
 
@@ -127,7 +128,7 @@ export function renderWritingMarkdown(): string {
     writingPage.standfirst,
     lines([
       `- Publication: ${newsletter.name} — ${newsletter.url}`,
-      `- Feed: ${newsletter.url}/feed`,
+      `- Feed: ${SUBSTACK_FEED_URL}`,
       `- Index: ${site("/writing")} — the essays listed on this site; each one links out to Substack, which hosts the full text`,
     ]),
     `The essay list is read live from the ${newsletter.name} feed rather than restated here, so the index above is the current one: ${writingPage.cadence}.`,

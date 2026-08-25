@@ -283,10 +283,12 @@ test.describe("faint metadata legibility", () => {
 });
 
 /* #6 point 1 names the identity label's coupled surfaces — JSON-LD, both llms
-   manifests, OG/metadata — and requires they move in lockstep. Nothing generates
-   the manifests from the data module, so every one is a hand edit. #44 is the
-   prior defect: it landed the label in the masthead alone and left five surfaces
-   claiming the retired one. */
+   manifests, OG/metadata — and requires they move in lockstep. #44 is the prior
+   defect: it landed the label in the masthead alone and left five surfaces
+   claiming the retired one. The two `llms` manifests are hand edits, so this
+   loop is looking for a stale one; the markdown siblings #117 added render the
+   fields, so for them it is asserting the generator reads the field this test
+   names rather than some neighbouring one. */
 test.describe("identity lockstep", () => {
   const retiredRoleLabel = "Full-Stack AI Engineer";
   const manifests = IDENTITY_MANIFESTS;
@@ -319,7 +321,7 @@ test.describe("identity lockstep", () => {
         for (const paragraph of prose.split("\n\n")) {
           expect(
             text,
-            `${manifest} is hand-maintained and should not fall behind RESUME_DATA.${field}`,
+            `${manifest} should not fall behind RESUME_DATA.${field}`,
           ).toContain(paragraph);
         }
       });
@@ -378,7 +380,7 @@ test.describe("identity lockstep", () => {
 
       expect(
         guardedBullets.filter((bullet) => !text.includes(bullet)),
-        `${manifest} is hand-maintained and should not fall behind RESUME_DATA.work`,
+        `${manifest} should not fall behind RESUME_DATA.work`,
       ).toEqual([]);
     });
   }
