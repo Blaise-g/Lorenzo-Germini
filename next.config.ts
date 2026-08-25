@@ -54,6 +54,12 @@ const nextConfig: NextConfig = {
      would only make the rule untestable locally. */
   async headers() {
     return [
+      /* GH-118 probe: can `Vary: Accept` reach the client at all, given the
+         middleware-appended one is stripped by the CDN? Throwaway. */
+      {
+        source: "/:path(cv|writing)",
+        headers: [{ key: "Vary", value: "Accept" }],
+      },
       {
         source: "/lorenzo-germini-cv.pdf",
         headers: [
