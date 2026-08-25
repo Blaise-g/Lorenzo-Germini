@@ -33,4 +33,5 @@ User-agent: DeepSeekBot
 Allow: /
 
 # LLM-readable summary: https://lorenzogermini.com/llms.txt
+# Full LLM-readable profile: https://lorenzogermini.com/llms-full.txt
 Sitemap: https://lorenzogermini.com/sitemap.xml

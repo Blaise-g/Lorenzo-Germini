@@ -300,6 +300,10 @@ test.describe("identity lockstep", () => {
     for (const [field, prose] of [
       ["about", RESUME_DATA.about],
       ["summary", RESUME_DATA.summary],
+      /* #116: the positioning copy an agent reads to decide whether Lorenzo
+         fits a brief. It renders nowhere in the HTML, so this loop is the only
+         thing standing between it and the silent drift #52 recorded. */
+      ["agentGuidance", RESUME_DATA.agentGuidance],
     ] as const) {
       test(`${manifest} publishes the same ${field} as the data module`, async ({
         request,
@@ -319,6 +323,63 @@ test.describe("identity lockstep", () => {
         }
       });
     }
+
+    /* #116 requires the guidance name best-fit engagements *and* how to make
+       contact. The address is deliberately absent from `agentGuidance` — it
+       already exists as `contact.email` — so the section is only complete if
+       the manifest carries both halves. Scoped to the section rather than the
+       whole file: `llms-full.txt` publishes the address again under
+       `## Contact`, so a file-wide match would pass with the contact line
+       deleted. */
+    test(`${manifest} pairs the guidance with a way to make contact`, async ({
+      request,
+    }) => {
+      const response = await request.get(manifest);
+      expect(response.status()).toBe(200);
+
+      const text = await response.text();
+      const heading = "## When to use this";
+      const start = text.indexOf(heading);
+      expect(
+        start,
+        `${manifest} should tell an agent when this profile fits`,
+      ).toBeGreaterThan(-1);
+
+      const rest = text.slice(start + heading.length);
+      const next = rest.indexOf("\n## ");
+      const section = next === -1 ? rest : rest.slice(0, next);
+
+      expect(
+        section,
+        `the ${manifest} guidance section should publish RESUME_DATA.contact.email`,
+      ).toContain(RESUME_DATA.contact.email);
+    });
+
+    /* #116 landed a new first bullet on the current role — the sentence saying
+       what Complaion *is* — and the manifests restate the work bullets by hand,
+       the same shape of duplicate `about` and `summary` already have a guard
+       for. `llms-full.txt` is the full mirror, so every bullet of every role is
+       in scope there; `llms.txt` is a summary by design and carries only the
+       current role, so only its first bullet is. The first run of this caught
+       `llms-full.txt` publishing the GSK figure as `10,000 m3` against the data
+       module's `10,000 m³`. */
+    const bulletsOf = ({ description }: (typeof RESUME_DATA.work)[number]) =>
+      [description].flat();
+    const guardedBullets =
+      manifest === "/llms-full.txt"
+        ? RESUME_DATA.work.flatMap(bulletsOf)
+        : bulletsOf(RESUME_DATA.work[0]).slice(0, 1);
+
+    test(`${manifest} publishes the same work bullets as the data module`, async ({
+      request,
+    }) => {
+      const text = await (await request.get(manifest)).text();
+
+      expect(
+        guardedBullets.filter((bullet) => !text.includes(bullet)),
+        `${manifest} is hand-maintained and should not fall behind RESUME_DATA.work`,
+      ).toEqual([]);
+    });
   }
 
   test("no identity surface still claims the retired role label", async ({
