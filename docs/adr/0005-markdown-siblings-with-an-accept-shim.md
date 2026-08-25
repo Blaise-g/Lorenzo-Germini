@@ -1,5 +1,5 @@
 ---
-status: proposed — the CDN premise below is unverified
+status: accepted
 ---
 
 # Agents get markdown from `.md` siblings, with middleware negotiating `Accept`
@@ -12,8 +12,10 @@ _essential_ check is markdown content negotiation: `Accept: text/markdown` again
 
 The markdown an agent reads is generated from `RESUME_DATA` and served at its own `.md` URLs,
 linked from `public/llms.txt`. A thin `middleware.ts` rewrites requests carrying
-`Accept: text/markdown` to the matching `.md` route and adds `Accept` to `Vary`. The files are the
-same artifact either way — negotiation is a second door onto them, not a second copy of them.
+`Accept: text/markdown` to the matching `.md` route. The files are the same artifact either way —
+negotiation is a second door onto them, not a second copy of them. It does not add `Accept` to
+`Vary`, because it cannot: GH-118 found that Vercel replaces `Vary` on Next routes, from every layer
+that could set it.
 
 ## Considered options
 
@@ -37,12 +39,26 @@ more hand-written copies makes the drift problem larger in exactly the place it 
 
 ## Consequences
 
-**The `Vary: Accept` premise is unverified and gates the middleware, not the siblings.** If
-Vercel's CDN does not key cache variants on `Vary: Accept`, negotiation is worse than no
-negotiation: whichever variant lands in cache first is served to everyone, so an agent can receive
-HTML and a browser can receive raw markdown. Verify against a preview deploy before the middleware
-ships. The siblings are unaffected by the outcome and can land first; falling back to siblings-only
-costs ~11 points on the scan and nothing functional.
+**The rewrite is what makes negotiation cache-safe, not `Vary`.** GH-118 probed this against three
+preview deployments and the answer inverted the premise this ADR was written on. `Vary: Accept` never
+reaches the client — middleware, `next.config.ts` `headers()` and the route handler's own `Response`
+all get it stripped, each proved to have run by a control header that did arrive. Yet the feared
+failure never occurs, because middleware runs before the CDN cache lookup, so the rewritten path is
+the cache key: `x-matched-path` reads `/cv.md` for a markdown request and `/cv` for a browser one,
+and alternating between them serves each from its own entry with the right body.
+
+This makes the sibling URLs load-bearing for cache safety, and not merely for addressability.
+Rendering markdown inline from the HTML route — rejected below because `llms.txt` cannot link a
+header-only representation — would keep one path and depend on the `Vary` keying that does not
+exist. Two shapes were rejected for one reason and it turns out to be two.
+
+What survives is smaller and outside our control: a third-party proxy between an agent and Vercel
+sees an HTML response whose `Vary` does not name `Accept`, and may reuse it for a markdown request.
+Nothing we can set changes that.
+
+**A spec must not assert `Vary: Accept`.** Against `next dev` the middleware's appended header does
+survive, as a second `vary` line. An assertion on it passes locally and is false in production, which
+is worse than no assertion at all.
 
 **`headers()` in a component would violate Cache Components, so the read stays in middleware.**
 `next.config.ts` sets `cacheComponents: true`; reading request headers inside a component requires
