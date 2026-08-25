@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { RESUME_DATA } from "@/data/resume-data";
+import { MARKDOWN_MEDIA_TYPE } from "@/lib/markdown-negotiation";
 
 import { contrast } from "./support/color";
 import {
@@ -423,7 +424,7 @@ test.describe("markdown siblings", () => {
       expect(
         response.headers()["content-type"],
         `${sibling} is declared as markdown and must be served as markdown`,
-      ).toContain("text/markdown");
+      ).toContain(MARKDOWN_MEDIA_TYPE);
 
       const body = await response.text();
       expect(

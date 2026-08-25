@@ -118,7 +118,7 @@ short forms exist precisely because the long ones cannot be trimmed at read time
 A `.md` URL that publishes a surface's content as markdown for an agent to read, generated from
 `RESUME_DATA` rather than hand-written. Siblings are the addressable form — declared in
 `public/llms.txt`, curlable, assertable by a test that fetches a URL — and `Accept: text/markdown`
-negotiation in middleware is a second door onto the same artifact, not a second copy of it
+negotiation in `src/proxy.ts` is a second door onto the same artifact, not a second copy of it
 (ADR-0005). A hand-written markdown file is not a sibling; it is one more hand-maintained identity surface.
 _Avoid_: markdown mirror, markdown twin, `.md` variant — "variant" is the CDN's word for a
 cached negotiation outcome, and the two must not be confused

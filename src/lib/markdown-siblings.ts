@@ -16,10 +16,8 @@ import { SUBSTACK_FEED_URL } from "@/lib/substack";
  * `RESUME_DATA` feeds.
  *
  * They no longer prerender, though, and that is deliberate: `markdownResponse`
- * awaits `connection()` so the response can carry `Vary`, which a prerendered
- * route has overwritten with Next's router headers (GH-118). The cost is a
- * cache `MISS` where there was a `PRERENDER`, which `Cache-Control` below buys
- * back at the CDN.
+ * awaits `connection()` so the response can carry `Vary` (GH-118, and the
+ * reasoning is with that function).
  */
 
 /** Empty parts drop out, so an absent optional field costs no blank line. */
@@ -77,6 +75,17 @@ const roleBlock = (role: (typeof RESUME_DATA.work)[number]) =>
     ...[role.description].flat().map((bullet) => `- ${bullet}`),
   ]);
 
+const projectBlock = (project: (typeof RESUME_DATA.projects)[number]) =>
+  lines([
+    `### ${project.title}`,
+    /* "Tags", not "Tech stack": the field mixes stack entries with status
+       labels ("Side Project", "Live"), and `/cv` renders it as an unlabelled
+       metadata line for exactly that reason. */
+    `Tags: ${project.techStack.join(", ")}`,
+    project.description,
+    project.link ? `Link: ${project.link.href}` : "",
+  ]);
+
 /** `/cv.md`: the complete record, in the section order `/cv` renders. */
 export function renderCvMarkdown(): string {
   return document([
@@ -87,17 +96,7 @@ export function renderCvMarkdown(): string {
     "## Experience",
     ...RESUME_DATA.work.map(roleBlock),
     "## Projects",
-    ...RESUME_DATA.projects.map((project) =>
-      lines([
-        `### ${project.title}`,
-        /* "Tags", not "Tech stack": the field mixes stack entries with status
-           labels ("Side Project", "Live"), and `/cv` renders it as an unlabelled
-           metadata line for exactly that reason. */
-        `Tags: ${project.techStack.join(", ")}`,
-        project.description,
-        project.link ? `Link: ${project.link.href}` : "",
-      ]),
-    ),
+    ...RESUME_DATA.projects.map(projectBlock),
     "## Education",
     ...RESUME_DATA.education.map((entry) =>
       lines([
@@ -152,8 +151,7 @@ export function renderWritingMarkdown(): string {
  * asking for markdown at the root, which is what amended ADR-0005's rule against
  * inventing sibling paths. Its shape follows the homepage rather than the CV:
  * positioning first, the writing as the first door, the proof underneath. That
- * makes it the shortest of the three, and the overlap with `/llms-full.txt` is
- * deliberate — this one is addressable as the root's representation, which a
+ * makes the overlap with `/llms-full.txt` deliberate — this one is addressable as the root's representation, which a
  * `.txt` manifest is not.
  */
 export function renderIndexMarkdown(): string {
@@ -185,14 +183,7 @@ export function renderIndexMarkdown(): string {
     "## Projects",
     ...RESUME_DATA.projects
       .filter((project) => project.homepage !== false)
-      .map((project) =>
-        lines([
-          `### ${project.title}`,
-          `Tags: ${project.techStack.join(", ")}`,
-          project.description,
-          project.link ? `Link: ${project.link.href}` : "",
-        ]),
-      ),
+      .map(projectBlock),
     "## Systems",
     systems,
     ...contactSection(),
@@ -213,10 +204,13 @@ export function renderIndexMarkdown(): string {
  * is not the lever: it build-errors under `cacheComponents`, and only in the
  * build log.
  *
- * `s-maxage` puts the CDN caching back that leaving the prerender cost. The
- * body is a pure function of `RESUME_DATA`, so it can only change on a deploy,
- * and a deploy invalidates the edge cache anyway; the revalidate window is
- * therefore an upper bound on nothing, and generous.
+ * `s-maxage` is the offer to put back the CDN caching that leaving the prerender
+ * cost — how much of it comes back is unmeasured, since `x-vercel-cache` does
+ * not exist against `next dev` and Vercel folds `Vary`-named headers into the
+ * cache key, so the entries may fragment per `Accept` value rather than per URL.
+ * The body is a pure function of `RESUME_DATA` either way: it can only change on
+ * a deploy, and a deploy invalidates the edge cache, so the window below is an
+ * upper bound on nothing.
  */
 export async function markdownResponse(body: string): Promise<Response> {
   await connection();

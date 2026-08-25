@@ -1,5 +1,7 @@
 import type { APIRequestContext, Page } from "@playwright/test";
 
+import { MARKDOWN_NEGOTIABLE } from "@/lib/markdown-negotiation";
+
 /**
  * The places this site states who it is and where it lives.
  *
@@ -17,12 +19,12 @@ export type IdentitySurface = { name: string; text: string };
  * content surface `llms.txt` declares. `/index.md` joined in #119 — it is the
  * root's negotiation target, and the scan's failed check probes `/`, which is
  * the verified client ADR-0005 said the homepage sibling lacked.
+ *
+ * Derived rather than listed, because ADR-0005 holds the addressable set and the
+ * negotiable set identical: a sibling reachable by header but absent from this
+ * list would skip the identity audits every other surface answers to.
  */
-export const MARKDOWN_SIBLINGS = [
-  "/index.md",
-  "/cv.md",
-  "/writing.md",
-] as const;
+export const MARKDOWN_SIBLINGS = Object.values(MARKDOWN_NEGOTIABLE);
 
 /**
  * Every path that restates identity, hand-written or generated. `robots.txt`

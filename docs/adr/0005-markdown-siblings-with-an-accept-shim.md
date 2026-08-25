@@ -2,7 +2,7 @@
 status: accepted
 ---
 
-# Agents get markdown from `.md` siblings, with middleware negotiating `Accept`
+# Agents get markdown from `.md` siblings, with a proxy negotiating `Accept`
 
 Decided in #115, 2026-08-25, from the is-agentic.com scan of 2026-08-24 (75/100). The scan's only failed
 _essential_ check is markdown content negotiation: `Accept: text/markdown` against `/` returns
@@ -11,8 +11,10 @@ _essential_ check is markdown content negotiation: `Accept: text/markdown` again
 `Accept`. The site has no `middleware.ts` and no `.md` route of any kind.
 
 The markdown an agent reads is generated from `RESUME_DATA` and served at its own `.md` URLs,
-linked from `public/llms.txt`. A thin `middleware.ts` rewrites requests carrying
-`Accept: text/markdown` to the matching `.md` route. The files are the same artifact either way —
+linked from `public/llms.txt`. A thin `src/proxy.ts` rewrites requests carrying
+`Accept: text/markdown` to the matching `.md` route — `proxy.ts` is Next 16's name for what this
+ADR and #119 both called `middleware.ts`; both filenames still resolve in 16.1.6, and #119 shipped
+the current one. The files are the same artifact either way —
 negotiation is a second door onto them, not a second copy of them. The negotiated response names
 `Accept` in `Vary`, which GH-118 found requires the sibling route to opt out of the prerender.
 
@@ -68,9 +70,9 @@ Correctness does not wait on it.
 production, so an assertion there passes locally and is false in production — worse than no
 assertion.
 
-**`headers()` in a component would violate Cache Components, so the read stays in middleware.**
+**`headers()` in a component would violate Cache Components, so the read stays in the proxy.**
 `next.config.ts` sets `cacheComponents: true`; reading request headers inside a component requires
-a `<Suspense>` boundary and `next build` does not catch the violation (see `AGENTS.md`). Middleware
+a `<Suspense>` boundary and `next build` does not catch the violation (see `AGENTS.md`). A proxy
 runs outside that model, which is the second reason negotiation lives there rather than in the
 route.
 
@@ -91,6 +93,12 @@ guess.
 `/index.md` overlaps `llms-full.txt` in substance. That is not a reason to skip it — the check reads
 URLs, not novelty — but it is a reason to look at what each says before writing the root sibling's
 body, rather than after.
+
+**q-values are honoured; `406` is not built.** The acceptmarkdown.com spec asks for both, and
+neither appears in the failed check's recorded detail. #119 built the first — a header that ranks
+HTML above markdown, by q-value or by a wildcard, gets HTML — and left the second, because a `406`
+changes the response for requests that are not asking for markdown at all and nothing confirms the
+check grades it. Revisit only with evidence that it does.
 
 **Generated markdown is the first content surface that renders `RESUME_DATA` rather than holding a
 second copy of it**, which is a narrowing of the identity-surface drift problem, not a
