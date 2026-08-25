@@ -7,6 +7,8 @@
  * nothing. The spec imports it too, so the negotiable set is stated once.
  */
 
+import type { Metadata } from "next";
+
 /**
  * The content routes that negotiate, each pointing at the sibling a markdown
  * request is rewritten to. All three, not only the probed one: which paths the
@@ -111,13 +113,18 @@ export function prefersMarkdown(accept: string | null): boolean {
  * negotiable route is declared. `types` is Next's `rel="alternate"` channel and
  * the href resolves against `metadataBase`, so the sibling path is enough.
  *
- * An unmapped path throws: metadata is evaluated when the route is rendered, so
- * a route advertising a sibling the proxy would never serve fails the build
- * rather than shipping a dead alternate nobody looks at.
+ * An unmapped path throws rather than advertising nothing. Metadata is evaluated
+ * when the route renders, so for these three — all prerendered — that is the
+ * build, and the alternative is shipping a dead alternate nobody looks at.
+ *
+ * The parameter stays a wide `string` rather than `keyof typeof
+ * MARKDOWN_NEGOTIABLE`: `src/proxy.ts` indexes the same map with an arbitrary
+ * pathname, so narrowing the keys would only push a cast there, and it would
+ * make the throw unreachable under types.
  */
-export function markdownAlternate(path: string): {
-  types: Record<string, string>;
-} {
+export function markdownAlternate(
+  path: string,
+): Pick<NonNullable<Metadata["alternates"]>, "types"> {
   const sibling = MARKDOWN_NEGOTIABLE[path];
   if (sibling === undefined) {
     throw new Error(

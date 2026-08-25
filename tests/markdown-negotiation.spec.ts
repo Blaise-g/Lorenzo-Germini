@@ -89,44 +89,33 @@ test.describe("markdown content negotiation", () => {
       ).toContain("rsc");
     });
 
-    test(`${route} advertises ${sibling} in its head`, async ({ request }) => {
-      /* GH-127: the sibling's existence should travel with the page, so an agent
+    test(`${route} advertises ${sibling} in its head`, async ({ page }) => {
+      /* #127: the sibling's existence should travel with the page, so an agent
          that fetched the HTML learns about markdown without already knowing to
-         read `llms.txt` or `robots.txt`. Read off the browser response, since
-         that is the one an agent looking at HTML receives. */
-      const html = await (
-        await request.get(route, { headers: { Accept: browserAccept } })
-      ).text();
-
-      const advertised = [
-        ...html.matchAll(/<link[^>]*rel="alternate"[^>]*>/g),
-      ].flatMap(([tag]) =>
-        tag.includes(`type="${MARKDOWN_MEDIA_TYPE}"`)
-          ? [/href="([^"]*)"/.exec(tag)?.[1]]
-          : [],
+         read `llms.txt` or `robots.txt`. `page.goto` rather than `request`: this
+         is the one assertion here about the HTML response, and a browser's own
+         `Accept` is what selects it — so a locator can scope to the head, which
+         is where the criterion says the advertisement lives. */
+      await page.goto(route);
+      const advertised = page.locator(
+        `head link[rel="alternate"][type="${MARKDOWN_MEDIA_TYPE}"]`,
       );
 
-      /* Exactly one, and absolute: `metadataBase` resolves the fragment's path,
-         and an agent that found two would have to guess which sibling is this
-         route's. */
-      expect(
+      /* Exactly one: an agent that found two would have to guess which sibling
+         is this route's. */
+      await expect(
+        advertised,
+        `${route} should advertise exactly one markdown alternate`,
+      ).toHaveCount(1);
+
+      /* Absolute, and this route's own sibling. Pinning the whole URL is what
+         proves the advertisement points at the artifact negotiation serves: it
+         fixes the path to the sibling, which the first test in this loop already
+         holds equal to the negotiated body. */
+      await expect(
         advertised,
         `${route} should advertise ${sibling} as its markdown alternate`,
-      ).toEqual([`${CANONICAL_ORIGIN}${sibling}`]);
-
-      /* Following it lands on the same artifact negotiation would have served.
-         Compared against the negotiated response rather than the sibling's own
-         URL, so the advertisement cannot name a real file that is nonetheless
-         not what this route answers an agent with. */
-      const [followed, negotiated] = await Promise.all([
-        request.get(new URL(advertised[0]!).pathname),
-        request.get(route, { headers: { Accept: MARKDOWN_MEDIA_TYPE } }),
-      ]);
-      expect(followed.status()).toBe(200);
-      expect(
-        await followed.text(),
-        `following ${route}'s advertised alternate should serve what negotiating ${route} serves`,
-      ).toBe(await negotiated.text());
+      ).toHaveAttribute("href", `${CANONICAL_ORIGIN}${sibling}`);
     });
 
     test(`${route} still serves HTML to a browser`, async ({ request }) => {
