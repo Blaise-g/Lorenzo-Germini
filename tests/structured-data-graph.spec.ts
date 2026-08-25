@@ -9,6 +9,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { RESUME_DATA } from "@/data/resume-data";
 import { PERSON_ID, WEBSITE_ID } from "@/lib/person-structured-data";
 import { CANONICAL_ORIGIN } from "@/lib/site-hosts";
 
@@ -105,6 +106,37 @@ test.describe("the structured-data graph", () => {
         definitions.map((node) => node["@id"]),
         `${route} should define the Person exactly ${expected} time(s), each under the shared @id`,
       ).toEqual(Array.from({ length: expected }, () => PERSON_ID));
+    });
+  }
+
+  /* The employer node an agent follows instead of searching for a company by
+     name (#120). Exact equality rather than a partial match: the refusal is as
+     much the point as the `url` is — #115 rules out a `contactPoint` or a
+     `PostalAddress` here, because that is publishing an employer's contact
+     details on a personal site, and only an exact shape fails when a fourth
+     field appears. */
+  for (const route of graphRoutes.filter(
+    (route) => personDefinitionsPerRoute[route] > 0,
+  )) {
+    test(`${route} names the employer with a resolvable url and nothing else`, async ({
+      page,
+    }) => {
+      await page.goto(route);
+      const person = await personStructuredData(page);
+
+      expect(person.worksFor).toEqual({
+        "@type": "Organization",
+        name: RESUME_DATA.work[0].company,
+        url: RESUME_DATA.work[0].link,
+      });
+
+      /* `link` is empty on the work entries with no public site, so equality
+         against the data alone would pass on `url: ""` — present, and not
+         something an agent can follow. */
+      expect(
+        person.worksFor.url,
+        "the employer url should be absolute",
+      ).toMatch(/^https:\/\/\S+$/);
     });
   }
 
