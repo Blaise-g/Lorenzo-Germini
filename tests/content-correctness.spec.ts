@@ -6,6 +6,7 @@ import { contrast } from "./support/color";
 import {
   collectIdentitySurfaces,
   IDENTITY_MANIFESTS,
+  MARKDOWN_SIBLINGS,
 } from "./support/identity-surfaces";
 import { setTheme, themes } from "./support/theme";
 
@@ -401,6 +402,38 @@ test.describe("identity lockstep", () => {
       "every identity surface should have content to audit",
     ).toEqual([]);
   });
+});
+
+/* #117: the siblings are declared in `llms.txt` as markdown, so an agent that
+   followed the index has already committed to parsing markdown by the time it
+   reads the body. Everything they *say* is covered by the identity lockstep
+   above, which they joined; what only these can check is that the promise on
+   the wrapper is kept — a route that fell through to the app shell would answer
+   200 with an HTML document and pass every content assertion in this file. */
+test.describe("markdown siblings", () => {
+  for (const sibling of MARKDOWN_SIBLINGS) {
+    test(`${sibling} serves markdown, not the app shell`, async ({
+      request,
+    }) => {
+      const response = await request.get(sibling);
+
+      expect(response.status()).toBe(200);
+      expect(
+        response.headers()["content-type"],
+        `${sibling} is declared as markdown and must be served as markdown`,
+      ).toContain("text/markdown");
+
+      const body = await response.text();
+      expect(
+        body.startsWith(`# ${RESUME_DATA.name}`),
+        `${sibling} should open with a markdown heading, got: ${body.slice(0, 60)}`,
+      ).toBe(true);
+      expect(
+        body.toLowerCase(),
+        `${sibling} should not be an HTML document`,
+      ).not.toContain("<html");
+    });
+  }
 });
 
 test.describe("freshness metadata", () => {

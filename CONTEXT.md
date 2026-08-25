@@ -113,6 +113,15 @@ The `meta` pair is the one place a length ceiling, not just accuracy, is part of
 surface: a SERP truncates a title past ~60 characters and a description past ~160, so the
 short forms exist precisely because the long ones cannot be trimmed at read time.
 
+**Markdown sibling**:
+A `.md` URL that publishes a surface's content as markdown for an agent to read, generated from
+`RESUME_DATA` rather than hand-written. Siblings are the addressable form — declared in
+`public/llms.txt`, curlable, assertable by a test that fetches a URL — and `Accept: text/markdown`
+negotiation in middleware is a second door onto the same artifact, not a second copy of it
+(ADR-0005). A hand-written markdown file is not a sibling; it is a ninth identity surface.
+_Avoid_: markdown mirror, markdown twin, `.md` variant — "variant" is the CDN's word for a
+cached negotiation outcome, and the two must not be confused
+
 **Project**:
 A built thing with a title, a stack and a description. It is the same set everywhere it
 appears — cards on `/`, entries under **Projects** on `/cv` — so the two surfaces cannot
