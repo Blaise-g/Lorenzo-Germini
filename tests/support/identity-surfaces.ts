@@ -14,10 +14,15 @@ export type IdentitySurface = { name: string; text: string };
 
 /**
  * The markdown siblings (#117): `.md` URLs rendered from `RESUME_DATA`, one per
- * surface `llms.txt` declares. ADR-0005 has the set and why the homepage is not
- * in it.
+ * content surface `llms.txt` declares. `/index.md` joined in #119 — it is the
+ * root's negotiation target, and the scan's failed check probes `/`, which is
+ * the verified client ADR-0005 said the homepage sibling lacked.
  */
-export const MARKDOWN_SIBLINGS = ["/cv.md", "/writing.md"] as const;
+export const MARKDOWN_SIBLINGS = [
+  "/index.md",
+  "/cv.md",
+  "/writing.md",
+] as const;
 
 /**
  * Every path that restates identity, hand-written or generated. `robots.txt`

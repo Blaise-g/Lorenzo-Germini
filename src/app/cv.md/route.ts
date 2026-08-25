@@ -1,5 +1,5 @@
 import { markdownResponse, renderCvMarkdown } from "@/lib/markdown-siblings";
 
-export function GET() {
+export async function GET() {
   return markdownResponse(renderCvMarkdown());
 }

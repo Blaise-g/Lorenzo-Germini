@@ -1,4 +1,7 @@
+import { connection } from "next/server";
+
 import { RESUME_DATA } from "@/data/resume-data";
+import { MARKDOWN_MEDIA_TYPE } from "@/lib/markdown-negotiation";
 import { SUBSTACK_FEED_URL } from "@/lib/substack";
 
 /**
@@ -7,10 +10,16 @@ import { SUBSTACK_FEED_URL } from "@/lib/substack";
  *
  * `public/llms.txt` and `public/llms-full.txt` are the only identity surfaces
  * holding their own copy of the prose, which is why they drift the worst, and
- * this module exists so the markdown surfaces cannot join them. Both routes
- * prerender: nothing here reads the request, so the generation happens at build
- * and the freshness guarantee is the deploy, exactly as for every other surface
+ * this module exists so the markdown surfaces cannot join them. Nothing here
+ * reads the request, so every sibling says the same thing on every request and
+ * the freshness guarantee is the deploy, exactly as for every other surface
  * `RESUME_DATA` feeds.
+ *
+ * They no longer prerender, though, and that is deliberate: `markdownResponse`
+ * awaits `connection()` so the response can carry `Vary`, which a prerendered
+ * route has overwritten with Next's router headers (GH-118). The cost is a
+ * cache `MISS` where there was a `PRERENDER`, which `Cache-Control` below buys
+ * back at the CDN.
  */
 
 /** Empty parts drop out, so an absent optional field costs no blank line. */
@@ -137,11 +146,86 @@ export function renderWritingMarkdown(): string {
 }
 
 /**
- * One content-type, set once, so the sibling routes cannot disagree about what
- * they serve — which is the whole reason an agent asked for a `.md` URL.
+ * `/index.md`: the homepage as markdown, and the root's negotiation target.
+ *
+ * It exists because the is-agentic.com check probes `/` — a verified client
+ * asking for markdown at the root, which is what amended ADR-0005's rule against
+ * inventing sibling paths. Its shape follows the homepage rather than the CV:
+ * positioning first, the writing as the first door, the proof underneath. That
+ * makes it the shortest of the three, and the overlap with `/llms-full.txt` is
+ * deliberate — this one is addressable as the root's representation, which a
+ * `.txt` manifest is not.
  */
-export function markdownResponse(body: string): Response {
+export function renderIndexMarkdown(): string {
+  const { earlierRoles, hero, systems, writing } = RESUME_DATA.homepage;
+  const { headline } = hero;
+
+  return document([
+    `# ${RESUME_DATA.name} — ${RESUME_DATA.roleLabel}`,
+    ...identityCore(),
+    "## What I do",
+    `${headline.lead}${headline.emphasis}${headline.trail}`,
+    hero.subhead,
+    "## Writing",
+    writing.standingLine,
+    lines([
+      `### ${writing.featured.title}`,
+      writing.featured.excerpt,
+      `Link: ${writing.featured.href}`,
+    ]),
+    `- Index: ${site("/writing")} — as markdown: ${site("/writing.md")}`,
+    "## Work",
+    /* The roles the homepage stands behind, in its own words. The rest fold
+       into one line there rather than rendering a CV bullet, and folding them
+       here too keeps this file the homepage's representation — `/cv.md` is
+       where an agent goes for the complete record. */
+    ...RESUME_DATA.work.filter((role) => role.homepageProof).map(roleBlock),
+    `Earlier: ${earlierRoles.join("; ")}.`,
+    `The complete record, with every role, project and grade: ${site("/cv")} — as markdown: ${site("/cv.md")}`,
+    "## Projects",
+    ...RESUME_DATA.projects
+      .filter((project) => project.homepage !== false)
+      .map((project) =>
+        lines([
+          `### ${project.title}`,
+          `Tags: ${project.techStack.join(", ")}`,
+          project.description,
+          project.link ? `Link: ${project.link.href}` : "",
+        ]),
+      ),
+    "## Systems",
+    systems,
+    ...contactSection(),
+  ]);
+}
+
+/**
+ * One content-type and one `Vary`, set once, so the sibling routes cannot
+ * disagree about what they serve — which is the whole reason an agent asked for
+ * a `.md` URL.
+ *
+ * `Vary: Accept` is here rather than in `src/proxy.ts` because this is the only
+ * layer whose header survives production: a header the proxy appends is
+ * stripped by the CDN, and asserting it would pass against `next dev` and be
+ * false where it matters (GH-118). It also only survives from a route that is
+ * not prerendered, which is what the `connection()` await buys — a prerendered
+ * route has its `Vary` overwritten with Next's router headers. `force-dynamic`
+ * is not the lever: it build-errors under `cacheComponents`, and only in the
+ * build log.
+ *
+ * `s-maxage` puts the CDN caching back that leaving the prerender cost. The
+ * body is a pure function of `RESUME_DATA`, so it can only change on a deploy,
+ * and a deploy invalidates the edge cache anyway; the revalidate window is
+ * therefore an upper bound on nothing, and generous.
+ */
+export async function markdownResponse(body: string): Promise<Response> {
+  await connection();
+
   return new Response(body, {
-    headers: { "content-type": "text/markdown; charset=utf-8" },
+    headers: {
+      "cache-control": "public, s-maxage=3600, stale-while-revalidate=86400",
+      "content-type": `${MARKDOWN_MEDIA_TYPE}; charset=utf-8`,
+      vary: "Accept",
+    },
   });
 }
