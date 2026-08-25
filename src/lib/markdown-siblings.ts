@@ -145,7 +145,7 @@ export function markdownResponse(body: string): Response {
     headers: {
       "content-type": "text/markdown; charset=utf-8",
       /* GH-118 probe: does a route-handler `Vary` survive the CDN? */
-      vary: "Accept",
+      vary: "Accept, Accept-Encoding",
       "x-probe-route": "matched",
     },
   });
