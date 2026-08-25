@@ -74,9 +74,23 @@ a `<Suspense>` boundary and `next build` does not catch the violation (see `AGEN
 runs outside that model, which is the second reason negotiation lives there rather than in the
 route.
 
-**Do not invent sibling paths that nothing probes.** `/index.md` in particular is a guess; no
-verified client asks for it. The addressable set is whatever `llms.txt` declares, because that is
-the index agents actually follow — the scan confirmed all five of its current links resolve.
+**Do not invent sibling paths that nothing probes — amended for the root.** The rule stands: the
+addressable set is whatever `llms.txt` declares, because that is the index agents actually follow,
+and the scan confirmed all five of its current links resolve. `/index.md` was named here as a guess
+that no verified client asks for, and that is no longer true. The failing check probes `/`, so the
+scanner is a verified client asking for markdown at the root — by header rather than by URL, but the
+rewrite needs a target route either way, and once the route exists the addressability argument above
+applies to it like any other. The negotiable set is therefore `/`, `/cv` and `/writing`, with
+`/index.md` as the root's sibling, declared in `llms.txt` alongside the other two.
+
+Negotiating all three rather than only the probed one is deliberate. Which paths the scanner visits
+is not documented and cannot be checked against a preview deploy, since deployment protection turns
+every probe into a redirect. Covering the content routes costs one map entry each and removes the
+guess.
+
+`/index.md` overlaps `llms-full.txt` in substance. That is not a reason to skip it — the check reads
+URLs, not novelty — but it is a reason to look at what each says before writing the root sibling's
+body, rather than after.
 
 **Generated markdown is the first content surface that renders `RESUME_DATA` rather than holding a
 second copy of it**, which is a narrowing of the identity-surface drift problem, not a
