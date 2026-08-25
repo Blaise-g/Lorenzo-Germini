@@ -2,11 +2,7 @@ import Link from "next/link";
 
 import { CV_DOCUMENT_INSET } from "@/app/cv/inset";
 import { RouteFrame } from "@/components/route-frame";
-
-/* The same underline language the footer's links use, so a dead end reads as
-   part of the site rather than as an error screen with its own vocabulary. */
-const recoveryLinkClass =
-  "touch-target underline decoration-border underline-offset-4 hover:decoration-accent";
+import { footerLinkClass } from "@/components/site-footer";
 
 export default function NotFound() {
   return (
@@ -30,20 +26,22 @@ export default function NotFound() {
             Back to resume
           </Link>
           {/* GH-121: a stale or guessed link is a dead end for an agent unless
-              the shell names somewhere else to fetch. These two are the whole
-              machine-readable index, and they are useful to a reader on a dead
-              link either way. `gap-y-5`, as in the footer's nav: the row wraps
-              at 375, and two 44px hit areas on a tighter pitch would put each
-              one inside its neighbour's. */}
+              the shell names somewhere else to fetch. These two are the machine-
+              readable entry points — each one indexes the rest — and they are
+              useful to a reader on a dead link either way.
+              No wrap guard: measured at 320 and 375, both links sit on one row
+              (65px + 86px + the 16px gap, in a 288px box at the narrower width),
+              so the footer nav's `gap-y-5` would be inert here. Adding a link
+              would change that, and the 44px overlays would then need it. */}
           <nav aria-label="Elsewhere on this site">
-            <ul className="text-faint flex flex-wrap justify-center gap-x-4 gap-y-5 font-mono text-xs">
+            <ul className="text-faint flex justify-center gap-x-4 font-mono text-xs">
               <li>
-                <a className={recoveryLinkClass} href="/llms.txt">
+                <a className={footerLinkClass} href="/llms.txt">
                   /llms.txt
                 </a>
               </li>
               <li>
-                <a className={recoveryLinkClass} href="/sitemap.xml">
+                <a className={footerLinkClass} href="/sitemap.xml">
                   /sitemap.xml
                 </a>
               </li>
