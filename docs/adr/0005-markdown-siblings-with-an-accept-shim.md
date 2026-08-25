@@ -13,9 +13,8 @@ _essential_ check is markdown content negotiation: `Accept: text/markdown` again
 The markdown an agent reads is generated from `RESUME_DATA` and served at its own `.md` URLs,
 linked from `public/llms.txt`. A thin `middleware.ts` rewrites requests carrying
 `Accept: text/markdown` to the matching `.md` route. The files are the same artifact either way —
-negotiation is a second door onto them, not a second copy of them. It does not add `Accept` to
-`Vary`, because it cannot: GH-118 found that Vercel replaces `Vary` on Next routes, from every layer
-that could set it.
+negotiation is a second door onto them, not a second copy of them. The negotiated response names
+`Accept` in `Vary`, which GH-118 found requires the sibling route to opt out of the prerender.
 
 ## Considered options
 
@@ -39,26 +38,35 @@ more hand-written copies makes the drift problem larger in exactly the place it 
 
 ## Consequences
 
-**The rewrite is what makes negotiation cache-safe, not `Vary`.** GH-118 probed this against three
-preview deployments and the answer inverted the premise this ADR was written on. `Vary: Accept` never
-reaches the client — middleware, `next.config.ts` `headers()` and the route handler's own `Response`
-all get it stripped, each proved to have run by a control header that did arrive. Yet the feared
-failure never occurs, because middleware runs before the CDN cache lookup, so the rewritten path is
-the cache key: `x-matched-path` reads `/cv.md` for a markdown request and `/cv` for a browser one,
-and alternating between them serves each from its own entry with the right body.
+**Two mechanisms carry this, and GH-118 had to correct itself about one of them.** Its first probe
+concluded `Vary: Accept` was unreachable on Vercel, having set it from middleware, `next.config.ts`
+`headers()` and the route handler's own `Response` and watched all three vanish while a control
+header on each arrived. Every one of those routes was prerendered, so the experiment never varied
+the thing that mattered. A sibling whose handler awaits `connection()` emits `Vary` normally, and it
+survives the rewrite. `force-dynamic` is not the lever: it build-errors under `cacheComponents`, and
+only in the build log.
+
+The second mechanism is the one the first probe found while looking for the wrong thing, and it is
+worth keeping. Middleware runs before the CDN cache lookup, so the rewritten path becomes the cache
+key: `x-matched-path` reads `/cv.md` for a markdown request and `/cv` for a browser one, and
+alternating between them serves each from its own entry with the right body, in both orders. Vercel's
+own cache is therefore safe by key, independent of `Vary`; `Vary` is what a third-party proxy in
+front of it reads, and that is the exposure the header closes.
 
 This makes the sibling URLs load-bearing for cache safety, and not merely for addressability.
 Rendering markdown inline from the HTML route — rejected below because `llms.txt` cannot link a
-header-only representation — would keep one path and depend on the `Vary` keying that does not
-exist. Two shapes were rejected for one reason and it turns out to be two.
+header-only representation — would keep one path and lean entirely on `Vary`. Two shapes were
+rejected for one reason and it turns out to be two.
 
-What survives is smaller and outside our control: a third-party proxy between an agent and Vercel
-sees an HTML response whose `Vary` does not name `Accept`, and may reuse it for a markdown request.
-Nothing we can set changes that.
+**Opting out of the prerender costs the prerender.** A `connection()` sibling serves `MISS` where it
+served `PRERENDER`. is-agentic.com serves its own markdown dynamic _and_ cached, so the caching is
+recoverable with `"use cache"` around the body generation or an explicit `Cache-Control: s-maxage`.
+Correctness does not wait on it.
 
-**A spec must not assert `Vary: Accept`.** Against `next dev` the middleware's appended header does
-survive, as a second `vary` line. An assertion on it passes locally and is false in production, which
-is worse than no assertion at all.
+**A spec asserts `Vary: Accept` on the negotiated response, and not on the HTML one.** Against
+`next dev` the middleware's appended header survives on the HTML response and is overwritten in
+production, so an assertion there passes locally and is false in production — worse than no
+assertion.
 
 **`headers()` in a component would violate Cache Components, so the read stays in middleware.**
 `next.config.ts` sets `cacheComponents: true`; reading request headers inside a component requires
