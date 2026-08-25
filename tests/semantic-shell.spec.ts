@@ -123,6 +123,33 @@ test.describe("route-shared semantic shell", () => {
       mainBeforeFooter: true,
     });
   });
+
+  test("the not-found shell hands back three destinations, on a real 404", async ({
+    page,
+  }) => {
+    /* #121: the status code was already right, and a correct 404 with no way
+       forward is still a dead end for the agent that followed a stale link. The
+       status is asserted here too, because the recoverable body is only worth
+       anything if it did not arrive as a 200. */
+    const response = await page.goto("/route-that-does-not-exist");
+    expect(response?.status()).toBe(404);
+
+    const destinations = {
+      "Back to resume": "/",
+      "/llms.txt": "/llms.txt",
+      "/sitemap.xml": "/sitemap.xml",
+    };
+    for (const [name, href] of Object.entries(destinations)) {
+      const link = page.getByRole("main").getByRole("link", { name });
+      await expect(link).toHaveAttribute("href", href);
+
+      /* Naming a destination the site does not serve would be a worse dead end
+         than the one it replaces, so each one is fetched. */
+      const target = await page.request.get(href);
+      expect(target.status(), `${href} must resolve to real content`).toBe(200);
+      expect(await target.text()).not.toBe("");
+    }
+  });
 });
 
 /* The footer used `container mx-auto px-4 pr-16 md:px-16` with an inner
