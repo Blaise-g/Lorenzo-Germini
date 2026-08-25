@@ -107,10 +107,6 @@ test.describe("canonical CV route", () => {
       "@type": "Occupation",
       name: RESUME_DATA.roleLabel,
     });
-    expect(person.worksFor).toMatchObject({
-      name: RESUME_DATA.work[0].company,
-    });
-
     await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
       "content",
       /CV/,

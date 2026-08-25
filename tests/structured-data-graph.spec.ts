@@ -33,6 +33,10 @@ const personDefinitionsPerRoute = { "/": 1, "/cv": 1, "/writing": 0 } as const;
 const graphRoutes = Object.keys(
   personDefinitionsPerRoute,
 ) as (keyof typeof personDefinitionsPerRoute)[];
+/** The routes that define the Person, read off the counts rather than restated. */
+const personRoutes = graphRoutes.filter(
+  (route) => personDefinitionsPerRoute[route] > 0,
+);
 
 test.describe("the structured-data graph", () => {
   test("the Person carries the same @id on / and /cv", async ({ page }) => {
@@ -115,9 +119,7 @@ test.describe("the structured-data graph", () => {
      `PostalAddress` here, because that is publishing an employer's contact
      details on a personal site, and only an exact shape fails when a fourth
      field appears. */
-  for (const route of graphRoutes.filter(
-    (route) => personDefinitionsPerRoute[route] > 0,
-  )) {
+  for (const route of personRoutes) {
     test(`${route} names the employer with a resolvable url and nothing else`, async ({
       page,
     }) => {
