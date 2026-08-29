@@ -352,7 +352,7 @@ test.describe("geometry", () => {
 
     /* The lead excerpt set at 90 characters per line while every other
        paragraph ran 63–74, because `max-width` computed to `none`. Metadata
-       rows are excluded deliberately: a one-line mono date is not prose and
+       rows are excluded deliberately: a one-line date label is not prose and
        has no measure to keep. */
     const widths = await page
       .locator("main article [data-essay-excerpt]")

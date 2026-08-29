@@ -386,6 +386,13 @@ test.describe("Warm Print runtime contract", () => {
         ).fontFamily,
         role: getComputedStyle(sectionNamed("Work")!.querySelector("h3")!)
           .fontFamily,
+        /* The label role. Every uppercase label shares one face; the date
+           column above stays mono because `tabular-nums` needs the fixed
+           advance, and asserting both is what keeps that boundary from
+           collapsing back to a single family. */
+        label: getComputedStyle(
+          sectionNamed("Work")!.querySelector(":scope > h2")!,
+        ).fontFamily,
       };
     });
 
@@ -396,5 +403,6 @@ test.describe("Warm Print runtime contract", () => {
     expect(families.project).toContain("Fraunces");
     expect(families.projectDescription).toContain("Inter");
     expect(families.role).toContain("Fraunces");
+    expect(families.label).toContain("Space Grotesk");
   });
 });
