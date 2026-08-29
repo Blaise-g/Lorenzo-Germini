@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
    one needs a constant; the others fall out of the array itself. */
 const ARCHIVE_LINK_AT = 4;
 
-const meta = "font-mono text-xs uppercase tracking-[0.12em]";
+const meta = "font-label text-xs uppercase tracking-[0.12em]";
 
 /* Symmetric since GH-89. The `pr-20 lg:pr-6` that stood here was decision 2's
    top-right exclusion zone: below `lg` this measure runs to the viewport edge,
@@ -161,8 +161,21 @@ function CountAwareLine({ essays }: { essays: Essay[] }) {
 
   const line = `First post published ${formatEssayDate(essays[0].publishedAt)} · ${writingPage.cadence}`;
 
+  /* `text-xs/relaxed`, after `meta` and carrying the size: `text-xs` sets its
+     own line-height, so a bare `leading-*` beside it is a coin flip on rule
+     order — measured, it lost. This is the one `meta` line long enough to
+     wrap, and tracked caps at 1.33 crowd across the break. Two lines at both
+     375 and 1280, since the block caps well before the viewport does. */
   return (
-    <p className={cn("text-faint animate-fade-in-up mt-3", meta)}>{line}</p>
+    <p
+      className={cn(
+        "text-faint animate-fade-in-up mt-3",
+        meta,
+        "text-xs/relaxed",
+      )}
+    >
+      {line}
+    </p>
   );
 }
 

@@ -60,7 +60,7 @@ const IT: Copy = {
    Substack's own confirmation email, so this only catches obvious typos. */
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-const meta = "font-mono text-xs uppercase tracking-[0.12em]";
+const meta = "font-label text-xs uppercase tracking-[0.12em]";
 
 /* False on the server and through hydration, true once React is driving the
    client — so the server markup stays the no-JS-safe variant and only then does
@@ -162,7 +162,10 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
               }`}
             />
             {/* Decision 3 (locked): the one filled control in the system —
-                solid accent ground, 12px mono uppercase, ≥44px tall. The
+                solid accent ground, 12px uppercase, ≥44px tall. The face is
+                the shared label role rather than the mono the decision named;
+                every uppercase label moved together, so the control still
+                matches its neighbours. The
                 label inverts with the mode via the accent-foreground token;
                 hover is the primary-control mix (darkens in light, lightens
                 in dark, label unchanged) and the ring sits at 2px offset so

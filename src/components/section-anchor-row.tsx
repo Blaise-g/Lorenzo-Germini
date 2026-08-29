@@ -22,7 +22,7 @@ export function SectionAnchorRow({
          wrap to two lines at 375, so anything under 16px of separation puts each
          line's expanded target inside its neighbour's. */
       className={cn(
-        "border-border -mx-1 flex flex-wrap gap-x-1 gap-y-4 border-y py-1 font-mono text-xs tracking-[0.08em] uppercase print:hidden",
+        "border-border font-label -mx-1 flex flex-wrap gap-x-1 gap-y-4 border-y py-1 text-xs tracking-[0.08em] uppercase print:hidden",
         className,
       )}
     >
