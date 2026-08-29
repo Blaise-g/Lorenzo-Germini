@@ -80,7 +80,9 @@ two are behind a boundary for exactly that reason. Custom `cacheLife` profiles a
 from `.next/dev/types`, so a new one in `next.config.ts` does not typecheck until the dev
 server or a build has regenerated them.
 
-**`/writing` renders the live Substack feed, which is empty.** Every other state — the
+**`/writing` renders the live Substack feed, which now carries one post.** So the route
+exercises the n=1 branch — lead treatment, no archive link, launch line — and not the empty
+state it was written against. Every other state — the
 count-aware transitions, a malformed or unreachable feed, a cached miss recovering — is at
 `/writing/fixture/<state>`, dev-only and 404 in production. Fixtures feed canned XML
 through the real parser and the real cache, so they prove the shipped path. Invalidation is
