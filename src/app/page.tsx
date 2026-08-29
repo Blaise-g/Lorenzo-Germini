@@ -111,7 +111,7 @@ export default function Page() {
             /* No `inline-block` beside `touch-target`: after the `@layer`
                move a display utility wins over the class, which changed the
                computed box and shifted the rows below by up to 2.5px. */
-            className="text-accent border-accent touch-target mt-7 self-start border-b-2 pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
+            className="text-accent border-accent touch-target font-label mt-7 self-start border-b-2 pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
           >
             {hero.cta}
           </a>
@@ -130,7 +130,7 @@ export default function Page() {
           </p>
           <article className="group mt-2">
             {writing.featured.date && writing.featured.readingMinutes ? (
-              <p className="text-faint font-mono text-xs tracking-[0.12em] uppercase">
+              <p className="text-faint font-label text-xs tracking-[0.12em] uppercase">
                 {formatEssayDate(writing.featured.date)} ·{" "}
                 {writing.featured.readingMinutes} min read
               </p>
@@ -154,11 +154,25 @@ export default function Page() {
                 accent rule under it — because the field note is the page's
                 single primary CTA (spec §2.6 constraint 6) and two identical
                 buttons here would contest it. */}
-            {/* `gap-y-5`: the two wrap onto separate lines at 375, and their
-                44px hit areas overlapped at anything under 20px. */}
-            <p className="mt-4 flex flex-wrap items-baseline gap-x-6 gap-y-5">
+            {/* Column below `sm`, row from `sm`: the quieter link reads as
+                subordinate stacked and as the primary CTA's equal beside it,
+                so the stack is the intent rather than a wrap that happens to
+                fall out of how wide the label face sets. `items-start` is
+                load-bearing in column — flex children stretch by default, and
+                the primary CTA's `border-b` would draw its accent rule across
+                the full measure. `gap-y-5` because the two 44px hit areas
+                overlapped under 20px of vertical gap.
+                Not a hit-area fix horizontally: `.touch-target` is
+                `width: 100%` under `translate: -50%`, so it never grows past
+                its box, and a click sweep at 375 leaves 22px of dead gap
+                between them side by side. What one row does break is
+                `responsive-hub-shell.spec.ts`'s mobile-flow contract — the
+                primary CTA's `pb-0.5` drops its box 1px below its neighbour
+                under `items-baseline`, inverting visual order against DOM
+                order. */}
+            <p className="mt-4 flex flex-col items-start gap-y-5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-6">
               <a
-                className="text-accent border-accent touch-target border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+                className="text-accent border-accent touch-target font-label border-b pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70"
                 href={writing.featured.href}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -166,7 +180,7 @@ export default function Page() {
                 Read the field note →
               </a>
               <a
-                className="text-faint hover:text-accent decoration-border hover:decoration-accent touch-target font-mono text-xs tracking-[0.12em] uppercase underline underline-offset-4 print:hidden"
+                className="text-faint hover:text-accent decoration-border hover:decoration-accent touch-target font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 print:hidden"
                 href="/writing"
               >
                 All writing →
@@ -240,7 +254,7 @@ export default function Page() {
           <p className="mt-3 print:hidden">
             <a
               href="/cv"
-              className="text-accent border-accent touch-target border-b pb-0.5 font-mono text-xs tracking-[0.12em] uppercase hover:opacity-70"
+              className="text-accent border-accent touch-target font-label border-b pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70"
             >
               Full CV →
             </a>
@@ -342,7 +356,7 @@ function SectionHeading({
 }) {
   return (
     <>
-      <h2 className="text-accent font-mono text-[15px] font-semibold tracking-[0.18em] uppercase">
+      <h2 className="text-accent font-label text-[15px] font-semibold tracking-[0.18em] uppercase">
         {children}
       </h2>
       <div className={cn("bg-accent/30 h-px w-12", ruleClassName)} />

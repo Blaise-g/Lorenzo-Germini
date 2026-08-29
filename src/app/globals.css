@@ -26,6 +26,9 @@
   --font-display: var(--font-fraunces), "Georgia", serif;
   --font-mono:
     var(--font-jetbrains-mono), "Menlo", "Monaco", "Courier New", monospace;
+  /* Uppercase label roles. Split from `--font-mono` so the date stamps keep
+     their tabular advance; `layout.tsx` records why the face changed. */
+  --font-label: var(--font-space-grotesk), var(--font-body);
 
   /* Radius */
   --radius-lg: 0.75rem;

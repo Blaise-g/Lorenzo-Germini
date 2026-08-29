@@ -121,7 +121,7 @@ export function StickyRailNavigation({
   return (
     <nav
       aria-label="Page sections"
-      className="border-border flex flex-col border-t pt-4 font-mono text-xs tracking-[0.12em] uppercase"
+      className="border-border font-label flex flex-col border-t pt-4 text-xs tracking-[0.12em] uppercase"
     >
       {destinations.map(({ id, label }) => {
         const isActive = activeId === id;

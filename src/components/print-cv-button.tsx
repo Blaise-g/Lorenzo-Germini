@@ -9,7 +9,7 @@ export function PrintCvButton() {
       onClick={() => window.print()}
       variant="outline"
       size="lg"
-      className="touch-target rounded-none font-mono text-xs font-semibold"
+      className="touch-target font-label rounded-none text-xs font-semibold"
     >
       Print CV
     </Button>

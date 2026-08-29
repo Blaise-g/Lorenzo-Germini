@@ -84,7 +84,7 @@ export function HubShell({
                 </p>
                 <p
                   data-testid="masthead-role"
-                  className="text-faint hidden font-mono text-xs tracking-[0.12em] uppercase lg:block print:hidden"
+                  className="text-faint font-label hidden text-xs tracking-[0.12em] uppercase lg:block print:hidden"
                 >
                   {profile.roleLabel}
                 </p>
@@ -104,7 +104,7 @@ export function HubShell({
                 <nav
                   aria-label="Site"
                   data-testid="masthead-routes"
-                  className="text-faint hidden gap-5 font-mono text-xs tracking-[0.12em] uppercase lg:flex print:hidden"
+                  className="text-faint font-label hidden gap-5 text-xs tracking-[0.12em] uppercase lg:flex print:hidden"
                 >
                   <Link
                     href="/writing"
@@ -265,7 +265,7 @@ function ProfileIdentity({
                below the masthead's — two thirds of a 375px fold spent on
                identity before the hero. It carries the role, the location and
                the CV route instead; the hero below is the page's only `<h1>`. */
-            <p className="text-faint font-mono text-xs leading-relaxed tracking-[0.12em] uppercase">
+            <p className="text-faint font-label text-xs leading-relaxed tracking-[0.12em] uppercase">
               {profile.roleLabel} · {profile.location}
               <br />
               <a

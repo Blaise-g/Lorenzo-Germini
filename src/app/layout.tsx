@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import {
+  Fraunces,
+  Inter,
+  JetBrains_Mono,
+  Space_Grotesk,
+} from "next/font/google";
 
 import "./globals.css";
 import React from "react";
@@ -16,6 +21,18 @@ const inter = Inter({
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+
+/* Carries `--font-label`: every uppercase label role — section headings, the
+   navs, the eyebrows, the buttons. Measured against JetBrains Mono at 32px in
+   the browser, it keeps squarer counters and a tighter fit at the 0.12–0.18em
+   tracking these labels use, where the mono's round bowls and fixed advance
+   were reading loose. JetBrains Mono stays for the date stamps, which need the
+   monospace advance for `tabular-nums`, and for technical strings. */
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
@@ -95,7 +112,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${fraunces.variable} ${spaceGrotesk.variable}`}
       suppressHydrationWarning
     >
       <head>

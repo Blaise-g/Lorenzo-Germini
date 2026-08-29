@@ -89,7 +89,7 @@ export default function CvPage() {
               lives in the masthead row like `/` and `/writing`'s do. */}
             <div className="flex items-start justify-between gap-x-6">
               <div>
-                <p className="text-accent font-mono text-xs font-semibold tracking-[0.16em] uppercase">
+                <p className="text-accent font-label text-xs font-semibold tracking-[0.16em] uppercase print:tracking-[0.08em]">
                   Curriculum vitae
                 </p>
                 <h1 className="font-display mt-2 text-4xl leading-none font-semibold tracking-tight sm:text-5xl print:mt-1 print:text-[28px]">
@@ -107,11 +107,11 @@ export default function CvPage() {
               </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap items-center gap-3 font-mono text-xs print:hidden">
+            <div className="font-label mt-5 flex flex-wrap items-center gap-3 text-xs print:hidden">
               <Button
                 asChild
                 size="lg"
-                className="touch-target rounded-none font-mono text-xs font-semibold"
+                className="touch-target font-label rounded-none text-xs font-semibold"
               >
                 <a
                   href="/lorenzo-germini-cv.pdf"
@@ -321,7 +321,7 @@ function CvSection({
         <h2
           id={id}
           /* The anchor row targets this heading, so the offset belongs here. */
-          className="text-accent shrink-0 scroll-mt-8 font-mono text-[15px] font-semibold tracking-[0.18em] uppercase print:scroll-mt-0 print:text-[9pt]"
+          className="text-accent font-label shrink-0 scroll-mt-8 text-[15px] font-semibold tracking-[0.18em] uppercase print:scroll-mt-0 print:text-[9pt] print:tracking-[0.08em]"
         >
           {title}
         </h2>
