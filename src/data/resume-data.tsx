@@ -204,7 +204,7 @@ export const RESUME_DATA: ResumeData = {
       title: "Quadrell",
       techStack: ["Independent Studio", "Websites", "Automations"],
       description:
-        "My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.",
+        "My independent studio for websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, building around the way the business actually works.",
       link: {
         label: "Quadrell",
         href: "https://quadrell.dev/",
