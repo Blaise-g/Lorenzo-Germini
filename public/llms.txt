@@ -42,7 +42,7 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
+- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production. Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
@@ -56,5 +56,7 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Projects
 
-- L'Oracolo della Ghigliottina: AI game companion for the final round of Italy's most-watched quiz show. 100% accuracy so far, with rate-limit handling
+- [Quadrell](https://quadrell.dev/): My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.
+
+- L'Oracolo della Ghigliottina (archived): AI game companion that found the word connecting five clues submitted as text or a photo, with rate-limit handling. The service is now closed; past results remain available to browse.
 - Biomedical Paper Summarizer: MSc thesis work, an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR

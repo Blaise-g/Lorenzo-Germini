@@ -276,7 +276,7 @@ export default function Page() {
             data-testid="projects-grid"
             className={cn(
               "grid grid-cols-1 gap-3 print:mx-0 print:grid-cols-2 print:gap-2",
-              projectsFitTheMeasure ? undefined : "lg:-mx-3 lg:grid-cols-2",
+              projectsFitTheMeasure ? undefined : "lg:grid-cols-2",
             )}
           >
             {homepageProjects.map((project) => (

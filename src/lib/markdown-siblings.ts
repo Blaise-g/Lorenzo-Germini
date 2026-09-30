@@ -79,7 +79,7 @@ const projectBlock = (project: (typeof RESUME_DATA.projects)[number]) =>
   lines([
     `### ${project.title}`,
     /* "Tags", not "Tech stack": the field mixes stack entries with status
-       labels ("Side Project", "Live"), and `/cv` renders it as an unlabelled
+       labels ("Side Project", "Archived"), and `/cv` renders it as an unlabelled
        metadata line for exactly that reason. */
     `Tags: ${project.techStack.join(", ")}`,
     project.description,
