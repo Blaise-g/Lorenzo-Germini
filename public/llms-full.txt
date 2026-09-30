@@ -79,7 +79,7 @@ Polytechnic of Turin, 2017-2020
 
 ### Quadrell
 Tags: Independent Studio, Websites, Automations
-My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.
+My independent studio for websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, building around the way the business actually works.
 Link: https://quadrell.dev/
 
 ### L'Oracolo della Ghigliottina

@@ -56,7 +56,7 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Projects
 
-- [Quadrell](https://quadrell.dev/): My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.
+- [Quadrell](https://quadrell.dev/): My independent studio for websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, building around the way the business actually works.
 
 - L'Oracolo della Ghigliottina (archived): AI game companion that found the word connecting five clues submitted as text or a photo, with rate-limit handling. The service is now closed; past results remain available to browse.
 - Biomedical Paper Summarizer: MSc thesis work, an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR
