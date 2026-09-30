@@ -113,10 +113,10 @@ export const RESUME_DATA: ResumeData = {
       description: [
         "Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.",
         "Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.",
-        "Shipping AI product features and automation workflows end-to-end, from prototype to production.",
+        "Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.",
       ],
       homepageProof:
-        "The AI engine behind the product: LLM agents doing compliance work over ISO documentation in the background, and the eval harness that shows when they can't be trusted.",
+        "The AI engine behind the product: LLM agents doing compliance work over ISO documentation in the background, and the eval harness that shows when they can't be trusted. Shipping features end-to-end, from definition through AI, backend, and frontend to production.",
     },
     {
       company: "Stealth GenAI Startup",
@@ -201,10 +201,20 @@ export const RESUME_DATA: ResumeData = {
   ],
   projects: [
     {
-      title: "L'Oracolo della Ghigliottina",
-      techStack: ["Side Project", "Live"],
+      title: "Quadrell",
+      techStack: ["Independent Studio", "Websites", "Automations"],
       description:
-        "AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words, typed or snapped from the TV, and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.",
+        "My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.",
+      link: {
+        label: "Quadrell",
+        href: "https://quadrell.dev/",
+      },
+    },
+    {
+      title: "L'Oracolo della Ghigliottina",
+      techStack: ["Side Project", "Archived"],
+      description:
+        "An archived AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. It found the word connecting five clues submitted as text or a photo of the TV, with rate-limit handling. The service is now closed; past results remain available to browse.",
       link: {
         label: "L'Oracolo della Ghigliottina",
         href: "https://ghigliottina.vercel.app/",

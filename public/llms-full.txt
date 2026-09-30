@@ -41,7 +41,7 @@ Contact: lorenzo.germini@icloud.com
 Location: Cuneo, Italy
 - Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.
 - Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
-- Shipping AI product features and automation workflows end-to-end, from prototype to production.
+- Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.
 
 ### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 Location: Cuneo, Italy
@@ -77,9 +77,15 @@ Polytechnic of Turin, 2017-2020
 
 ## Projects
 
+### Quadrell
+Tags: Independent Studio, Websites, Automations
+My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.
+Link: https://quadrell.dev/
+
 ### L'Oracolo della Ghigliottina
+Status: Archived
 Tech Stack: Generative AI, Next.js, Vercel AI SDK, Telegram Bot, WhatsApp Bot
-AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. Send the five clue words, typed or snapped from the TV, and it finds the one that connects them. 100% accuracy so far, with rate-limit handling because Italians take this game seriously.
+An archived AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. It found the word connecting five clues submitted as text or a photo of the TV, with rate-limit handling. The service is now closed; past results remain available to browse.
 Link: https://ghigliottina.vercel.app/
 
 ### Biomedical Paper Summarizer

@@ -30,7 +30,7 @@
     {
       "id": "automation-workflows",
       "source": "Complaion",
-      "acceptedAnyOf": ["automation workflows"]
+      "acceptedAnyOf": ["automation workflows", "workflow automations"]
     },
     {
       "id": "aws",
