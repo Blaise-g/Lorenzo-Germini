@@ -1,0 +1,483 @@
+[
+  {
+    "path": "/",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "87",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/index.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::dz8xl-1791028653539-a1a9d0a9a375",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 5488
+  },
+  {
+    "path": "/",
+    "method": "GET",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Age": "278633",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Disposition": "inline",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:33 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::bgmt9-1791028653729-eab143a5f799",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 93859
+  },
+  {
+    "path": "/",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "88",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/index.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::pg89g-1791028654022-b5cd852b779f",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 5488
+  },
+  {
+    "path": "/",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "0",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:34 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/index.md",
+      "X-Vercel-Cache": "MISS",
+      "X-Vercel-Id": "fra1::iad1::99nfp-1791028654202-55bdc0a0c708",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/",
+    "method": "HEAD",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Age": "278633",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Disposition": "inline",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:34 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::tg7gv-1791028654579-87435bc446f8",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "0",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:34 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/index.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::wk4bv-1791028654766-5da859ca3c97",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/cv",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "88",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::4zpkc-1791028654946-8387af295586",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 6021
+  },
+  {
+    "path": "/cv",
+    "method": "GET",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Age": "278633",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Disposition": "inline",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:35 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::jln94-1791028655181-ec57f36d6e4a",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 75584
+  },
+  {
+    "path": "/cv",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "89",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::zzxzp-1791028655405-3cd4b9c13ba2",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 6021
+  },
+  {
+    "path": "/cv",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "0",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:35 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv.md",
+      "X-Vercel-Cache": "MISS",
+      "X-Vercel-Id": "fra1::iad1::pbzjq-1791028655577-861eda1130db",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/cv",
+    "method": "HEAD",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Age": "278634",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Disposition": "inline",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:35 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::h5kgk-1791028655865-8e18ce03ed95",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/cv",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "1",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:35 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/cv.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::4s7jp-1791028656045-d72a41b1fa72",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/writing",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "90",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::g96xf-1791028656231-3f7926c0903f",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 3002
+  },
+  {
+    "path": "/writing",
+    "method": "GET",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Age": "2393",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Wed, 30 Sep 2026 07:41:35 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Powered-By": "Next.js",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::9mx4f-1791028656409-07867f481a71",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 40757
+  },
+  {
+    "path": "/writing",
+    "method": "GET",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "90",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:56:06 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::t26r6-1791028656630-83773ba835f1",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    },
+    "bytes": 3002
+  },
+  {
+    "path": "/writing",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "0",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:36 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing.md",
+      "X-Vercel-Cache": "MISS",
+      "X-Vercel-Id": "fra1::iad1::dnbg6-1791028656799-0727cb1d9dca",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/writing",
+    "method": "HEAD",
+    "accept": "text/html",
+    "status": 200,
+    "headers": {
+      "Age": "2394",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/html; charset=utf-8",
+      "Date": "Wed, 30 Sep 2026 07:41:35 GMT",
+      "Link": "</_next/static/media/0c89a48fa5027cee-s.p.4564287c.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/70bc3e132a0a741e-s.p.15008bfb.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/791bf8c4bb753ed6-s.p.fb4c44d9.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/8010b10db0d5feb2-s.p.2927a788.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\", </_next/static/media/83afe278b6a6bb3c-s.p.3a6ba036.woff2>; rel=preload; as=\"font\"; crossorigin=\"\"; type=\"font/woff2\"",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing",
+      "X-Nextjs-Prerender": "1",
+      "X-Nextjs-Stale-Time": "300",
+      "X-Powered-By": "Next.js",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::4sc5j-1791028657080-faaccce2ca52",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "path": "/writing",
+    "method": "HEAD",
+    "accept": "text/markdown",
+    "status": 200,
+    "headers": {
+      "Age": "1",
+      "Cache-Control": "public",
+      "Content-Type": "text/markdown; charset=utf-8",
+      "Date": "Sat, 03 Oct 2026 11:57:36 GMT",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/writing.md",
+      "X-Vercel-Cache": "HIT",
+      "X-Vercel-Id": "fra1::iad1::l4ccf-1791028657272-0b15759e0237",
+      "Connection": "close"
+    },
+    "bytes": 0
+  },
+  {
+    "url": "https://lorenzogermini.com/resume",
+    "status": 301,
+    "headers": {
+      "Age": "0",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Length": "0",
+      "Date": "Sat, 03 Oct 2026 11:57:37 GMT",
+      "Location": "/cv",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "Vary": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+      "X-Matched-Path": "/resume",
+      "X-Vercel-Cache": "MISS",
+      "X-Vercel-Id": "fra1::iad1::jtd98-1791028657691-033688b48e3e",
+      "Connection": "close"
+    }
+  },
+  {
+    "url": "https://www.lorenzogermini.com/cv",
+    "status": 308,
+    "headers": {
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/plain",
+      "Date": "Sat, 03 Oct 2026 11:57:38 GMT",
+      "Location": "https://lorenzogermini.com/cv",
+      "Refresh": "0;url=https://lorenzogermini.com/cv",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "X-Vercel-Id": "fra1::j4jrt-1791028658166-10535b5610fe",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    }
+  },
+  {
+    "url": "https://lorenzo-germini.vercel.app/cv",
+    "status": 308,
+    "headers": {
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/plain",
+      "Date": "Sat, 03 Oct 2026 11:57:38 GMT",
+      "Location": "https://lorenzogermini.com/cv",
+      "Refresh": "0;url=https://lorenzogermini.com/cv",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+      "X-Vercel-Id": "fra1::mj5p5-1791028658632-131e1a268f4a",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    }
+  },
+  {
+    "url": "https://germinai.xyz/cv",
+    "status": 307,
+    "headers": {
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/plain",
+      "Date": "Sat, 03 Oct 2026 11:57:39 GMT",
+      "Location": "https://lorenzogermini.com/writing",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "X-Vercel-Id": "fra1::rf4xf-1791028659068-a90ea5c76321",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    }
+  },
+  {
+    "url": "https://www.germinai.xyz/cv",
+    "status": 307,
+    "headers": {
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Content-Type": "text/plain",
+      "Date": "Sat, 03 Oct 2026 11:57:39 GMT",
+      "Location": "https://lorenzogermini.com/writing",
+      "Server": "Vercel",
+      "Strict-Transport-Security": "max-age=63072000",
+      "X-Vercel-Id": "fra1::789qs-1791028659517-07ce7daf048a",
+      "Connection": "close",
+      "Transfer-Encoding": "chunked"
+    }
+  }
+]

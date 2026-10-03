@@ -439,10 +439,9 @@ test.describe("markdown siblings", () => {
   }
 });
 
-test.describe("freshness metadata", () => {
-  test("profile JSON-LD and the sitemap share one build-derived date", async ({
+test.describe("profile metadata", () => {
+  test("profile JSON-LD omits dates without profile-event provenance", async ({
     page,
-    request,
   }) => {
     await page.goto("/");
 
@@ -458,27 +457,12 @@ test.describe("freshness metadata", () => {
       profile,
       "the homepage should emit ProfilePage JSON-LD",
     ).toBeTruthy();
-    expect(profile.dateModified).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(
-      profile.dateModified,
-      "dateModified should not be the retired hardcoded date",
-    ).not.toBe("2026-04-01");
-
-    const modified = Date.parse(profile.dateModified);
-    expect(
-      modified,
-      "dateModified should not be in the future",
-    ).toBeLessThanOrEqual(Date.now());
-    expect(
-      Date.parse(profile.dateCreated),
-      "dateCreated should precede dateModified",
-    ).toBeLessThanOrEqual(modified);
-
-    /* Both surfaces read the same build-time constant, so agreement is what
-       proves the value is derived rather than typed in two places. */
-    const sitemap = await (await request.get("/sitemap.xml")).text();
-    const lastModified = sitemap.match(/<lastmod>(\d{4}-\d{2}-\d{2})/i)?.[1];
-    expect(lastModified, "the sitemap should publish a lastmod").toBeTruthy();
-    expect(profile.dateModified).toBe(lastModified);
+    /* Google recommends DateTime values for actual profile events. The old
+       creation day had no documented source and the modification day was a
+       build stamp; optional fields stay absent until those events are known. */
+    expect(profile).not.toHaveProperty("dateCreated");
+    expect(profile).not.toHaveProperty("dateModified");
+    expect(profile.mainEntity["@type"]).toBe("Person");
+    expect(profile.mainEntity.name).toBe(RESUME_DATA.name);
   });
 });

@@ -1,0 +1,96 @@
+# Lorenzo Germini — CV
+
+> AI Product Engineer shipping AI products end-to-end across compliance, health, and education. Based in Cuneo, Italy, CET.
+
+## Profile
+
+I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
+
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.
+
+Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
+
+## When to use this
+
+Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
+
+Less good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.
+
+Contact: lorenzo.germini@icloud.com
+
+The same CV as HTML: https://lorenzogermini.com/cv — as a PDF: https://lorenzogermini.com/lorenzo-germini-cv.pdf
+
+## Contact
+
+- Email: lorenzo.germini@icloud.com
+- Website: https://lorenzogermini.com
+- GitHub: https://github.com/Blaise-g
+- LinkedIn: https://www.linkedin.com/in/lorenzogermini/
+- X: https://twitter.com/spleenboi_
+
+## Experience
+
+### AI Engineer at Complaion (May 2025 - Present)
+Location: Cuneo, Italy
+Link: https://www.complaion.com/
+- Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.
+- Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
+- Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.
+
+### Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
+Location: Cuneo, Italy
+- Built the backend and GenAI API layer from zero on AWS (DynamoDB, Amplify, Lambda) for an EdTech product.
+- RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, plus tracing and evaluation workflows to tune prompts and retrieval quality.
+- Led MVP engineering, managing two other developers.
+
+### AI Engineer at GSK (Sep 2023 - Oct 2024)
+Location: Saint-Amand-les-Eaux, France
+Link: https://www.gsk.com/en-gb/home/
+- Used Python and multi-source sensor data to find inefficiencies across pharmaceutical utilities; designed water rejection strategies projected to save 10,000 m³ annually.
+- Anomaly detection and time-series forecasting for manufacturing operations, plus semantic NLP for fault detection and maintenance decisions.
+- Natural-language interfaces and generative AI use cases that made plant data usable on the floor.
+
+### Teacher and Digital Freelancer at Self Employed (Nov 2022 - Aug 2023)
+Location: Cuneo, Italy
+Link: https://liceocuneo.it/
+- Taught math and physics at my old high school; built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself, then killed it on the evidence after customer discovery.
+
+### Engineering Intern at Burgeon Labs (Feb 2022 - Oct 2022)
+Location: Geneva, Switzerland
+Link: https://www.burgeonlabs.com/
+- Fine-tuned language models for abstractive summarization of biomedical literature, deployed as an end-to-end pipeline for the company's first digital health product.
+
+### Summer Intern - 'Think Tank in Innovation & Sustainability' at Roche (Jul 2021 - Oct 2021)
+Location: Basel, Switzerland
+Link: https://www.roche.com/
+- Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning, 20% faster than manual.
+
+## Projects
+
+### Quadrell
+Tags: Independent Studio, Websites, Automations
+My independent studio for websites and workflow automations, built around how small businesses and independent professionals work. I take projects from the initial brief to launch, including a hospitality site for Alpes d’OC and an artist portfolio for Angelica Nolasco.
+Link: https://quadrell.dev/
+
+### L'Oracolo della Ghigliottina
+Tags: Side Project, Archived
+An archived AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. It found the word connecting five clues submitted as text or a photo of the TV, with rate-limit handling. The service is now closed; past results remain available to browse.
+Link: https://ghigliottina.vercel.app/
+
+### Biomedical Paper Summarizer
+Tags: MSc Thesis Project, Generative AI, PyTorch, Python, Gradio
+MSc thesis work: an end-to-end pipeline that turns full-text biomedical papers into either a detailed analysis or a TL;DR, tuned on longevity and human-health literature.
+Link: https://huggingface.co/spaces/Blaise-g/summarize-biomedical-papers-long-summary-or-tldr
+
+## Education
+
+### MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)
+Swiss Federal Institute of Technology Lausanne (EPFL), 2020-2022
+
+### Bachelor's Degree in Electrical Engineering
+Polytechnic of Turin, 2017-2020
+
+## Skills
+
+- AI systems: LLM agents, RAG, Evals & tracing
+- Product engineering: Full-stack development, Python, Coding agents in the loop
