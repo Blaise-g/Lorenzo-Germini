@@ -1,0 +1,1135 @@
+{
+  "home": {
+    "metadata": [
+      {
+        "charset": "utf-8"
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1"
+      },
+      {
+        "name": "next-size-adjust",
+        "content": ""
+      },
+      {
+        "name": "description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "author",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "keywords",
+        "content": "AI Product Engineer,AI Engineer,Generative AI,Agents,Agentic AI,Complaion,Machine Learning,Software Engineer,Lorenzo Germini,Portfolio,Resume,CV,LLM agents,RAG,Evals & tracing,Full-stack development,Python"
+      },
+      {
+        "name": "creator",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "robots",
+        "content": "index, follow"
+      },
+      {
+        "name": "googlebot",
+        "content": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+      },
+      {
+        "property": "og:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "property": "og:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "property": "og:url",
+        "content": "https://lorenzogermini.com"
+      },
+      {
+        "property": "og:site_name",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "property": "og:locale",
+        "content": "en_US"
+      },
+      {
+        "property": "og:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "property": "og:image:type",
+        "content": "image/png"
+      },
+      {
+        "property": "og:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "property": "og:image:width",
+        "content": "1200"
+      },
+      {
+        "property": "og:image:height",
+        "content": "630"
+      },
+      {
+        "property": "og:type",
+        "content": "website"
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image"
+      },
+      {
+        "name": "twitter:creator",
+        "content": "@spleenboi_"
+      },
+      {
+        "name": "twitter:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "name": "twitter:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "twitter:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "name": "twitter:image:type",
+        "content": "image/png"
+      },
+      {
+        "name": "twitter:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "name": "twitter:image:width",
+        "content": "1200"
+      },
+      {
+        "name": "twitter:image:height",
+        "content": "630"
+      }
+    ],
+    "links": [
+      {
+        "rel": "stylesheet",
+        "href": "/_next/static/chunks/d7990e33fd7da733.css?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE",
+        "data-precedence": "next"
+      },
+      {
+        "rel": "preload",
+        "as": "script",
+        "fetchpriority": "low",
+        "href": "/_next/static/chunks/b22e381cfa9aa0b7.js?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE"
+      },
+      {
+        "rel": "author",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "manifest",
+        "href": "/manifest.webmanifest"
+      },
+      {
+        "rel": "canonical",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "alternate",
+        "type": "text/markdown",
+        "href": "https://lorenzogermini.com/index.md"
+      },
+      {
+        "rel": "icon",
+        "href": "/favicon.ico?favicon.fe6439a2.ico",
+        "sizes": "48x48",
+        "type": "image/x-icon"
+      },
+      {
+        "rel": "apple-touch-icon",
+        "href": "/apple-icon.png?apple-icon.caeb57f9.png",
+        "sizes": "180x180",
+        "type": "image/png"
+      }
+    ],
+    "headings": [
+      [
+        "h1",
+        "I build AI products end-to-end and write about "
+      ],
+      [
+        "h2",
+        "Writing"
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h2",
+        "About"
+      ],
+      [
+        "h2",
+        "Work"
+      ],
+      [
+        "h3",
+        "AI Engineer \u00b7 "
+      ],
+      [
+        "h3",
+        "Founding AI Engineer \u00b7 Stealth GenAI Startup"
+      ],
+      [
+        "h3",
+        "AI Engineer \u00b7 "
+      ],
+      [
+        "h2",
+        "Projects"
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h2",
+        "Systems"
+      ]
+    ],
+    "jsonld": [
+      {
+        "@context": "https://schema.org",
+        "@type": "ProfilePage",
+        "dateCreated": "2024-01-01",
+        "dateModified": "2026-09-30",
+        "mainEntity": {
+          "@context": "https://schema.org",
+          "@type": "Person",
+          "@id": "https://lorenzogermini.com/#person",
+          "name": "Lorenzo Germini",
+          "jobTitle": "AI Product Engineer",
+          "description": "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+          "url": "https://lorenzogermini.com",
+          "image": "https://lorenzogermini.com/lorenzo-germini-portrait.jpg",
+          "sameAs": [
+            "https://github.com/Blaise-g",
+            "https://www.linkedin.com/in/lorenzogermini/",
+            "https://twitter.com/spleenboi_"
+          ],
+          "email": "lorenzo.germini@icloud.com",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Cuneo",
+            "addressRegion": "Piedmont",
+            "addressCountry": "IT"
+          },
+          "alumniOf": [
+            {
+              "@type": "EducationalOrganization",
+              "name": "Swiss Federal Institute of Technology Lausanne (EPFL)"
+            },
+            {
+              "@type": "EducationalOrganization",
+              "name": "Polytechnic of Turin"
+            }
+          ],
+          "worksFor": {
+            "@type": "Organization",
+            "name": "Complaion",
+            "url": "https://www.complaion.com/"
+          },
+          "knowsAbout": [
+            "LLM agents",
+            "RAG",
+            "Evals & tracing",
+            "Full-stack development",
+            "Python",
+            "Coding agents in the loop"
+          ],
+          "knowsLanguage": [
+            "English",
+            "Italian",
+            "French"
+          ],
+          "hasOccupation": {
+            "@type": "Occupation",
+            "name": "AI Product Engineer",
+            "occupationalCategory": "15-1299.00",
+            "occupationLocation": {
+              "@type": "City",
+              "name": "Cuneo"
+            },
+            "skills": "LLM agents, RAG, Evals & tracing, Full-stack development, Python, Coding agents in the loop"
+          },
+          "hasCredential": [
+            {
+              "@type": "EducationalOccupationalCredential",
+              "name": "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)",
+              "credentialCategory": "degree",
+              "recognizedBy": {
+                "@type": "EducationalOrganization",
+                "name": "Swiss Federal Institute of Technology Lausanne (EPFL)"
+              }
+            },
+            {
+              "@type": "EducationalOccupationalCredential",
+              "name": "Bachelor's Degree in Electrical Engineering",
+              "credentialCategory": "degree",
+              "recognizedBy": {
+                "@type": "EducationalOrganization",
+                "name": "Polytechnic of Turin"
+              }
+            }
+          ]
+        },
+        "speakable": {
+          "@type": "SpeakableSpecification",
+          "cssSelector": [
+            "h1",
+            "h2",
+            "[data-speakable]"
+          ]
+        }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://lorenzogermini.com/#website",
+        "name": "Lorenzo Germini - Portfolio",
+        "url": "https://lorenzogermini.com",
+        "description": "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+        "inLanguage": "en",
+        "author": {
+          "@id": "https://lorenzogermini.com/#person"
+        },
+        "publisher": {
+          "@id": "https://lorenzogermini.com/#person"
+        }
+      }
+    ],
+    "body_text_chars": 3756
+  },
+  "cv": {
+    "metadata": [
+      {
+        "charset": "utf-8"
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1"
+      },
+      {
+        "name": "next-size-adjust",
+        "content": ""
+      },
+      {
+        "name": "description",
+        "content": "Curriculum vitae for Lorenzo Germini, covering work in AI product engineering, education, technical skills, and projects."
+      },
+      {
+        "name": "author",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "keywords",
+        "content": "AI Product Engineer,AI Engineer,Generative AI,Agents,Agentic AI,Complaion,Machine Learning,Software Engineer,Lorenzo Germini,Portfolio,Resume,CV,LLM agents,RAG,Evals & tracing,Full-stack development,Python"
+      },
+      {
+        "name": "creator",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "robots",
+        "content": "index, follow"
+      },
+      {
+        "name": "googlebot",
+        "content": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+      },
+      {
+        "property": "og:title",
+        "content": "Lorenzo Germini \u2014 CV"
+      },
+      {
+        "property": "og:description",
+        "content": "Curriculum vitae for Lorenzo Germini, covering work in AI product engineering, education, technical skills, and projects."
+      },
+      {
+        "property": "og:url",
+        "content": "https://lorenzogermini.com/cv"
+      },
+      {
+        "property": "og:image:alt",
+        "content": "Lorenzo Germini \u2014 Curriculum vitae"
+      },
+      {
+        "property": "og:image:type",
+        "content": "image/png"
+      },
+      {
+        "property": "og:image",
+        "content": "https://lorenzogermini.com/cv/opengraph-image?72cba8a76f73fa61"
+      },
+      {
+        "property": "og:image:width",
+        "content": "1200"
+      },
+      {
+        "property": "og:image:height",
+        "content": "630"
+      },
+      {
+        "property": "og:type",
+        "content": "profile"
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image"
+      },
+      {
+        "name": "twitter:creator",
+        "content": "@spleenboi_"
+      },
+      {
+        "name": "twitter:title",
+        "content": "Lorenzo Germini \u2014 CV"
+      },
+      {
+        "name": "twitter:description",
+        "content": "Curriculum vitae for Lorenzo Germini, covering work in AI product engineering, education, technical skills, and projects."
+      },
+      {
+        "name": "twitter:image:alt",
+        "content": "Lorenzo Germini \u2014 Curriculum vitae"
+      },
+      {
+        "name": "twitter:image:type",
+        "content": "image/png"
+      },
+      {
+        "name": "twitter:image",
+        "content": "https://lorenzogermini.com/cv/opengraph-image?72cba8a76f73fa61"
+      },
+      {
+        "name": "twitter:image:width",
+        "content": "1200"
+      },
+      {
+        "name": "twitter:image:height",
+        "content": "630"
+      }
+    ],
+    "links": [
+      {
+        "rel": "stylesheet",
+        "href": "/_next/static/chunks/d7990e33fd7da733.css?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE",
+        "data-precedence": "next"
+      },
+      {
+        "rel": "preload",
+        "as": "script",
+        "fetchpriority": "low",
+        "href": "/_next/static/chunks/b22e381cfa9aa0b7.js?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE"
+      },
+      {
+        "rel": "author",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "manifest",
+        "href": "/manifest.webmanifest"
+      },
+      {
+        "rel": "canonical",
+        "href": "https://lorenzogermini.com/cv"
+      },
+      {
+        "rel": "alternate",
+        "type": "text/markdown",
+        "href": "https://lorenzogermini.com/cv.md"
+      },
+      {
+        "rel": "icon",
+        "href": "/favicon.ico?favicon.fe6439a2.ico",
+        "sizes": "48x48",
+        "type": "image/x-icon"
+      },
+      {
+        "rel": "apple-touch-icon",
+        "href": "/apple-icon.png?apple-icon.caeb57f9.png",
+        "sizes": "180x180",
+        "type": "image/png"
+      }
+    ],
+    "headings": [
+      [
+        "h1",
+        "Lorenzo Germini"
+      ],
+      [
+        "h2",
+        "Profile"
+      ],
+      [
+        "h2",
+        "Experience"
+      ],
+      [
+        "h3",
+        "AI Engineer"
+      ],
+      [
+        "h3",
+        "Founding AI Engineer"
+      ],
+      [
+        "h3",
+        "AI Engineer"
+      ],
+      [
+        "h3",
+        "Teacher and Digital Freelancer"
+      ],
+      [
+        "h3",
+        "Engineering Intern"
+      ],
+      [
+        "h3",
+        "Summer Intern - 'Think Tank in Innovation & Sustainability'"
+      ],
+      [
+        "h2",
+        "Projects"
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h3",
+        ""
+      ],
+      [
+        "h2",
+        "Education"
+      ],
+      [
+        "h3",
+        "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)"
+      ],
+      [
+        "h3",
+        "Bachelor's Degree in Electrical Engineering"
+      ],
+      [
+        "h2",
+        "Skills"
+      ]
+    ],
+    "jsonld": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "@id": "https://lorenzogermini.com/#person",
+        "name": "Lorenzo Germini",
+        "jobTitle": "AI Product Engineer",
+        "description": "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+        "url": "https://lorenzogermini.com/cv",
+        "image": "https://lorenzogermini.com/lorenzo-germini-portrait.jpg",
+        "sameAs": [
+          "https://github.com/Blaise-g",
+          "https://www.linkedin.com/in/lorenzogermini/",
+          "https://twitter.com/spleenboi_"
+        ],
+        "email": "lorenzo.germini@icloud.com",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "Cuneo",
+          "addressRegion": "Piedmont",
+          "addressCountry": "IT"
+        },
+        "alumniOf": [
+          {
+            "@type": "EducationalOrganization",
+            "name": "Swiss Federal Institute of Technology Lausanne (EPFL)"
+          },
+          {
+            "@type": "EducationalOrganization",
+            "name": "Polytechnic of Turin"
+          }
+        ],
+        "worksFor": {
+          "@type": "Organization",
+          "name": "Complaion",
+          "url": "https://www.complaion.com/"
+        },
+        "knowsAbout": [
+          "LLM agents",
+          "RAG",
+          "Evals & tracing",
+          "Full-stack development",
+          "Python",
+          "Coding agents in the loop"
+        ],
+        "knowsLanguage": [
+          "English",
+          "Italian",
+          "French"
+        ],
+        "hasOccupation": {
+          "@type": "Occupation",
+          "name": "AI Product Engineer",
+          "occupationalCategory": "15-1299.00",
+          "occupationLocation": {
+            "@type": "City",
+            "name": "Cuneo"
+          },
+          "skills": "LLM agents, RAG, Evals & tracing, Full-stack development, Python, Coding agents in the loop"
+        },
+        "hasCredential": [
+          {
+            "@type": "EducationalOccupationalCredential",
+            "name": "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)",
+            "credentialCategory": "degree",
+            "recognizedBy": {
+              "@type": "EducationalOrganization",
+              "name": "Swiss Federal Institute of Technology Lausanne (EPFL)"
+            }
+          },
+          {
+            "@type": "EducationalOccupationalCredential",
+            "name": "Bachelor's Degree in Electrical Engineering",
+            "credentialCategory": "degree",
+            "recognizedBy": {
+              "@type": "EducationalOrganization",
+              "name": "Polytechnic of Turin"
+            }
+          }
+        ],
+        "dateModified": "2026-09-30"
+      }
+    ],
+    "body_text_chars": 4738
+  },
+  "writing": {
+    "metadata": [
+      {
+        "charset": "utf-8"
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1"
+      },
+      {
+        "name": "next-size-adjust",
+        "content": ""
+      },
+      {
+        "name": "description",
+        "content": "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai."
+      },
+      {
+        "name": "author",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "keywords",
+        "content": "AI Product Engineer,AI Engineer,Generative AI,Agents,Agentic AI,Complaion,Machine Learning,Software Engineer,Lorenzo Germini,Portfolio,Resume,CV,LLM agents,RAG,Evals & tracing,Full-stack development,Python"
+      },
+      {
+        "name": "creator",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "robots",
+        "content": "index, follow"
+      },
+      {
+        "name": "googlebot",
+        "content": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+      },
+      {
+        "property": "og:title",
+        "content": "Writing \u2014 Lorenzo Germini"
+      },
+      {
+        "property": "og:description",
+        "content": "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai."
+      },
+      {
+        "property": "og:url",
+        "content": "https://lorenzogermini.com/writing"
+      },
+      {
+        "property": "og:image:alt",
+        "content": "Lorenzo Germini \u2014 Writing"
+      },
+      {
+        "property": "og:image:type",
+        "content": "image/png"
+      },
+      {
+        "property": "og:image",
+        "content": "https://lorenzogermini.com/writing/opengraph-image?33676321720ce90e"
+      },
+      {
+        "property": "og:image:width",
+        "content": "1200"
+      },
+      {
+        "property": "og:image:height",
+        "content": "630"
+      },
+      {
+        "property": "og:type",
+        "content": "website"
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image"
+      },
+      {
+        "name": "twitter:creator",
+        "content": "@spleenboi_"
+      },
+      {
+        "name": "twitter:title",
+        "content": "Writing \u2014 Lorenzo Germini"
+      },
+      {
+        "name": "twitter:description",
+        "content": "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai."
+      },
+      {
+        "name": "twitter:image:alt",
+        "content": "Lorenzo Germini \u2014 Writing"
+      },
+      {
+        "name": "twitter:image:type",
+        "content": "image/png"
+      },
+      {
+        "name": "twitter:image",
+        "content": "https://lorenzogermini.com/writing/opengraph-image?33676321720ce90e"
+      },
+      {
+        "name": "twitter:image:width",
+        "content": "1200"
+      },
+      {
+        "name": "twitter:image:height",
+        "content": "630"
+      }
+    ],
+    "links": [
+      {
+        "rel": "preload",
+        "as": "image",
+        "imagesrcset": "/_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=640&q=75 640w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=750&q=75 750w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=828&q=75 828w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=1080&q=75 1080w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=1200&q=75 1200w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=1920&q=75 1920w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=2048&q=75 2048w, /_next/image?url=https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fb74ed7dc-74b7-482a-a806-1072337fed5b_1456x819.jpeg&w=3840&q=75 3840w",
+        "imagesizes": "(min-width: 768px) 42rem, 100vw",
+        "fetchpriority": "high"
+      },
+      {
+        "rel": "stylesheet",
+        "href": "/_next/static/chunks/d7990e33fd7da733.css?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE",
+        "data-precedence": "next"
+      },
+      {
+        "rel": "preload",
+        "as": "script",
+        "fetchpriority": "low",
+        "href": "/_next/static/chunks/b22e381cfa9aa0b7.js?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE"
+      },
+      {
+        "rel": "author",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "manifest",
+        "href": "/manifest.webmanifest"
+      },
+      {
+        "rel": "canonical",
+        "href": "https://lorenzogermini.com/writing"
+      },
+      {
+        "rel": "alternate",
+        "type": "text/markdown",
+        "href": "https://lorenzogermini.com/writing.md"
+      },
+      {
+        "rel": "icon",
+        "href": "/favicon.ico?favicon.fe6439a2.ico",
+        "sizes": "48x48",
+        "type": "image/x-icon"
+      },
+      {
+        "rel": "apple-touch-icon",
+        "href": "/apple-icon.png?apple-icon.caeb57f9.png",
+        "sizes": "180x180",
+        "type": "image/png"
+      }
+    ],
+    "headings": [
+      [
+        "h1",
+        "Writing"
+      ],
+      [
+        "h2",
+        ""
+      ],
+      [
+        "h2",
+        "Get the field notes by email"
+      ]
+    ],
+    "jsonld": [
+      {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "germinai",
+        "url": "https://lorenzogermini.substack.com",
+        "mainEntityOfPage": "https://lorenzogermini.com/writing",
+        "description": "Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai.",
+        "inLanguage": "en",
+        "author": {
+          "@id": "https://lorenzogermini.com/#person"
+        }
+      }
+    ],
+    "body_text_chars": 978
+  },
+  "missing": {
+    "metadata": [
+      {
+        "charset": "utf-8"
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1"
+      },
+      {
+        "name": "robots",
+        "content": "noindex"
+      },
+      {
+        "name": "next-size-adjust",
+        "content": ""
+      },
+      {
+        "name": "description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "author",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "keywords",
+        "content": "AI Product Engineer,AI Engineer,Generative AI,Agents,Agentic AI,Complaion,Machine Learning,Software Engineer,Lorenzo Germini,Portfolio,Resume,CV,LLM agents,RAG,Evals & tracing,Full-stack development,Python"
+      },
+      {
+        "name": "creator",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "robots",
+        "content": "index, follow"
+      },
+      {
+        "name": "googlebot",
+        "content": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+      },
+      {
+        "property": "og:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "property": "og:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "property": "og:url",
+        "content": "https://lorenzogermini.com"
+      },
+      {
+        "property": "og:site_name",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "property": "og:locale",
+        "content": "en_US"
+      },
+      {
+        "property": "og:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "property": "og:image:type",
+        "content": "image/png"
+      },
+      {
+        "property": "og:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "property": "og:image:width",
+        "content": "1200"
+      },
+      {
+        "property": "og:image:height",
+        "content": "630"
+      },
+      {
+        "property": "og:type",
+        "content": "website"
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image"
+      },
+      {
+        "name": "twitter:creator",
+        "content": "@spleenboi_"
+      },
+      {
+        "name": "twitter:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "name": "twitter:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "twitter:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "name": "twitter:image:type",
+        "content": "image/png"
+      },
+      {
+        "name": "twitter:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "name": "twitter:image:width",
+        "content": "1200"
+      },
+      {
+        "name": "twitter:image:height",
+        "content": "630"
+      }
+    ],
+    "links": [
+      {
+        "rel": "stylesheet",
+        "href": "/_next/static/chunks/d7990e33fd7da733.css?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE",
+        "data-precedence": "next"
+      },
+      {
+        "rel": "preload",
+        "as": "script",
+        "fetchpriority": "low",
+        "href": "/_next/static/chunks/b22e381cfa9aa0b7.js?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE"
+      },
+      {
+        "rel": "author",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "manifest",
+        "href": "/manifest.webmanifest"
+      },
+      {
+        "rel": "icon",
+        "href": "/favicon.ico?favicon.fe6439a2.ico",
+        "sizes": "48x48",
+        "type": "image/x-icon"
+      },
+      {
+        "rel": "apple-touch-icon",
+        "href": "/apple-icon.png?apple-icon.caeb57f9.png",
+        "sizes": "180x180",
+        "type": "image/png"
+      }
+    ],
+    "headings": [
+      [
+        "h1",
+        "404"
+      ]
+    ],
+    "jsonld": [],
+    "body_text_chars": 255
+  },
+  "fixture": {
+    "metadata": [
+      {
+        "charset": "utf-8"
+      },
+      {
+        "name": "viewport",
+        "content": "width=device-width, initial-scale=1"
+      },
+      {
+        "name": "robots",
+        "content": "noindex"
+      },
+      {
+        "name": "description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "author",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "keywords",
+        "content": "AI Product Engineer,AI Engineer,Generative AI,Agents,Agentic AI,Complaion,Machine Learning,Software Engineer,Lorenzo Germini,Portfolio,Resume,CV,LLM agents,RAG,Evals & tracing,Full-stack development,Python"
+      },
+      {
+        "name": "creator",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "name": "robots",
+        "content": "index, follow"
+      },
+      {
+        "name": "googlebot",
+        "content": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1"
+      },
+      {
+        "property": "og:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "property": "og:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "property": "og:url",
+        "content": "https://lorenzogermini.com"
+      },
+      {
+        "property": "og:site_name",
+        "content": "Lorenzo Germini"
+      },
+      {
+        "property": "og:locale",
+        "content": "en_US"
+      },
+      {
+        "property": "og:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "property": "og:image:type",
+        "content": "image/png"
+      },
+      {
+        "property": "og:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "property": "og:image:width",
+        "content": "1200"
+      },
+      {
+        "property": "og:image:height",
+        "content": "630"
+      },
+      {
+        "property": "og:type",
+        "content": "website"
+      },
+      {
+        "name": "twitter:card",
+        "content": "summary_large_image"
+      },
+      {
+        "name": "twitter:creator",
+        "content": "@spleenboi_"
+      },
+      {
+        "name": "twitter:title",
+        "content": "Lorenzo Germini | AI Product Engineer"
+      },
+      {
+        "name": "twitter:description",
+        "content": "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai."
+      },
+      {
+        "name": "twitter:image:alt",
+        "content": "Lorenzo Germini \u2014 AI Product Engineer"
+      },
+      {
+        "name": "twitter:image:type",
+        "content": "image/png"
+      },
+      {
+        "name": "twitter:image",
+        "content": "https://lorenzogermini.com/opengraph-image?40cf4f279b89dfa1"
+      },
+      {
+        "name": "twitter:image:width",
+        "content": "1200"
+      },
+      {
+        "name": "twitter:image:height",
+        "content": "630"
+      }
+    ],
+    "links": [
+      {
+        "rel": "preload",
+        "as": "script",
+        "fetchpriority": "low",
+        "href": "/_next/static/chunks/b22e381cfa9aa0b7.js?dpl=dpl_A9rXGX5umNK7doEpmuVDCvnb3vEE"
+      },
+      {
+        "rel": "author",
+        "href": "https://lorenzogermini.com"
+      },
+      {
+        "rel": "manifest",
+        "href": "/manifest.webmanifest"
+      },
+      {
+        "rel": "icon",
+        "href": "/favicon.ico?favicon.fe6439a2.ico",
+        "sizes": "48x48",
+        "type": "image/x-icon"
+      },
+      {
+        "rel": "apple-touch-icon",
+        "href": "/apple-icon.png?apple-icon.caeb57f9.png",
+        "sizes": "180x180",
+        "type": "image/png"
+      }
+    ],
+    "headings": [],
+    "jsonld": [],
+    "body_text_chars": 37
+  }
+}

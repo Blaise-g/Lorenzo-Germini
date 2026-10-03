@@ -1,0 +1,46 @@
+# Lorenzo Germini — Writing
+
+> AI Product Engineer shipping AI products end-to-end across compliance, health, and education. Based in Cuneo, Italy, CET.
+
+## Profile
+
+I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
+
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.
+
+Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
+
+## When to use this
+
+Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
+
+Less good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.
+
+Contact: lorenzo.germini@icloud.com
+
+## Currently
+
+### AI Engineer at Complaion (May 2025 - Present)
+Location: Cuneo, Italy
+Link: https://www.complaion.com/
+- Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.
+- Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.
+- Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.
+
+## Writing
+
+Field notes, mostly from building with AI and the people building on it. No definitive guides. The advice changes every two days anyway. Published on germinai.
+
+- Publication: germinai — https://lorenzogermini.substack.com
+- Feed: https://lorenzogermini.substack.com/feed
+- Index: https://lorenzogermini.com/writing — the essays listed on this site; each one links out to Substack, which hosts the full text
+
+The essay list is read live from the germinai feed rather than restated here, so the index above is the current one: new ones when there's something worth the send.
+
+## Contact
+
+- Email: lorenzo.germini@icloud.com
+- Website: https://lorenzogermini.com
+- GitHub: https://github.com/Blaise-g
+- LinkedIn: https://www.linkedin.com/in/lorenzogermini/
+- X: https://twitter.com/spleenboi_

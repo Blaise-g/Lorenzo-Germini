@@ -1,5 +1,4 @@
 import { RESUME_DATA } from "@/data/resume-data";
-import { BUILD_DATE_ISO } from "@/lib/build-metadata";
 import {
   buildPersonStructuredData,
   PERSON_REFERENCE,
@@ -10,8 +9,8 @@ export function StructuredData() {
   const personData = {
     "@context": "https://schema.org",
     "@type": "ProfilePage",
-    dateCreated: "2024-01-01",
-    dateModified: BUILD_DATE_ISO,
+    /* Optional profile dates need a known creation or human-edit event. The
+       previous creation day had no source, and a build is not a profile edit. */
     /* The defining Person node for this page, inline rather than an `@id`
        reference: Google's ProfilePage rich result reads `mainEntity` directly,
        and it now carries `PERSON_ID` so the other nodes can point at it. */
