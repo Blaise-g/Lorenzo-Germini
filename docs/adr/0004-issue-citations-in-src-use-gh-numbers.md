@@ -48,7 +48,7 @@ who had just leaked a palette value to convert it into a citation. So it leads w
 guard exists for — the colour belongs in the token layer — and offers `GH-` numbering second. A 6-
 or 8-digit match cannot be an issue number at all and keeps the plain report.
 
-**The convention is scoped to `src/`, and deliberately not repo-wide.** `CONTEXT.md`, `docs/`, PR
+**The convention is scoped to `src/`, and deliberately not repo-wide.** `GLOSSARY.md`, `docs/`, PR
 and issue bodies keep `#100`, where the hash _is_ a working link and no guard runs. Do not
 "consistency-fix" those to `GH-` numbering; the two forms mark the boundary of where the guard
 reaches.

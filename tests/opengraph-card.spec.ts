@@ -104,7 +104,7 @@ test.describe("homepage OpenGraph card", () => {
     /* As composed: ~1.0% of the frame, the opening mark (0.05%) plus the
        italic positioning line. The floor catches terracotta dropping out of
        the card entirely; the ceiling catches it becoming a fill, which
-       CONTEXT.md forbids for this role. */
+       GLOSSARY.md forbids for this role. */
     const share = accentPixels / (info.width * info.height);
     expect(share).toBeGreaterThan(0.002);
     expect(share).toBeLessThan(0.04);
