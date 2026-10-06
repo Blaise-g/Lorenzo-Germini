@@ -34,7 +34,7 @@ Siblings remain the substrate; they are just not sufficient on their own.
 
 **Continuing to hand-maintain the manifests** — adding markdown by hand alongside `public/llms.txt`
 and `public/llms-full.txt` — is the path of least new machinery and the worst of the three.
-`CONTEXT.md` already records that the hand-written manifests drift the worst of the eight identity
+`GLOSSARY.md` already records that the hand-written manifests drift the worst of the eight identity
 surfaces, because only they hold a second copy of the prose rather than reading a field. Adding two
 more hand-written copies makes the drift problem larger in exactly the place it is already worst.
 
