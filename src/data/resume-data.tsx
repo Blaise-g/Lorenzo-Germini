@@ -14,9 +14,9 @@ export const RESUME_DATA: ResumeData = {
   about:
     "AI Product Engineer shipping AI products end-to-end across compliance, health, and education",
   summary:
-    "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
+    "I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.\n\nThese days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed. Technical depth only matters when it meets a real user problem.\n\nOutside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.",
   agentGuidance:
-    "Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.\n\nLess good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.",
+    "Good fit for: putting LLM agents into production where being wrong is expensive (regulated documentation, compliance, health, pharma manufacturing); building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.\n\nLess good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.",
   metaTitle: "Lorenzo Germini | AI Product Engineer",
   metaDescription:
     "AI product engineer. I build the AI engine behind Complaion, a compliance platform for European SMEs, and write about building with AI at germinai.",
@@ -112,11 +112,11 @@ export const RESUME_DATA: ResumeData = {
       end: "Present",
       description: [
         "Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.",
-        "Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production.",
-        "Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.",
+        "Building the AI engine behind it: agentic RAG over ISO documentation, with evaluation frameworks that track its reliability in production.",
+        "Shipping AI product features and automation workflows from definition to production, across AI, backend, and frontend.",
       ],
       homepageProof:
-        "The AI engine behind the product: LLM agents doing compliance work over ISO documentation in the background, and the eval harness that shows when they can't be trusted. Shipping features end-to-end, from definition through AI, backend, and frontend to production.",
+        "Agentic RAG over ISO documentation, with an eval harness that tracks its reliability in production. Product features and automation workflows shipped from definition to production, across AI, backend, and frontend.",
     },
     {
       company: "Stealth GenAI Startup",
@@ -127,11 +127,11 @@ export const RESUME_DATA: ResumeData = {
       end: "Apr 2025",
       description: [
         "Built the backend and GenAI API layer from zero on AWS (DynamoDB, Amplify, Lambda) for an EdTech product.",
-        "RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, plus tracing and evaluation workflows to tune prompts and retrieval quality.",
+        "Built a RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, and used tracing and evaluation workflows to tune prompts and retrieval quality.",
         "Led MVP engineering, managing two other developers.",
       ],
       homepageProof:
-        "Backend and GenAI API layer from zero on AWS; a RAG stack with custom parsing for handwritten input, plus the tracing and evals to tune retrieval.",
+        "Backend and GenAI API layer from zero on AWS. A RAG stack with custom parsing for handwritten input, plus the tracing and evals to tune retrieval.",
     },
     {
       company: "GSK",
@@ -141,22 +141,23 @@ export const RESUME_DATA: ResumeData = {
       start: "Sep 2023",
       end: "Oct 2024",
       description: [
-        "Used Python and multi-source sensor data to find inefficiencies across pharmaceutical utilities; designed water rejection strategies projected to save 10,000 m³ annually.",
-        "Anomaly detection and time-series forecasting for manufacturing operations, plus semantic NLP for fault detection and maintenance decisions.",
-        "Natural-language interfaces and generative AI use cases that made plant data usable on the floor.",
+        "Found inefficiencies across pharmaceutical utilities with Python and multi-source sensor data, and designed water rejection strategies projected to save 10,000 m³ a year.",
+        "Built anomaly detection and time-series forecasting for manufacturing operations, and semantic NLP for fault detection and maintenance decisions.",
+        "Built natural-language interfaces and generative AI use cases that made plant data usable on the floor.",
       ],
       homepageProof:
         "Time-series forecasting and anomaly detection on plant sensor data, semantic NLP for fault detection, and a water-rejection strategy projected at 10,000 m³/year.",
     },
     {
       company: "Self Employed",
-      link: "https://liceocuneo.it/",
+      link: "",
       badges: ["Cuneo, Italy"],
       title: "Teacher and Digital Freelancer",
       start: "Nov 2022",
       end: "Aug 2023",
       description: [
-        "Taught math and physics at my old high school; built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself, then killed it on the evidence after customer discovery.",
+        "Taught math and physics at my old high school.",
+        "Built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself. Killed it on the evidence after customer discovery.",
       ],
     },
     {
@@ -174,11 +175,11 @@ export const RESUME_DATA: ResumeData = {
       company: "Roche",
       link: "https://www.roche.com/",
       badges: ["Basel, Switzerland"],
-      title: "Summer Intern - 'Think Tank in Innovation & Sustainability'",
+      title: "Summer Intern, Think Tank in Innovation & Sustainability",
       start: "Jul 2021",
       end: "Oct 2021",
       description: [
-        "Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model for fill parameter tuning, 20% faster than manual.",
+        "Took a personalized-medicine filling prototype through hardware-software integration testing, and built a gradient-boosted tree ML model that tunes fill parameters 20% faster than manual tuning.",
       ],
     },
   ],
@@ -204,7 +205,7 @@ export const RESUME_DATA: ResumeData = {
       title: "Quadrell",
       techStack: ["Independent Studio", "Websites", "Automations"],
       description:
-        "My independent studio for websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, building around the way the business actually works.",
+        "My independent studio, building websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, and build around how the business already works.",
       link: {
         label: "Quadrell",
         href: "https://quadrell.dev/",
@@ -212,9 +213,17 @@ export const RESUME_DATA: ResumeData = {
     },
     {
       title: "L'Oracolo della Ghigliottina",
-      techStack: ["Side Project", "Archived"],
+      techStack: [
+        "Side Project",
+        "Archived",
+        "Generative AI",
+        "Next.js",
+        "Vercel AI SDK",
+        "Telegram Bot",
+        "WhatsApp Bot",
+      ],
       description:
-        "An archived AI game companion for La Ghigliottina, the cult final round of Italy's most-watched quiz show. It found the word connecting five clues submitted as text or a photo of the TV, with rate-limit handling. The service is now closed; past results remain available to browse.",
+        "An archived AI game companion for La Ghigliottina, the final round of the Rai 1 quiz show L'Eredità. It found the word connecting five clues, submitted as text or as a photo of the TV, and handled rate limits. The service is closed. Past results are still available to browse.",
       link: {
         label: "L'Oracolo della Ghigliottina",
         href: "https://ghigliottina.vercel.app/",
