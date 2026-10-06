@@ -160,54 +160,18 @@
       }
     ],
     "headings": [
-      [
-        "h1",
-        "I build AI products end-to-end and write about "
-      ],
-      [
-        "h2",
-        "Writing"
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h2",
-        "About"
-      ],
-      [
-        "h2",
-        "Work"
-      ],
-      [
-        "h3",
-        "AI Engineer \u00b7 "
-      ],
-      [
-        "h3",
-        "Founding AI Engineer \u00b7 Stealth GenAI Startup"
-      ],
-      [
-        "h3",
-        "AI Engineer \u00b7 "
-      ],
-      [
-        "h2",
-        "Projects"
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h2",
-        "Systems"
-      ]
+      ["h1", "I build AI products end-to-end and write about "],
+      ["h2", "Writing"],
+      ["h3", ""],
+      ["h2", "About"],
+      ["h2", "Work"],
+      ["h3", "AI Engineer \u00b7 "],
+      ["h3", "Founding AI Engineer \u00b7 Stealth GenAI Startup"],
+      ["h3", "AI Engineer \u00b7 "],
+      ["h2", "Projects"],
+      ["h3", ""],
+      ["h3", ""],
+      ["h2", "Systems"]
     ],
     "jsonld": [
       {
@@ -259,11 +223,7 @@
             "Python",
             "Coding agents in the loop"
           ],
-          "knowsLanguage": [
-            "English",
-            "Italian",
-            "French"
-          ],
+          "knowsLanguage": ["English", "Italian", "French"],
           "hasOccupation": {
             "@type": "Occupation",
             "name": "AI Product Engineer",
@@ -297,11 +257,7 @@
         },
         "speakable": {
           "@type": "SpeakableSpecification",
-          "cssSelector": [
-            "h1",
-            "h2",
-            "[data-speakable]"
-          ]
+          "cssSelector": ["h1", "h2", "[data-speakable]"]
         }
       },
       {
@@ -475,74 +431,26 @@
       }
     ],
     "headings": [
-      [
-        "h1",
-        "Lorenzo Germini"
-      ],
-      [
-        "h2",
-        "Profile"
-      ],
-      [
-        "h2",
-        "Experience"
-      ],
-      [
-        "h3",
-        "AI Engineer"
-      ],
-      [
-        "h3",
-        "Founding AI Engineer"
-      ],
-      [
-        "h3",
-        "AI Engineer"
-      ],
-      [
-        "h3",
-        "Teacher and Digital Freelancer"
-      ],
-      [
-        "h3",
-        "Engineering Intern"
-      ],
-      [
-        "h3",
-        "Summer Intern - 'Think Tank in Innovation & Sustainability'"
-      ],
-      [
-        "h2",
-        "Projects"
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h3",
-        ""
-      ],
-      [
-        "h2",
-        "Education"
-      ],
+      ["h1", "Lorenzo Germini"],
+      ["h2", "Profile"],
+      ["h2", "Experience"],
+      ["h3", "AI Engineer"],
+      ["h3", "Founding AI Engineer"],
+      ["h3", "AI Engineer"],
+      ["h3", "Teacher and Digital Freelancer"],
+      ["h3", "Engineering Intern"],
+      ["h3", "Summer Intern - 'Think Tank in Innovation & Sustainability'"],
+      ["h2", "Projects"],
+      ["h3", ""],
+      ["h3", ""],
+      ["h3", ""],
+      ["h2", "Education"],
       [
         "h3",
         "MSc in Life Sciences Engineering (specialization in Neuroscience & Neuroengineering)"
       ],
-      [
-        "h3",
-        "Bachelor's Degree in Electrical Engineering"
-      ],
-      [
-        "h2",
-        "Skills"
-      ]
+      ["h3", "Bachelor's Degree in Electrical Engineering"],
+      ["h2", "Skills"]
     ],
     "jsonld": [
       {
@@ -589,11 +497,7 @@
           "Python",
           "Coding agents in the loop"
         ],
-        "knowsLanguage": [
-          "English",
-          "Italian",
-          "French"
-        ],
+        "knowsLanguage": ["English", "Italian", "French"],
         "hasOccupation": {
           "@type": "Occupation",
           "name": "AI Product Engineer",
@@ -789,18 +693,9 @@
       }
     ],
     "headings": [
-      [
-        "h1",
-        "Writing"
-      ],
-      [
-        "h2",
-        ""
-      ],
-      [
-        "h2",
-        "Get the field notes by email"
-      ]
+      ["h1", "Writing"],
+      ["h2", ""],
+      ["h2", "Get the field notes by email"]
     ],
     "jsonld": [
       {
@@ -973,12 +868,7 @@
         "type": "image/png"
       }
     ],
-    "headings": [
-      [
-        "h1",
-        "404"
-      ]
-    ],
+    "headings": [["h1", "404"]],
     "jsonld": [],
     "body_text_chars": 255
   },

@@ -41,6 +41,7 @@ next-env.d.ts
 # local agent config, hook manifests and Impeccable consent
 .claude/settings.local.json
 .claude/*.lock
+.claude/worktrees/
 .codex/hooks.json
 .impeccable/config.local.json
 .impeccable/hook.cache.json

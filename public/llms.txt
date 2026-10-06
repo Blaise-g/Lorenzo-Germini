@@ -6,7 +6,7 @@
 
 I'm an AI product engineer: I ship AI products end-to-end, from the models and infrastructure to the interface people actually touch, and stay on the hook for whether the thing helps anyone. Full stack in the literal sense: backend, frontend, and the product calls in between.
 
-These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed: technical depth only matters when it meets a real user problem.
+These days that's the AI engine behind Complaion, a compliance platform for European SMEs getting and keeping ISO certifications. The interesting problem is making the agents in the background reliable enough to trust with real compliance work, and knowing when they're not. Before that: AI for pharma manufacturing at GSK, AI R&D in digital health, and a GenAI EdTech startup I built as founding engineer. The through-line hasn't changed. Technical depth only matters when it meets a real user problem.
 
 Outside work: sports, side projects, and rabbit holes on tech entrepreneurship and biohacking.
 
@@ -24,7 +24,7 @@ Outside work: sports, side projects, and rabbit holes on tech entrepreneurship a
 
 ## When to use this
 
-Good fit for: putting LLM agents into production where being wrong is expensive — regulated documentation, compliance, health, pharma manufacturing; building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
+Good fit for: putting LLM agents into production where being wrong is expensive (regulated documentation, compliance, health, pharma manufacturing); building the eval and tracing harness for an AI system that already ships but nobody trusts yet; taking a GenAI product from prototype to production as the engineer who owns the backend, the interface, and the product calls in between.
 
 Less good fit for: research roles with no product surface, ML infrastructure work that ends at the model, or anything where shipping to real users is somebody else's problem.
 
@@ -38,16 +38,16 @@ Contact: lorenzo.germini@icloud.com
 
 ## Skills
 
-LLM agents, RAG, Evals & tracing, Full-stack development, Python
+LLM agents, RAG, Evals & tracing, Full-stack development, Python, Coding agents in the loop
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, and the evaluation frameworks that show when it can't be trusted in production. Shipping AI product features and automation workflows end-to-end, from feature definition through AI, backend, and frontend implementation to production.
+- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, with evaluation frameworks that track its reliability in production. Shipping AI product features and automation workflows from definition to production, across AI, backend, and frontend.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
 - Engineering Intern at Burgeon Labs (Feb 2022 - Oct 2022)
-- Summer Intern at Roche - Think Tank in Innovation & Sustainability (Jul 2021 - Oct 2021)
+- Summer Intern, Think Tank in Innovation & Sustainability, at Roche (Jul 2021 - Oct 2021)
 
 ## Education
 
@@ -56,7 +56,6 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python
 
 ## Projects
 
-- [Quadrell](https://quadrell.dev/): My independent studio for websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, building around the way the business actually works.
-
-- L'Oracolo della Ghigliottina (archived): AI game companion that found the word connecting five clues submitted as text or a photo, with rate-limit handling. The service is now closed; past results remain available to browse.
-- Biomedical Paper Summarizer: MSc thesis work, an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR
+- [Quadrell](https://quadrell.dev/): My independent studio, building websites and workflow automations for small businesses and independent professionals. I handle each project from the initial brief to launch, and build around how the business already works.
+- L'Oracolo della Ghigliottina (archived): AI game companion for La Ghigliottina, the final round of the Rai 1 quiz show L'Eredità. It found the word connecting five clues, submitted as text or as a photo of the TV, and handled rate limits. The service is closed. Past results are still available to browse.
+- Biomedical Paper Summarizer: MSc thesis work, an end-to-end pipeline turning full-text biomedical papers into a detailed analysis or a TL;DR, tuned on longevity and human-health literature
