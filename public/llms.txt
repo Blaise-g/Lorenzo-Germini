@@ -42,7 +42,7 @@ LLM agents, RAG, Evals & tracing, Full-stack development, Python, Coding agents 
 
 ## Experience
 
-- AI Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the AI engine behind it: agentic RAG over ISO documentation, with evaluation frameworks that track its reliability in production. Shipping AI product features and automation workflows from definition to production, across AI, backend, and frontend.
+- AI Product Engineer at Complaion (May 2025 - Present): Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the agentic AI core of the product: agents and automation workflows that combine business context with expert feedback, backed by evaluations that track reliability in production. Shaping product decisions with business stakeholders and shipping AI features end-to-end, from problem definition to production, across AI, backend, and frontend.
 - Founding AI Engineer at Stealth GenAI Startup (Nov 2024 - Apr 2025)
 - AI Engineer at GSK (Sep 2023 - Oct 2024)
 - Teacher and Digital Freelancer (Nov 2022 - Aug 2023)
