@@ -107,16 +107,16 @@ export const RESUME_DATA: ResumeData = {
       company: "Complaion",
       link: "https://www.complaion.com/",
       badges: ["Cuneo, Italy"],
-      title: "AI Engineer",
+      title: "AI Product Engineer",
       start: "May 2025",
       end: "Present",
       description: [
         "Complaion helps European SMEs implement, maintain, and get real value from ISO certifications.",
-        "Building the AI engine behind it: agentic RAG over ISO documentation, with evaluation frameworks that track its reliability in production.",
-        "Shipping AI product features and automation workflows from definition to production, across AI, backend, and frontend.",
+        "Building the agentic AI core of the product: agents and automation workflows that combine business context with expert feedback, backed by evaluations that track reliability in production.",
+        "Shaping product decisions with business stakeholders and shipping AI features end-to-end, from problem definition to production, across AI, backend, and frontend.",
       ],
       homepageProof:
-        "Agentic RAG over ISO documentation, with an eval harness that tracks its reliability in production. Product features and automation workflows shipped from definition to production, across AI, backend, and frontend.",
+        "Building the agentic AI core of the product: agents and automation workflows that combine business context with expert feedback, backed by evaluations that track reliability in production. Shaping product decisions with business stakeholders and shipping AI features end-to-end, from problem definition to production, across AI, backend, and frontend.",
     },
     {
       company: "Stealth GenAI Startup",
