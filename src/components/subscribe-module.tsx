@@ -184,7 +184,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
               /* `@starting-style` entry: the message used to land in one
                  frame and shove the hint down with it. It still mounts at full
                  size — only its paint eases in — so nothing reflows twice. */
-              className="text-body mt-3 font-mono text-xs transition-[opacity,translate] duration-200 ease-out starting:-translate-y-1 starting:opacity-0"
+              className="text-body mt-3 font-mono text-xs transition-[opacity,translate] duration-200 ease-out starting:-translate-y-1 starting:opacity-0 motion-reduce:starting:translate-y-0"
             >
               {error}
             </p>

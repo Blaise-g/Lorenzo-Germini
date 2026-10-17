@@ -361,7 +361,14 @@ html {
 }
 
 /* ─── Reduced motion ─── */
+/* Fewer and gentler, not none: what moves stops moving, what fades still fades.
+   Movement is the part that troubles a vestibular reader; an opacity change
+   that tells you something arrived is not, and cutting it too made the page
+   pop in rather than read as calmer. */
 @media (prefers-reduced-motion: reduce) {
+  /* Anything not named below runs as a single instant frame. No delay
+     survives — a delayed item with a cut animation is a blank one, which is
+     the GH-13 defect. */
   *,
   *::before,
   *::after {
@@ -369,7 +376,30 @@ html {
     animation-duration: 0.01ms !important;
     animation-fill-mode: none !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* The page reveals keep their fade and lose their rise and their stagger.
+     The shorthand resets delay and fill along with the name; the class beats
+     the `*` rule above on specificity, both being important and unlayered. */
+  .animate-fade-in-up,
+  .animate-fade-in {
+    animation: fade-in 150ms var(--ease-out) !important;
+  }
+
+  /* Transitions stay on for colour and opacity. These are the ones that move
+     something, and they drop to the colour half or to nothing. */
+  .transition-refined {
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity;
+  }
+
+  .card-hover:hover {
+    transform: none;
+  }
+
+  .theme-icon {
+    scale: 1;
+    filter: none;
   }
 }

@@ -52,8 +52,18 @@ const HUB_DESTINATIONS = [
   HUB_SECTIONS.systems,
 ] as const;
 
-const sectionClassName =
-  "animate-fade-in-up max-w-[42rem] scroll-mt-24 print:gap-y-1";
+const sectionBaseClassName = "max-w-[42rem] scroll-mt-24 print:gap-y-1";
+
+/* The hero arrives as three beats 50ms apart — headline, subhead, CTA — and
+   every section below lands as one more, so the page settles in reading order
+   instead of all at once. GH-13 dropped an earlier stagger because, under
+   reduced motion, it held items invisible for up to 600ms; that motion path
+   now runs no delay at all (`globals.css`), so the defect cannot return
+   through these. */
+const sectionClassName = cn(
+  sectionBaseClassName,
+  "animate-fade-in-up [animation-delay:150ms]",
+);
 
 const { hero, writing, earlierRoles, systems } = RESUME_DATA.homepage;
 
@@ -96,14 +106,14 @@ export default function Page() {
         {/* Hero — the page's only <h1>. */}
         <Section
           data-reading-measure="true"
-          className={cn(sectionClassName, "gap-y-0")}
+          className={cn(sectionBaseClassName, "gap-y-0")}
         >
-          <h1 className="font-display text-[clamp(2rem,5.2vw,3.25rem)] leading-[1.08] font-medium tracking-tight text-pretty">
+          <h1 className="animate-fade-in-up font-display text-[clamp(2rem,5.2vw,3.25rem)] leading-[1.08] font-medium tracking-tight text-pretty">
             {hero.headline.lead}
             <em className="text-accent italic">{hero.headline.emphasis}</em>
             {hero.headline.trail}
           </h1>
-          <p className="text-body mt-6 text-base leading-relaxed text-pretty print:mt-2 print:text-[12px]">
+          <p className="text-body animate-fade-in-up mt-6 text-base leading-relaxed text-pretty [animation-delay:50ms] print:mt-2 print:text-[12px]">
             {hero.subhead}
           </p>
           <a
@@ -111,7 +121,7 @@ export default function Page() {
             /* No `inline-block` beside `touch-target`: after the `@layer`
                move a display utility wins over the class, which changed the
                computed box and shifted the rows below by up to 2.5px. */
-            className="text-accent border-accent touch-target font-label mt-7 self-start border-b-2 pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70 print:hidden"
+            className="text-accent border-accent touch-target font-label animate-fade-in-up mt-7 self-start border-b-2 pb-0.5 text-xs tracking-[0.12em] uppercase [animation-delay:100ms] hover:opacity-70 print:hidden"
           >
             {hero.cta}
           </a>
