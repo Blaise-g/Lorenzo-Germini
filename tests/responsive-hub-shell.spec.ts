@@ -391,6 +391,61 @@ test.describe("responsive hub shell", () => {
       });
   });
 
+  /* Below `lg` the section row scrolls away with the page, so the route bar
+     takes over once it has gone — and only then, so the two never share the
+     screen and the first view stays as quiet as it was. */
+  test("below lg the route bar takes over from the section row once it scrolls away", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+
+    const bar = page.getByTestId("mobile-route-bar");
+    /* Out of the accessibility tree and the tab order, not merely off screen. */
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
+    expect(
+      await bar.evaluate((element) => (element as HTMLElement).inert),
+    ).toBe(true);
+
+    await page.locator("#work").scrollIntoViewIfNeeded();
+    await expect(bar).toHaveAttribute("aria-hidden", "false");
+    await expect(bar).toHaveCSS("opacity", "1");
+
+    /* Polled for the same reason as the rail's: the fill and the stops
+       transition, so a read in the tick the state flips returns the start. */
+    await expect
+      .poll(() =>
+        bar.evaluate((nav) => {
+          const current = nav.querySelector('[aria-current="location"]')!;
+          const stop = current
+            .querySelector("[data-rail-stop]")!
+            .getBoundingClientRect();
+          const road = nav
+            .querySelector('[data-testid="mobile-road-travelled"]')!
+            .getBoundingClientRect();
+          return {
+            current: current.getAttribute("aria-label"),
+            label: nav.querySelector("p")!.textContent,
+            stops: [...nav.querySelectorAll("[data-rail-stop]")].map((item) =>
+              item.getAttribute("data-rail-stop"),
+            ),
+            roadEndsAtStop:
+              Math.abs(road.right - (stop.left + stop.width / 2)) < 1,
+          };
+        }),
+      )
+      .toEqual({
+        current: "Work",
+        label: "Work",
+        stops: ["passed", "passed", "current", "ahead", "ahead"],
+        roadEndsAtStop: true,
+      });
+
+    /* Back at the top the row is on screen again, and the bar hands back. */
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(bar).toHaveAttribute("aria-hidden", "true");
+  });
+
   /* Systems is the last destination and its section is short (87px measured at
      1440), so at maximum scroll its top never reaches the 28%-of-viewport
      activation line — the item was unreachable, not merely hard to hit, even by

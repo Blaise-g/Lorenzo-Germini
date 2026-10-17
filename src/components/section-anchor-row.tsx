@@ -11,13 +11,19 @@ import { cn } from "@/lib/utils";
 export function SectionAnchorRow({
   destinations,
   className,
+  handsOffToRouteBar = false,
 }: {
   destinations: readonly HubDestination[];
   className?: string;
+  /** Marks the row the hub's mobile route bar waits for: the bar shows only
+   *  once this has scrolled off the top, so the two never sit on screen
+   *  together. `/cv` has no route bar and leaves it off. */
+  handsOffToRouteBar?: boolean;
 }) {
   return (
     <nav
       aria-label="On this page"
+      data-route-bar-anchor={handsOffToRouteBar ? "" : undefined}
       /* `gap-y-4` is the 44px hit areas, measured: these rows are 28px tall and
          wrap to two lines at 375, so anything under 16px of separation puts each
          line's expanded target inside its neighbour's. */
