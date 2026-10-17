@@ -263,28 +263,39 @@ test.describe("touch and fixed-chrome geometry", () => {
 });
 
 test.describe("motion, theme initialization, and accessibility", () => {
-  test("page-level reveals do not stagger in normal motion", async ({
+  /* The stagger GH-13 removed blanked items under reduced motion; the one that
+     came back is bounded instead. Only the hero's three beats differ, and
+     nothing waits longer than the section beat after them. */
+  test("the hero is the page's only stagger, and it settles within 150ms", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/");
 
     const delays = await page
-      .locator("main section.animate-fade-in-up")
+      .locator('main [class*="animate-"]')
       .evaluateAll((elements) =>
-        elements.map((element) => getComputedStyle(element).animationDelay),
+        elements.map((element) => ({
+          inHero: Boolean(element.closest("section:has(h1)")),
+          delayMs:
+            Number.parseFloat(getComputedStyle(element).animationDelay) * 1000,
+        })),
       );
 
-    expect(delays.length).toBeGreaterThan(0);
-    expect(delays.every((delay) => delay === "0s")).toBe(true);
+    expect(
+      delays.filter(({ inHero }) => inHero).map(({ delayMs }) => delayMs),
+    ).toEqual([0, 50, 100]);
+    expect(delays.length).toBeGreaterThan(3);
+    expect(delays.every(({ delayMs }) => delayMs <= 150)).toBe(true);
   });
 
-  test("reduced motion leaves delayed animations fully visible", async ({
+  /* Gentler, not none: reveals keep a short fade, but lose their rise and
+     their delay, so nothing is ever held blank. */
+  test("reduced motion fades reveals in without movement or delay", async ({
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
-    await waitForTwoAnimationFrames(page);
 
     const animationState = await page
       .locator('[class*="animate-"]')
@@ -293,14 +304,33 @@ test.describe("motion, theme initialization, and accessibility", () => {
           const style = getComputedStyle(element);
           return {
             delay: style.animationDelay,
-            opacity: Number(style.opacity),
+            durationMs: Number.parseFloat(style.animationDuration) * 1000,
+            name: style.animationName,
           };
         }),
       );
 
     expect(animationState.length).toBeGreaterThan(0);
     expect(animationState.every(({ delay }) => delay === "0s")).toBe(true);
-    expect(animationState.every(({ opacity }) => opacity === 1)).toBe(true);
+    /* `fade-in` is opacity only; `fade-in-up` is what carries the rise. */
+    expect(animationState.every(({ name }) => name === "fade-in")).toBe(true);
+    expect(animationState.every(({ durationMs }) => durationMs <= 150)).toBe(
+      true,
+    );
+
+    /* Settled, not merely started: every reveal ends fully visible. */
+    await page.evaluate(() =>
+      Promise.all(
+        document.getAnimations().map((animation) => animation.finished),
+      ),
+    );
+    await waitForTwoAnimationFrames(page);
+    const opacities = await page
+      .locator('[class*="animate-"]')
+      .evaluateAll((elements) =>
+        elements.map((element) => Number(getComputedStyle(element).opacity)),
+      );
+    expect(opacities.every((opacity) => opacity === 1)).toBe(true);
   });
 
   test("dark-mode initialization hydrates without mismatch", async ({

@@ -148,7 +148,7 @@ export function StickyRailNavigation({
           <div className="bg-border absolute inset-0" />
           <div
             data-testid="rail-road-travelled"
-            className="bg-accent absolute inset-0 origin-top transition-transform duration-300 ease-in-out"
+            className="bg-accent absolute inset-0 origin-top transition-transform duration-300 ease-in-out motion-reduce:transition-none"
             style={{ transform: `scaleY(${travelled})` }}
           />
         </div>
@@ -179,7 +179,7 @@ export function StickyRailNavigation({
                   isActive ? "current" : isPassed ? "passed" : "ahead"
                 }
                 className={cn(
-                  "absolute top-1/2 left-[3px] size-[7px] -translate-x-[3px] -translate-y-1/2 rounded-full border transition-[scale,background-color,border-color] duration-300 ease-in-out",
+                  "absolute top-1/2 left-[3px] size-[7px] -translate-x-[3px] -translate-y-1/2 rounded-full border transition-[scale,background-color,border-color] duration-300 ease-in-out motion-reduce:transition-[background-color,border-color]",
                   isPassed
                     ? "border-accent bg-accent"
                     : "border-border bg-ground",

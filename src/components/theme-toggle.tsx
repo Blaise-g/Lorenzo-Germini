@@ -38,15 +38,17 @@ export function ThemeToggle() {
     /* A switch happens about once a visit, which is the tier where a longer
        beat is allowed: the new palette is revealed as a circle growing out of
        the control that asked for it, so the change has an origin instead of
-       the whole page flashing at once. Where the API is missing, or the reader
-       asked for less motion, the switch stays instant. */
-    if (
-      !document.startViewTransition ||
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
+       the whole page flashing at once. Where the API is missing the switch
+       stays instant. Under reduced motion the circle — a shape sweeping across
+       the screen — becomes a short crossfade: the palette still changes
+       visibly, but nothing travels. */
+    if (!document.startViewTransition) {
       apply();
       return;
     }
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     const { left, top, width, height } =
       event.currentTarget.getBoundingClientRect();
@@ -72,14 +74,16 @@ export function ThemeToggle() {
     transition.ready
       .then(() => {
         root.animate(
+          reduceMotion
+            ? { opacity: [0, 1] }
+            : {
+                clipPath: [
+                  `circle(0px at ${x}px ${y}px)`,
+                  `circle(${radius}px at ${x}px ${y}px)`,
+                ],
+              },
           {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${radius}px at ${x}px ${y}px)`,
-            ],
-          },
-          {
-            duration: 500,
+            duration: reduceMotion ? 200 : 500,
             easing: "cubic-bezier(0.23, 1, 0.32, 1)",
             pseudoElement: "::view-transition-new(root)",
           },
