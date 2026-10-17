@@ -109,7 +109,14 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
  *  The 24px floor stays stated, because `py-1.5` on 12px type is the only thing
  *  holding it for fine pointers. */
 const railLinkClass =
-  "inline-flex min-h-6 items-center border-l py-1.5 pl-3 underline-offset-4 coarse:py-3.5";
+  "inline-flex min-h-6 items-center py-1.5 pl-4 underline-offset-4 coarse:py-3.5";
+
+/* The road and its stops are positioned off the row geometry above: a row is
+   `py-1.5` around 16px of `text-xs` line, 28px, or 44px under `coarse:py-3.5`,
+   so a stop's centre sits half a row down — 14px, or 22px coarse. The track
+   runs from the first stop's centre to the last's, which is what lets the
+   travelled fill below land exactly on a stop as a plain fraction of it. */
+const roadInset = "top-3.5 bottom-3.5 coarse:top-[22px] coarse:bottom-[22px]";
 
 export function StickyRailNavigation({
   destinations,
@@ -117,40 +124,78 @@ export function StickyRailNavigation({
   destinations: readonly HubDestination[];
 }) {
   const activeId = useActiveDestination(destinations);
+  const activeIndex = Math.max(
+    0,
+    destinations.findIndex(({ id }) => id === activeId),
+  );
+  const travelled =
+    destinations.length > 1 ? activeIndex / (destinations.length - 1) : 0;
 
   return (
     <nav
       aria-label="Page sections"
       className="border-border font-label flex flex-col border-t pt-4 text-xs tracking-[0.12em] uppercase"
     >
-      {destinations.map(({ id, label }) => {
-        const isActive = activeId === id;
+      <div className="relative flex flex-col">
+        {/* Decorative: `aria-current` already says where the reader is. One
+            element scaled rather than a height animated, so the move stays on
+            the compositor; `ease-in-out` because the fill is already on screen
+            and is travelling to a new place, not arriving. */}
+        <div
+          aria-hidden="true"
+          className={cn("absolute left-[3px] w-px", roadInset)}
+        >
+          <div className="bg-border absolute inset-0" />
+          <div
+            data-testid="rail-road-travelled"
+            className="bg-accent absolute inset-0 origin-top transition-transform duration-300 ease-in-out"
+            style={{ transform: `scaleY(${travelled})` }}
+          />
+        </div>
+        {destinations.map(({ id, label }, index) => {
+          const isActive = activeId === id;
+          const isPassed = index <= activeIndex;
 
-        return (
-          <a
-            key={id}
-            href={`#${id}`}
-            /* `location`, not `true`: this marks a position within the page,
-               which is the token's exact meaning. `true` is the generic
-               fallback and tells a screen reader less. */
-            aria-current={isActive ? "location" : undefined}
-            className={cn(
-              railLinkClass,
-              "hover:text-accent transition-colors hover:underline",
-              isActive
-                ? "border-l-accent text-accent"
-                : "text-faint border-l-transparent",
-            )}
-          >
-            {label}
-          </a>
-        );
-      })}
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              /* `location`, not `true`: this marks a position within the page,
+                 which is the token's exact meaning. `true` is the generic
+                 fallback and tells a screen reader less. */
+              aria-current={isActive ? "location" : undefined}
+              className={cn(
+                railLinkClass,
+                "hover:text-accent relative transition-colors duration-200 hover:underline",
+                isActive ? "text-accent" : "text-faint",
+              )}
+            >
+              {/* The stop. Filled once the reader has passed it, and grown on
+                  the current one, so the rail reads as a route with a position
+                  on it rather than a list with one row tinted. */}
+              <span
+                aria-hidden="true"
+                data-rail-stop={
+                  isActive ? "current" : isPassed ? "passed" : "ahead"
+                }
+                className={cn(
+                  "absolute top-1/2 left-[3px] size-[7px] -translate-x-[3px] -translate-y-1/2 rounded-full border transition-[scale,background-color,border-color] duration-300 ease-in-out",
+                  isPassed
+                    ? "border-accent bg-accent"
+                    : "border-border bg-ground",
+                  isActive ? "scale-100" : "scale-[0.715]",
+                )}
+              />
+              {label}
+            </a>
+          );
+        })}
+      </div>
       <a
         href="/cv"
         className={cn(
           railLinkClass,
-          "text-accent decoration-border hover:decoration-accent mt-3 border-l-transparent underline",
+          "text-accent decoration-border hover:decoration-accent mt-3 underline",
         )}
       >
         CV →

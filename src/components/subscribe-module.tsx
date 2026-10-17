@@ -155,7 +155,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
               }}
               /* `min-h-11` matches the submit button beside it: the field
                  measured 42px, two short of the 44px the button already had. */
-              className={`placeholder:text-faint min-h-11 min-w-0 border-b-2 bg-transparent px-1 py-2 text-base focus-visible:outline-none sm:flex-1 ${
+              className={`placeholder:text-faint min-h-11 min-w-0 border-b-2 bg-transparent px-1 py-2 text-base transition-colors duration-150 ease-out focus-visible:outline-none sm:flex-1 ${
                 error
                   ? "border-accent"
                   : "border-border focus-visible:border-accent"
@@ -172,7 +172,7 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
                 it reads against the fill. */}
             <button
               type="submit"
-              className={`${meta} primary-control bg-accent text-accent-foreground focus-visible:outline-accent min-h-11 shrink-0 self-start rounded-sm px-5 focus-visible:outline-2 focus-visible:outline-offset-2`}
+              className={`${meta} primary-control transition-refined press bg-accent text-accent-foreground focus-visible:outline-accent min-h-11 shrink-0 self-start rounded-sm px-5 focus-visible:outline-2 focus-visible:outline-offset-2`}
             >
               {c.button}
             </button>
@@ -181,7 +181,10 @@ export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
             <p
               id={errorId}
               role="alert"
-              className="text-body mt-3 font-mono text-xs"
+              /* `@starting-style` entry: the message used to land in one
+                 frame and shove the hint down with it. It still mounts at full
+                 size — only its paint eases in — so nothing reflows twice. */
+              className="text-body mt-3 font-mono text-xs transition-[opacity,translate] duration-200 ease-out starting:-translate-y-1 starting:opacity-0"
             >
               {error}
             </p>

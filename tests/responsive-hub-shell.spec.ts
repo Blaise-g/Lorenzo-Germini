@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { RESUME_DATA } from "@/data/resume-data";
+import { buildPersonStructuredData } from "@/lib/person-structured-data";
 
 import {
   BACK_TO_TOP_MIN_WIDTH,
@@ -269,7 +270,8 @@ test.describe("responsive hub shell", () => {
 
   /* `roleLabel` is the masthead's own field, and per spec §2.7 it is also what
      the machine-readable identity claims — while the work history keeps the
-     employer's own job title. The two must not collapse into each other. */
+     employer's own job title. The two may hold the same words, but neither is
+     derived from the other. */
   test("the masthead role comes from roleLabel, and the bio keeps its surfaces", async ({
     page,
   }) => {
@@ -287,13 +289,22 @@ test.describe("responsive hub shell", () => {
     expect(person.jobTitle).toBe(RESUME_DATA.roleLabel);
     expect(person.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
 
-    /* The positioning label is not the employer's title, so deriving either one
-       from the other is the defect this guards. */
-    expect(
-      RESUME_DATA.work[0].title,
-      "the work history should keep the employer-accurate title",
-    ).not.toBe(RESUME_DATA.roleLabel);
     expect(person.worksFor.name).toBe(RESUME_DATA.work[0].company);
+
+    /* Deriving either field from the other is the defect this guards, and since
+       #137 the two hold the same string — so comparing values can no longer
+       tell them apart. Changing the employer title and rebuilding can: the
+       identity has to stay on `roleLabel` whatever the work history says. */
+    const currentRole = RESUME_DATA.work[0] as { title: string };
+    const employerTitle = currentRole.title;
+    currentRole.title = `${employerTitle} (employer title)`;
+    try {
+      const rebuilt = buildPersonStructuredData(RESUME_DATA.personalWebsiteUrl);
+      expect(rebuilt.jobTitle).toBe(RESUME_DATA.roleLabel);
+      expect(rebuilt.hasOccupation.name).toBe(RESUME_DATA.roleLabel);
+    } finally {
+      currentRole.title = employerTitle;
+    }
   });
 
   test("the masthead rule does not move with the shell's horizontal padding", async ({
@@ -317,7 +328,7 @@ test.describe("responsive hub shell", () => {
     expect(after.right).toBeCloseTo(after.viewportWidth, 0);
   });
 
-  test("the rail marks the current destination semantically and with the accent rule", async ({
+  test("the rail marks the current destination semantically and as the current stop on its road", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 800 });
@@ -335,13 +346,12 @@ test.describe("responsive hub shell", () => {
       .poll(() => railNav.locator('[aria-current="location"]').textContent())
       .toBe("Work");
 
-    /* Polled, not read once: `border-left-color` is a transitioning property, so
-       a read in the same tick React swaps the class returns the transition's
-       start value — the colour the link is leaving, not the one it is taking. */
+    /* Polled, not read once: the stop's fill and the road's travelled length
+       both transition, so a read in the same tick React swaps the class returns
+       the start value — the stop the reader is leaving, not the one reached. */
     await expect
       .poll(() =>
-        railNav.locator('[aria-current="location"]').evaluate((element) => {
-          const style = getComputedStyle(element);
+        railNav.evaluate((nav) => {
           const root = getComputedStyle(document.documentElement);
           const probe = document.createElement("span");
           probe.style.color = root.getPropertyValue("--color-accent");
@@ -349,13 +359,36 @@ test.describe("responsive hub shell", () => {
           const accent = getComputedStyle(probe).color;
           probe.remove();
 
+          const links = [...nav.querySelectorAll("a[href^='#']")];
+          const current = nav.querySelector('[aria-current="location"]')!;
+          const stop = current.querySelector("[data-rail-stop]")!;
+          const stopBox = stop.getBoundingClientRect();
+          const road = nav
+            .querySelector('[data-testid="rail-road-travelled"]')!
+            .getBoundingClientRect();
+
           return {
-            borderColorIsAccent: style.borderLeftColor === accent,
-            hasBorder: Number.parseFloat(style.borderLeftWidth) >= 1,
+            stopFilledWithAccent:
+              getComputedStyle(stop).backgroundColor === accent,
+            linkInAccent: getComputedStyle(current).color === accent,
+            /* Every stop before the current one is marked passed, none after. */
+            stops: links.map((link) =>
+              link
+                .querySelector("[data-rail-stop]")!
+                .getAttribute("data-rail-stop"),
+            ),
+            /* The travelled road ends on the current stop's centre. */
+            roadEndsAtStop:
+              Math.abs(road.bottom - (stopBox.top + stopBox.height / 2)) < 1,
           };
         }),
       )
-      .toEqual({ borderColorIsAccent: true, hasBorder: true });
+      .toEqual({
+        stopFilledWithAccent: true,
+        linkInAccent: true,
+        stops: ["passed", "passed", "current", "ahead", "ahead"],
+        roadEndsAtStop: true,
+      });
   });
 
   /* Systems is the last destination and its section is short (87px measured at

@@ -52,7 +52,7 @@ export function HubShell({
           repeats it directly underneath in print. */}
         <div
           data-testid="masthead-rule"
-          className="animate-fade-in-up border-ink border-b-2"
+          className="animate-fade-in border-ink border-b-2"
         >
           {/* Its own orientation value, because this surface coexists with
             band-or-rail rather than replacing either. */}

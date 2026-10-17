@@ -44,12 +44,19 @@
   --color-accent-foreground: #faf6ef;
   --color-border: #9b8c7f;
 
-  /* Animations */
-  --animate-fade-in-up: fade-in-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-fade-in: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
-  --animate-slide-in-left: slide-in-left 0.45s cubic-bezier(0.16, 1, 0.3, 1)
-    both;
-  --animate-scale-in: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Motion. Two curves, both stronger than the CSS built-ins: `ease-out` for
+     anything entering, leaving or answering a press, `ease-in-out` for
+     something already on screen moving to a new place. Declared in `@theme` so
+     Tailwind's own `ease-out` / `ease-in-out` utilities resolve to them too,
+     rather than the weak defaults sitting beside a parallel set. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Animations. `backwards`, not `both`: the start frame has to hold through a
+     stagger delay, but a forwards fill would pin `opacity: 1` over the element
+     for good and silently beat its own `hover:opacity-70`. */
+  --animate-fade-in-up: fade-in-up 0.4s var(--ease-out) backwards;
+  --animate-fade-in: fade-in 0.4s var(--ease-out) backwards;
 }
 
 /* ─── Dark mode overrides ─── */
@@ -67,7 +74,7 @@
 @keyframes fade-in-up {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -84,32 +91,30 @@
   }
 }
 
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* ─── Base styles ─── */
 @layer base {
   * {
     border-color: var(--color-border);
+  }
+
+  /* The theme switch draws its own reveal (`theme-toggle.tsx`), so the
+     default root crossfade is switched off — two motions on one change read as
+     a stutter. `animation: none` alone is enough: the UA applies its
+     plus-lighter blend through that same animation list, so it goes too. */
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  /* Important in `base`, the earliest layer: among important declarations the
+     earliest layer wins, so this beats every later layer's transitions for the
+     frame the new snapshot is taken. The toggle's own glyph is exempt: it sits
+     at the reveal's origin, so it is the one thing the reader is looking at
+     while the circle grows. */
+  [data-theme-switching] *:not(.theme-icon),
+  [data-theme-switching] *::before,
+  [data-theme-switching] *::after {
+    transition: none !important;
   }
 
   /* Focus styles for accessibility */
@@ -131,26 +136,6 @@ body {
 
 html {
   scroll-behavior: smooth;
-}
-
-/* ─── Staggered animation delays ─── */
-.delay-100 {
-  animation-delay: 100ms;
-}
-.delay-200 {
-  animation-delay: 200ms;
-}
-.delay-300 {
-  animation-delay: 300ms;
-}
-.delay-400 {
-  animation-delay: 400ms;
-}
-.delay-500 {
-  animation-delay: 500ms;
-}
-.delay-600 {
-  animation-delay: 600ms;
 }
 
 /* ─── Component utilities ─── */
@@ -225,16 +210,44 @@ html {
       hue-rotate(-5deg);
   }
 
+  /* Named properties, never `all`: `all` also animated `filter`, `box-shadow`
+     and every inherited colour on whatever happened to change, off the GPU. */
   .card-hover {
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    transition:
+      transform 200ms var(--ease-out),
+      border-color 200ms ease;
   }
 
-  .card-hover:hover {
-    transform: translateY(-2px);
+  /* Gated: a touch screen fires `:hover` on tap and leaves the card lifted. */
+  @media (hover: hover) and (pointer: fine) {
+    .card-hover:hover {
+      transform: translateY(-2px);
+    }
   }
 
   .transition-refined {
-    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    /* `translate` and `scale` beside `transform`: Tailwind v4's `translate-*`
+       and `scale-*` set those individual properties, which `transform` does not
+       cover — BackToTop's reveal rides on them. */
+    transition-property:
+      color, background-color, border-color, box-shadow, opacity, transform,
+      translate, scale;
+    transition-duration: 160ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  /* The theme toggle's two glyphs cross rather than cut. */
+  .theme-icon {
+    transition:
+      scale 200ms var(--ease-out),
+      opacity 200ms var(--ease-out),
+      filter 200ms var(--ease-out);
+  }
+
+  /* Press feedback for the icon controls. `:active` is a real press on touch,
+     so unlike hover it needs no pointer gate. */
+  .press:active {
+    transform: scale(0.97);
   }
 
   .primary-control:hover {
