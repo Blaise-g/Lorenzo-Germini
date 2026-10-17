@@ -488,20 +488,22 @@ test.describe("scroll subscriptions", () => {
   }
 
   /* The other half of the gate, and the reason the phone width left the sweep
-     above: below `xl` `BackToTop` is not painted, so it must not be listening
-     either — a scroll handler feeding a `display: none` control is exactly what
-     `whileMatching` exists to avoid. */
-  test("no window scroll listener registers at a phone width", async ({
+     above: below `xl` `BackToTop` is not painted and below `lg` neither is the
+     rail, so neither may listen — a scroll handler feeding a `display: none`
+     control is exactly what `whileMatching` exists to avoid. The one reader
+     left is the mobile route bar, which is painted here and needs the position
+     it shows. */
+  test("only the mobile route bar listens to scroll at a phone width", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 800 });
     await recordWindowScrollRegistrations(page);
     await page.goto("/");
-    /* Proving hydration first, so an empty list here is a gate holding rather
+    /* Proving hydration first, so the count here is a gate holding rather
        than a page that has not started. */
     await proveHydrated(page);
 
-    expect(await scrollRegistrations(page)).toEqual([]);
+    expect(await scrollRegistrations(page)).toEqual([{ passive: true }]);
   });
 
   test("back to top hides again below its threshold", async ({ page }) => {

@@ -29,6 +29,10 @@ export function fixedControls(page: Page) {
   return page.evaluate(() =>
     Array.from(document.querySelectorAll<HTMLElement>("main button, main a"))
       .filter((element) => {
+        /* Painted ones only: the mobile route bar is fixed too, and below
+           `lg` only — at desktop widths it is `display: none`, so it holds no
+           corner at all. */
+        if (!element.checkVisibility()) return false;
         let current: HTMLElement | null = element;
         while (current) {
           if (getComputedStyle(current).position === "fixed") return true;

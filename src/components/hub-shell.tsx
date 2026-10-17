@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { BackToTop } from "@/components/back-to-top";
+import { MobileRouteBar } from "@/components/mobile-route-bar";
 import { RouteFrame } from "@/components/route-frame";
 import { SectionAnchorRow } from "@/components/section-anchor-row";
 import {
@@ -142,7 +143,9 @@ export function HubShell({
           <SectionAnchorRow
             destinations={destinations}
             className="mt-5 lg:hidden"
+            handsOffToRouteBar
           />
+          <MobileRouteBar destinations={destinations} />
 
           <div className="grid gap-10 pt-7 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-14 lg:pt-10 print:block print:pt-0">
             <aside

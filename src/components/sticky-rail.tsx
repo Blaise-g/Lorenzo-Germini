@@ -23,6 +23,10 @@ const DOCUMENT_FOOT_TOLERANCE_PX = 4;
    `lg` the rail is not painted, so there is nothing to orient. */
 const RAIL_MEDIA_QUERY = "(min-width: 64rem)";
 
+/* The mobile route bar's half of the same split, so at any width exactly one
+   of the two subscriptions is live. */
+export const BELOW_RAIL_MEDIA_QUERY = "(max-width: 63.98rem)";
+
 function isAtDocumentFoot() {
   const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
   return (
@@ -30,7 +34,10 @@ function isAtDocumentFoot() {
   );
 }
 
-function useActiveDestination(destinations: readonly HubDestination[]) {
+export function useActiveDestination(
+  destinations: readonly HubDestination[],
+  whileMatching: string = RAIL_MEDIA_QUERY,
+) {
   const [activeId, setActiveId] = React.useState(destinations[0]?.id);
   /* Mirrors `activeId` so a frame that resolves to the same section skips the
      dispatch: a render rewrites `className` on every anchor, dirtying layout and
@@ -80,7 +87,7 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
      activation line is a fraction of `innerHeight`. */
   useScrollSubscription(chooseActiveSection, {
     alsoOnResize: true,
-    whileMatching: RAIL_MEDIA_QUERY,
+    whileMatching,
   });
 
   return activeId;
@@ -111,6 +118,48 @@ function useActiveDestination(destinations: readonly HubDestination[]) {
 const railLinkClass =
   "inline-flex min-h-6 items-center py-1.5 pl-4 underline-offset-4 coarse:py-3.5";
 
+/** Where the reader is along the route: the current stop's index, and how far
+ *  along the road that is as a 0–1 fraction of the first-to-last span. */
+export function routeProgress(
+  destinations: readonly HubDestination[],
+  activeId: string | undefined,
+) {
+  const activeIndex = Math.max(
+    0,
+    destinations.findIndex(({ id }) => id === activeId),
+  );
+  const travelled =
+    destinations.length > 1 ? activeIndex / (destinations.length - 1) : 0;
+  return { activeIndex, travelled };
+}
+
+/** One stop on the road, shared by the rail and the mobile route bar. Filled
+ *  once the reader has passed it, and grown on the current one, so the road
+ *  reads as a route with a position on it rather than a list with one row
+ *  tinted. The caller places it; this owns only its look and its motion. */
+export function RouteStop({
+  className,
+  isActive,
+  isPassed,
+}: {
+  className?: string;
+  isActive: boolean;
+  isPassed: boolean;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      data-rail-stop={isActive ? "current" : isPassed ? "passed" : "ahead"}
+      className={cn(
+        "absolute size-[7px] rounded-full border transition-[scale,background-color,border-color] duration-300 ease-in-out motion-reduce:transition-[background-color,border-color]",
+        isPassed ? "border-accent bg-accent" : "border-border bg-ground",
+        isActive ? "scale-100" : "scale-[0.715]",
+        className,
+      )}
+    />
+  );
+}
+
 /* The road and its stops are positioned off the row geometry above: a row is
    `py-1.5` around 16px of `text-xs` line, 28px, or 44px under `coarse:py-3.5`,
    so a stop's centre sits half a row down — 14px, or 22px coarse. The track
@@ -124,12 +173,7 @@ export function StickyRailNavigation({
   destinations: readonly HubDestination[];
 }) {
   const activeId = useActiveDestination(destinations);
-  const activeIndex = Math.max(
-    0,
-    destinations.findIndex(({ id }) => id === activeId),
-  );
-  const travelled =
-    destinations.length > 1 ? activeIndex / (destinations.length - 1) : 0;
+  const { activeIndex, travelled } = routeProgress(destinations, activeId);
 
   return (
     <nav
@@ -170,21 +214,10 @@ export function StickyRailNavigation({
                 isActive ? "text-accent" : "text-faint",
               )}
             >
-              {/* The stop. Filled once the reader has passed it, and grown on
-                  the current one, so the rail reads as a route with a position
-                  on it rather than a list with one row tinted. */}
-              <span
-                aria-hidden="true"
-                data-rail-stop={
-                  isActive ? "current" : isPassed ? "passed" : "ahead"
-                }
-                className={cn(
-                  "absolute top-1/2 left-[3px] size-[7px] -translate-x-[3px] -translate-y-1/2 rounded-full border transition-[scale,background-color,border-color] duration-300 ease-in-out motion-reduce:transition-[background-color,border-color]",
-                  isPassed
-                    ? "border-accent bg-accent"
-                    : "border-border bg-ground",
-                  isActive ? "scale-100" : "scale-[0.715]",
-                )}
+              <RouteStop
+                isActive={isActive}
+                isPassed={isPassed}
+                className="top-1/2 left-[3px] -translate-x-[3px] -translate-y-1/2"
               />
               {label}
             </a>
