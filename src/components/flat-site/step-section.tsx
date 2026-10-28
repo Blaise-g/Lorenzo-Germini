@@ -54,8 +54,12 @@ function Lines({
         className,
       )}
     >
-      {lines.map((line) => (
-        <p key={line}>{line}</p>
+      {/* `data-path-line` is the caption id a scene's props point at: on
+          `/path` the line lights as its prop lands (GH-148). */}
+      {lines.map((line, index) => (
+        <p key={line} data-path-line={index}>
+          {line}
+        </p>
       ))}
     </div>
   );

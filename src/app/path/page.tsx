@@ -1,13 +1,15 @@
 /*
 THESIS: The 3D path, entered by choice: the same seven steps as `/`, walked one
-scene at a time. Before any scene exists, it is the overlay alone.
+scene at a time. The overlay paints first, over the step's still; the scene
+then builds in its stage.
 OWN-WORLD: Warm Print over a full-screen stage — serif places, mono dates,
 terracotta for the piece, the links and the way back.
 STORY: Pick a step, read what happened there, go back to the flat site at the
 same step.
 FIRST VIEWPORT: The name, "Flat site", the path in small and the selected
 step's text — all HTML, painted before any 3D.
-FORM: Masthead row, then the step list beside the step's text panel.
+FORM: Masthead row, then the step list beside the stage and, under it, the
+step's text panel.
 */
 
 import type { Metadata } from "next";
@@ -28,9 +30,16 @@ import type { PathStep } from "@/data/path.types";
 import { RESUME_DATA } from "@/data/resume-data";
 import { cn } from "@/lib/utils";
 
+import { stillsFor } from "@/components/path/scene/build-plan";
+
 import { PATH_OVERLAY_INSET } from "./inset";
-import { OVERLAY_FIRST_PAINT_SCRIPT, OVERLAY_PANEL_CSS } from "./first-paint";
+import {
+  CAPTION_LIT_CSS,
+  OVERLAY_FIRST_PAINT_SCRIPT,
+  OVERLAY_PANEL_CSS,
+} from "./first-paint";
 import { FlatSiteLink, MarkEntered, OverlayRoot } from "./overlay";
+import { SceneStage } from "./scene-stage";
 
 /* No markdown alternate and no sitemap entry: `/path` adds no content the flat
    site lacks, and `/` is the crawlable form (GH-141, implementation decision
@@ -46,15 +55,55 @@ function stepNode(step: PathStep): PathStepNode {
   return step.sceneId === "open" ? "open" : "place";
 }
 
+/* What the stage shows before the scene renders, and as the fallback: the
+   step's still, one per mode, or a line for a step whose scene is not built
+   yet. Server HTML for every step, shown by the same CSS as the panels, so a
+   load of `/path#lille` paints Lille's before any JavaScript. */
+function StageBackdrop({ step }: { step: PathStep }) {
+  const stills = stillsFor(step);
+  return (
+    <div data-path-backdrop={step.slug} className="absolute inset-0">
+      {stills ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- a fixed-size
+              backdrop under the canvas; the optimiser would only re-encode a
+              WebP already cut to size. */}
+          <img
+            src={stills.light}
+            alt=""
+            data-path-still="light"
+            className="size-full object-cover dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element -- as above. */}
+          <img
+            src={stills.dark}
+            alt=""
+            data-path-still="dark"
+            className="hidden size-full object-cover dark:block"
+          />
+        </>
+      ) : (
+        <p className="text-faint font-label flex size-full items-center justify-center text-xs tracking-[0.12em] uppercase">
+          This step&rsquo;s scene is not built yet
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* Its own shell (ADR-0002): `RouteFrame` with this route's inset, so `main`
    and the one `contentinfo` stay paired. The overlay fills the first screen;
-   the footer sits under it. Every step's text is in the HTML, and no 3D code
-   is imported here yet (GH-148). */
+   the footer sits under it. Every step's text is in the HTML; the 3D runtime
+   is not imported here but by the stage, after the overlay paints (GH-148). */
 export default function PathPage() {
   return (
     <RouteFrame measure={PATH_OVERLAY_INSET}>
       <MarkEntered />
-      <style dangerouslySetInnerHTML={{ __html: OVERLAY_PANEL_CSS }} />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: OVERLAY_PANEL_CSS + CAPTION_LIT_CSS,
+        }}
+      />
       <OverlayRoot
         className={cn(PATH_OVERLAY_INSET, "flex min-h-dvh flex-col pb-12")}
       >
@@ -81,7 +130,7 @@ export default function PathPage() {
           dangerouslySetInnerHTML={{ __html: OVERLAY_FIRST_PAINT_SCRIPT }}
         />
 
-        <div className="mt-8 grid flex-1 content-start gap-x-16 gap-y-10 lg:mt-12 lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)]">
+        <div className="mt-8 grid flex-1 content-start gap-x-16 gap-y-10 lg:mt-12 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
           <nav aria-labelledby="path-heading">
             <h2 id="path-heading" className="sr-only">
               The path
@@ -96,15 +145,23 @@ export default function PathPage() {
             />
           </nav>
 
-          {/* The text panel. Its sections are not anchored: the fragment
-              selects here rather than scrolling, and focus stays on the step
-              that was selected (storyboard §7.7). */}
-          <div data-path-text-panel>
-            {PATH_STEPS.map((step) => (
-              <div key={step.slug} data-path-panel={step.slug}>
-                <StepSection step={step} anchored={false} />
-              </div>
-            ))}
+          <div className="min-w-0 space-y-6">
+            <SceneStage>
+              {PATH_STEPS.map((step) => (
+                <StageBackdrop key={step.slug} step={step} />
+              ))}
+            </SceneStage>
+
+            {/* The text panel. Its sections are not anchored: the fragment
+                selects here rather than scrolling, and focus stays on the step
+                that was selected (storyboard §7.7). */}
+            <div data-path-text-panel>
+              {PATH_STEPS.map((step) => (
+                <div key={step.slug} data-path-panel={step.slug}>
+                  <StepSection step={step} anchored={false} />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </OverlayRoot>

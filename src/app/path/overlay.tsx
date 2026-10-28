@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { fragmentForStep, markEntered } from "@/lib/path-state";
@@ -13,9 +13,21 @@ import { useSelectedStep } from "@/lib/use-path-state";
    fragment), and from then on each leaf follows it through `useSelectedStep`,
    as `/`'s leaves do. */
 
+const LitLinesContext = createContext<(lines: readonly number[]) => void>(
+  () => {},
+);
+
+/** For the scene stage: lights the shown panel's caption lines, by index, as
+ *  their props land (storyboard §7.4). */
+export function useSetLitLines() {
+  return useContext(LitLinesContext);
+}
+
 /** The overlay root, carrying the selected step as `data-path-shown`. CSS
  *  shows that step's panel from it, so selecting a step shows its text at
- *  once, with nothing to fetch (GH-141, decision 7). */
+ *  once, with nothing to fetch (GH-141, decision 7). It carries the lit
+ *  caption lines too, as `data-path-lit`: the captions are the panel's own
+ *  lines, server HTML, so they are lit from here rather than re-rendered. */
 export function OverlayRoot({
   className,
   children,
@@ -24,14 +36,16 @@ export function OverlayRoot({
   children: ReactNode;
 }) {
   const { selected } = useSelectedStep();
+  const [lit, setLit] = useState<readonly number[]>([]);
   return (
     <div
       data-path-overlay
       data-path-shown={selected}
+      data-path-lit={lit.length > 0 ? lit.join(" ") : undefined}
       suppressHydrationWarning
       className={className}
     >
-      {children}
+      <LitLinesContext value={setLit}>{children}</LitLinesContext>
     </div>
   );
 }
