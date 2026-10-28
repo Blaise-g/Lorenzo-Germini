@@ -117,15 +117,21 @@ test.describe("the build", () => {
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     const started = Date.now();
-    /* Part-way, the first prop has landed and lit its line. */
-    await expect(stage(page)).toHaveAttribute("data-scene-props", /plateau/);
+    /* Part-way, the first prop has landed and lit its line while the rest
+       are still to come: the highlight follows the build, not its end. */
+    await expect(overlay(page)).toHaveAttribute("data-path-lit", "0");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "building");
+    await expect(stage(page)).not.toHaveAttribute(
+      "data-scene-props",
+      "plateau bisalta school",
+    );
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 5000,
     });
     const took = Date.now() - started;
     expect(took).toBeGreaterThan(1500);
     expect(took).toBeLessThan(4000);
-    expect(await buildStates(page)).toEqual(["idle", "building", "built"]);
+    expect(await buildStates(page)).toEqual(["loading", "building", "built"]);
     await expect(overlay(page)).toHaveAttribute(
       "data-path-lit",
       captionLines("home"),
@@ -288,7 +294,7 @@ test.describe("reduced motion", () => {
     await recordBuildStates(page);
     await page.goto("/path#cuneo-2022");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
-    expect(await buildStates(page)).toEqual(["idle", "built"]);
+    expect(await buildStates(page)).toEqual(["loading", "built"]);
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
       "plateau bisalta school schoolroom mvp-window",
@@ -310,6 +316,17 @@ test.describe("a step whose scene is not built yet", () => {
       "not built yet",
     );
     await expect(buildControl(page)).toHaveCount(0);
+  });
+
+  /* Esc belongs to the scene (storyboard §7.7): with none on the stage it
+     must not pull focus away from wherever the visitor is. */
+  test("Esc leaves focus where it is", async ({ page }) => {
+    await page.goto("/path#turin");
+    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl");
+    const flatSite = page.getByRole("link", { name: "Flat site", exact: true });
+    await flatSite.focus();
+    await page.keyboard.press("Escape");
+    await expect(flatSite).toBeFocused();
   });
 });
 

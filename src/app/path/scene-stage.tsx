@@ -20,9 +20,11 @@ import type {
   SceneSnapshot,
 } from "@/components/path/scene/runtime";
 import { PATH_STEPS } from "@/data/path";
+import type { PathStepSlug } from "@/data/path.types";
 import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
+import { STAGE_COPY } from "./copy";
 import { useSetLitLines } from "./overlay";
 
 /* The scene stage on `/path` (GH-148): page interface around the scene, so it
@@ -31,14 +33,6 @@ import { useSetLitLines } from "./overlay";
    runtime is imported after the overlay has painted, and only when the
    browser can run it (storyboard §7.4). */
 
-const COPY = {
-  skip: "Skip",
-  replay: "Replay",
-  turnLeft: "Turn the scene left",
-  turnRight: "Turn the scene right",
-  showing: (place: string) => `Showing: ${place}`,
-};
-
 type Mode = "pending" | "webgl" | "fallback";
 
 const CONTROL_CLASS_NAME =
@@ -46,6 +40,8 @@ const CONTROL_CLASS_NAME =
 
 const TURN_CLASS_NAME =
   "border-border text-faint hover:border-ink hover:text-ink transition-refined inline-flex size-9 items-center justify-center rounded-md border disabled:pointer-events-none disabled:opacity-50";
+
+const IDLE: SceneSnapshot = { buildState: "idle", lit: [], shown: [], turn: 0 };
 
 function stepNamed(slug: string) {
   return PATH_STEPS.find((step) => step.slug === slug)!;
@@ -59,14 +55,14 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const [mode, setMode] = useState<Mode>("pending");
   const [reason, setReason] = useState<FallbackReason | null>(null);
-  const [snapshot, setSnapshot] = useState<SceneSnapshot>({
-    buildState: "idle",
-    lit: [],
-    shown: [],
-    turn: 0,
-  });
-  const buildStateRef = useRef<BuildState>("idle");
-  buildStateRef.current = snapshot.buildState;
+  const [snapshot, setSnapshot] = useState<SceneSnapshot>(IDLE);
+  /* The step the runtime was last told to show, so its lit lines are
+     attributed to it and not to whatever step the overlay shows next. */
+  const shownSlugRef = useRef<PathStepSlug>(selected);
+  const selectedRef = useRef<PathStepSlug>(selected);
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   const fallBack = useCallback(
     (next: FallbackReason) => {
@@ -74,16 +70,27 @@ export function SceneStage({ children }: { children: ReactNode }) {
       runtimeRef.current = null;
       setReason(next);
       setMode("fallback");
-      setSnapshot({ buildState: "idle", lit: [], shown: [], turn: 0 });
-      setLitLines([]);
+      setSnapshot(IDLE);
+      setLitLines({ slug: shownSlugRef.current, lines: [] });
     },
     [setLitLines],
   );
 
+  const show = useCallback((slug: PathStepSlug) => {
+    shownSlugRef.current = slug;
+    runtimeRef.current?.show(stepNamed(slug));
+  }, []);
+
   /* Capabilities first, so a browser that gets the stills fetches no 3D
-     code; then the runtime, in its own chunk. */
+     code; then the runtime, in its own chunk. A new runtime shows the
+     selected step at once, so one made again (Fast Refresh) is never blank. */
   useEffect(() => {
     let cancelled = false;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const onMotionChange = () =>
+      runtimeRef.current?.setReducedMotion(reducedMotion.matches);
+    reducedMotion.addEventListener("change", onMotionChange);
+
     async function start() {
       const signals = probeCapabilities();
       const early = decideFallback(signals);
@@ -96,63 +103,63 @@ export function SceneStage({ children }: { children: ReactNode }) {
         runtimeRef.current = createSceneRuntime({
           canvas,
           signals,
-          reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)")
-            .matches,
+          reducedMotion: reducedMotion.matches,
           onChange(next) {
             setSnapshot(next);
-            setLitLines(next.lit);
+            setLitLines({ slug: shownSlugRef.current, lines: next.lit });
           },
           onFallback: fallBack,
         });
-        setMode("webgl");
       } catch {
-        fallBack("context-failed");
+        return fallBack("context-failed");
       }
+      setMode("webgl");
+      show(selectedRef.current);
     }
     void start();
     return () => {
       cancelled = true;
+      reducedMotion.removeEventListener("change", onMotionChange);
       runtimeRef.current?.dispose();
       runtimeRef.current = null;
+      setMode("pending");
+      setSnapshot(IDLE);
     };
-  }, [fallBack, setLitLines]);
+  }, [fallBack, setLitLines, show]);
 
   /* Selecting a step cuts to its scene and builds it, and nothing else does:
      the build never advances to another step on its own. */
   useEffect(() => {
-    if (mode === "webgl") runtimeRef.current?.show(stepNamed(selected));
-  }, [mode, selected]);
+    show(selected);
+  }, [selected, show]);
 
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onChange = () => runtimeRef.current?.setReducedMotion(query.matches);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
+  const withScene = hasScene(step);
+  const live = mode === "webgl" && withScene;
 
-  /* Esc skips the build; once there is nothing to skip, it returns focus to
-     the selected step in the list (storyboard §7.7). */
+  /* Esc in the scene skips the build; once there is nothing to skip, it
+     returns focus to the selected step in the list (storyboard §7.7). Only
+     while a scene is on the stage, so Esc elsewhere on the route, or with
+     no scene, leaves focus where it is. */
   useEffect(() => {
+    if (!live) return;
     function onKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape" || event.defaultPrevented) return;
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
         return;
       }
-      if (buildStateRef.current === "building") {
-        runtimeRef.current?.skip();
-        return;
-      }
+      if (runtimeRef.current?.skip()) return;
       document
         .querySelector<HTMLElement>(`[data-path-step-link="${selected}"]`)
         ?.focus();
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selected]);
+  }, [live, selected]);
 
-  const withScene = hasScene(step);
-  const live = mode === "webgl" && withScene;
-  const { buildState, shown, turn } = snapshot;
+  /* While the runtime loads, a step with a scene is `loading`. */
+  const buildState: BuildState =
+    mode === "pending" && withScene ? "loading" : snapshot.buildState;
+  const { shown, turn } = snapshot;
 
   return (
     <div className="print:hidden">
@@ -195,13 +202,13 @@ export function SceneStage({ children }: { children: ReactNode }) {
                   : runtimeRef.current?.replay()
               }
             >
-              {buildState === "building" ? COPY.skip : COPY.replay}
+              {buildState === "building" ? STAGE_COPY.skip : STAGE_COPY.replay}
             </button>
             <div className="ml-auto flex items-center gap-2">
               <button
                 type="button"
-                aria-label={COPY.turnLeft}
-                title={COPY.turnLeft}
+                aria-label={STAGE_COPY.turnLeft}
+                title={STAGE_COPY.turnLeft}
                 disabled={turn <= -TURN_LIMIT}
                 className={TURN_CLASS_NAME}
                 onClick={() => runtimeRef.current?.turn(-1)}
@@ -210,8 +217,8 @@ export function SceneStage({ children }: { children: ReactNode }) {
               </button>
               <button
                 type="button"
-                aria-label={COPY.turnRight}
-                title={COPY.turnRight}
+                aria-label={STAGE_COPY.turnRight}
+                title={STAGE_COPY.turnRight}
                 disabled={turn >= TURN_LIMIT}
                 className={TURN_CLASS_NAME}
                 onClick={() => runtimeRef.current?.turn(1)}
@@ -230,7 +237,7 @@ export function SceneStage({ children }: { children: ReactNode }) {
 
       {/* One polite announcement per scene shown (storyboard §7.4). */}
       <p aria-live="polite" className="sr-only">
-        {mode !== "pending" && withScene ? COPY.showing(step.place) : ""}
+        {mode !== "pending" && withScene ? STAGE_COPY.showing(step.place) : ""}
       </p>
     </div>
   );

@@ -2,7 +2,7 @@
 THESIS: The 3D path, entered by choice: the same seven steps as `/`, walked one
 scene at a time. The overlay paints first, over the step's still; the scene
 then builds in its stage.
-OWN-WORLD: Warm Print over a full-screen stage — serif places, mono dates,
+OWN-WORLD: Warm Print around a full-width stage — serif places, mono dates,
 terracotta for the piece, the links and the way back.
 STORY: Pick a step, read what happened there, go back to the flat site at the
 same step.
@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils";
 
 import { stillsFor } from "@/components/path/scene/build-plan";
 
+import { STAGE_COPY } from "./copy";
 import { PATH_OVERLAY_INSET } from "./inset";
 import {
   CAPTION_LIT_CSS,
@@ -58,7 +59,9 @@ function stepNode(step: PathStep): PathStepNode {
 /* What the stage shows before the scene renders, and as the fallback: the
    step's still, one per mode, or a line for a step whose scene is not built
    yet. Server HTML for every step, shown by the same CSS as the panels, so a
-   load of `/path#lille` paints Lille's before any JavaScript. */
+   load of `/path#lille` paints Lille's before any JavaScript. Lazy, so only
+   the shown step's still in the current mode downloads: Chromium does not
+   fetch a lazy image that is `display: none`. */
 function StageBackdrop({ step }: { step: PathStep }) {
   const stills = stillsFor(step);
   return (
@@ -72,6 +75,7 @@ function StageBackdrop({ step }: { step: PathStep }) {
             src={stills.light}
             alt=""
             data-path-still="light"
+            loading="lazy"
             className="size-full object-cover dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element -- as above. */}
@@ -79,12 +83,13 @@ function StageBackdrop({ step }: { step: PathStep }) {
             src={stills.dark}
             alt=""
             data-path-still="dark"
+            loading="lazy"
             className="hidden size-full object-cover dark:block"
           />
         </>
       ) : (
         <p className="text-faint font-label flex size-full items-center justify-center text-xs tracking-[0.12em] uppercase">
-          This step&rsquo;s scene is not built yet
+          {STAGE_COPY.notBuilt}
         </p>
       )}
     </div>

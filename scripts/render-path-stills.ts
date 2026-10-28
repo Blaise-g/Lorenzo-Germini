@@ -13,7 +13,11 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
 
-import { hasScene, stillsFor } from "../src/components/path/scene/build-plan";
+import {
+  buildPlan,
+  hasScene,
+  stillsFor,
+} from "../src/components/path/scene/build-plan";
 import { PATH_STEPS } from "../src/data/path";
 
 const origin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3200"}`;
@@ -49,15 +53,34 @@ try {
     for (const step of PATH_STEPS.filter(hasScene)) {
       const target = stillsFor(step)![theme];
       await page.goto(`${origin}/path#${step.slug}`);
-      const stage = page.locator("[data-path-stage]");
-      /* Reduced motion puts the end state up at once. */
-      await stage
-        .and(page.locator('[data-build-state="built"]'))
-        .waitFor({ timeout: 15_000 });
+      /* After the first, each goto only changes the fragment, so the page
+         still carries the last step's end state: wait for this step's props,
+         all of them, and for a frame rendered after they were posed. */
+      const plan = buildPlan(step);
+      const props = [
+        ...plan.standing,
+        ...plan.building.map((prop) => prop.id),
+      ].sort();
       await page.waitForFunction(
+        (expected) => {
+          const stage = document.querySelector("[data-path-stage]");
+          const shown = (stage?.getAttribute("data-scene-props") ?? "")
+            .split(" ")
+            .sort()
+            .join(" ");
+          return (
+            stage?.getAttribute("data-build-state") === "built" &&
+            shown === expected
+          );
+        },
+        props.join(" "),
+        { timeout: 15_000 },
+      );
+      await page.evaluate(
         () =>
-          document.querySelector<HTMLCanvasElement>("[data-path-stage] canvas")
-            ?.dataset.pathSceneRendered === "true",
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
       );
       const png = await page.locator("[data-path-stage] canvas").screenshot();
       const webp = await sharp(png).webp({ quality: 78 }).toBuffer();

@@ -16,6 +16,7 @@ import {
   type CapabilitySignals,
 } from "@/components/path/scene/fallback";
 import { HOME_SCENE } from "@/components/path/scene/home";
+import { SCENES } from "@/components/path/scene/scenes";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -77,6 +78,13 @@ test.describe("the fallback decision", () => {
 });
 
 test.describe("what each step builds", () => {
+  /* The host decides from `SCENES_WITH_ART` whether to show the canvas; the
+     runtime draws from `SCENES`. Out of step, a scene would show a stale
+     canvas over its still, or never show at all. */
+  test("the scenes the host shows are the scenes the runtime has art for", () => {
+    expect(Object.keys(SCENES).sort()).toEqual([...SCENES_WITH_ART].sort());
+  });
+
   test("every prop a step with art names has art in its scene", () => {
     expect(SCENES_WITH_ART).toEqual(["home"]);
     for (const step of PATH_STEPS.filter((s) => s.sceneId === "home")) {

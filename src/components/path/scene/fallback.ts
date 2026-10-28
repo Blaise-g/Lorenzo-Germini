@@ -24,7 +24,9 @@ export type FallbackReason =
 
 export const FRAME_SAMPLE_SIZE = 60;
 
-/** Above this median frame time the scene runs under 30 frames a second. */
+/** The storyboard's line, "a median above 33 ms". These are rAF intervals,
+ *  so they measure the display as well as the render: a screen held at 30 Hz
+ *  reports about 33.3 ms and is over it, however cheap the frame. */
 export const SLOW_FRAME_MEDIAN_MS = 33;
 
 /** The line under the stills, saying why there is no scene. */

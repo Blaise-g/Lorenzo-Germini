@@ -33,7 +33,7 @@ import {
   type CapabilitySignals,
   type FallbackReason,
 } from "./fallback";
-import { HOME_SCENE } from "./home";
+import { SCENES } from "./scenes";
 import {
   isDarkMode,
   readPalette,
@@ -47,10 +47,6 @@ import {
    fixed camera with a limited turn, builds the selected step's props in about
    2–3 s, then stops drawing: the end is a still composition, and nothing
    loops or advances on its own (decision 8). */
-
-const SCENES: Partial<Record<PathStep["sceneId"], SceneDefinition>> = {
-  home: HOME_SCENE,
-};
 
 const TURN_RADIANS = Math.PI / 4;
 const TURN_MS = 450;
@@ -84,8 +80,8 @@ export type SceneRuntimeOptions = {
 export type SceneRuntime = {
   /** Cuts to `step`'s scene and builds it, or to nothing if it has no art. */
   show(step: PathStep): void;
-  /** Jumps the build to its end state. */
-  skip(): void;
+  /** Jumps the build to its end state; false if nothing was building. */
+  skip(): boolean;
   /** Builds the shown step again from its standing props. */
   replay(): void;
   turn(direction: -1 | 1): void;
@@ -188,6 +184,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     scene.background = mix("fog");
     hemisphere.groundColor.copy(mix("ground"));
   }
+
+  /* The fog's colour is the scene's background from the very first render,
+     so nothing drawn before a scene loads can flash black over the still. */
+  paint();
 
   const kit: SceneKit = {
     solid(geometry, role) {
@@ -474,7 +474,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   });
   const resizeObserver = new ResizeObserver(() => {
     frame();
-    if (!frameRequest && !contextLost && !fellBack) {
+    if (definition && !frameRequest && !contextLost && !fellBack) {
       renderer.render(scene, camera);
     }
   });
@@ -494,7 +494,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         plan = undefined;
         lit = [];
         shown = [];
-        setBuildState("idle");
+        buildState = "idle";
         emit();
         return;
       }
@@ -502,7 +502,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       startBuild();
     },
     skip() {
-      if (buildState === "building") finish();
+      if (buildState !== "building") return false;
+      finish();
+      return true;
     },
     replay() {
       if (plan) startBuild();
