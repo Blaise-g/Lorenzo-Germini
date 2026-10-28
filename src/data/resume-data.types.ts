@@ -89,6 +89,10 @@ export type ResumeData = {
     /** The colophon stack line (spec decision 4 keeps it at the foot). */
     systems: string;
   };
+  /** The path's first step: home, before any CV entry exists (GH-141, decision
+   *  1). Top-level and new rather than folded into `work` or `about`, which feed
+   *  the checked-in CV PDF and would need `generate:cv`. */
+  homeOrigin: string;
   /** Root-relative, so `next/image` optimizes it. Consumers that need an
    *  absolute URL — the JSON-LD `image` — resolve it against
    *  `personalWebsiteUrl` themselves. Always 4:5. */
