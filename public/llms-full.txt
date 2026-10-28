@@ -26,6 +26,18 @@ Contact: lorenzo.germini@icloud.com
 - LinkedIn: https://www.linkedin.com/in/lorenzogermini/
 - X/Twitter: https://twitter.com/spleenboi_
 
+## The path
+
+The homepage, https://lorenzogermini.com, tells the career as a path: steps in time order, each a place with the roles held there and what came of them, and the side projects beside it. As markdown, in the same order and words: https://lorenzogermini.com/index.md
+
+- Cuneo: home
+- Turin: Bachelor's in Electrical Engineering, Polytechnic of Turin
+- Switzerland: EPFL MSc, the thesis summariser, Roche, Burgeon Labs
+- Cuneo: teaching, and an interior-design MVP
+- Lille: GSK, near Lille in Saint-Amand-les-Eaux
+- Cuneo, now: the stealth GenAI startup, then Complaion
+- ?: not yet written
+
 ## Skills
 
 - LLM agents (Large Language Model agents)
