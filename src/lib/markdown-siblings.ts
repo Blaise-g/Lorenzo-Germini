@@ -166,8 +166,8 @@ export function renderWritingMarkdown(): string {
  * asking for markdown at the root, which is what amended ADR-0005's rule against
  * inventing sibling paths. Its shape follows the homepage rather than the CV:
  * the path's steps in order, the side projects beside it, then the writing. That
- * makes the overlap with `/llms-full.txt` deliberate — this one is addressable as the root's representation, which a
- * `.txt` manifest is not.
+ * makes the overlap with `/llms-full.txt` deliberate — this one is addressable
+ * as the root's representation, which a `.txt` manifest is not.
  */
 export function renderIndexMarkdown(): string {
   const { writing } = RESUME_DATA.homepage;
@@ -181,7 +181,7 @@ export function renderIndexMarkdown(): string {
     ...PATH_STEPS.map(stepBlock),
     "## Beside the path",
     ...PATH_SIDE_PROPS.map((prop) =>
-      lines([`### ${prop.title}`, prop.text, `Link: ${prop.link.href}`]),
+      lines([`### ${prop.title}`, prop.text, `Link: ${site(prop.link.href)}`]),
     ),
     "## Writing",
     writing.standingLine,
