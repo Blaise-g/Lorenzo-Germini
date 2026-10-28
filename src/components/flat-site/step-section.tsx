@@ -1,4 +1,4 @@
-import { stepPeriod } from "@/components/flat-site/drawn-path";
+import { stepPeriod } from "@/components/flat-site/step-period";
 import type {
   PathIllustration,
   PathLink,
@@ -84,11 +84,14 @@ export function StepSection({ step }: { step: PathStep }) {
       id={step.slug}
       aria-labelledby={headingId}
       data-path-step={step.slug}
-      className={sectionClassName}
+      className={cn(sectionClassName, "group/step")}
     >
+      {/* The selected step's section is the step panel, marked with the
+          piece's ring in the gutter (GH-145). Drawn by CSS, so it adds no
+          words to the section and none to print. */}
       <h3
         id={headingId}
-        className="font-display flex items-baseline gap-x-3 text-2xl leading-snug print:text-base"
+        className="font-display before:border-accent relative flex items-baseline gap-x-3 text-2xl leading-snug before:absolute before:top-1/2 before:-left-5 before:size-3 before:-translate-y-1/2 before:rounded-full before:border-2 before:opacity-0 before:transition-opacity before:content-[''] group-data-[path-selected]/step:before:opacity-100 print:text-base print:before:hidden"
       >
         {step.place}
         {period ? (
