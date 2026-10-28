@@ -221,6 +221,45 @@ test("Back and Forward move between the selected steps, without a reload", async
   ).toBe(true);
 });
 
+test("a modified click on a step leaves the next Back scrolling", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await hydrated(page);
+  await stepLink(page, "lille").click();
+  await expectSelected(page, "lille");
+  await stepLink(page, "turin").click();
+  await expectSelected(page, "turin");
+
+  /* Cmd or Ctrl opens the step in a new tab; this page's fragment does not
+     change, so it must not count as a followed link. */
+  const opened = context.waitForEvent("page");
+  await stepLink(page, "next").click({ modifiers: ["ControlOrMeta"] });
+  await (await opened).close();
+  await expect(page).toHaveURL(/\/#turin$/);
+
+  /* Chromium restores Lille's own scroll on Back here, which would hide a
+     skipped scroll, so the leaf's call is what is checked. */
+  await page.evaluate(() => {
+    const scrolled: string[] = [];
+    (window as unknown as { scrolled: string[] }).scrolled = scrolled;
+    const original = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element, ...args) {
+      scrolled.push(this.id);
+      return original.apply(this, args);
+    };
+  });
+  await page.goBack();
+  await expect(page).toHaveURL(/\/#lille$/);
+  await expectSelected(page, "lille");
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { scrolled: string[] }).scrolled,
+    ),
+  ).toEqual(["lille"]);
+});
+
 test("seen ticks persist across reloads and can be cleared", async ({
   page,
 }) => {
