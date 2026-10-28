@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 
+import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
 import {
   MARKDOWN_MEDIA_TYPE,
@@ -202,5 +203,55 @@ test.describe("markdown content negotiation", () => {
         .filter((sibling) => !llms.includes(`${CANONICAL_ORIGIN}${sibling}`)),
       "llms.txt should link every markdown sibling",
     ).toEqual([]);
+  });
+});
+
+/* GH-146: `/` is the path now, so its sibling has to be too — the steps in the
+   page's order, each with the data module's text, and no sibling or sitemap
+   entry for `/path`, which adds nothing the flat site lacks. */
+test.describe("the homepage sibling follows the path", () => {
+  const section = (markdown: string, heading: string) => {
+    const start = markdown.indexOf(`\n## ${heading}\n`);
+    expect(start, `/index.md should have a "${heading}" section`).not.toBe(-1);
+    const end = markdown.indexOf("\n## ", start + 1);
+    return markdown.slice(start, end === -1 ? undefined : end);
+  };
+
+  test("lists every step in path order with its text", async ({ request }) => {
+    const path = section(
+      await (await request.get("/index.md")).text(),
+      "The path",
+    );
+    const blocks = path.split("\n### ").slice(1);
+
+    expect(blocks.map((block) => block.split("\n")[0])).toEqual(
+      PATH_STEPS.map((step) =>
+        [step.place, step.period].filter(Boolean).join(" · "),
+      ),
+    );
+    PATH_STEPS.forEach((step, index) => {
+      expect(blocks[index], step.slug).toContain(step.text);
+    });
+  });
+
+  test("carries every side prop's text beside the path", async ({
+    request,
+  }) => {
+    const beside = section(
+      await (await request.get("/index.md")).text(),
+      "Beside the path",
+    );
+
+    for (const prop of PATH_SIDE_PROPS) expect(beside).toContain(prop.text);
+  });
+
+  test("gives /path neither a sibling nor a sitemap entry", async ({
+    request,
+  }) => {
+    expect(Object.keys(MARKDOWN_NEGOTIABLE)).not.toContain("/path");
+    expect((await request.get("/path.md")).status()).toBe(404);
+    expect(await (await request.get("/sitemap.xml")).text()).not.toMatch(
+      /\/path</,
+    );
   });
 });
