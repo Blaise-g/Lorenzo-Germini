@@ -37,9 +37,19 @@ export type PathIllustration = {
   inspirations: readonly string[];
 };
 
-export type PathStep = {
-  /** The fragment on both routes, without the `#`: `/#lille`, `/path#lille`. */
-  slug: string;
+/** The fragment on both routes, without the `#`: `/#lille`, `/path#lille`. */
+export type PathStepSlug =
+  | "home"
+  | "turin"
+  | "switzerland"
+  | "cuneo-2022"
+  | "lille"
+  | "now"
+  | "next";
+
+/** What every step carries, whatever its scene. */
+export type PathStepBase = {
+  slug: PathStepSlug;
   place: string;
   /** "2017–20", "2024–now"; absent for home, which has no dates, and for "?". */
   period?: string;
@@ -50,14 +60,18 @@ export type PathStep = {
   links: readonly PathLink[];
   props: readonly PathProp[];
   illustration: PathIllustration;
-  sceneId: PathSceneId;
-  /** Set on home's three steps only. */
-  homeStage?: HomeStage;
   /** `lines` joined: what the text panel shows. */
   text: string;
   /** Word for word the step's text (GH-141, decision 9). */
   voiceScript: string;
 };
+
+export type PathStep = PathStepBase & PathStepScene;
+
+/** Home's steps, and only home's, carry the stage its scene builds up to. */
+export type PathStepScene =
+  | { sceneId: "home"; homeStage: HomeStage }
+  | { sceneId: Exclude<PathSceneId, "home">; homeStage?: never };
 
 /** A side project beside the path. It carries no dates, because the data gives
  *  it none (GH-141, decision 2). */

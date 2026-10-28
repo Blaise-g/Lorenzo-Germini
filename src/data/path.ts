@@ -1,24 +1,28 @@
 import { RESUME_DATA } from "./resume-data";
 import type {
-  HomeStage,
   PathIllustration,
   PathLink,
-  PathProp,
   PathRole,
-  PathSceneId,
   PathSideProp,
   PathStep,
+  PathStepBase,
+  PathStepScene,
 } from "./path.types";
 
 /* The path (GH-141): seven steps in time order and two side props, and the only
    source of their text, captions and voice scripts. Every sentence a step
-   shows is picked from RESUME_DATA by its opening words, so a reworded CV
-   bullet fails loudly here instead of leaving a stale copy on the path. The
-   scene copy — illustration labels, inspirations, prop names — has no CV
-   counterpart and lives here. */
+   shows is a RESUME_DATA field, or a CV bullet picked by its opening words, so
+   a reworded bullet fails loudly here instead of leaving a stale copy on the
+   path. The exceptions have no CV counterpart and live here: "?"'s line, and
+   the scene copy — illustration labels, inspirations, prop names.
+
+   Decision 10's closed list of numbers outranks the wording elsewhere in
+   GH-141: home's "two peaks" and "?"'s "five empty clue slots" lose their
+   counts here, and so do the CV sentences that carry another number. */
 
 type Work = (typeof RESUME_DATA.work)[number];
 type Project = (typeof RESUME_DATA.projects)[number];
+type Education = (typeof RESUME_DATA.education)[number];
 
 function job(company: string): Work {
   const entry = RESUME_DATA.work.find((work) => work.company === company);
@@ -32,7 +36,7 @@ function project(title: string): Project {
   return entry;
 }
 
-function degree(school: string) {
+function degree(school: string): Education {
   const entry = RESUME_DATA.education.find((item) => item.school === school);
   if (!entry)
     throw new Error(`The path needs an education entry for ${school}`);
@@ -93,10 +97,9 @@ function period(roles: readonly PathRole[]): string {
   const starts = roles.map((role) => year(role.start));
   const ends = roles.map((role) => year(role.end));
   const first = Math.min(...starts.filter((y) => y !== "now"));
-  const last = ends.includes("now")
-    ? "now"
-    : String(Math.max(...ends.filter((y) => y !== "now"))).slice(2);
-  return `${first}–${last}`;
+  if (ends.includes("now")) return `${first}–now`;
+  const last = Math.max(...ends.filter((y) => y !== "now"));
+  return last === first ? String(first) : `${first}–${String(last).slice(2)}`;
 }
 
 function employer(work: Work): PathLink[] {
@@ -108,17 +111,8 @@ const inTheCv = {
   education: { label: "In the CV", href: "/cv#cv-education" },
 } satisfies Record<string, PathLink>;
 
-type StepSource = {
-  slug: string;
-  place: string;
-  roles: readonly PathRole[];
-  lines: readonly string[];
-  links: readonly PathLink[];
-  props: readonly PathProp[];
-  illustration: PathIllustration;
-  sceneId: PathSceneId;
-  homeStage?: HomeStage;
-};
+type StepSource = Omit<PathStepBase, "period" | "text" | "voiceScript"> &
+  PathStepScene;
 
 function step(source: StepSource): PathStep {
   const text = source.lines.join(" ");
@@ -159,7 +153,7 @@ export const PATH_STEPS: readonly PathStep[] = [
     slug: "home",
     place: "Cuneo",
     roles: [],
-    lines: [RESUME_DATA.homeOrigin],
+    lines: [RESUME_DATA.homeLine],
     links: [],
     props: [
       { id: "plateau", name: "The plateau between the rivers", captionLine: 0 },
@@ -206,6 +200,7 @@ export const PATH_STEPS: readonly PathStep[] = [
     ],
     links: [
       inTheCv.education,
+      inTheCv.experience,
       ...(summariser.link ? [summariser.link] : []),
       ...employer(roche),
       ...employer(burgeon),
@@ -276,6 +271,8 @@ export const PATH_STEPS: readonly PathStep[] = [
     slug: "now",
     place: "Cuneo",
     roles: [workRole(stealth), workRole(complaion)],
+    /* The startup's first bullet, the AWS backend and the EdTech product, says
+       "from zero", a number Decision 10 does not allow. */
     lines: [
       pick(bullets(stealth), "Built a RAG stack"),
       pick(bullets(stealth), "Led MVP engineering"),

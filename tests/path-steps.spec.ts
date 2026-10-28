@@ -6,6 +6,11 @@ import { RESUME_DATA } from "@/data/resume-data";
 /* The content rules of the path (GH-141, decisions 2, 3, 9 and 10), checked on
    the data module every surface of the path reads from. */
 
+/** Sentences as a reader sees them, independent of the module's own split. */
+function sentencesOf(text: string): string[] {
+  return text.match(/[^.]+\.(?=\s|$)/g)?.map((part) => part.trim()) ?? [];
+}
+
 /** Every string a visitor reads or hears: dates, slugs and hrefs left out,
  *  because they are dates and addresses, not claims. */
 function prose(): { where: string; value: string }[] {
@@ -107,12 +112,16 @@ test.describe("the path's steps", () => {
   });
 
   test("take their sentences from the resume data, not a copy", () => {
-    const work = RESUME_DATA.work.flatMap((entry) => entry.description);
+    const work = RESUME_DATA.work.flatMap((entry) =>
+      typeof entry.description === "string"
+        ? sentencesOf(entry.description)
+        : entry.description,
+    );
     const projects = RESUME_DATA.projects.map((entry) => entry.description);
     const degrees = RESUME_DATA.education.map(
       (entry) => `${entry.degree}, ${entry.school}.`,
     );
-    const sources = [RESUME_DATA.homeOrigin, ...work, ...projects, ...degrees];
+    const sources = [RESUME_DATA.homeLine, ...work, ...projects, ...degrees];
 
     for (const step of PATH_STEPS.filter((step) => step.place !== "?")) {
       for (const line of step.lines) {
@@ -149,8 +158,23 @@ test.describe("the path's side props", () => {
     }
   });
 
+  test("take their sentences from the project descriptions", () => {
+    for (const prop of PATH_SIDE_PROPS) {
+      const source = RESUME_DATA.projects.find(
+        (entry) => entry.title === prop.title,
+      );
+
+      expect(source?.link, prop.slug).toEqual(prop.link);
+      for (const line of prop.lines) {
+        expect(sentencesOf(source?.description ?? ""), prop.slug).toContain(
+          line,
+        );
+      }
+    }
+  });
+
   test("have slugs that no step uses", () => {
-    const steps = new Set(PATH_STEPS.map((step) => step.slug));
+    const steps = new Set<string>(PATH_STEPS.map((step) => step.slug));
 
     for (const prop of PATH_SIDE_PROPS)
       expect(steps.has(prop.slug)).toBe(false);
@@ -168,7 +192,7 @@ test.describe("the path's numbers", () => {
   ];
   /* Cardinals only. Ordinals ("the company's first product") are not counts. */
   const numberWords =
-    /\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|hundred|thousand|million|billion|dozen|percent)\b/i;
+    /\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|\w+teen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|dozens?|percent|half|twice|double)\b/i;
 
   test("are only the four Decision 10 allows", () => {
     const strays = prose()
