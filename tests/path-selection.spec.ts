@@ -39,6 +39,18 @@ async function expectSelected(page: Page, slug: PathStepSlug) {
   await expect(section).toHaveAttribute("data-path-selected", "");
   await expect(section).toBeInViewport();
   await expect(section).toContainText(step.lines[0]);
+  /* The marker the reader sees is the heading's ring, not the attribute. */
+  await expect
+    .poll(() => markerOpacity(page, slug), `${slug}'s marker`)
+    .toBe("1");
+  const other = PATH_STEPS.find((candidate) => candidate.slug !== slug)!;
+  expect(await markerOpacity(page, other.slug)).toBe("0");
+}
+
+function markerOpacity(page: Page, slug: PathStepSlug) {
+  return page
+    .locator(`section#${slug} h3`)
+    .evaluate((heading) => getComputedStyle(heading, "::before").opacity);
 }
 
 async function seenSlugs(page: Page) {
@@ -129,6 +141,42 @@ test("a load of /#lille selects Lille, without a hydration error", async ({
   expect(errors).toEqual([]);
 });
 
+test("a reload of /#lille keeps Lille and the visitor's scroll position", async ({
+  page,
+}) => {
+  await page.goto("/#lille");
+  await hydrated(page);
+  await page.locator("section#writing").scrollIntoViewIfNeeded();
+  await expect(page.locator("section#writing")).toBeInViewport();
+
+  await page.reload();
+  await hydrated(page);
+
+  await expect(stepLink(page, "lille")).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  await expect(page.locator("section#writing")).toBeInViewport();
+});
+
+test("a malformed fragment selects the default step and breaks nothing", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+
+  await page.goto("/#%");
+  await hydrated(page);
+
+  await expect(stepLink(page, "now")).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  await stepLink(page, "lille").click();
+  await expectSelected(page, "lille");
+  expect(errors).toEqual([]);
+});
+
 test("Back and Forward move between the selected steps, without a reload", async ({
   page,
 }) => {
@@ -154,6 +202,17 @@ test("Back and Forward move between the selected steps, without a reload", async
   await page.goForward();
   await expect(page).toHaveURL(/\/#turin$/);
   await expectSelected(page, "turin");
+
+  /* Back past the first selection is the bare `/` it started on, so the
+     default step again — what a load of `/` selects. */
+  await page.goBack();
+  await page.goBack();
+  await expect(page).toHaveURL(/\/$/);
+  await expect(stepLink(page, "now")).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  await expect(piece(page)).toHaveAttribute("data-path-piece", "now");
 
   expect(
     await page.evaluate(
@@ -190,8 +249,12 @@ test("seen ticks persist across reloads and can be cleared", async ({
   await hydrated(page);
   await expect.poll(() => seenSlugs(page)).toEqual(["turin", "lille"]);
 
-  await page.getByRole("button", { name: "Clear seen" }).click();
+  /* By keyboard: the button goes once nothing is seen, and focus lands on
+     the selected step rather than dropping to the page. */
+  await page.getByRole("button", { name: "Clear seen" }).focus();
+  await page.keyboard.press("Enter");
   await expect.poll(() => seenSlugs(page)).toEqual([]);
+  await expect(stepLink(page, "now")).toBeFocused();
   await expect(page.getByRole("button", { name: "Clear seen" })).toHaveCount(0);
 
   await page.reload();

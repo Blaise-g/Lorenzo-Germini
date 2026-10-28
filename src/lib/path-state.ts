@@ -1,23 +1,23 @@
-import { useState, useSyncExternalStore } from "react";
-
 import type { PathStepSlug } from "@/data/path.types";
 
 /* The step-state contract shared by `/` and `/path` (GH-141, implementation
    decision 4): which step a fragment names, the history push, and the two
    local-storage keys. Fragments are read on the client only — never
    `searchParams` or a dynamic segment, which Cache Components would count as
-   runtime reads (decision 13). No `"use client"`: a server module may import
-   the constants, and the hooks only run inside client components. */
+   runtime reads (decision 13). No React here, so a server module may import
+   the keys; the hooks that read this state are in `use-path-state.ts`. */
 
-const STEP_SLUGS: readonly PathStepSlug[] = [
-  "home",
-  "turin",
-  "switzerland",
-  "cuneo-2022",
-  "lille",
-  "now",
-  "next",
-];
+/* A record rather than a list, so a slug added to `PathStepSlug` and missing
+   here fails to compile instead of never selecting from its fragment. */
+const STEP_SLUGS: Record<PathStepSlug, true> = {
+  home: true,
+  turin: true,
+  switzerland: true,
+  "cuneo-2022": true,
+  lille: true,
+  now: true,
+  next: true,
+};
 
 /** The steps the visitor has selected, as a JSON array of slugs. Shared by
  *  both routes, so a tick earned on one shows on the other. */
@@ -27,17 +27,27 @@ export const SEEN_STORAGE_KEY = "path:seen";
  *  "Continue the path" (decision 6). */
 export const ENTERED_STORAGE_KEY = "path:entered";
 
-/** The step selected when the fragment names none: now (storyboard §7.2). It
- *  is shown, not chosen, so it earns no seen tick. */
+/** The step selected when the fragment is empty: now (storyboard §7.2). It is
+ *  shown, not chosen, so it earns no seen tick. */
 export const DEFAULT_STEP: PathStepSlug = "now";
 
-const SEEN_CHANGE_EVENT = "path:seen-change";
+export const SEEN_CHANGE_EVENT = "path:seen-change";
+
+export function isStepSlug(value: string): value is PathStepSlug {
+  return Object.hasOwn(STEP_SLUGS, value);
+}
 
 /** The step a fragment names (`#lille`, or `lille`), or `undefined` for any
- *  other fragment — a side prop's, or none. */
+ *  other fragment — a side prop's, a malformed one, or none. */
 export function stepFromFragment(fragment: string): PathStepSlug | undefined {
-  const slug = decodeURIComponent(fragment.replace(/^#/, ""));
-  return STEP_SLUGS.find((step) => step === slug);
+  let slug: string;
+  try {
+    slug = decodeURIComponent(fragment.replace(/^#/, ""));
+  } catch {
+    /* `/#%` is a URL anyone can type; it names no step. */
+    return undefined;
+  }
+  return isStepSlug(slug) ? slug : undefined;
 }
 
 export function fragmentForStep(slug: PathStepSlug): `#${PathStepSlug}` {
@@ -58,32 +68,9 @@ export function pushStep(slug: PathStepSlug) {
   );
 }
 
-function subscribeToFragment(onChange: () => void) {
-  window.addEventListener("hashchange", onChange);
-  return () => window.removeEventListener("hashchange", onChange);
-}
-
-/** The selected step, and the step the fragment names if it names one. Back
- *  and Forward land here through `hashchange`. A fragment that names no step
- *  keeps the last selection rather than snapping back to the default. The
- *  server and the first client render see no fragment, so hydration matches. */
-export function useSelectedStep(): {
-  selected: PathStepSlug;
-  fromFragment: PathStepSlug | undefined;
-} {
-  const fromFragment = useSyncExternalStore(
-    subscribeToFragment,
-    () => stepFromFragment(window.location.hash),
-    () => undefined,
-  );
-  const [last, setLast] = useState<PathStepSlug>(DEFAULT_STEP);
-  if (fromFragment && fromFragment !== last) setLast(fromFragment);
-  return { selected: fromFragment ?? last, fromFragment };
-}
-
 /* Storage can throw — disabled, full, or a private window — and a tick is
    never worth an error, so every access degrades to "nothing seen". */
-function readStorage(key: string): string | null {
+export function readStorage(key: string): string | null {
   try {
     return window.localStorage.getItem(key);
   } catch {
@@ -100,14 +87,15 @@ function writeStorage(key: string, value: string | null) {
   }
 }
 
-function parseSeen(raw: string | null): ReadonlySet<PathStepSlug> {
+export function parseSeen(raw: string | null): ReadonlySet<PathStepSlug> {
   if (!raw) return new Set();
   try {
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return new Set();
     return new Set(
-      parsed.flatMap((value) =>
-        typeof value === "string" ? (stepFromFragment(value) ?? []) : [],
+      parsed.filter(
+        (value): value is PathStepSlug =>
+          typeof value === "string" && isStepSlug(value),
       ),
     );
   } catch {
@@ -135,29 +123,6 @@ export function markSeen(slug: PathStepSlug) {
 
 export function clearSeen() {
   writeSeen(new Set());
-}
-
-function subscribeToSeen(onChange: () => void) {
-  /* `storage` carries another tab's change, the custom event this tab's. */
-  window.addEventListener("storage", onChange);
-  window.addEventListener(SEEN_CHANGE_EVENT, onChange);
-  return () => {
-    window.removeEventListener("storage", onChange);
-    window.removeEventListener(SEEN_CHANGE_EVENT, onChange);
-  };
-}
-
-/** The seen steps. The snapshot is the raw stored string, which compares
- *  stably between renders; the set is parsed from it. Empty on the server. */
-export function useSeenSteps(): ReadonlySet<PathStepSlug> {
-  const raw = useSyncExternalStore(
-    subscribeToSeen,
-    () => readStorage(SEEN_STORAGE_KEY),
-    () => null,
-  );
-  const [parsed, setParsed] = useState(() => ({ raw, seen: parseSeen(raw) }));
-  if (parsed.raw !== raw) setParsed({ raw, seen: parseSeen(raw) });
-  return parsed.seen;
 }
 
 export function hasEntered(): boolean {

@@ -4,12 +4,8 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import type { KeyboardEvent } from "react";
 
 import type { PathStepSlug } from "@/data/path.types";
-import {
-  clearSeen,
-  markSeen,
-  useSeenSteps,
-  useSelectedStep,
-} from "@/lib/path-state";
+import { clearSeen, fragmentForStep, markSeen } from "@/lib/path-state";
+import { useSeenSteps, useSelectedStep } from "@/lib/use-path-state";
 
 /** What the path draws for a step: home is a square, a place a dot, and "?"
  *  an open ring, because it is not yet written. */
@@ -101,8 +97,8 @@ function SeenTick() {
 
 const subscribeToNothing = () => () => {};
 
-/** True once hydrated: what only JavaScript adds — the piece, the ticks, the
- *  clear control — stays out of the server HTML, so the page without it is
+/** True once hydrated: what only JavaScript adds — the piece and the
+ *  selection — stays out of the server HTML, so the page without it is
  *  GH-144's, whole. */
 function useHydrated() {
   return useSyncExternalStore(
@@ -139,18 +135,39 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
 
   /* Back and Forward change the fragment without the jump a link makes: the
      browser restores the entry's saved scroll, which in Chromium did not
-     leave the step's section on screen. So the panel is brought there here.
-     Not on mount: a load of `/#lille` has already scrolled, and a reload
-     keeps the visitor's own position. `html`'s `scroll-behavior` makes this
-     a glide, or a jump under reduced motion. */
-  const mounted = useRef(false);
+     leave the step's section on screen. So the panel is brought there here,
+     and only then. A followed link has already scrolled, and the fragment
+     the hydrating render first reads was already there on load, where a
+     reload keeps the visitor's own position. `html`'s `scroll-behavior`
+     makes this a glide, or a jump under reduced motion. */
+  const settled = useRef(false);
+  const followedLink = useRef(false);
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
+    if (!hydrated) return;
+    if (!settled.current) {
+      settled.current = true;
+      return;
+    }
+    if (followedLink.current) {
+      followedLink.current = false;
       return;
     }
     if (fromFragment) document.getElementById(fromFragment)?.scrollIntoView();
-  }, [fromFragment]);
+  }, [fromFragment, hydrated]);
+
+  function onStepClick(slug: PathStepSlug) {
+    /* Following the current step's link changes no fragment. */
+    if (slug !== fromFragment) followedLink.current = true;
+  }
+
+  /* Clearing removes the button that had focus; the selected step keeps it on
+     the path rather than dropping it to the page. */
+  function onClearSeen() {
+    clearSeen();
+    listRef.current
+      ?.querySelector<HTMLAnchorElement>(`[data-path-step-link="${selected}"]`)
+      ?.focus();
+  }
 
   /* The selected step's section is the visible panel. The sections are server
      HTML, so the mark goes on as an attribute rather than a prop. */
@@ -227,16 +244,17 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
           {steps.map((step) => (
             <li
               key={step.slug}
-              data-path-seen={hydrated && seen.has(step.slug) ? "" : undefined}
+              data-path-seen={seen.has(step.slug) ? "" : undefined}
               className="flex items-center"
               style={{ height: ROW_PX }}
             >
               <a
-                href={`#${step.slug}`}
+                href={fragmentForStep(step.slug)}
                 data-path-step-link={step.slug}
                 aria-current={
                   hydrated && step.slug === selected ? "location" : undefined
                 }
+                onClick={() => onStepClick(step.slug)}
                 onKeyDown={onStepKeyDown}
                 className="touch-target group aria-[current]:text-accent gap-x-2 underline-offset-4"
               >
@@ -251,7 +269,7 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
                     {step.period}
                   </span>
                 ) : null}
-                {hydrated && seen.has(step.slug) ? <SeenTick /> : null}
+                {seen.has(step.slug) ? <SeenTick /> : null}
               </a>
             </li>
           ))}
@@ -264,10 +282,10 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
         className="flex h-11 items-center print:hidden"
         style={{ marginLeft: GUTTER_PX + 12 }}
       >
-        {hydrated && seen.size > 0 ? (
+        {seen.size > 0 ? (
           <button
             type="button"
-            onClick={clearSeen}
+            onClick={onClearSeen}
             className="text-faint hover:text-accent touch-target font-label text-xs tracking-[0.12em] uppercase underline-offset-4 hover:underline"
           >
             Clear seen
