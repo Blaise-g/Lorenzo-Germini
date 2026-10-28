@@ -108,6 +108,17 @@ function useHydrated() {
   );
 }
 
+/** A modified key or click is the browser's or the platform's, not the
+ *  path's: it opens a tab or a window, or means something else entirely. */
+function hasModifier(event: {
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+}) {
+  return event.altKey || event.ctrlKey || event.metaKey || event.shiftKey;
+}
+
 /* Down and Right move on along the path, Up and Left back. */
 const ARROW_STEP: Record<string, 1 | -1> = {
   ArrowDown: 1,
@@ -161,13 +172,7 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
   ) {
     /* A modified or non-primary click opens a tab or a window and leaves this
        page's fragment alone, so the next Back must still scroll. */
-    if (
-      event.button !== 0 ||
-      event.altKey ||
-      event.ctrlKey ||
-      event.metaKey ||
-      event.shiftKey
-    ) {
+    if (event.button !== 0 || hasModifier(event)) {
       return;
     }
     /* Following the current step's link changes no fragment. */
@@ -192,7 +197,7 @@ export function PathSteps({ steps }: { steps: readonly PathStepMark[] }) {
   }, [selected]);
 
   function onStepKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
-    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+    if (hasModifier(event)) {
       return;
     }
     /* Enter already follows a link; Space would scroll the page instead. */
