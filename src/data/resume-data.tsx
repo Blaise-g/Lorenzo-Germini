@@ -61,6 +61,7 @@ export const RESUME_DATA: ResumeData = {
     systems:
       "agent systems · eval harnesses & tracing · end-to-end shipping, coding agents in the loop",
   },
+  homeLine: "Where I grew up and went to school.",
   /* Root-relative so `next/image` optimizes it: a studio portrait at 4:5, which
      is the aspect every frame that renders it uses. The JSON-LD absolutizes it
      against the canonical origin, the one consumer that needs a full URL. */
