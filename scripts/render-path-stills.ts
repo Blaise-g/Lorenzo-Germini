@@ -1,13 +1,17 @@
 /* Renders the 3D path's fallback stills from the scene runtime itself (#148):
    each step with a scene, at its end state, from its fixed camera, in light
-   and dark. Grey-box renders until #149's pipeline paints over them.
+   and dark. A painted scene's still (#149, `PAINTED_SCENES`) is never
+   overwritten: its grey-box render goes to a scratch directory instead, as
+   the input the painting is made over (`docs/path-assets.md`), and the
+   painted stills are only checked against the budget.
 
    Runs against the dev server you already have, rather than booting its own
    as `generate:cv` does: Next's `.next/dev/lock` allows one per working
    directory, so a running one is reused. Start it first with `bun run dev`
    (same `PLAYWRIGHT_PORT`), then `bun run generate:path-stills`. */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -16,6 +20,7 @@ import sharp from "sharp";
 import {
   buildPlan,
   hasScene,
+  PAINTED_SCENES,
   stillsFor,
 } from "../src/components/path/scene/build-plan";
 import { PATH_STEPS } from "../src/data/path";
@@ -34,6 +39,10 @@ if (!reachable) {
   console.error(`No dev server at ${origin}. Start one with \`bun run dev\`.`);
   process.exit(1);
 }
+
+const isPainted = (step: (typeof PATH_STEPS)[number]) =>
+  PAINTED_SCENES.includes(step.sceneId);
+const greyBoxes = await mkdtemp(path.join(tmpdir(), "path-grey-boxes-"));
 
 const browser = await chromium.launch({ args: ["--mute-audio"] });
 try {
@@ -83,6 +92,12 @@ try {
           ),
       );
       const png = await page.locator("[data-path-stage] canvas").screenshot();
+      if (isPainted(step)) {
+        const file = path.join(greyBoxes, path.basename(target, ".webp"));
+        await writeFile(`${file}.png`, png);
+        console.log(`${target}  painted; its grey box is ${file}.png`);
+        continue;
+      }
       const webp = await sharp(png).webp({ quality: 78 }).toBuffer();
       if (webp.length > MAX_BYTES) {
         throw new Error(`${target} is ${webp.length} bytes, over ${MAX_BYTES}`);
@@ -96,4 +111,13 @@ try {
   }
 } finally {
   await browser.close();
+}
+
+for (const step of PATH_STEPS.filter(hasScene).filter(isPainted)) {
+  for (const still of Object.values(stillsFor(step)!)) {
+    const { size } = await stat(path.join(process.cwd(), "public", still));
+    if (size > MAX_BYTES) {
+      throw new Error(`${still} is ${size} bytes, over ${MAX_BYTES}`);
+    }
+  }
 }

@@ -2,15 +2,15 @@ import {
   BoxGeometry,
   CylinderGeometry,
   ExtrudeGeometry,
-  Group,
   LatheGeometry,
   PlaneGeometry,
   Shape,
   Vector2,
-  type Object3D,
+  type Group,
 } from "three";
 
 import type { SceneDefinition, SceneKit } from "./definition";
+import { at, gable, group } from "./parts";
 
 /* Home, rough (GH-148): grey-box props built in code, standing on the plateau
    between Cuneo's two rivers with the Bisalta behind. It is the tracer scene —
@@ -23,29 +23,6 @@ const PLATEAU_DEPTH = 0.35;
 const PLATEAU_BEVEL = 0.08;
 /** Where props stand: the plateau's top face. */
 const TOP = BASE_TOP + PLATEAU_DEPTH + PLATEAU_BEVEL * 2;
-
-function at(object: Object3D, x: number, y: number, z: number): Object3D {
-  object.position.set(x, y, z);
-  return object;
-}
-
-function group(...children: Object3D[]): Group {
-  const parent = new Group();
-  parent.add(...children);
-  return parent;
-}
-
-/** A gabled roof: a triangle extruded along the building's depth. */
-function gable(width: number, height: number, depth: number) {
-  const shape = new Shape();
-  shape.moveTo(-width / 2, 0);
-  shape.lineTo(width / 2, 0);
-  shape.lineTo(0, height);
-  shape.closePath();
-  const geometry = new ExtrudeGeometry(shape, { depth, bevelEnabled: false });
-  geometry.translate(0, 0, -depth / 2);
-  return geometry;
-}
 
 /** A building: a box with a gabled roof, standing on `TOP`. */
 function building(
@@ -73,11 +50,12 @@ function building(
 
 /** A Bisalta peak, turned on a lathe from its profile. */
 function peak(radius: number, height: number) {
+  /* Bottom to top: a lathe's faces face outward only in this order. */
   const profile = [
-    new Vector2(0, height),
-    new Vector2(radius * 0.18, height * 0.86),
-    new Vector2(radius * 0.55, height * 0.42),
     new Vector2(radius, 0),
+    new Vector2(radius * 0.55, height * 0.42),
+    new Vector2(radius * 0.18, height * 0.86),
+    new Vector2(0, height),
   ];
   return new LatheGeometry(profile, 7);
 }

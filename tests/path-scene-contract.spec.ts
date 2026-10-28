@@ -7,6 +7,7 @@ import { expect, test } from "@playwright/test";
 
 import {
   buildPlan,
+  hasScene,
   litLines,
   SCENES_WITH_ART,
 } from "@/components/path/scene/build-plan";
@@ -15,7 +16,6 @@ import {
   FALLBACK_REASON_LINES,
   type CapabilitySignals,
 } from "@/components/path/scene/fallback";
-import { HOME_SCENE } from "@/components/path/scene/home";
 import { SCENES } from "@/components/path/scene/scenes";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
@@ -86,12 +86,13 @@ test.describe("what each step builds", () => {
   });
 
   test("every prop a step with art names has art in its scene", () => {
-    expect(SCENES_WITH_ART).toEqual(["home"]);
-    for (const step of PATH_STEPS.filter((s) => s.sceneId === "home")) {
+    expect(SCENES_WITH_ART).toEqual(["home", "lille"]);
+    for (const step of PATH_STEPS.filter(hasScene)) {
       for (const prop of step.props) {
-        expect(HOME_SCENE.props, `${step.slug}'s ${prop.id}`).toHaveProperty([
-          prop.id,
-        ]);
+        expect(
+          SCENES[step.sceneId]!.props,
+          `${step.slug}'s ${prop.id}`,
+        ).toHaveProperty([prop.id]);
       }
     }
   });

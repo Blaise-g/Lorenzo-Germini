@@ -1,6 +1,8 @@
 import {
   BackSide,
-  Box3,
+  BufferAttribute,
+  BufferGeometry,
+  CanvasTexture,
   DirectionalLight,
   Fog,
   Group,
@@ -9,13 +11,15 @@ import {
   MeshBasicMaterial,
   MeshLambertMaterial,
   PerspectiveCamera,
+  PlaneGeometry,
   Scene,
-  Vector3,
+  SRGBColorSpace,
   WebGLRenderer,
-  type BufferGeometry,
   type Material,
   type Object3D,
+  type Texture,
 } from "three";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 import type { PathStep } from "@/data/path.types";
 
@@ -33,6 +37,7 @@ import {
   type CapabilitySignals,
   type FallbackReason,
 } from "./fallback";
+import { decodeModel, type ModelMesh } from "./model-format";
 import { SCENES } from "./scenes";
 import {
   isDarkMode,
@@ -52,7 +57,11 @@ const TURN_RADIANS = Math.PI / 4;
 const TURN_MS = 450;
 const THEME_MS = 350;
 const DROP_HEIGHT = 3.2;
-const OUTLINE_WIDTH = 0.035;
+/** How far the outline stands off a solid's surface, along its normals. */
+const OUTLINE_WIDTH = 0.05;
+/** Text is drawn at this size, then scaled to the scene's line height. */
+const TEXT_PX = 96;
+const TEXT_LEADING = 1.25;
 /** How long a lost context may take to come back before the stills. */
 const CONTEXT_RESTORE_MS = 3000;
 /** Frames longer than this count as a pause (a hidden tab, a debugger), and
@@ -143,8 +152,24 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   const surfaces = new Map<PaletteRole, MeshLambertMaterial>();
   const flats = new Map<string, MeshBasicMaterial>();
+  /* The outline is an inverted hull pushed out along the surface's normals,
+     so a concave edge (a ring's inside, a tower's setback) is outlined like
+     a convex one; growing the hull about its centre pulled those edges in. */
   const outline = new MeshBasicMaterial({ side: BackSide });
+  outline.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader.replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>
+      transformed += normalize( normal ) * ${OUTLINE_WIDTH.toFixed(4)};`,
+    );
+  };
   const geometries = new Set<BufferGeometry>();
+  /* Text materials and their textures belong to the shown scene. */
+  const labels: { material: MeshBasicMaterial; role: PaletteRole }[] = [];
+  const textures = new Set<Texture>();
+  /* Models are kept across scenes once decoded: a return to Lille fetches
+     nothing. */
+  const models = new Map<string, ModelMesh>();
 
   function surface(role: PaletteRole) {
     let material = surfaces.get(role);
@@ -179,6 +204,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     for (const [key, material] of flats) {
       material.color.copy(mix(key.split(":")[0] as PaletteRole));
     }
+    for (const { material, role } of labels) material.color.copy(mix(role));
     outline.color.copy(mix("outline"));
     fog.color.copy(mix("fog"));
     scene.background = mix("fog");
@@ -189,36 +215,132 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
      so nothing drawn before a scene loads can flash black over the still. */
   paint();
 
+  /* The hull's normals are the surface's, averaged where faces meet: a
+     flat-shaded box has a normal per face, and pushing each face out along
+     its own would open gaps at every corner. */
+  function hullOf(geometry: BufferGeometry) {
+    const bare = new BufferGeometry();
+    bare.setAttribute("position", geometry.getAttribute("position"));
+    if (geometry.index) bare.setIndex(geometry.index);
+    const hull = mergeVertices(bare, 1e-4);
+    hull.computeVertexNormals();
+    geometries.add(hull);
+    return hull;
+  }
+
+  /* The page's label face, which the scene's text is set in. */
+  function labelFont() {
+    const family =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--font-label")
+        .trim() || "sans-serif";
+    return `600 ${TEXT_PX}px ${family}`;
+  }
+
   const kit: SceneKit = {
     solid(geometry, role) {
       geometries.add(geometry);
-      geometry.computeBoundingBox();
-      const box = geometry.boundingBox ?? new Box3();
-      const size = box.getSize(new Vector3());
-      const centre = box.getCenter(new Vector3());
       const holder = new Group();
       holder.add(new Mesh(geometry, surface(role)));
-      /* The outline is the inverted hull: the same geometry drawn back-faced,
-         grown about its centre by a constant width on every axis. */
-      const hull = new Mesh(geometry, outline);
-      hull.scale.set(
-        1 + (2 * OUTLINE_WIDTH) / Math.max(size.x, 0.01),
-        1 + (2 * OUTLINE_WIDTH) / Math.max(size.y, 0.01),
-        1 + (2 * OUTLINE_WIDTH) / Math.max(size.z, 0.01),
-      );
-      hull.position.set(
-        centre.x * (1 - hull.scale.x),
-        centre.y * (1 - hull.scale.y),
-        centre.z * (1 - hull.scale.z),
-      );
-      holder.add(hull);
+      holder.add(new Mesh(hullOf(geometry), outline));
       return holder;
     },
     pane(geometry, role, opacity = 1) {
       geometries.add(geometry);
       return new Mesh(geometry, flat(role, opacity));
     },
+    model(name, role, height) {
+      const url = definition?.models?.[name];
+      const mesh = url ? models.get(url) : undefined;
+      if (!mesh) throw new Error(`The model ${name} is not loaded`);
+      const geometry = new BufferGeometry();
+      geometry.setAttribute("position", new BufferAttribute(mesh.positions, 3));
+      geometry.setIndex(new BufferAttribute(mesh.indices, 1));
+      geometry.scale(height, height, height);
+      return kit.solid(geometry, role);
+    },
+    text(lines, role, lineHeight) {
+      const font = labelFont();
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d")!;
+      context.font = font;
+      const line = TEXT_PX * TEXT_LEADING;
+      canvas.width = Math.ceil(
+        Math.max(...lines.map((text) => context.measureText(text).width)) +
+          TEXT_PX / 2,
+      );
+      canvas.height = Math.ceil(line * lines.length);
+      /* Resizing the canvas resets its state. White, so the material's
+         colour is the text's colour. */
+      context.font = font;
+      context.fillStyle = "#fff";
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      lines.forEach((text, index) =>
+        context.fillText(text, canvas.width / 2, line * (index + 0.5)),
+      );
+      const texture = new CanvasTexture(canvas);
+      texture.colorSpace = SRGBColorSpace;
+      texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      textures.add(texture);
+      const material = new MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        fog: true,
+      });
+      labels.push({ material, role });
+      paint();
+      const scale = lineHeight / line;
+      const geometry = new PlaneGeometry(
+        canvas.width * scale,
+        canvas.height * scale,
+      );
+      geometries.add(geometry);
+      return new Mesh(geometry, material);
+    },
   };
+
+  /* What a scene needs before it can build: its models, decoded, and the
+     label face its text is set in. */
+  function ready(next: SceneDefinition) {
+    return (
+      Object.values(next.models ?? {}).every((url) => models.has(url)) &&
+      document.fonts.check(labelFont())
+    );
+  }
+
+  async function prepare(next: SceneDefinition) {
+    await Promise.all([
+      document.fonts.load(labelFont()),
+      ...Object.values(next.models ?? {}).map(loadModel),
+    ]);
+  }
+
+  /* One fetch per model, however many `show` calls wait on it. A failed
+     one drops the stage to its stills for good. */
+  const modelLoads = new Map<string, Promise<void>>();
+  function loadModel(url: string) {
+    let load = modelLoads.get(url);
+    if (!load) {
+      load = fetch(url)
+        .then((response) => {
+          if (!response.ok) throw new Error(`${url}: ${response.status}`);
+          return response.arrayBuffer();
+        })
+        .then((buffer) => {
+          models.set(url, decodeModel(buffer));
+        });
+      modelLoads.set(url, load);
+    }
+    return load;
+  }
+
+  function disposeLabels() {
+    for (const { material } of labels) material.dispose();
+    for (const texture of textures) texture.dispose();
+    labels.length = 0;
+    textures.clear();
+  }
 
   /* ─── The shown scene and its build ─── */
 
@@ -243,6 +365,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     pivot.clear();
     for (const geometry of geometries) geometry.dispose();
     geometries.clear();
+    disposeLabels();
     props = new Map();
     base = undefined;
     definition = next;
@@ -263,11 +386,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function pose() {
     if (!plan) return;
     for (const prop of props.values()) prop.visible = false;
+    const motions = definition?.motions ?? {};
     for (const id of plan.standing) {
       const prop = props.get(id);
       if (prop) {
         prop.visible = true;
         prop.position.y = prop.userData.restY;
+        motions[id]?.(prop, 1);
       }
     }
     for (const planned of plan.building) {
@@ -278,6 +403,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         (planned.landsAt - planned.startsAt);
       prop.visible = t >= 0;
       prop.position.y = prop.userData.restY + dropOffset(Math.max(t, 0));
+      motions[planned.id]?.(prop, Math.min(Math.max(t, 0), 1));
     }
     const nextLit = litLines(plan, buildElapsed);
     const nextShown = [...props]
@@ -483,23 +609,47 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   canvas.addEventListener("webglcontextlost", onContextLost);
   canvas.addEventListener("webglcontextrestored", onContextRestored);
 
+  /* Counts `show` calls, so a scene whose assets arrive after another step
+     was selected does not build over it. */
+  let showing = 0;
+  let disposed = false;
+
+  function clearStage(state: BuildState) {
+    plan = undefined;
+    lit = [];
+    shown = [];
+    buildState = state;
+    emit();
+  }
+
+  function build(step: PathStep, next: SceneDefinition | undefined) {
+    loadScene(next);
+    if (!next) return clearStage("idle");
+    plan = buildPlan(step);
+    startBuild();
+  }
+
   return {
     show(step) {
       const next = SCENES[step.sceneId];
-      loadScene(next);
+      const request = ++showing;
       turnStep = 0;
       turnElapsed = TURN_MS;
       pivot.rotation.y = 0;
-      if (!next) {
-        plan = undefined;
-        lit = [];
-        shown = [];
-        buildState = "idle";
-        emit();
-        return;
-      }
-      plan = buildPlan(step);
-      startBuild();
+      if (!next || ready(next)) return build(step, next);
+      /* Loading: an empty stage, not the last scene, until the assets are
+         in. A scene that cannot get them shows its stills. */
+      loadScene(undefined);
+      clearStage("loading");
+      requestFrame();
+      prepare(next).then(
+        () => {
+          if (!disposed && request === showing) build(step, next);
+        },
+        () => {
+          if (!disposed && request === showing) fallBack("assets-failed");
+        },
+      );
     },
     skip() {
       if (buildState !== "building") return false;
@@ -532,6 +682,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (reduced && buildState === "building") finish();
     },
     dispose() {
+      disposed = true;
       cancelAnimationFrame(frameRequest);
       clearTimeout(restoreTimer);
       themeObserver.disconnect();
@@ -540,6 +691,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
       for (const geometry of geometries) geometry.dispose();
+      disposeLabels();
       const materials: Material[] = [
         ...surfaces.values(),
         ...flats.values(),

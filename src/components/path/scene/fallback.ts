@@ -20,7 +20,8 @@ export type FallbackReason =
   | "performance-caveat"
   | "save-data"
   | "slow-frames"
-  | "context-lost";
+  | "context-lost"
+  | "assets-failed";
 
 export const FRAME_SAMPLE_SIZE = 60;
 
@@ -39,6 +40,7 @@ export const FALLBACK_REASON_LINES: Record<FallbackReason, string> = {
   "slow-frames": "Showing stills: the scene ran too slowly on this device.",
   "context-lost":
     "Showing stills: the browser lost the scene's graphics and did not restore them.",
+  "assets-failed": "Showing stills: the scene's models did not load.",
 };
 
 function median(values: readonly number[]): number {
