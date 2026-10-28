@@ -4,6 +4,7 @@ import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
 import type { PathRole, PathStep } from "@/data/path.types";
 import { MARKDOWN_MEDIA_TYPE } from "@/lib/markdown-negotiation";
+import { roleRepeatsLine, stepPeriod } from "@/lib/path-step-labels";
 import { SUBSTACK_FEED_URL } from "@/lib/substack";
 
 /**
@@ -88,15 +89,15 @@ const projectBlock = (project: (typeof RESUME_DATA.projects)[number]) =>
     project.link ? `Link: ${project.link.href}` : "",
   ]);
 
-const roleLine = (role: PathRole) =>
-  `- ${role.title}, ${role.organisation}, ${role.location} (${role.start} - ${role.end})`;
+const roleLine = (step: PathStep, role: PathRole) =>
+  `- ${join(", ", [roleRepeatsLine(step, role) ? "" : role.title, role.organisation, role.location])} (${role.start} - ${role.end})`;
 
 /** A step as `/` sets it: place and period, who he was there, the text, the
  *  links. Hrefs resolve against the site, so "/cv#…" reads as a full URL. */
 const stepBlock = (step: PathStep) =>
   lines([
-    `### ${join(" · ", [step.place, step.period ?? ""])}`,
-    ...step.roles.map(roleLine),
+    `### ${join(" · ", [step.place, stepPeriod(step) ?? ""])}`,
+    ...step.roles.map((role) => roleLine(step, role)),
     step.text,
     ...step.links.map((link) => `- ${link.label}: ${site(link.href)}`),
   ]);

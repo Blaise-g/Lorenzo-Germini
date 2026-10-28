@@ -217,20 +217,43 @@ test.describe("the homepage sibling follows the path", () => {
     return markdown.slice(start, end === -1 ? undefined : end);
   };
 
-  test("lists every step in path order with its text", async ({ request }) => {
+  test("lists every step in path order with its text", async ({
+    request,
+    page,
+  }) => {
     const path = section(
       await (await request.get("/index.md")).text(),
       "The path",
     );
     const blocks = path.split("\n### ").slice(1);
 
-    expect(blocks.map((block) => block.split("\n")[0])).toEqual(
-      PATH_STEPS.map((step) =>
-        [step.place, step.period].filter(Boolean).join(" · "),
-      ),
+    /* Labelled as the page labels them, read off the page itself: home's
+       step is "Cuneo · home" there, not a bare "Cuneo". */
+    await page.goto("/");
+    const headings = await Promise.all(
+      PATH_STEPS.map(async (step) => {
+        const heading = page.locator(`section#${step.slug} h3`);
+        const date = heading.locator("[data-path-date]");
+        return [
+          step.place,
+          (await date.count()) > 0 ? await date.innerText() : "",
+        ]
+          .filter(Boolean)
+          .join(" · ");
+      }),
     );
+    expect(headings[0]).toBe("Cuneo · home");
+    expect(blocks.map((block) => block.split("\n")[0])).toEqual(headings);
+
+    /* Each of a step's lines once: a degree is a line, so its role does not
+       print it a second time. */
     PATH_STEPS.forEach((step, index) => {
       expect(blocks[index], step.slug).toContain(step.text);
+      for (const line of step.lines) {
+        /* Without its full stop, which the role's comma would replace. */
+        const words = line.replace(/\.$/, "");
+        expect(blocks[index].split(words).length - 1, line).toBe(1);
+      }
     });
   });
 

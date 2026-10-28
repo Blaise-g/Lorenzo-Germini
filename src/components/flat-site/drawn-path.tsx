@@ -2,7 +2,7 @@ import {
   PathSteps,
   type PathStepNode,
 } from "@/components/flat-site/path-steps";
-import { stepPeriod } from "@/components/flat-site/step-period";
+import { stepPeriod } from "@/lib/path-step-labels";
 import type { PathSideProp, PathStep } from "@/data/path.types";
 
 function stepNode(step: PathStep): PathStepNode {
