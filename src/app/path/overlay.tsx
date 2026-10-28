@@ -3,13 +3,38 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
 
-import type { PathStepSlug } from "@/data/path.types";
 import { fragmentForStep, markEntered } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
 
-/* The overlay's client leaves. Everything they show is in the server HTML at
-   the default step, so the overlay paints before any of this hydrates; each
-   then follows the fragment through `useSelectedStep`, as `/`'s leaves do. */
+/* The overlay's client leaves. Before they hydrate, the first-paint script in
+   `first-paint.ts` has already put the fragment's step on the overlay root and
+   on "Flat site", so a load of `/path#lille` paints Lille. Hydration keeps
+   those values (`suppressHydrationWarning`: the server cannot see the
+   fragment), and from then on each leaf follows it through `useSelectedStep`,
+   as `/`'s leaves do. */
+
+/** The overlay root, carrying the selected step as `data-path-shown`. CSS
+ *  shows that step's panel from it, so selecting a step shows its text at
+ *  once, with nothing to fetch (GH-141, decision 7). */
+export function OverlayRoot({
+  className,
+  children,
+}: {
+  className: string;
+  children: ReactNode;
+}) {
+  const { selected } = useSelectedStep();
+  return (
+    <div
+      data-path-overlay
+      data-path-shown={selected}
+      suppressHydrationWarning
+      className={className}
+    >
+      {children}
+    </div>
+  );
+}
 
 /** The way back, carrying the selected step: from `/path#lille` it goes to
  *  `/#lille` (GH-141, decision 13). A plain anchor rather than `Link`: the
@@ -18,28 +43,15 @@ import { useSelectedStep } from "@/lib/use-path-state";
 export function FlatSiteLink({ className }: { className: string }) {
   const { selected } = useSelectedStep();
   return (
-    <a href={`/${fragmentForStep(selected)}`} className={className}>
+    <a
+      href={`/${fragmentForStep(selected)}`}
+      data-path-flat-site-link
+      suppressHydrationWarning
+      className={className}
+    >
       Flat site
     </a>
   );
-}
-
-/** Every step's panel is server HTML; this shows the selected one. The step
- *  list's links change the fragment, so selecting a step shows its text at
- *  once, with nothing to fetch (GH-141, decision 7). The server cannot see
- *  the fragment, so a load of `/path#lille` paints now's panel until this
- *  hydrates, as `/`'s piece and selection wait for hydration too. */
-export function StepPanels({
-  panels,
-}: {
-  panels: readonly { slug: PathStepSlug; panel: ReactNode }[];
-}) {
-  const { selected } = useSelectedStep();
-  return panels.map(({ slug, panel }) => (
-    <div key={slug} data-path-panel={slug} hidden={slug !== selected}>
-      {panel}
-    </div>
-  ));
 }
 
 /** Being here is the choice the door remembers: it reads the flag to say

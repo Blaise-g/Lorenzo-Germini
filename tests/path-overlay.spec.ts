@@ -72,7 +72,7 @@ test("the overlay is server HTML: the step list, the text panel and Flat site", 
     );
   }
   /* With no fragment the panel shows now, as `/` selects it. */
-  expect(html).toMatch(/data-path-panel="now"(?! hidden)/);
+  expect(html).toMatch(/<div data-path-overlay="true" data-path-shown="now"/);
   expect(html).toMatch(/<a href="\/#now"[^>]*>Flat site<\/a>/);
 });
 
@@ -99,6 +99,55 @@ test.describe("with JavaScript off", () => {
       ).toContainText(step.lines[0]);
     }
   });
+});
+
+/* The server cannot see the fragment, so the inline first-paint script puts
+   the step on the overlay before any app JavaScript runs: with every chunk
+   blocked, nothing else could have. */
+test.describe("before hydration", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.route(/\/_next\/static\/chunks\/.+\.js(\?.*)?$/, (route) =>
+      route.abort(),
+    );
+  });
+
+  test("a load of /path#lille paints Lille's panel and Flat site to /#lille", async ({
+    page,
+  }) => {
+    const response = await page.goto("/path#lille");
+    const html = await response!.text();
+    expect(html).toContain('data-path-shown="now"');
+    expect(html).toMatch(/<script>\(function\(\)\{[^<]*data-path-shown/);
+
+    /* Not hydrated: the piece is the client leaf's. */
+    await expect(piece(page)).toHaveCount(0);
+    await expect(page.locator("[data-path-overlay]")).toHaveAttribute(
+      "data-path-shown",
+      "lille",
+    );
+    const shown = panel(page).locator("[data-path-panel]:visible");
+    await expect(shown).toHaveCount(1);
+    await expect(shown).toHaveAttribute("data-path-panel", "lille");
+    await expect(shown).toContainText(stepNamed("lille").lines[0]);
+    await expect(flatSiteLink(page)).toHaveAttribute("href", "/#lille");
+    /* `display: none`, so the hidden panels are out of the tree too. */
+    await expect(
+      page.getByRole("heading", { level: 3, name: /^Cuneo/ }),
+    ).toHaveCount(0);
+  });
+
+  for (const fragment of ["#quadrell", "#%", "#LILLE"]) {
+    test(`a load of /path${fragment} paints the default step`, async ({
+      page,
+    }) => {
+      await page.goto(`/path${fragment}`);
+      await expect(piece(page)).toHaveCount(0);
+      await expect(
+        panel(page).locator("[data-path-panel]:visible"),
+      ).toHaveAttribute("data-path-panel", "now");
+      await expect(flatSiteLink(page)).toHaveAttribute("href", "/#now");
+    });
+  }
 });
 
 test("its own shell: one main, one contentinfo outside it", async ({

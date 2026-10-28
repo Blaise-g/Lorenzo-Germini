@@ -29,7 +29,8 @@ import { RESUME_DATA } from "@/data/resume-data";
 import { cn } from "@/lib/utils";
 
 import { PATH_OVERLAY_INSET } from "./inset";
-import { FlatSiteLink, MarkEntered, StepPanels } from "./overlay";
+import { OVERLAY_FIRST_PAINT_SCRIPT, OVERLAY_PANEL_CSS } from "./first-paint";
+import { FlatSiteLink, MarkEntered, OverlayRoot } from "./overlay";
 
 /* No markdown alternate and no sitemap entry: `/path` adds no content the flat
    site lacks, and `/` is the crawlable form (GH-141, implementation decision
@@ -53,8 +54,8 @@ export default function PathPage() {
   return (
     <RouteFrame measure={PATH_OVERLAY_INSET}>
       <MarkEntered />
-      <div
-        data-path-overlay
+      <style dangerouslySetInnerHTML={{ __html: OVERLAY_PANEL_CSS }} />
+      <OverlayRoot
         className={cn(PATH_OVERLAY_INSET, "flex min-h-dvh flex-col pb-12")}
       >
         <header className="border-ink flex items-center justify-between gap-6 border-b-2 py-3 lg:py-4">
@@ -73,6 +74,12 @@ export default function PathPage() {
             <ThemeToggle />
           </div>
         </header>
+        {/* Here and nowhere else: a direct child of the overlay root, which
+            it marks, after the header's "Flat site", which it rewrites, and
+            before the panels, so it runs before they paint. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: OVERLAY_FIRST_PAINT_SCRIPT }}
+        />
 
         <div className="mt-8 grid flex-1 content-start gap-x-16 gap-y-10 lg:mt-12 lg:grid-cols-[minmax(0,20rem)_minmax(0,42rem)]">
           <nav aria-labelledby="path-heading">
@@ -93,15 +100,14 @@ export default function PathPage() {
               selects here rather than scrolling, and focus stays on the step
               that was selected (storyboard §7.7). */}
           <div data-path-text-panel>
-            <StepPanels
-              panels={PATH_STEPS.map((step) => ({
-                slug: step.slug,
-                panel: <StepSection step={step} anchored={false} />,
-              }))}
-            />
+            {PATH_STEPS.map((step) => (
+              <div key={step.slug} data-path-panel={step.slug}>
+                <StepSection step={step} anchored={false} />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </OverlayRoot>
     </RouteFrame>
   );
 }
