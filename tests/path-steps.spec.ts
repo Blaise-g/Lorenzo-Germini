@@ -72,6 +72,21 @@ test.describe("the path's steps", () => {
     for (const slug of slugs) expect(slug).toMatch(/^[a-z][a-z0-9-]*$/);
   });
 
+  test("name each link apart from the step's others and by its target", () => {
+    /* A screen reader's link list shows names alone, so two names alike in a
+       step, or one name for two places, cannot be told apart. */
+    const hrefByName = new Map<string, string>();
+    for (const step of PATH_STEPS) {
+      const names = step.links.map((link) => link.label);
+      expect(new Set(names).size, step.slug).toBe(names.length);
+      for (const link of step.links) {
+        const href = hrefByName.get(link.label) ?? link.href;
+        expect(href, `${step.slug}: ${link.label}`).toBe(link.href);
+        hrefByName.set(link.label, link.href);
+      }
+    }
+  });
+
   test("home's three steps share one scene and build it up in order", () => {
     const home = PATH_STEPS.filter((step) => step.place === "Cuneo");
 

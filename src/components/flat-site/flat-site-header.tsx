@@ -82,16 +82,20 @@ export function FlatSiteIntro() {
       {/* 4:5, because the source is a 4:5 studio portrait and a square frame
           centre-crops the face out of it. Two elements, one per medium:
           `sizes` takes no print condition, and this frame is 56px on screen
-          and 96px on paper — a hidden image is never fetched, so neither
-          medium pays for the other's file. Never `priority`: the subhead is
-          the LCP element, not this. */}
+          and 96px on paper. The screen portrait paints first, so it is the
+          first LCP candidate before the subhead replaces it as the largest,
+          at 375 and 1440 alike: eager, so that first paint is not held back,
+          but not `fetchPriority="high"`, which belongs to the final LCP. Eager
+          means it is fetched in any medium; the print element stays lazy, and
+          a lazy hidden image is never fetched, so screen never pays for the
+          print file. */}
       <div className="border-accent/20 portrait-warm relative h-[70px] w-14 shrink-0 overflow-hidden rounded-sm border-2 print:h-[120px] print:w-24">
         <Image
           src={RESUME_DATA.avatarUrl}
           alt={RESUME_DATA.name}
           fill
           sizes="56px"
-          loading="lazy"
+          loading="eager"
           className="object-cover print:hidden"
         />
         <Image

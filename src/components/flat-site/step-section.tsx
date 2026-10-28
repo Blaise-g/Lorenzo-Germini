@@ -1,4 +1,4 @@
-import { stepPeriod } from "@/components/flat-site/step-period";
+import { roleRepeatsLine, stepPeriod } from "@/lib/path-step-labels";
 import type {
   PathIllustration,
   PathLink,
@@ -121,10 +121,8 @@ export function StepSection({
         <ul className="mt-3 space-y-2 print:mt-1 print:space-y-0">
           {step.roles.map((role) => (
             <li key={`${role.organisation}-${role.start}`}>
-              {/* A degree is already one of the step's lines, word for word,
-                  so its row drops the title and keeps the school. */}
               <p className="font-display text-lg leading-snug print:text-[13px]">
-                {step.lines.includes(`${role.title}, ${role.organisation}.`)
+                {roleRepeatsLine(step, role)
                   ? role.organisation
                   : `${role.title} · ${role.organisation}`}
               </p>

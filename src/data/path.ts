@@ -106,9 +106,10 @@ function employer(work: Work): PathLink[] {
   return work.link ? [{ label: work.company, href: work.link }] : [];
 }
 
+/* Named for the section each opens, so Switzerland's two read apart. */
 const inTheCv = {
-  experience: { label: "In the CV", href: "/cv#cv-experience" },
-  education: { label: "In the CV", href: "/cv#cv-education" },
+  experience: { label: "Experience in the CV", href: "/cv#cv-experience" },
+  education: { label: "Education in the CV", href: "/cv#cv-education" },
 } satisfies Record<string, PathLink>;
 
 type StepSource = Omit<PathStepBase, "period" | "text" | "voiceScript"> &
