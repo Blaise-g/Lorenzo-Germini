@@ -155,6 +155,12 @@ Where this section and the text above disagree, this section wins.
 (`docs/spec/retained-proof.json`, [retained-proof.md](retained-proof.md)). Retiring them was
 considered and rejected.
 
+**Kept, with an exemption:** the seven colour roles and the design-system guard, for page
+interface colour. Scene art (bakes, shader colours, generated textures) is exempt, in one
+directory, with its own path colour tokens (ADR-0008).
+
+**Amended:** fixed controls — ADR-0003 is amended so that no fixed control ever covers content.
+
 **Retired:**
 
 - **The WebGL ban** (decision 10's "WebGL/Radiant is not authorized") — retired **for `/path`
@@ -165,13 +171,9 @@ considered and rejected.
   motion contract.
 - **Reduced motion as "at most one composed static frame"** is replaced, on `/path`, by a
   designed state: cuts instead of travel, end states instead of animation.
-- **The seven colour roles and the design-system guard are kept for page interface colour.**
-  Scene art (bakes, shader colours, generated textures) is exempt, in one directory, with its own
-  path colour tokens (ADR-0008).
 - **The sticky rail and its scroll-spy** (§2.2, including the "condition of the composition"
   and its 2026-07-31 amendment) — retired with the hub on `/`, and the mobile route bar with
   them.
-- **Fixed controls** — ADR-0003 is amended so that no fixed control ever covers content.
 
 Which tests the new `/` breaks, and what happens to each, is in
 [path-test-inventory.md](path-test-inventory.md).
