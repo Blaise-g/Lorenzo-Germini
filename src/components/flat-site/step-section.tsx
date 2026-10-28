@@ -75,13 +75,23 @@ function Illustration({ illustration }: { illustration: PathIllustration }) {
   );
 }
 
-export function StepSection({ step }: { step: PathStep }) {
+/** `anchored` gives the section its step's slug as its `id`, so `/#lille`
+ *  scrolls to it. `/path`'s text panel turns it off: there the fragment only
+ *  selects, and in Chromium a fragment naming an element takes focus off the
+ *  step link that set it (GH-147). */
+export function StepSection({
+  step,
+  anchored = true,
+}: {
+  step: PathStep;
+  anchored?: boolean;
+}) {
   const period = stepPeriod(step);
   const headingId = `${step.slug}-heading`;
 
   return (
     <section
-      id={step.slug}
+      id={anchored ? step.slug : undefined}
       aria-labelledby={headingId}
       data-path-step={step.slug}
       className={cn(sectionClassName, "group/step")}
