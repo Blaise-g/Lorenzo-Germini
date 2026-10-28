@@ -11,6 +11,7 @@
     "generate:brand": "node scripts/generate-brand-assets.mjs",
     "generate:cv": "node scripts/generate-cv-pdf.mjs",
     "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
+    "generate:path-stills": "bun run scripts/render-path-stills.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
     "verify:hosts": "bun run scripts/verify-production-hosts.ts",
@@ -32,7 +33,8 @@
     "react-dom": "^19",
     "server-only": "^0.0.1",
     "sharp": "^0.34.4",
-    "tailwind-merge": "^2.6.0"
+    "tailwind-merge": "^2.6.0",
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
@@ -41,6 +43,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "pdfjs-dist": "^6.1.200",

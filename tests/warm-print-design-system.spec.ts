@@ -93,6 +93,43 @@ test("the three color token sets declare exactly the seven Warm Print roles", as
   );
 });
 
+/* The 3D path's scene tokens (ADR-0008) are their own set, beside the seven
+   roles rather than an eighth: the role test above matches `--color-` only,
+   so these are counted here, in each of the three blocks. */
+const pathTokens = [
+  "--path-accent",
+  "--path-fog",
+  "--path-ground",
+  "--path-outline",
+  "--path-prop",
+  "--path-tile",
+];
+
+function pathTokenNames(source: string) {
+  return [...source.matchAll(/(--path-[a-z-]+)\s*:/g)]
+    .map((match) => match[1])
+    .sort();
+}
+
+test("the three token sets each declare the six path tokens", async () => {
+  const css = await readFile(
+    path.join(process.cwd(), "src/app/globals.css"),
+    "utf8",
+  );
+  const theme = extractBlock(css, "@theme");
+  const dark = extractBlock(css, ".dark", theme.end);
+  const letterPrint = extractBlock(css, "@media print and");
+  const print = extractBlock(css, "@media print", letterPrint.end);
+  const printTokens = extractBlock(print.body, ":root,");
+
+  expect(pathTokenNames(theme.body)).toEqual(pathTokens);
+  expect(pathTokenNames(dark.body)).toEqual(pathTokens);
+  expect(pathTokenNames(printTokens.body)).toEqual(pathTokens);
+  /* Nowhere else: a path token reassigned outside the blocks is a fourth
+     set the parity above cannot see. */
+  expect(pathTokenNames(css)).toHaveLength(pathTokens.length * 3);
+});
+
 test("palette values, retired aliases, grain, and the border shim stay out of source", async () => {
   const files = await sourceFiles(path.join(process.cwd(), "src"));
   const violations: string[] = [];
@@ -164,6 +201,25 @@ test("the palette source is exempt from colour syntax, and nothing else", () => 
     `${ordinary}: #faf6ef`,
   ]);
   expect(scanSource(palette, "GRAIN_URL")).toEqual([`${palette}: GRAIN_URL`]);
+});
+
+test("scene art is exempt from colour syntax inside its directory, and nothing else", () => {
+  const scene = "src/components/path/scene/home.ts";
+
+  expect(scanSource(scene, 'const glow = "#b04a24";')).toEqual([]);
+  /* A sibling sharing the prefix is page code, not scene art. */
+  expect(
+    scanSource("src/components/path/scene-host.tsx", 'color: "#b04a24"'),
+  ).toEqual(["src/components/path/scene-host.tsx: #b04a24"]);
+  expect(scanSource("src/app/path/scene-stage.tsx", "#b04a24")).toEqual([
+    "src/app/path/scene-stage.tsx: #b04a24",
+  ]);
+  /* Only colour syntax is waived: the retired effects and Tailwind's built-in
+     palette are still caught inside. */
+  expect(scanSource(scene, "GRAIN_URL")).toEqual([`${scene}: GRAIN_URL`]);
+  expect(scanSource(scene, "text-slate-500")).toEqual([
+    `${scene}: text-slate-500`,
+  ]);
 });
 
 test("globals.css is exempt inside its token blocks, and nothing else", () => {

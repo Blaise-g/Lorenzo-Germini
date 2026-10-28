@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
+import type { PathStepSlug } from "@/data/path.types";
 import { fragmentForStep, markEntered } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
 
@@ -13,9 +14,22 @@ import { useSelectedStep } from "@/lib/use-path-state";
    fragment), and from then on each leaf follows it through `useSelectedStep`,
    as `/`'s leaves do. */
 
+/** Caption lines lit, by index, and the step whose lines they are. */
+export type LitLines = { slug: PathStepSlug; lines: readonly number[] };
+
+const LitLinesContext = createContext<(lit: LitLines) => void>(() => {});
+
+/** For the scene stage: lights a step's caption lines, by index, as their
+ *  props land (storyboard §7.4). */
+export function useSetLitLines() {
+  return useContext(LitLinesContext);
+}
+
 /** The overlay root, carrying the selected step as `data-path-shown`. CSS
  *  shows that step's panel from it, so selecting a step shows its text at
- *  once, with nothing to fetch (GH-141, decision 7). */
+ *  once, with nothing to fetch (GH-141, decision 7). It carries the lit
+ *  caption lines too, as `data-path-lit`: the captions are the panel's own
+ *  lines, server HTML, so they are lit from here rather than re-rendered. */
 export function OverlayRoot({
   className,
   children,
@@ -24,14 +38,19 @@ export function OverlayRoot({
   children: ReactNode;
 }) {
   const { selected } = useSelectedStep();
+  const [lit, setLit] = useState<LitLines>({ slug: selected, lines: [] });
+  /* Lines lit for one step never light another's: on a Back or a fragment,
+     the new panel shows a render before its scene's build resets them. */
+  const lines = lit.slug === selected ? lit.lines : [];
   return (
     <div
       data-path-overlay
       data-path-shown={selected}
+      data-path-lit={lines.length > 0 ? lines.join(" ") : undefined}
       suppressHydrationWarning
       className={className}
     >
-      {children}
+      <LitLinesContext value={setLit}>{children}</LitLinesContext>
     </div>
   );
 }
