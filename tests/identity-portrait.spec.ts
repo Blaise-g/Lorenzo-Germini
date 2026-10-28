@@ -115,6 +115,40 @@ test("only the medium's own portrait is fetched, so the split costs nothing", as
   expect(widths).toEqual(["64"]);
 });
 
+for (const width of [375, 1440]) {
+  test(`at ${width}px the painted portrait is not a lazy LCP candidate`, async ({
+    page,
+  }) => {
+    /* It paints before the subhead, so it is the first LCP candidate even
+       though the subhead ends up the largest; lazy, it held that first paint
+       back and Next warned about it in the console. */
+    const warnings: string[] = [];
+    page.on("console", (message) => {
+      if (message.text().includes("Largest Contentful Paint")) {
+        warnings.push(message.text());
+      }
+    });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/", { waitUntil: "networkidle" });
+
+    const portraits = page.getByTestId("flat-site-intro").locator("img");
+    await expect(portraits.nth(0)).toHaveAttribute("loading", "eager");
+    await expect(portraits.nth(1)).toHaveAttribute("loading", "lazy");
+    /* Next's warning comes from the same observer, so once an LCP entry is
+       buffered it has had its chance to fire. */
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) =>
+          new PerformanceObserver(() => resolve()).observe({
+            type: "largest-contentful-paint",
+            buffered: true,
+          }),
+        ),
+    );
+    expect(warnings).toEqual([]);
+  });
+}
+
 test("both slots are 4:5, so neither centre-crops the face", () => {
   /* Asserted against the constants the two tests above measure the live frames
      against, rather than by re-measuring: a slot that drifts off 4:5 fails there
