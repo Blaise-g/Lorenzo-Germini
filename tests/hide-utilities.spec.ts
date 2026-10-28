@@ -52,35 +52,37 @@ test.describe("hide utilities actually hide", () => {
     }
   }
 
-  test("the homepage hero CTA does not print", async ({ page }) => {
-    /* The one element the unlayered rule demonstrably broke, kept as a named
-       regression rather than left to the sweep above. */
+  test("the drawn path's step links do not print", async ({ page }) => {
+    /* Kept as a named regression rather than left to the sweep above: the
+       hero CTA this replaced was the one element the unlayered rule
+       demonstrably broke, and the path's links are the flat site's densest set
+       of `.touch-target`s under a `print:hidden` container. */
     await page.emulateMedia({ media: "print" });
     await page.goto("/");
     await expect(
-      page.getByRole("link", { name: /start with the writing/i }),
+      page.getByRole("navigation", { name: "The path" }),
     ).toBeHidden();
+    await expect(page.locator("[data-path-step-link]").first()).toBeHidden();
   });
 
   test("a breakpoint-hidden touch target is hidden at that breakpoint", async ({
     page,
   }) => {
-    /* `lg:hidden` on the homepage's anchor row, whose links carry
-       `.touch-target`. Below lg the row shows; from lg up it must not, and the
-       rail replaces it. */
-    const anchorRow = page.getByRole("navigation", { name: "On this page" });
+    /* `hidden lg:flex` on the masthead's route links, which carry
+       `.touch-target`. Below lg the row must not show; from lg up it does. */
+    const routes = page.getByTestId("masthead-routes");
 
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
-    await expect(anchorRow).toBeVisible();
-
-    await page.setViewportSize({ width: 1024, height: 800 });
-    await expect(anchorRow).toBeHidden();
+    await expect(routes).toBeHidden();
     /* The links themselves, not just the container: `display: none` on a parent
        would mask a child that still refuses to hide. */
-    for (const link of await anchorRow.getByRole("link").all()) {
+    for (const link of await routes.getByRole("link").all()) {
       await expect(link).toBeHidden();
     }
+
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await expect(routes).toBeVisible();
   });
 
   test("the one filled control still darkens on hover", async ({ page }) => {

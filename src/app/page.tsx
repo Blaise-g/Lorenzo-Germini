@@ -1,26 +1,36 @@
 /*
-THESIS: The homepage is a positioning statement with the writing as its first
-door, not a chronological résumé that happens to mention essays.
-OWN-WORLD: Warm Print at one reading measure — serif hero, mono metadata,
-terracotta reserved for the accent italic, the section rules, and links.
-STORY: Read what he does, read the essay, then check the proof underneath.
-FIRST VIEWPORT: The `<h1>` and a subhead that names Complaion and the systems
-behind it, above the writing CTA — the fold is where the technical claim is made.
-FORM: Masthead rule, band-or-rail identity, then five sections at 42rem.
+THESIS: The homepage is the path of Lorenzo's life — seven steps in time order a
+visitor can pick from — with his professional proof as the first thing read.
+OWN-WORLD: Warm Print at one reading measure: serif places, mono dates,
+terracotta for the home squares, links and section labels.
+STORY: Read what he does, pick a step, read what happened there.
+FIRST VIEWPORT: The name, the role and a subhead that names Complaion and the
+systems behind it — the fold is where the technical claim is made.
+FORM: Masthead rule, intro, the drawn path, a section per step and side
+project, then the writing.
 */
 
-import React from "react";
-import { Metadata } from "next";
-import { Section } from "@/components/ui/section";
-import { MailIcon, PhoneIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import type { Metadata } from "next";
+import type { ReactNode } from "react";
+
+import { BackToTop } from "@/components/back-to-top";
+import { DrawnPath } from "@/components/flat-site/drawn-path";
+import {
+  FlatSiteIntro,
+  FlatSiteMasthead,
+} from "@/components/flat-site/flat-site-header";
+import { FLAT_SITE_INSET } from "@/components/flat-site/inset";
+import {
+  SidePropSection,
+  StepSection,
+} from "@/components/flat-site/step-section";
+import { RouteFrame } from "@/components/route-frame";
+import { StructuredData } from "@/components/structured-data";
+import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
 import { markdownAlternate } from "@/lib/markdown-negotiation";
-import { ProjectCard } from "@/components/project-card";
-import { StructuredData } from "@/components/structured-data";
-import { cn } from "@/lib/utils";
-import { HubShell } from "@/components/hub-shell";
 import { formatEssayDate } from "@/lib/substack-feed";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: RESUME_DATA.metaTitle,
@@ -34,342 +44,129 @@ export const metadata: Metadata = {
   },
 };
 
-const HUB_SECTIONS = {
-  about: { id: "about", label: "About" },
-  projects: { id: "projects", label: "Projects" },
-  systems: { id: "systems", label: "Systems" },
-  work: { id: "work", label: "Work" },
-  writing: { id: "writing", label: "Writing" },
-} as const;
+const { writing } = RESUME_DATA.homepage;
 
-/* Writing leads: it is the page's single primary CTA (spec §2.6 constraint 6),
-   so it is also the first destination the rail offers. */
-const HUB_DESTINATIONS = [
-  HUB_SECTIONS.writing,
-  HUB_SECTIONS.about,
-  HUB_SECTIONS.work,
-  HUB_SECTIONS.projects,
-  HUB_SECTIONS.systems,
-] as const;
-
-const sectionBaseClassName = "max-w-[42rem] scroll-mt-24 print:gap-y-1";
-
-/* The hero arrives as three beats 50ms apart — headline, subhead, CTA — and
-   every section below lands as one more, so the page settles in reading order
-   instead of all at once. GH-13 dropped an earlier stagger because, under
-   reduced motion, it held items invisible for up to 600ms; that motion path
-   now runs no delay at all (`globals.css`), so the defect cannot return
-   through these. */
-const sectionClassName = cn(
-  sectionBaseClassName,
-  "animate-fade-in-up [animation-delay:150ms]",
-);
-
-const { hero, writing, earlierRoles, systems } = RESUME_DATA.homepage;
-
+/* Server-rendered whole: every step's text is in the HTML, and nothing on this
+   route imports 3D code or plays sound (GH-141, implementation decision 5). */
 export default function Page() {
-  /* Roles without hand-written homepage proof fold into one earlier line rather
-     than rendering a CV bullet the homepage was not written for. */
-  const homepageProjects = RESUME_DATA.projects.filter(
-    (project) => project.homepage !== false,
-  );
-  /* One 320px card in a 652px two-column grid read as a section that had failed
-     to load, and `lg:-mx-3` put its left edge 12px outside every sibling's. A
-     single card takes the reading measure like every other section instead; the
-     grid returns the moment there are two to hold. */
-  const projectsFitTheMeasure = homepageProjects.length < 2;
-
-  const provenRoles = RESUME_DATA.work.filter((work) => work.homepageProof);
-  /* Oldest start year to newest end year, so a folded role that ran into a
-     later year is not undersold by its start date. */
-  const foldedRoles = RESUME_DATA.work.filter((work) => !work.homepageProof);
-  const earlierRolesSpan = [
-    (foldedRoles.at(0)?.end ?? foldedRoles.at(0)?.start)?.slice(-4),
-    foldedRoles.at(-1)?.start.slice(-4),
-  ];
-
   return (
     <>
       <StructuredData />
-      <HubShell
-        destinations={HUB_DESTINATIONS}
-        profile={{
-          actions: <ProfileActions />,
-          avatarAlt: RESUME_DATA.name,
-          avatarUrl: RESUME_DATA.avatarUrl,
-          bio: RESUME_DATA.about,
-          location: RESUME_DATA.location,
-          name: RESUME_DATA.name,
-          roleLabel: RESUME_DATA.roleLabel,
-        }}
-      >
-        {/* Hero — the page's only <h1>. */}
-        <Section
-          data-reading-measure="true"
-          className={cn(sectionBaseClassName, "gap-y-0")}
+      <RouteFrame measure={FLAT_SITE_INSET}>
+        <FlatSiteMasthead />
+        <div
+          data-testid="body-inset"
+          className={cn(FLAT_SITE_INSET, "animate-fade-in-up pb-24 print:py-0")}
         >
-          <h1 className="animate-fade-in-up font-display text-[clamp(2rem,5.2vw,3.25rem)] leading-[1.08] font-medium tracking-tight text-pretty">
-            {hero.headline.lead}
-            <em className="text-accent italic">{hero.headline.emphasis}</em>
-            {hero.headline.trail}
-          </h1>
-          <p className="text-body animate-fade-in-up mt-6 text-base leading-relaxed text-pretty [animation-delay:50ms] print:mt-2 print:text-[12px]">
-            {hero.subhead}
-          </p>
-          <a
-            href={`#${HUB_SECTIONS.writing.id}`}
-            /* No `inline-block` beside `touch-target`: after the `@layer`
-               move a display utility wins over the class, which changed the
-               computed box and shifted the rows below by up to 2.5px. */
-            className="text-accent border-accent touch-target font-label animate-fade-in-up mt-7 self-start border-b-2 pb-0.5 text-xs tracking-[0.12em] uppercase [animation-delay:100ms] hover:opacity-70 print:hidden"
-          >
-            {hero.cta}
-          </a>
-        </Section>
+          <FlatSiteIntro />
 
-        {/* Writing — text-only lead teaser: no numbering, no covers, no
-            subscribe module, so the single CTA stays uncontested (§2.6). */}
-        <Section
-          id={HUB_SECTIONS.writing.id}
-          data-reading-measure="true"
-          className={sectionClassName}
-        >
-          <SectionHeading>Writing</SectionHeading>
-          <p className="text-body text-base leading-relaxed text-pretty print:text-[12px]">
-            {writing.standingLine}
-          </p>
-          <article className="group mt-2">
-            {writing.featured.date && writing.featured.readingMinutes ? (
-              <p className="text-faint font-label text-xs tracking-[0.12em] uppercase">
-                {formatEssayDate(writing.featured.date)} ·{" "}
-                {writing.featured.readingMinutes} min read
-              </p>
-            ) : null}
-            <h3 className="font-display mt-2 text-2xl leading-snug sm:text-3xl">
-              <a
-                className="touch-target underline-offset-4 group-hover:underline"
-                href={writing.featured.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {writing.featured.title}
-              </a>
-            </h3>
-            <p className="text-body mt-3 text-base leading-relaxed text-pretty print:text-[12px]">
-              {writing.featured.excerpt}
-            </p>
-            {/* The lead link keeps pointing at the publication: retargeting it
-                at `/writing` would promise an article and deliver an index.
-                `All writing →` is deliberately the quieter of the two — no
-                accent rule under it — because the field note is the page's
-                single primary CTA (spec §2.6 constraint 6) and two identical
-                buttons here would contest it. */}
-            {/* Column below `sm`, row from `sm`: the quieter link reads as
-                subordinate stacked and as the primary CTA's equal beside it,
-                so the stack is the intent rather than a wrap that happens to
-                fall out of how wide the label face sets. `items-start` is
-                load-bearing in column — flex children stretch by default, and
-                the primary CTA's `border-b` would draw its accent rule across
-                the full measure. `gap-y-5` because the two 44px hit areas
-                overlapped under 20px of vertical gap.
-                Not a hit-area fix horizontally: `.touch-target` is
-                `width: 100%` under `translate: -50%`, so it never grows past
-                its box, and a click sweep at 375 leaves 22px of dead gap
-                between them side by side. What one row does break is
-                `responsive-hub-shell.spec.ts`'s mobile-flow contract — the
-                primary CTA's `pb-0.5` drops its box 1px below its neighbour
-                under `items-baseline`, inverting visual order against DOM
-                order. */}
-            <p className="mt-4 flex flex-col items-start gap-y-5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-6">
-              <a
-                className="text-accent border-accent touch-target font-label border-b pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70"
-                href={writing.featured.href}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Read the field note →
-              </a>
-              <a
-                className="text-faint hover:text-accent decoration-border hover:decoration-accent touch-target font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 print:hidden"
-                href="/writing"
-              >
-                All writing →
-              </a>
-            </p>
-          </article>
-        </Section>
-
-        {/* About */}
-        <Section
-          id={HUB_SECTIONS.about.id}
-          data-reading-measure="true"
-          className={sectionClassName}
-        >
-          <SectionHeading>About</SectionHeading>
-          <div className="text-body space-y-3 text-base leading-relaxed text-pretty print:space-y-1 print:text-[12px] print:leading-[1.35]">
-            {RESUME_DATA.summary.split("\n\n").map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
-          </div>
-        </Section>
-
-        {/* Work — one hand-written proof line per role; the CV carries the
-            bullets. */}
-        <Section
-          id={HUB_SECTIONS.work.id}
-          data-reading-measure="true"
-          className={sectionClassName}
-        >
-          <SectionHeading>Work</SectionHeading>
-          <div className="space-y-7 print:space-y-1">
-            {provenRoles.map((work) => (
-              <div
-                key={`${work.company}-${work.start}`}
-                className="print-keep-together grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-6"
-              >
-                <p className="text-faint font-mono text-xs tabular-nums sm:pt-1.5">
-                  {work.start} – {work.end ?? "Present"}
-                </p>
-                <div>
-                  <h3 className="font-display text-xl leading-snug">
-                    {work.title} ·{" "}
-                    {work.link ? (
-                      <a
-                        className="touch-target underline-offset-4 hover:underline"
-                        href={work.link}
-                      >
-                        {work.company}
-                      </a>
-                    ) : (
-                      work.company
-                    )}
-                  </h3>
-                  <p className="text-body mt-1.5 text-sm leading-relaxed text-pretty print:text-[12px]">
-                    {work.homepageProof}
-                  </p>
-                </div>
-              </div>
-            ))}
-            <div className="print-keep-together grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-6">
-              <p className="text-faint font-mono text-xs tabular-nums sm:pt-1.5">
-                {earlierRolesSpan.at(-1)} – {earlierRolesSpan.at(0)}
-              </p>
-              <ul className="text-faint space-y-1 text-sm leading-relaxed text-pretty print:text-[12px]">
-                {earlierRoles.map((role) => (
-                  <li key={role}>{role}</li>
+          <div className="mt-14 space-y-16 lg:mt-20 print:mt-4 print:space-y-3">
+            <FlatSiteSection id="path" heading="The path">
+              <DrawnPath steps={PATH_STEPS} sideProps={PATH_SIDE_PROPS} />
+              <div className="mt-12 space-y-14 print:mt-2 print:space-y-2">
+                {PATH_STEPS.map((step) => (
+                  <StepSection key={step.slug} step={step} />
                 ))}
-              </ul>
-            </div>
-          </div>
-          <p className="mt-3 print:hidden">
-            <a
-              href="/cv"
-              className="text-accent border-accent touch-target font-label border-b pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70"
-            >
-              Full CV →
-            </a>
-          </p>
-        </Section>
+              </div>
+            </FlatSiteSection>
 
-        {/* Projects */}
-        <Section
-          id={HUB_SECTIONS.projects.id}
-          data-reading-measure="true"
-          className={cn(
-            sectionClassName,
-            "print-projects-section scroll-mb-16",
-            projectsFitTheMeasure ? undefined : "lg:max-w-none",
-          )}
-        >
-          <SectionHeading ruleClassName="print:my-1">Projects</SectionHeading>
-          <div
-            data-testid="projects-grid"
-            className={cn(
-              "grid grid-cols-1 gap-3 print:mx-0 print:grid-cols-2 print:gap-2",
-              projectsFitTheMeasure ? undefined : "lg:grid-cols-2",
-            )}
-          >
-            {homepageProjects.map((project) => (
-              <ProjectCard
-                key={project.title}
-                title={project.title}
-                description={project.description}
-                tags={project.techStack}
-                link={"link" in project ? project.link?.href : undefined}
-              />
-            ))}
-          </div>
-        </Section>
+            <FlatSiteSection id="beside-the-path" heading="Beside the path">
+              <div className="space-y-10 print:space-y-2">
+                {PATH_SIDE_PROPS.map((prop) => (
+                  <SidePropSection key={prop.slug} prop={prop} />
+                ))}
+              </div>
+            </FlatSiteSection>
 
-        {/* Systems — the colophon stack line: the technical nouns a peer scans
-            for, at the foot rather than competing with the proof above. */}
-        <Section
-          id={HUB_SECTIONS.systems.id}
-          data-reading-measure="true"
-          className={sectionClassName}
-        >
-          <SectionHeading>Systems</SectionHeading>
-          <p className="text-body font-mono text-xs leading-relaxed">
-            {systems}
-          </p>
-        </Section>
-      </HubShell>
+            <FlatSiteSection id="writing" heading="Writing">
+              <WritingTeaser />
+            </FlatSiteSection>
+          </div>
+        </div>
+        <BackToTop />
+      </RouteFrame>
     </>
   );
 }
 
-function ProfileActions() {
-  return (
-    <div className="text-faint flex gap-x-1 font-mono text-xs print:text-[12px]">
-      {RESUME_DATA.contact.email ? (
-        <Button className="print:size-8" variant="outline" size="icon" asChild>
-          <a href={`mailto:${RESUME_DATA.contact.email}`} aria-label="Email">
-            <MailIcon className="size-4 print:size-5" />
-          </a>
-        </Button>
-      ) : null}
-      {RESUME_DATA.contact.tel ? (
-        <Button className="print:size-8" variant="outline" size="icon" asChild>
-          <a href={`tel:${RESUME_DATA.contact.tel}`} aria-label="Phone">
-            <PhoneIcon className="size-4 print:size-5" />
-          </a>
-        </Button>
-      ) : null}
-      {RESUME_DATA.contact.social.map((social) => (
-        <Button
-          key={social.name}
-          className="print:size-8"
-          variant="outline"
-          size="icon"
-          asChild
-        >
-          <a href={social.url} aria-label={social.name}>
-            {React.createElement(
-              social.icon as React.ComponentType<{
-                className: string;
-              }>,
-              { className: "h-4 w-4 print:h-5 print:w-5" },
-            )}
-          </a>
-        </Button>
-      ))}
-    </div>
-  );
-}
-
-function SectionHeading({
+function FlatSiteSection({
   children,
-  ruleClassName,
+  heading,
+  id,
 }: {
-  children: React.ReactNode;
-  ruleClassName?: string;
+  children: ReactNode;
+  heading: string;
+  id: string;
 }) {
   return (
-    <>
-      <h2 className="text-accent font-label text-[15px] font-semibold tracking-[0.18em] uppercase">
-        {children}
+    <section
+      id={id}
+      aria-labelledby={`${id}-heading`}
+      data-flat-site-section={id}
+      className="scroll-mt-8"
+    >
+      <h2
+        id={`${id}-heading`}
+        className="text-accent font-label text-[15px] font-semibold tracking-[0.18em] uppercase"
+      >
+        {heading}
       </h2>
-      <div className={cn("bg-accent/30 h-px w-12", ruleClassName)} />
-    </>
+      <div className="bg-accent/30 mt-3 mb-8 h-px w-12 print:mb-2" />
+      {children}
+    </section>
+  );
+}
+
+/* Text only: no numbering, no covers, no subscribe module. The lead link keeps
+   pointing at the publication — retargeting it at `/writing` would promise an
+   article and deliver an index — and `All writing →` is the quieter of the
+   two. */
+function WritingTeaser() {
+  return (
+    <div className="max-w-[42rem]">
+      <p className="text-body text-base leading-relaxed text-pretty print:text-[12px]">
+        {writing.standingLine}
+      </p>
+      <article className="group mt-4 print:mt-1">
+        {writing.featured.date && writing.featured.readingMinutes ? (
+          <p className="text-faint font-label text-xs tracking-[0.12em] uppercase">
+            {formatEssayDate(writing.featured.date)} ·{" "}
+            {writing.featured.readingMinutes} min read
+          </p>
+        ) : null}
+        <h3 className="font-display mt-2 text-2xl leading-snug sm:text-3xl print:mt-0 print:text-base">
+          <a
+            className="touch-target underline-offset-4 group-hover:underline"
+            href={writing.featured.href}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {writing.featured.title}
+          </a>
+        </h3>
+        <p className="text-body mt-3 text-base leading-relaxed text-pretty print:mt-0 print:text-[12px]">
+          {writing.featured.excerpt}
+        </p>
+        {/* Column below `sm`, row from `sm`. `items-start` keeps the accent
+            rule to the link's own width in column, and `gap-y-5` keeps the two
+            44px hit areas apart. */}
+        <p className="mt-4 flex flex-col items-start gap-y-5 sm:flex-row sm:flex-wrap sm:items-baseline sm:gap-x-6 print:mt-1">
+          <a
+            className="text-accent border-accent touch-target font-label border-b pb-0.5 text-xs tracking-[0.12em] uppercase hover:opacity-70"
+            href={writing.featured.href}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Read the field note →
+          </a>
+          <a
+            className="text-faint hover:text-accent decoration-border hover:decoration-accent touch-target font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 print:hidden"
+            href="/writing"
+          >
+            All writing →
+          </a>
+        </p>
+      </article>
+    </div>
   );
 }

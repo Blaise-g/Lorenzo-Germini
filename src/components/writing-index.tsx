@@ -36,7 +36,7 @@ const meta = "font-label text-xs uppercase tracking-[0.12em]";
    the zone's own side effects go with it — one of them was that the reservation
    survived into print and put every printed page 56px off-centre.
 
-   Exported for symmetry with `HUB_SHELL_INSET` and `CV_DOCUMENT_INSET`, not
+   Exported for symmetry with `FLAT_SITE_INSET` and `CV_DOCUMENT_INSET`, not
    because anything outside this module needs it yet: two of the three insets
    being importable and this one being private made the set look like two shared
    values and one local detail, when all three are the same kind of thing. */
@@ -72,10 +72,9 @@ export function WritingIndex({
                 {RESUME_DATA.name}
               </Link>
               {/* The masthead's other half carries cross-route navigation here
-                rather than the role label: this route has no rail, so it is the
-                only way back to the hub. */}
+                rather than the role label: it is the way back to the homepage. */}
               {/* `gap-6` between the links and the toggle, `gap-5` inside the
-                links: see `hub-shell.tsx` — at gap-5 the toggle's 44px hit area
+                links: see `flat-site-header.tsx` — at gap-5 the toggle's 44px hit area
                 crossed `CV`'s. */}
               <div className="flex items-center gap-6">
                 <nav

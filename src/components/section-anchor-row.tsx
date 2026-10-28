@@ -1,29 +1,25 @@
-import type { HubDestination } from "@/components/sticky-rail";
 import { cn } from "@/lib/utils";
 
-/* The in-page anchor row, shared by the hub shell and `/cv`. GH-87 asked `/cv` to
-   reuse the homepage's pattern rather than invent a second one — the site
-   already carries three different masthead treatments, and a second anchor row
-   drifting from the first is how that happens again.
-   The two callers differ only in top margin and in whether the row survives at
-   `lg`: the hub replaces it with the sticky rail, `/cv` has no rail to replace
-   it with. */
+export type HubDestination = {
+  id: string;
+  label: string;
+};
+
+/* The in-page anchor row `/cv` renders. GH-87 asked `/cv` to reuse the
+   homepage's pattern rather than invent a second one — the site already carried
+   three different masthead treatments, and a second anchor row drifting from
+   the first is how that happens again. The homepage that shared it gave way to
+   the flat site (GH-144), whose step links are its own. */
 export function SectionAnchorRow({
   destinations,
   className,
-  handsOffToRouteBar = false,
 }: {
   destinations: readonly HubDestination[];
   className?: string;
-  /** Marks the row the hub's mobile route bar waits for: the bar shows only
-   *  once this has scrolled off the top, so the two never sit on screen
-   *  together. `/cv` has no route bar and leaves it off. */
-  handsOffToRouteBar?: boolean;
 }) {
   return (
     <nav
       aria-label="On this page"
-      data-route-bar-anchor={handsOffToRouteBar ? "" : undefined}
       /* `gap-y-4` is the 44px hit areas, measured: these rows are 28px tall and
          wrap to two lines at 375, so anything under 16px of separation puts each
          line's expanded target inside its neighbour's. */

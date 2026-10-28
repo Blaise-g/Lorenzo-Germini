@@ -63,116 +63,14 @@ test.describe("outbound link hardening", () => {
   });
 });
 
-test.describe("non-interactive badge affordances", () => {
-  for (const theme of themes) {
-    test(`${theme} mode badges do not react to hover`, async ({ page }) => {
-      await setTheme(page, theme);
-      await page.goto("/");
-
-      const badges = page.locator('main [data-slot="badge"]');
-
-      /* Auditing the cascade rather than hovering each badge in turn catches
-         every variant at once, including ones this page happens not to render. */
-      const audit = await badges.evaluateAll((elements) => {
-        const isInteractive = (element: Element) =>
-          Boolean(
-            element.closest("a, button") || element.querySelector("a, button"),
-          );
-        const staticBadges = elements.filter(
-          (element) => !isInteractive(element),
-        );
-
-        const hoverRules: { selector: string; style: string }[] = [];
-        for (const sheet of Array.from(document.styleSheets)) {
-          let rules: CSSRule[];
-          try {
-            rules = Array.from(sheet.cssRules);
-          } catch {
-            continue; // cross-origin sheet
-          }
-          const walk = (list: CSSRule[]) => {
-            for (const rule of list) {
-              if (rule instanceof CSSGroupingRule)
-                walk(Array.from(rule.cssRules));
-              if (!(rule instanceof CSSStyleRule)) continue;
-              if (!rule.selectorText.includes(":hover")) continue;
-              const base = rule.selectorText.replaceAll(":hover", "");
-              const matches = staticBadges.some((badge) => {
-                try {
-                  return badge.matches(base);
-                } catch {
-                  return false;
-                }
-              });
-              if (matches) {
-                hoverRules.push({
-                  selector: rule.selectorText,
-                  style: rule.style.cssText,
-                });
-              }
-            }
-          };
-          walk(rules);
-        }
-
-        return {
-          count: elements.length,
-          hoverRules,
-          pointerCursors: staticBadges
-            .filter((badge) => getComputedStyle(badge).cursor === "pointer")
-            .map((badge) => badge.textContent?.trim().slice(0, 40) ?? ""),
-          staticCount: staticBadges.length,
-        };
-      });
-
-      expect(audit.count, "the page should render badges").toBeGreaterThan(0);
-      expect(
-        audit.staticCount,
-        "the page should render non-interactive badges",
-      ).toBeGreaterThan(0);
-      expect(
-        audit.hoverRules,
-        "no CSS rule should give a non-interactive badge a hover state",
-      ).toEqual([]);
-      expect(
-        audit.pointerCursors,
-        "a non-interactive badge should not show a pointer cursor",
-      ).toEqual([]);
-
-      /* One end-to-end hover, in case a hover affordance ever arrives by some
-         route the cascade audit cannot see (inline style, script, or JS state). */
-      const snapshot = (element: Element) => {
-        const style = getComputedStyle(element);
-        return [
-          style.backgroundColor,
-          style.borderColor,
-          style.color,
-          style.cursor,
-          style.opacity,
-          style.textDecorationLine,
-        ].join(" | ");
-      };
-      const firstStatic = badges
-        .filter({ hasNot: page.locator("a, button") })
-        .first();
-      const before = await firstStatic.evaluate(snapshot);
-      await firstStatic.hover();
-      expect(
-        await firstStatic.evaluate(snapshot),
-        "a non-interactive badge should not restyle on hover",
-      ).toBe(before);
-    });
-  }
-});
-
 test.describe("faint metadata legibility", () => {
   for (const theme of themes) {
     test(`${theme} mode faint text meets WCAG AA and the 12px floor`, async ({
       page,
     }) => {
       await setTheme(page, theme);
-      /* Wide, because the masthead role label and the rail's metadata only
-         render from `lg` and they are the smallest faint elements left — the
+      /* Wide, because the masthead role label only renders from `lg`, and it
+         and the path's mono dates are the smallest faint elements left — the
          command-menu hint's `kbd` used to be the smallest, and #89 removed the
          palette it belonged to. */
       await page.setViewportSize({ width: 1440, height: 900 });

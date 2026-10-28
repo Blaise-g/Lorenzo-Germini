@@ -1,9 +1,11 @@
 /* The identity portrait (#86, plus the studio replacement).
  *
  * The source is a 4:5 studio portrait served from `/public` rather than the
- * GitHub avatar CDN, and it is drawn in two slots: a 144×180 rail frame and a
- * 56×70 band frame. Both are 4:5 because a square frame centre-crops the face
- * out of a 4:5 source — the subject's head occupies the top third.
+ * GitHub avatar CDN, and the flat site draws it in one frame beside the
+ * subhead: 56×70 on screen, 96×120 on paper. Both are 4:5 because a square
+ * frame centre-crops the face out of a 4:5 source — the subject's head
+ * occupies the top third. The 144×180 rail frame retired with the rail
+ * (#141, decision 12).
  *
  * The monochrome is warm rather than `grayscale`, which is the point: neutral
  * grey against warm paper is the one place the system's "warm" claim visibly
@@ -13,10 +15,9 @@ import { expect, test } from "@playwright/test";
 import { RESUME_DATA } from "@/data/resume-data";
 import { setTheme, themes } from "./support/theme";
 
-const RAIL = { width: 144, height: 180 };
 const BAND = { width: 56, height: 70 };
-/** The band's printed slot: `print:h-[120px] print:w-24`, deliberately larger
- *  than the screen band because paper has no rail to carry the portrait. */
+/** The printed slot: `print:h-[120px] print:w-24`, deliberately larger than
+ *  the screen frame, because on paper the portrait is the identity's anchor. */
 const BAND_PRINT = { width: 96, height: 120 };
 
 test("the portrait is local and 4:5, not a remote avatar", async ({
@@ -34,36 +35,13 @@ test("the portrait is local and 4:5, not a remote avatar", async ({
   expect(response.headers()["content-type"]).toContain("image");
 });
 
-test("the rail frame is 144×180 and declares that width to the optimizer", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1024, height: 900 });
-  await page.goto("/");
-
-  const frame = page
-    .getByRole("complementary", { name: "Profile and page sections" })
-    .locator(".portrait-warm");
-  const box = await frame.boundingBox();
-  expect(box).not.toBeNull();
-  expect(Math.round(box!.width)).toBe(RAIL.width);
-  expect(Math.round(box!.height)).toBe(RAIL.height);
-
-  /* `sizes` has to match the slot: the previous `80px` served a file narrower
-     than the 144px box. The rail is drawn in one medium, so one element covers
-     it — unlike the band, which the test below splits. */
-  await expect(frame.locator("img")).toHaveAttribute(
-    "sizes",
-    `${RAIL.width}px`,
-  );
-});
-
 test("the band frame is 56×70 and declares that width to the optimizer", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.goto("/");
 
-  const frame = page.getByTestId("mobile-identity").locator(".portrait-warm");
+  const frame = page.getByTestId("flat-site-intro").locator(".portrait-warm");
   const box = await frame.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.round(box!.width)).toBe(BAND.width);
@@ -91,7 +69,7 @@ test("the band serves its 96px printed slot rather than upscaling the 56px file"
   await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto("/");
 
-  const frame = page.getByTestId("mobile-identity").locator(".portrait-warm");
+  const frame = page.getByTestId("flat-site-intro").locator(".portrait-warm");
   const box = await frame.boundingBox();
   expect(box).not.toBeNull();
   expect(Math.round(box!.width)).toBe(BAND_PRINT.width);
@@ -132,9 +110,9 @@ test("only the medium's own portrait is fetched, so the split costs nothing", as
   await page.setViewportSize({ width: 1024, height: 900 });
   await page.goto("/", { waitUntil: "networkidle" });
 
-  /* At ≥lg the rail is the only painted variant: its 144px slot at DPR 1 takes
-     the 256w candidate, and neither band element is requested at all. */
-  expect(widths).toEqual(["256"]);
+  /* The screen element is the only painted one: its 56px slot at DPR 1 takes
+     the 64w candidate, and the 96px print element is not requested at all. */
+  expect(widths).toEqual(["64"]);
 });
 
 test("both slots are 4:5, so neither centre-crops the face", () => {
@@ -142,8 +120,8 @@ test("both slots are 4:5, so neither centre-crops the face", () => {
      against, rather than by re-measuring: a slot that drifts off 4:5 fails there
      on its exact dimensions, and this states the reason those numbers are the
      numbers. */
-  expect(RAIL.width / RAIL.height).toBeCloseTo(4 / 5, 5);
   expect(BAND.width / BAND.height).toBeCloseTo(4 / 5, 5);
+  expect(BAND_PRINT.width / BAND_PRINT.height).toBeCloseTo(4 / 5, 5);
 });
 
 for (const theme of themes) {
