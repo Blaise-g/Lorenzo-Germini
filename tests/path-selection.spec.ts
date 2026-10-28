@@ -44,7 +44,10 @@ async function expectSelected(page: Page, slug: PathStepSlug) {
     .poll(() => markerOpacity(page, slug), `${slug}'s marker`)
     .toBe("1");
   const other = PATH_STEPS.find((candidate) => candidate.slug !== slug)!;
-  expect(await markerOpacity(page, other.slug)).toBe("0");
+  /* Polled too: `other` may be the step just left, its ring still fading. */
+  await expect
+    .poll(() => markerOpacity(page, other.slug), `${other.slug}'s marker`)
+    .toBe("0");
 }
 
 function markerOpacity(page: Page, slug: PathStepSlug) {
