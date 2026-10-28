@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type HubDestination = {
+export type AnchorDestination = {
   id: string;
   label: string;
 };
@@ -14,7 +14,7 @@ export function SectionAnchorRow({
   destinations,
   className,
 }: {
-  destinations: readonly HubDestination[];
+  destinations: readonly AnchorDestination[];
   className?: string;
 }) {
   return (

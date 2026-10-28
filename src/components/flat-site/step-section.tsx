@@ -5,9 +5,16 @@ import type {
   PathSideProp,
   PathStep,
 } from "@/data/path.types";
+import { cn } from "@/lib/utils";
 
-const linkClassName =
+/** The flat site's underlined accent link, shared with the intro's row. */
+export const FLAT_SITE_LINK_CLASS_NAME =
   "text-accent decoration-border hover:decoration-accent touch-target underline underline-offset-4";
+
+/** A row of those links. `gap-y-5`, because a wrapped row's 44px hit areas
+ *  need 20px between lines to clear each other. */
+export const FLAT_SITE_LINK_ROW_CLASS_NAME =
+  "font-label flex flex-wrap gap-x-6 gap-y-5 text-xs tracking-[0.12em] uppercase print:hidden";
 
 /* Each step and side prop is its own anchored section, with every word of its
    text in the server HTML: the path's links scroll here with JavaScript off,
@@ -18,17 +25,38 @@ const sectionClassName =
 function Links({ links }: { links: readonly PathLink[] }) {
   if (links.length === 0) return null;
   return (
-    <p className="font-label flex flex-wrap gap-x-6 gap-y-5 text-xs tracking-[0.12em] uppercase print:hidden">
+    <p className={FLAT_SITE_LINK_ROW_CLASS_NAME}>
       {links.map((link) => (
         <a
           key={`${link.label}-${link.href}`}
           href={link.href}
-          className={linkClassName}
+          className={FLAT_SITE_LINK_CLASS_NAME}
         >
           {link.label}
         </a>
       ))}
     </p>
+  );
+}
+
+function Lines({
+  lines,
+  className,
+}: {
+  lines: readonly string[];
+  className: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "text-body space-y-2 text-base leading-relaxed text-pretty print:mt-1 print:space-y-0.5 print:text-[12px] print:leading-[1.35]",
+        className,
+      )}
+    >
+      {lines.map((line) => (
+        <p key={line}>{line}</p>
+      ))}
+    </div>
   );
 }
 
@@ -78,14 +106,12 @@ export function StepSection({ step }: { step: PathStep }) {
           {step.roles.map((role) => (
             <li key={`${role.organisation}-${role.start}`}>
               {/* A degree is already one of the step's lines, word for word,
-                  so its row keeps only the place and the dates. */}
-              {step.lines.includes(
-                `${role.title}, ${role.organisation}.`,
-              ) ? null : (
-                <p className="font-display text-lg leading-snug print:text-[13px]">
-                  {role.title} · {role.organisation}
-                </p>
-              )}
+                  so its row drops the title and keeps the school. */}
+              <p className="font-display text-lg leading-snug print:text-[13px]">
+                {step.lines.includes(`${role.title}, ${role.organisation}.`)
+                  ? role.organisation
+                  : `${role.title} · ${role.organisation}`}
+              </p>
               <p className="text-faint font-mono text-xs tabular-nums">
                 {role.location} ·{" "}
                 <span data-path-date>
@@ -97,11 +123,7 @@ export function StepSection({ step }: { step: PathStep }) {
         </ul>
       ) : null}
 
-      <div className="text-body mt-4 space-y-2 text-base leading-relaxed text-pretty print:mt-1 print:space-y-0.5 print:text-[12px] print:leading-[1.35]">
-        {step.lines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </div>
+      <Lines lines={step.lines} className="mt-4" />
 
       <div className="mt-4 space-y-4 print:mt-0">
         <Links links={step.links} />
@@ -130,12 +152,8 @@ export function SidePropSection({ prop }: { prop: PathSideProp }) {
       >
         {prop.title}
       </h3>
-      <div className="text-body mt-2 space-y-2 text-base leading-relaxed text-pretty print:mt-1 print:space-y-0.5 print:text-[12px] print:leading-[1.35]">
-        {prop.lines.map((line) => (
-          <p key={line}>{line}</p>
-        ))}
-      </div>
-      <div className="mt-3 print:hidden">
+      <Lines lines={prop.lines} className="mt-2" />
+      <div className="mt-3">
         <Links links={[prop.link]} />
       </div>
     </section>

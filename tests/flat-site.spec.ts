@@ -67,6 +67,26 @@ test.describe("with JavaScript off", () => {
       for (const line of step.lines) {
         await expect(section, `${step.slug}: ${line}`).toContainText(line);
       }
+      /* Decision 7's proof is role and dates as well as results, read off
+         each role's own row: the school also sits in its degree's line, so a
+         section-wide search could not tell a row that lost it. A degree's
+         title is that line, so its row may leave the title out. */
+      const rows = section.locator("li");
+      await expect(rows).toHaveCount(step.roles.length);
+      for (const [index, role] of step.roles.entries()) {
+        const row = rows.nth(index);
+        const values = [
+          role.organisation,
+          role.location,
+          `${role.start} – ${role.end}`,
+        ];
+        if (!step.lines.includes(`${role.title}, ${role.organisation}.`)) {
+          values.push(role.title);
+        }
+        for (const value of values) {
+          await expect(row, `${step.slug}: ${value}`).toContainText(value);
+        }
+      }
     }
     for (const prop of PATH_SIDE_PROPS) {
       const section = page.locator(`section#${prop.slug}`);
@@ -138,10 +158,12 @@ test("each blend is labelled as an illustration on its step", async ({
   }
 });
 
-/* Decision 10: the only numbers anywhere are the four the data module
+/* Decision 10: the only numbers on the path are the four the data module
    allows, and the data spec holds the module to them. So once a section's
    dates and every string the module gave it are taken out, what remains is
-   markup's own words — and the only ones allowed are the "Drawn from" label. */
+   markup's own words — and the only ones allowed are the "Drawn from" label.
+   The rule binds the path's own text: dates are dates, and the writing
+   teaser below the path is the essay's copy, which #144 does not change. */
 test("the path adds no words, and so no numbers, to its data", async ({
   page,
 }) => {

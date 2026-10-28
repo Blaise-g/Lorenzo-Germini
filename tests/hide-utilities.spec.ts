@@ -52,7 +52,9 @@ test.describe("hide utilities actually hide", () => {
     }
   }
 
-  test("the drawn path's step links do not print", async ({ page }) => {
+  test("the path's links and the writing link do not print", async ({
+    page,
+  }) => {
     /* Kept as a named regression rather than left to the sweep above: the
        hero CTA this replaced was the one element the unlayered rule
        demonstrably broke, and the path's links are the flat site's densest set
@@ -63,6 +65,12 @@ test.describe("hide utilities actually hide", () => {
       page.getByRole("navigation", { name: "The path" }),
     ).toBeHidden();
     await expect(page.locator("[data-path-step-link]").first()).toBeHidden();
+    /* And one link that carries `touch-target` and `print:hidden` on itself,
+       which is the case the unlayered rule broke: a hidden parent hides its
+       children whatever the layer order, so the path alone cannot catch it. */
+    await expect(
+      page.getByRole("link", { name: "All writing →", exact: true }),
+    ).toBeHidden();
   });
 
   test("a breakpoint-hidden touch target is hidden at that breakpoint", async ({

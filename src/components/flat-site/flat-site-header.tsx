@@ -2,6 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FLAT_SITE_INSET } from "@/components/flat-site/inset";
+import {
+  FLAT_SITE_LINK_CLASS_NAME,
+  FLAT_SITE_LINK_ROW_CLASS_NAME,
+} from "@/components/flat-site/step-section";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { RESUME_DATA } from "@/data/resume-data";
 import { cn } from "@/lib/utils";
@@ -64,9 +68,6 @@ export function FlatSiteMasthead() {
   );
 }
 
-const introLinkClassName =
-  "text-accent decoration-border hover:decoration-accent touch-target underline underline-offset-4";
-
 /** Under the rule: the portrait, the role and place, the current subhead, and
  *  the three ways on — Email, CV, Writing. It comes before the path in both DOM
  *  and visual order, because the subhead is what puts the technical claim in
@@ -113,17 +114,17 @@ export function FlatSiteIntro() {
         <p className="text-body text-base leading-relaxed text-pretty sm:text-lg print:text-[12px]">
           {RESUME_DATA.homepage.hero.subhead}
         </p>
-        <p className="font-label flex flex-wrap gap-x-6 gap-y-5 text-xs tracking-[0.12em] uppercase print:hidden">
+        <p className={FLAT_SITE_LINK_ROW_CLASS_NAME}>
           <a
             href={`mailto:${RESUME_DATA.contact.email}`}
-            className={introLinkClassName}
+            className={FLAT_SITE_LINK_CLASS_NAME}
           >
             Email
           </a>
-          <Link href="/cv" className={introLinkClassName}>
+          <Link href="/cv" className={FLAT_SITE_LINK_CLASS_NAME}>
             CV
           </Link>
-          <Link href="/writing" className={introLinkClassName}>
+          <Link href="/writing" className={FLAT_SITE_LINK_CLASS_NAME}>
             Writing
           </Link>
         </p>
