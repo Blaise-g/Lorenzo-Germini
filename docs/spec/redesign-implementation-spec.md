@@ -282,13 +282,13 @@ A real Chromium A4 render of the _current_ print CV measures **3 pages**, page 2
 - `break-inside: avoid` on each role block and each project card
 - Remove `.print-force-new-page` from Projects (`globals.css:182-184` + its usage) — it is what strands page 3
 - Raise the 8px floor to ≥9pt
-- Delete the dead URL-printing pattern at `src/components/project-card.tsx:36` — `hidden … print:visible` cannot work, `visibility` does not undo `display: none`. Link URLs have never printed.
+- ~~Delete the dead URL-printing pattern at `src/components/project-card.tsx:36` — `hidden … print:visible` cannot work, `visibility` does not undo `display: none`. Link URLs have never printed.~~ Moot rather than done: the hub's project cards, and this file with them, were deleted after #144 retired them.
 
 **Effort: 4h.** Superseded in shape by Phase 2 §2.3 but not wasted: the global baseline block survives, and the page-break rules port directly.
 
 ## 1.8 Small correctness items
 
-- One production `target="_blank"` link is missing `rel="noopener noreferrer"` — the project title link in `src/components/project-card.tsx`. Six others already have it. (Was two: the location link in `src/app/page.tsx` was deleted with the globe action post-#26, so that half is moot rather than done.) Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
+- ~~One production `target="_blank"` link is missing `rel="noopener noreferrer"` — the project title link in `src/components/project-card.tsx`.~~ Moot rather than done: that file was deleted with the hub's project cards after #144. Six others already have it. (Was two: the location link in `src/app/page.tsx` was deleted with the globe action post-#26, so that half is moot rather than done.) Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
 - Hover styling on non-interactive skill badges — remove it.
 - Verify `--color-muted-foreground` against AA in both modes at its smallest rendered size.
 - Retire the hardcoded `dateModified: "2026-04-01"` at `src/components/structured-data.tsx:8` in favour of a build-time or data-derived value.
