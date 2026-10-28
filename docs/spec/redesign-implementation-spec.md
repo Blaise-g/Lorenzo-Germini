@@ -145,6 +145,37 @@ the runnable Ambient Current prototype detour produced real-browser evidence.
     sufficient; WebGL/Radiant is not authorized absent a separate measured
     benefit and decision.
 
+# Rules retired by the path redesign
+
+Amended 2026-10-28 by #141 (Decision 12), with ADR-0007, ADR-0008 and the ADR-0003 amendment.
+The homepage becomes the path: a flat site at `/` with a door to an opt-in 3D path at `/path`.
+Where this section and the text above disagree, this section wins.
+
+**Kept, unchanged:** the first-screen check (`tests/homepage-fold.spec.ts`) and retained proof
+(`docs/spec/retained-proof.json`, [retained-proof.md](retained-proof.md)). Retiring them was
+considered and rejected.
+
+**Retired:**
+
+- **The WebGL ban** (decision 10's "WebGL/Radiant is not authorized") — retired **for `/path`
+  only**. `/` still loads no 3D code.
+- **The continuous-motion ban** (decision 10's "Continuous motion is not generally authorized")
+  — retired **for `/path` only**, where a selected step's scene builds. The build is skippable,
+  ends on a still composition, never loops and never advances on its own. `/` keeps the default
+  motion contract.
+- **Reduced motion as "at most one composed static frame"** is replaced, on `/path`, by a
+  designed state: cuts instead of travel, end states instead of animation.
+- **The seven colour roles and the design-system guard are kept for page interface colour.**
+  Scene art (bakes, shader colours, generated textures) is exempt, in one directory, with its own
+  path colour tokens (ADR-0008).
+- **The sticky rail and its scroll-spy** (§2.2, including the "condition of the composition"
+  and its 2026-07-31 amendment) — retired with the hub on `/`, and the mobile route bar with
+  them.
+- **Fixed controls** — ADR-0003 is amended so that no fixed control ever covers content.
+
+Which tests the new `/` breaks, and what happens to each, is in
+[path-test-inventory.md](path-test-inventory.md).
+
 # Open inputs this spec does not decide
 
 These are inputs the implementer needs and does not have. **Nothing in Phase 1 is blocked by any of them.**
