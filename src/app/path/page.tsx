@@ -35,7 +35,7 @@ import { FlatSiteLink, MarkEntered, StepPanels } from "./overlay";
    site lacks, and `/` is the crawlable form (GH-141, implementation decision
    6). */
 export const metadata: Metadata = {
-  title: "The path",
+  title: "The 3D path",
   description: `The path of ${RESUME_DATA.name}'s life, step by step: where he studied and worked, his roles and their results.`,
 };
 

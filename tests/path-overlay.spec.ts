@@ -72,13 +72,16 @@ test("the overlay is server HTML: the step list, the text panel and Flat site", 
     );
   }
   /* With no fragment the panel shows now, as `/` selects it. */
-  expect(html).toContain(stepNamed("now").lines[0]);
+  expect(html).toMatch(/data-path-panel="now"(?! hidden)/);
   expect(html).toMatch(/<a href="\/#now"[^>]*>Flat site<\/a>/);
 });
 
 test.describe("with JavaScript off", () => {
   test.use({ javaScriptEnabled: false });
 
+  /* `/path` is the JavaScript route: without it the overlay paints at the
+     default step and the step links only change the fragment. `/` is the
+     route that works without it (GH-141's JavaScript-off test is for `/`). */
   test("the overlay still paints, with now's text and the way back", async ({
     page,
   }) => {
@@ -88,6 +91,13 @@ test.describe("with JavaScript off", () => {
     );
     await expect(panel(page)).toContainText(stepNamed("now").lines[0]);
     await expect(flatSiteLink(page)).toBeVisible();
+    /* Every step's text is in the page, hidden or not, so selecting one
+       fetches nothing (GH-141, decision 7). */
+    for (const step of PATH_STEPS) {
+      await expect(
+        page.locator(`[data-path-panel="${step.slug}"]`),
+      ).toContainText(step.lines[0]);
+    }
   });
 });
 
@@ -110,6 +120,34 @@ test("its own shell: one main, one contentinfo outside it", async ({
   ).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(main).toBeFocused();
+});
+
+/* ADR-0002: a shell's footer rule ends where its content ends. `/path` stays
+   out of `semantic-shell.spec.ts`'s route lists, so its case is here. */
+test("the footer rule spans the overlay's inset", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 900 });
+  await page.goto("/path");
+
+  const edges = await page.evaluate(() => {
+    const overlay = document.querySelector("[data-path-overlay]")!;
+    const style = getComputedStyle(overlay);
+    const box = overlay.getBoundingClientRect();
+    const rule = document
+      .querySelector("body > footer")!
+      .firstElementChild!.getBoundingClientRect();
+    return {
+      content: {
+        left: box.left + Number.parseFloat(style.paddingLeft),
+        right: box.right - Number.parseFloat(style.paddingRight),
+      },
+      rule: { left: rule.left, right: rule.right },
+    };
+  });
+
+  expect(Math.abs(edges.rule.left - edges.content.left)).toBeLessThanOrEqual(1);
+  expect(Math.abs(edges.rule.right - edges.content.right)).toBeLessThanOrEqual(
+    1,
+  );
 });
 
 test("Flat site is in the first screen and goes back to the same step", async ({

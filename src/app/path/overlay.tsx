@@ -26,7 +26,9 @@ export function FlatSiteLink({ className }: { className: string }) {
 
 /** Every step's panel is server HTML; this shows the selected one. The step
  *  list's links change the fragment, so selecting a step shows its text at
- *  once, with nothing to fetch (GH-141, decision 7). */
+ *  once, with nothing to fetch (GH-141, decision 7). The server cannot see
+ *  the fragment, so a load of `/path#lille` paints now's panel until this
+ *  hydrates, as `/`'s piece and selection wait for hydration too. */
 export function StepPanels({
   panels,
 }: {
