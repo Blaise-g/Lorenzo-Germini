@@ -19,7 +19,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "playwright test"
+    "test": "playwright test",
+    "generate:path-voice": "bun run scripts/generate-path-voice.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.1.2",

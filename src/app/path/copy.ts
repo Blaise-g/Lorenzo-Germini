@@ -9,3 +9,19 @@ export const STAGE_COPY = {
   notBuilt: "This step’s scene is not built yet",
   showing: (place: string) => `Showing: ${place}`,
 };
+
+/* The voice controls on `/path` (GH-150). The label says what the voice is,
+   and it is never presented as Lorenzo's (GH-141, decision 9). */
+export const VOICE_COPY = {
+  listen: "Listen",
+  play: "Play",
+  pause: "Pause",
+  resume: "Resume",
+  stop: "Stop",
+  voiceSwitch: "Voice",
+  label: (providerName: string) =>
+    `Narration: synthetic voice, ${providerName}`,
+  noClip: "No narration for this step yet",
+  blocked: "The browser held the voice back. Press Play to hear it.",
+  failed: "The clip did not load.",
+};

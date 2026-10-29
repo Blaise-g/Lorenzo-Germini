@@ -1,0 +1,27 @@
+{
+  "provider": "say",
+  "providerName": "macOS system voice",
+  "voice": "Samantha",
+  "clips": {
+    "home": {
+      "src": "/path/voice/home.m4a",
+      "script": "Where I grew up and went to school.",
+      "bytes": 10202
+    },
+    "cuneo-2022": {
+      "src": "/path/voice/cuneo-2022.m4a",
+      "script": "Taught math and physics at my old high school. Built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself. Killed it on the evidence after customer discovery.",
+      "bytes": 46920
+    },
+    "lille": {
+      "src": "/path/voice/lille.m4a",
+      "script": "Found inefficiencies across pharmaceutical utilities with Python and multi-source sensor data, and designed water rejection strategies projected to save 10,000 m³ a year. Built anomaly detection and time-series forecasting for manufacturing operations, and semantic NLP for fault detection and maintenance decisions. Built natural-language interfaces and generative AI use cases that made plant data usable on the floor.",
+      "bytes": 84118
+    },
+    "now": {
+      "src": "/path/voice/now.m4a",
+      "script": "Built a RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, and used tracing and evaluation workflows to tune prompts and retrieval quality. Led MVP engineering, managing two other developers. Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the agentic AI core of the product: agents and automation workflows that combine business context with expert feedback, backed by evaluations that track reliability in production. Shaping product decisions with business stakeholders and shipping AI features end-to-end, from problem definition to production, across AI, backend, and frontend.",
+      "bytes": 133363
+    }
+  }
+}

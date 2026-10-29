@@ -41,6 +41,9 @@ import {
 } from "./first-paint";
 import { FlatSiteLink, MarkEntered, OverlayRoot } from "./overlay";
 import { SceneStage } from "./scene-stage";
+import { VoiceControls } from "./voice";
+import type { VoiceManifest } from "./voice-manifest";
+import voiceManifestJson from "../../../public/path/voice/manifest.json";
 
 /* No markdown alternate and no sitemap entry: `/path` adds no content the flat
    site lacks, and `/` is the crawlable form (GH-141, implementation decision
@@ -49,6 +52,13 @@ export const metadata: Metadata = {
   title: "The 3D path",
   description: `The path of ${RESUME_DATA.name}'s life, step by step: where he studied and worked, his roles and their results.`,
 };
+
+/* Written by `bun run generate:path-voice` beside the clips. The client gets
+   each clip's URL and not its script, which is the panel's text already. */
+const voiceManifest = voiceManifestJson as VoiceManifest;
+const voiceClips = Object.fromEntries(
+  Object.entries(voiceManifest.clips).map(([slug, clip]) => [slug, clip.src]),
+);
 
 /* The drawn path's node per step, as `/` draws it. */
 function stepNode(step: PathStep): PathStepNode {
@@ -156,6 +166,11 @@ export default function PathPage() {
                 <StageBackdrop key={step.slug} step={step} />
               ))}
             </SceneStage>
+
+            <VoiceControls
+              clips={voiceClips}
+              providerName={voiceManifest.providerName}
+            />
 
             {/* The text panel. Its sections are not anchored: the fragment
                 selects here rather than scrolling, and focus stays on the step
