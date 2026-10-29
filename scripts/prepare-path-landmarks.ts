@@ -18,7 +18,15 @@
      bun run prepare:path-landmarks --import <glb> <id>
                                                       keep a new raw output */
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -98,10 +106,6 @@ export interface PathModel {
   licence: string;
   /** Turn about Y, in degrees, applied before centring, so its front faces +Z. */
   yaw: number;
-  /** Turn about X, in degrees, applied first: Pixal3D builds in its estimated
-   *  camera's frame, so a model can come out leaning by the reference's view
-   *  angle. Measured from a plane fitted to the base, not judged by eye. */
-  pitch: number;
   /** Pull the shading the generator baked into the albedo back toward flat,
    *  0 (off) to 1; for models that double-shade under the scene's sun. */
   flattenShading: number;
@@ -121,7 +125,6 @@ function toy(kind: Kind, id: string, step: string | null, yaw = 0): PathModel {
     model: HUNYUAN,
     licence: HUNYUAN_LICENCE,
     yaw,
-    pitch: 0,
     flattenShading: 0,
   };
 }
@@ -196,41 +199,25 @@ export function similarity(
   ];
 }
 
-/** A column-major 4×4 turn by `pitchDegrees` about X: +Y toward +Z. */
-function pitchMatrix(pitchDegrees: number): mat4 {
-  const a = (pitchDegrees * Math.PI) / 180;
-  const c = Math.cos(a);
-  const s = Math.sin(a);
-  // prettier-ignore
-  return [
-    1, 0, 0, 0,
-    0, c, s, 0,
-    0, -s, c, 0,
-    0, 0, 0, 1,
-  ];
-}
-
 export interface Normalisation {
   upAxis: "+Y";
-  pitch: number;
+  /** Always 0: no model is levelled about X now that every one is a toy
+   *  standing as generated. Kept so the shipped manifests stay as written. */
+  pitch: 0;
   yaw: number;
   /** The uniform scale applied, after baking every node transform. */
   scale: number;
   /** The translation applied after scaling. */
   offset: vec3;
-  /** The generator's bounding box after baking, the pitch and the yaw, before scaling. */
+  /** The generator's bounding box after baking and the yaw, before scaling. */
   sourceSize: vec3;
 }
 
 /** Bakes every node transform into its mesh, then turns, scales and moves the
  *  whole scene so it stands on y = 0, centred on x and z, one unit tall. glTF
- *  is Y-up by definition and every generator here writes it so; the yaw and,
- *  for a leaning Pixal3D model, the pitch are chosen per landmark. */
-export function normalise(
-  document: Document,
-  yaw: number,
-  pitch = 0,
-): Normalisation {
+ *  is Y-up by definition and every generator here writes it so; the yaw is
+ *  chosen per model. */
+export function normalise(document: Document, yaw: number): Normalisation {
   const root = document.getRoot();
   const scene = root.getDefaultScene() ?? root.listScenes()[0];
   if (!scene) throw new Error("no scene");
@@ -251,12 +238,8 @@ export function normalise(
       .setScale([1, 1, 1]);
   });
 
-  const level = pitchMatrix(pitch);
   const turn = similarity(yaw, 1, [0, 0, 0]);
-  for (const mesh of baked) {
-    transformMesh(mesh, level);
-    transformMesh(mesh, turn);
-  }
+  for (const mesh of baked) transformMesh(mesh, turn);
   const { min, max } = getBounds(scene);
   const size: vec3 = [max[0] - min[0], max[1] - min[1], max[2] - min[2]];
   if (!(size[1] > 0)) throw new Error("the model has no height");
@@ -268,7 +251,7 @@ export function normalise(
   ];
   const place = similarity(0, scale, offset);
   for (const mesh of baked) transformMesh(mesh, place);
-  return { upAxis: "+Y", pitch, yaw, scale, offset, sourceSize: size };
+  return { upAxis: "+Y", pitch: 0, yaw, scale, offset, sourceSize: size };
 }
 
 /* ---------- geometry ---------- */
@@ -285,8 +268,8 @@ export function triangleCount(document: Document): number {
  *  takes a ratio and stops early where the error allows, so this narrows the
  *  ratio until the result fits. Seams stay: meshoptimizer keeps vertices whose
  *  UVs split, and the open borders are locked. A mesh unwrapped into many
- *  charts runs out of collapses first (a Pixal3D 10k master floors near 5k),
- *  and then `acrossSeams` finishes the job. */
+ *  charts runs out of collapses first, and then `acrossSeams` finishes the
+ *  job. */
 export async function simplifyTo(
   document: Document,
   target: number,
@@ -314,9 +297,15 @@ export async function simplifyTo(
   return acrossSeams(document, target);
 }
 
+/** The fewest triangles `acrossSeams` cuts a primitive to, or all of a smaller
+ *  one's: a small part's share of the target rounds down to nothing, and an
+ *  accent or a face would drop out of the shipped file. */
+const MIN_PRIMITIVE_TRIANGLES = 12;
+
 /** The fallback: meshoptimizer's permissive mode may collapse across a UV
  *  seam, weighing the UV change against the move, so the texture shifts
- *  least where it would show. Each primitive gets its share of `target`. */
+ *  least where it would show. Each primitive gets its share of `target`, but
+ *  never less than `MIN_PRIMITIVE_TRIANGLES`. */
 async function acrossSeams(
   document: Document,
   target: number,
@@ -329,7 +318,12 @@ async function acrossSeams(
       const position = prim.getAttribute("POSITION");
       if (!indices || !position)
         throw new Error("simplify needs indexed positions");
-      const share = Math.floor((indices.getCount() / 3 / start) * target) * 3;
+      const own = indices.getCount() / 3;
+      const share =
+        Math.max(
+          Math.min(own, MIN_PRIMITIVE_TRIANGLES),
+          Math.floor((own / start) * target),
+        ) * 3;
       const uv = prim.getAttribute("TEXCOORD_0");
       const [kept] = uv
         ? MeshoptSimplifier.simplifyWithAttributes(
@@ -352,6 +346,9 @@ async function acrossSeams(
             SIMPLIFY_ERROR,
             ["Permissive"],
           );
+      if (kept.length === 0) {
+        throw new Error(`a primitive of ${own} triangles simplified to none`);
+      }
       indices.setArray(new Uint32Array(kept));
     }
   }
@@ -610,7 +607,7 @@ export async function prepare(
   const master = await readGlb(source);
   // The master is stored quantized; the simplifier weighs UVs as floats in 0–1.
   await master.transform(dequantize());
-  const normalisation = normalise(master, asset.yaw, asset.pitch);
+  const normalisation = normalise(master, asset.yaw);
   if (asset.flattenShading > 0) {
     for (const texture of baseColourTextures(master)) {
       const image = texture.getImage();
@@ -654,34 +651,74 @@ async function main() {
     return;
   }
 
-  await mkdir(OUT, { recursive: true });
-  const manifests = new Map<string, Record<string, ManifestEntry>>();
-  let failed = false;
-  for (const asset of MODELS) {
-    const entry = await prepare(asset);
-    const file = MANIFEST[asset.kind];
-    manifests.set(file, { ...manifests.get(file), [asset.id]: entry });
-    const kb = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
-    console.log(
-      `${asset.id}: ${entry.triangles} tris ${kb(entry.bytes)}; ` +
-        `LOD ${entry.lodTriangles} tris ${kb(entry.lodBytes)}`,
-    );
-    const budget = DETAIL[asset.kind];
-    if (
-      entry.bytes > budget.full.maxBytes ||
-      entry.lodBytes > budget.lod.maxBytes
-    ) {
-      console.error(`${asset.id}: over its byte budget`);
-      failed = true;
+  await publishModels(MODELS);
+}
+
+/** Prepares every model from its master in `vendorDir` and publishes the
+ *  GLBs with their manifests into `outDir`. Everything is made in a staging
+ *  directory beside `outDir`, on the same volume so a rename moves it, and
+ *  renamed into place only once every model is made and inside its budget:
+ *  a throw or an over-budget model part-way leaves the shipped files and
+ *  their manifests as they were. */
+export async function publishModels(
+  models: readonly PathModel[],
+  vendorDir = VENDOR,
+  outDir = OUT,
+): Promise<void> {
+  await mkdir(outDir, { recursive: true });
+  const staging = await mkdtemp(
+    path.join(path.dirname(outDir), ".models-staging-"),
+  );
+  try {
+    const manifests = new Map<string, Record<string, ManifestEntry>>();
+    const over: string[] = [];
+    for (const asset of models) {
+      const entry = await prepare(
+        asset,
+        path.join(vendorDir, `${asset.id}.glb`),
+        staging,
+      );
+      const file = path.basename(MANIFEST[asset.kind]);
+      manifests.set(file, { ...manifests.get(file), [asset.id]: entry });
+      const kb = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
+      console.log(
+        `${asset.id}: ${entry.triangles} tris ${kb(entry.bytes)}; ` +
+          `LOD ${entry.lodTriangles} tris ${kb(entry.lodBytes)}`,
+      );
+      const budget = DETAIL[asset.kind];
+      if (
+        entry.bytes > budget.full.maxBytes ||
+        entry.lodBytes > budget.lod.maxBytes
+      ) {
+        over.push(asset.id);
+      }
     }
+    if (over.length > 0) {
+      throw new Error(
+        `over the byte budget, nothing published: ${over.join(", ")}`,
+      );
+    }
+    for (const [file, manifest] of manifests) {
+      // Formatted as `format:check` expects, so a rerun leaves the checked-in manifest alone.
+      const target = path.join(outDir, file);
+      await writeFile(
+        path.join(staging, file),
+        await format(JSON.stringify(manifest), { filepath: target }),
+      );
+    }
+    /* The models first and the manifests last, so the manifests never name
+       a file that is not yet in place. */
+    const made = await readdir(staging);
+    const manifestFiles = new Set(manifests.keys());
+    for (const file of [
+      ...made.filter((name) => !manifestFiles.has(name)),
+      ...made.filter((name) => manifestFiles.has(name)),
+    ]) {
+      await rename(path.join(staging, file), path.join(outDir, file));
+    }
+  } finally {
+    await rm(staging, { recursive: true, force: true });
   }
-  for (const [file, manifest] of manifests) {
-    const previous = await readFile(file, "utf8").catch(() => "");
-    // Formatted as `format:check` expects, so a rerun leaves the checked-in manifest alone.
-    const next = await format(JSON.stringify(manifest), { filepath: file });
-    if (previous !== next) await writeFile(file, next);
-  }
-  if (failed) process.exit(1);
 }
 
 /* Run as a script, not when a test imports the functions above. */

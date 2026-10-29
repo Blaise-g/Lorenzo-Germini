@@ -2,7 +2,7 @@
    the integrating scene reads, the GLBs they name, and the normalisation that
    makes them interchangeable. No browser: the files are read with glTF-Transform. */
 
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { Document, NodeIO, type vec3 } from "@gltf-transform/core";
@@ -24,12 +24,14 @@ import {
   flattenShading,
   normalise,
   prepare,
+  publishModels,
   readGlb,
   simplifyTo,
   smoothNormals,
   triangleCount,
   type Detail,
   type ManifestEntry,
+  type PathModel,
 } from "../scripts/prepare-path-landmarks";
 
 /** Meshopt stores positions at 14 bits by default: about 1e-4 of the extent. */
@@ -90,7 +92,6 @@ test.describe("the manifests", () => {
         kind: asset.kind,
         step: asset.step,
         yaw: asset.yaw,
-        pitch: asset.pitch,
         flattenShading: asset.flattenShading,
       });
     }
@@ -241,17 +242,6 @@ test.describe("normalise", () => {
     }
   });
 
-  test("a quarter turn of pitch stands a lying box on its end", () => {
-    // 2 wide, 1 tall, 4 deep: pitched +Y toward +Z, the depth becomes the height.
-    const { document } = boxDocument([0, 0, 0], [2, 1, 4]);
-    const result = normalise(document, 0, 90);
-    const { min, max } = sceneBounds(document);
-    expect(result.sourceSize[1]).toBeCloseTo(4, 6);
-    expect(max[0] - min[0]).toBeCloseTo(0.5, 6);
-    expect(max[1] - min[1]).toBeCloseTo(1, 6);
-    expect(max[2] - min[2]).toBeCloseTo(0.25, 6);
-  });
-
   test("a quarter turn of yaw swaps the footprint's width and depth", () => {
     const { document } = boxDocument([0, 0, 0], [4, 2, 1]);
     normalise(document, 90);
@@ -360,7 +350,6 @@ test.describe("simplifyTo", () => {
         model: "",
         licence: "",
         yaw: 0,
-        pitch: 0,
         flattenShading: 0,
       },
       master,
@@ -371,6 +360,107 @@ test.describe("simplifyTo", () => {
     const { lod } = DETAIL.landmark;
     expect(entry.lodTriangles).toBeLessThanOrEqual(lod.triangles);
     expect(entry.lodTriangles).toBeGreaterThan(lod.triangles * 0.8);
+  });
+
+  test("a small part's share of the target never rounds it away", async () => {
+    // A charted grid that stalls on its seams, so `acrossSeams` cuts it,
+    // beside a two-triangle accent: 2 / 3202 of 800 rounds down to none.
+    const document = chartedGrid(40);
+    const buffer = document.getRoot().listBuffers()[0];
+    const accent = document
+      .createPrimitive()
+      .setAttribute(
+        "POSITION",
+        document
+          .createAccessor()
+          .setType("VEC3")
+          .setArray(new Float32Array([2, 0, 0, 3, 0, 0, 3, 0, 1, 2, 0, 1]))
+          .setBuffer(buffer),
+      )
+      .setAttribute(
+        "TEXCOORD_0",
+        document
+          .createAccessor()
+          .setType("VEC2")
+          .setArray(new Float32Array([0, 0, 1, 0, 1, 1, 0, 1]))
+          .setBuffer(buffer),
+      )
+      .setIndices(
+        document
+          .createAccessor()
+          .setType("SCALAR")
+          .setArray(new Uint32Array([0, 2, 1, 0, 3, 2]))
+          .setBuffer(buffer),
+      );
+    document.getRoot().listMeshes()[0].addPrimitive(accent);
+
+    const result = await simplifyTo(document, 800);
+
+    expect(triangleCount(result)).toBeLessThanOrEqual(800);
+    const counts = result
+      .getRoot()
+      .listMeshes()[0]
+      .listPrimitives()
+      .map((prim) => prim.getIndices()!.getCount() / 3);
+    expect(counts).toHaveLength(2);
+    expect(counts[1]).toBe(2);
+  });
+});
+
+test.describe("publishModels", () => {
+  const grid = (id: string): PathModel => ({
+    id,
+    kind: "landmark",
+    step: null,
+    model: "",
+    licence: "",
+    yaw: 0,
+    flattenShading: 0,
+  });
+
+  /** A vendor directory holding `ids`' masters, each a lying box; and a
+   *  published directory holding one old file. */
+  async function directories(ids: readonly string[]) {
+    const root = test.info().outputPath();
+    const vendorDir = path.join(root, "vendor");
+    const outDir = path.join(root, "models");
+    await mkdir(vendorDir, { recursive: true });
+    await mkdir(outDir, { recursive: true });
+    const io = new NodeIO();
+    for (const id of ids) {
+      const { document } = boxDocument([0, 0, 0], [2, 1, 1]);
+      await writeFile(
+        path.join(vendorDir, `${id}.glb`),
+        await io.writeBinary(document),
+      );
+    }
+    await writeFile(path.join(outDir, "landmarks.json"), "old\n");
+    return { root, vendorDir, outDir };
+  }
+
+  test("a failure part-way publishes nothing and leaves no staging behind", async () => {
+    const { root, vendorDir, outDir } = await directories(["first"]);
+    // "second" has no master, so it throws after "first" was made.
+    await expect(
+      publishModels([grid("first"), grid("second")], vendorDir, outDir),
+    ).rejects.toThrow();
+    expect(await readdir(outDir)).toEqual(["landmarks.json"]);
+    expect(await readFile(path.join(outDir, "landmarks.json"), "utf8")).toBe(
+      "old\n",
+    );
+    expect((await readdir(root)).sort()).toEqual(["models", "vendor"]);
+  });
+
+  test("a full run publishes every model with a manifest that matches", async () => {
+    const { root, vendorDir, outDir } = await directories(["first", "second"]);
+    await publishModels([grid("first"), grid("second")], vendorDir, outDir);
+    const entries = await manifest(path.join(outDir, "landmarks.json"));
+    expect(Object.keys(entries).sort()).toEqual(["first", "second"]);
+    for (const entry of Object.values(entries)) {
+      const name = path.basename(entry.file);
+      expect((await stat(path.join(outDir, name))).size).toBe(entry.bytes);
+    }
+    expect((await readdir(root)).sort()).toEqual(["models", "vendor"]);
   });
 });
 
