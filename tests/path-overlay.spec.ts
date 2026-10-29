@@ -388,6 +388,64 @@ test("the panel rules are layered, and print shows the selected step's text only
   }
 });
 
+/* Decision 7: a step's text appears the moment it is selected. On a phone
+   the panel is under the list and the stage, so selecting brings it into
+   view, without taking focus off the step. */
+test.describe("on a phone", () => {
+  test.use({ viewport: { width: 375, height: 812 } });
+
+  const panelInView = (page: Page) =>
+    panel(page).evaluate((element) => {
+      const { top } = element.getBoundingClientRect();
+      return top >= 0 && top < window.innerHeight * 0.85;
+    });
+
+  test("selecting a step brings its text into view and keeps focus on it", async ({
+    page,
+  }) => {
+    await page.goto("/path");
+    await expect(stepLink(page, "now")).toBeVisible();
+    expect(await panelInView(page)).toBe(false);
+    await stepLink(page, "lille").focus();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => panelInView(page)).toBe(true);
+    await expect(stepLink(page, "lille")).toBeFocused();
+    await expect(
+      panel(page).locator('[data-path-panel="lille"]'),
+    ).toBeInViewport();
+  });
+
+  test("a load of a step's fragment does not scroll", async ({ page }) => {
+    await page.goto("/path#lille");
+    await expect(stepLink(page, "lille")).toHaveAttribute("aria-current", /./);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+
+  test.describe("with motion allowed", () => {
+    test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+    test("the text glides into view", async ({ page }) => {
+      await page.goto("/path");
+      await stepLink(page, "home").click();
+      await expect.poll(() => panelInView(page)).toBe(true);
+      await expect(stepLink(page, "home")).toBeFocused();
+    });
+  });
+});
+
+test("on a wide screen, selecting a step does not scroll", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/path");
+  await stepLink(page, "lille").click();
+  await expect(page.locator("[data-path-overlay]")).toHaveAttribute(
+    "data-path-shown",
+    "lille",
+  );
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
 test("/path is absent from the sitemap", async ({ request }) => {
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain("<urlset");

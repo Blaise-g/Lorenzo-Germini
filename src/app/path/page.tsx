@@ -39,7 +39,12 @@ import {
   OVERLAY_FIRST_PAINT_SCRIPT,
   OVERLAY_PANEL_CSS,
 } from "./first-paint";
-import { FlatSiteLink, MarkEntered, OverlayRoot } from "./overlay";
+import {
+  FlatSiteLink,
+  MarkEntered,
+  OverlayRoot,
+  RevealSelectedText,
+} from "./overlay";
 import { SceneStage } from "./scene-stage";
 import { VoiceControls } from "./voice";
 import type { VoiceManifest } from "./voice-manifest";
@@ -114,6 +119,7 @@ export default function PathPage() {
   return (
     <RouteFrame measure={PATH_OVERLAY_INSET}>
       <MarkEntered />
+      <RevealSelectedText />
       {/* In `components`, as AGENTS.md asks of hand-written rules: unlayered,
           they would beat every utility, `print:` ones included. */}
       <style

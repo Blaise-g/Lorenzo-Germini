@@ -84,3 +84,36 @@ export function MarkEntered() {
   }, []);
   return null;
 }
+
+/** Below `lg` the text panel sits under the step list and the stage, out of
+ *  the first screen on a phone. Selecting a step — a click, a key, Back or
+ *  Forward, all of which change the fragment — brings the panel's text into
+ *  view when none of it is, so the text appears as it is selected (GH-141,
+ *  decision 7). It scrolls and nothing else: focus stays on the step that
+ *  was selected. `html`'s `scroll-behavior` makes it a glide, or a jump
+ *  under reduced motion. A load is not a selection, so it does not scroll. */
+export function RevealSelectedText() {
+  useEffect(() => {
+    const wide = window.matchMedia("(min-width: 64rem)");
+    let frame = 0;
+    function onHashChange() {
+      if (wide.matches) return;
+      cancelAnimationFrame(frame);
+      /* After the selected panel has rendered, so its height is its own. */
+      frame = requestAnimationFrame(() => {
+        const panel = document.querySelector("[data-path-text-panel]");
+        if (!panel) return;
+        if (panel.getBoundingClientRect().top < window.innerHeight * 0.85) {
+          return;
+        }
+        panel.scrollIntoView({ block: "nearest" });
+      });
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("hashchange", onHashChange);
+    };
+  }, []);
+  return null;
+}
