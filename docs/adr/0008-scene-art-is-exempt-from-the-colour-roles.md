@@ -2,11 +2,17 @@
 
 Decided in #141 (Decision 12, Implementation Decision 7). Extends ADR-0001; does not replace it.
 
-**Amended 2026-10-29 (v2 polish).** The six path tokens below are gone. ADR-0009 replaced them
-with four, `--path-paper`, `--path-ink-warm`, `--path-ink-cool` and `--path-fog`, when the board
-became printed cards, and `tests/warm-print-design-system.spec.ts` now counts those four. The
-exemption itself is unchanged: it still covers `src/components/path/scene/`, which now holds the
-ink shader and the board's cards rather than lit scenes.
+**Amended 2026-10-29 (v2 polish, then v3).** The six path tokens below are gone. ADR-0009
+replaced them with four, `--path-paper`, `--path-ink-warm`, `--path-ink-cool` and `--path-fog`,
+when the board became printed cards. ADR-0010 then retired the cards and the ink shader for a
+solid board modelled in code, and ADR-0011 added `--path-ink-sun` and `--path-felt`, so
+`tests/warm-print-design-system.spec.ts` now counts six. The exemption itself is unchanged: it
+still covers `src/components/path/scene/`, which holds the board's code-modelled world, its
+stand-ins, its light and its post chain.
+
+**Superseded in part by ADR-0012** (v3-toys) for what the directory draws: the landmarks, props
+and marker are generated toy models under `public/path/models/`, and only their stand-ins and
+moving parts are scene code here.
 
 ADR-0001 holds page colour to seven Warm Print roles, and the design-system guard
 (`tests/support/design-system-guard.ts`) flags anything colour-shaped under `src/` outside the

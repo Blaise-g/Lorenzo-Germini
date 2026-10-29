@@ -10,7 +10,7 @@ import type {
 } from "./path.types";
 
 /* The path (GH-141): seven steps in time order and two side props, and the only
-   source of their text and captions; the voice retells them in
+   source of their text; the voice and the caption line retell them in
    `path-narration.ts`. Every sentence a step shows is a RESUME_DATA field,
    or a CV bullet picked by its opening words, so a reworded bullet fails
    loudly here instead of leaving a stale copy on the path. The exceptions
@@ -148,9 +148,10 @@ const stealth = job("Stealth GenAI Startup");
 const complaion = job("Complaion");
 const summariser = project("Biomedical Paper Summarizer");
 
-/* Step 4's MVP line, and decision 3's label for its dimmed window, "MVP —
+/* Step 4's MVP line, and decision 3's name for its dimmed window, "MVP —
    killed after customer discovery", taken from that line's own words so the
-   two cannot drift. */
+   two cannot drift. The scene draws no text since v3, so the name stays on
+   the prop's record only. */
 const mvpLine = pick(bullets(teaching), "Built an interior-design MVP");
 const mvpWords = mvpLine.match(
   /\b(MVP)\b.*\b(Killed) it on the evidence (after customer discovery)\.$/,
@@ -158,7 +159,7 @@ const mvpWords = mvpLine.match(
 if (!mvpWords) {
   throw new Error("The MVP window expects its line's customer discovery");
 }
-/** The dimmed MVP window's label, on its prop and in the scene. */
+/** The dimmed MVP window's name, on its prop. */
 export const MVP_WINDOW_LABEL = `${mvpWords[1]} — ${mvpWords[2].toLowerCase()} ${mvpWords[3]}`;
 
 export const PATH_STEPS: readonly PathStep[] = [

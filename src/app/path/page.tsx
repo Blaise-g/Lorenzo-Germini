@@ -13,7 +13,7 @@ FIRST VIEWPORT: The name, "Flat site", the path in small and the board's
 still — all HTML, painted before any 3D.
 FORM: Masthead row, then the board filling the first screen, the step list
 as a strip across its top and one bar under it: the caption line, the tour's
-tabs, the Voice and Captions switches. On a phone: the board, the steps as a
+tabs, the Voice, Captions and Sound switches. On a phone: the board, the steps as a
 strip, the bar.
 */
 

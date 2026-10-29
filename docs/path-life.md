@@ -28,15 +28,15 @@ has settled, the board stops until it is back in view.
 - Water flows; a `surge` beat runs it 4× as fast, a `calm` beat stills its normals.
 - Cloud shadows: a 96² value-noise cookie, 15 units a tile, scrolling at (0.34, 0.13) units/s,
   multiplied into the sun's light. Shade 0.34 by day, 0.18 by night.
-- The idle pawn squashes 1.6% every 3 s, starting 3 s after it lands.
+- The idle marker squashes 1.6% every 3 s, starting 3 s after it lands.
 - Phones grow half the grass and keep the cloud shadows.
 - Grass is toy tufts (v3-emil-polish): three squashed, rounded blobs in felt warmed 18% toward
   the sun ink, which sway from their tops. The blade tufts they replace read as dark weeds.
 
 ## Beats
 
-One table, `beats.ts`, keyed `<step>:<prop>`. A beat moves a piece's handle and the parts it
-names (below); a piece lacking them swells whole.
+One table, `beats.ts`, keyed `<step>:<prop>`. A beat moves a prop's handle and the parts it
+names (below); a prop lacking them swells whole.
 
 | Cue prop               | Beat                                                                      | ms   | Sound |
 | ---------------------- | ------------------------------------------------------------------------- | ---- | ----- |
@@ -63,7 +63,7 @@ cut at full strength lit the Bourse like a lantern by night).
 
 ### Node names for generated models
 
-A model swapped in for a piece names its parts these to keep its own beat and click answer
+A model swapped in for a stand-in names its parts these to keep its own beat and click answer
 (`BEAT_NODE` in `piece-beats.ts`): `coil` (several) and `rotor` (turns on y), `needle`
 (z), `glass` and `shutter` (several, hinged on y), `hand` (z), `pipe`, `screen`, `slot`
 (several), `plume` (scales on y). The marker's handles are `marker-lorenzo` and
@@ -79,20 +79,20 @@ Every beat was watched at 0.25× on the board on 2026-10-29.
 
 ## Dormant tiles and arrival
 
-A tile the pawn has not reached yet stands dormant (v3-emil-polish): its pieces squat, at 62%
+A tile the marker has not reached yet stands dormant (v3-emil-polish): its props squat, at 62%
 of their height and 94% of their width, and its landmark sunk 32% into the tile. It is never
 an empty plinth. On arrival the tile wakes from there on the rise's spring (`wakePose`,
 `landmarkWake` in `motion.ts`), so nothing jumps. A wake cut short by a move goes on as a
-passed tile's catch-up, from where it was. `data-scene-props` and a piece's `shown` mean built
-and risen, so a dormant piece is in neither.
+passed tile's catch-up, from where it was. `data-scene-props` and a prop's `shown` mean built
+and risen, so a dormant prop is in neither.
 
 The "?" tile keeps its surprise under a toy-box lid in the warm ink, tied with two sun-ink
-ribbons (`makeVeil` in `world.ts`). The lid lifts off as the first piece under it wakes, in 280 ms on `easeOutQuart`, and
+ribbons (`makeVeil` in `world.ts`). The lid lifts off as the first prop under it wakes, in 280 ms on `easeOutQuart`, and
 stays off when the tile is built again.
 Under reduced motion and in the stills every tile stands fully built, with no dormant look and
 no lid.
 
-Not done: the Coordinator also asked for a mild desaturation on dormant tiles. The pieces'
+Not done: the Coordinator also asked for a mild desaturation on dormant tiles. The props'
 materials are shared across tiles, so a dormant tint would need a material per tile. It was
 left out, and the squat pose and the sunk landmark carry the state.
 
@@ -100,12 +100,12 @@ left out, and the squat pose and the sunk landmark carry the state.
   within 350 ms, with 12 dust sprites over 720 ms.
 - A landmark rises out of its tile on a spring (about 0.6 s to settle) while the tile's
   grass grows out radially from its foot over 1.2 s, replacing the fold.
-- Trees and small props within 1.9 units of the pawn's foot hop once as it passes (600 ms).
+- Trees and small props within 1.9 units of the marker's foot hop once as it passes (600 ms).
 
 ## The duo
 
 The figure (`marker-lorenzo`, 1.45 units) and its buddy (`marker-robot`, 0.58 of his
-height), toy models since v3-toys; until each arrives the code pawn and robot stand in, so
+height), toy models since v3-toys; until each arrives the code figure and robot stand in, so
 the duo is never absent. Every gesture moves the handle, so each plays on the model as it did
 on the stand-in. A model that arrives while the duo is seen swaps at the top of a hop: the
 stand-in rises on a soft spring, the model takes its place stretched at 90 ms, and lands with
@@ -139,7 +139,8 @@ needle swings; coils' rotor spins up; sailboat bobs; trees shake; MVP shutters f
 glass flashes; the clock's hand sweeps and the post shakes; the slots pulse; the monitor
 glows; the plume surges; a landmark squashes, bounces and glints. A click on another tile
 still goes there. A fine pointer gets the pointer cursor and a faint pool of lamplight under
-the piece. The canvas reports which in `data-path-pointing` (`step` or `piece`).
+the prop or the duo. The canvas reports which in `data-path-pointing` (`step`, or `piece`
+for a prop or the duo).
 
 Moments: every 20–40 s while the board lives and is quiet (no beat, no move, no build), never
 the same twice running: the wave, spin or jab, a flock of seven crossing in 2.8 s, and per

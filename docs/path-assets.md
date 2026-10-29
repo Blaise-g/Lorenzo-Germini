@@ -148,13 +148,14 @@ No generated asset. Recorded so the log is complete:
 
 ## The board's cards (v2, comp B)
 
-The comps the owner chose from, made before the cards. Not shipped.
+The comps the owner chose from, made before the cards. Not shipped, and not in the repository:
+the owner keeps them.
 
-| Asset                                         | Made with                     | From                                                                    | Production                | Revisions                                                                                                                       | Shipped                     |
-| --------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| `.impeccable/mocks/decision/path-board-a.png` | GPT Image via `codex exec -i` | current `/path#lille` screenshot + prompt: walnut and enamel board comp | 06:32:13–06:33:34 (81 s)  | None                                                                                                                            | Not shipped; comp, 1586×992 |
-| `.impeccable/mocks/decision/path-board-b.png` | As above                      | As above, risograph pop-up comp (chosen by the owner)                   | 06:32:13–06:34:05 (112 s) | None                                                                                                                            | Not shipped; comp, 1586×992 |
-| `.impeccable/mocks/decision/path-board-c.png` | As above                      | As above, glazed ceramic comp                                           | 06:34:26–06:35:37 (71 s)  | 1. First run (06:32:13–06:33:22, 69 s) dropped the Lille plaque and had the tiles out of order; reprompted on order and plaque. | Not shipped; comp, 1586×992 |
+| Asset  | Made with                     | From                                                                    | Production                | Revisions                                                                                                                       | Shipped                     |
+| ------ | ----------------------------- | ----------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Comp A | GPT Image via `codex exec -i` | current `/path#lille` screenshot + prompt: walnut and enamel board comp | 06:32:13–06:33:34 (81 s)  | None                                                                                                                            | Not shipped; comp, 1586×992 |
+| Comp B | As above                      | As above, risograph pop-up comp (chosen by the owner)                   | 06:32:13–06:34:05 (112 s) | None                                                                                                                            | Not shipped; comp, 1586×992 |
+| Comp C | As above                      | As above, glazed ceramic comp                                           | 06:34:26–06:35:37 (71 s)  | 1. First run (06:32:13–06:33:22, 69 s) dropped the Lille plaque and had the tiles out of order; reprompted on order and plaque. | Not shipped; comp, 1586×992 |
 
 Each die-cut card the board stands up (`src/components/path/scene/card-art.ts`) was generated
 on 2026-10-29 with GPT Image through `codex exec` (codex-cli 0.165.0, its built-in `image_gen`
@@ -265,7 +266,7 @@ and the MVP tag are gone, with the canvas label machinery that drew them.
 Each entry gives the tile, the prop, the piece whose box it fills, the file under
 `/path/models/`, a scale, the anchor, the turn and the caption line. The board asks for a file
 only when `public/path/models/landmarks.json` lists the id. An id the index does not list
-stays its stand-in, with no request; the shipped models are under "Toy pieces (v3, one style)"
+stays its stand-in, with no request; the shipped models are under "Toys (v3, one style)"
 below.
 
 **The stills, rendered again (v3).** All 14, made by `generate:path-stills` from the solid board
@@ -275,7 +276,7 @@ again after the review moved the water's foam before lighting.
 
 ## Landmarks (v3)
 
-This round's photoreal landmarks are superseded by the toy pieces below, which replace their
+This round's photoreal landmarks are superseded by the toys below, which replace their
 files under the same ids. The section stays as the record of the bake-off.
 
 Seven textured landmarks for the 3D path, one per board id, in `public/path/models/` with
@@ -398,9 +399,9 @@ The losing candidates are not committed: `/tmp/orch-path-v2/bakeoff/out/trellis2
 `out/pixal3d/` (`*.textured.glb`, the generators' `*.lod.glb`), and TRELLIS.2's 300k-face
 extractions in `out/trellis2/raw300k/`.
 
-## Toy pieces (v3, one style)
+## Toys (v3, one style)
 
-Every generated piece, regenerated in one style, a chunky toy board-game piece: the seven
+Every generated model, regenerated in one style, a chunky toy board-game piece: the seven
 landmarks under their ids, thirteen props and the two markers that walk the path. All are
 Hunyuan3D-2.1. The landmarks are in `public/path/models/` with `landmarks.json`, as before.
 The props and markers are beside them with `props.json`, kept apart because the scene takes
@@ -547,7 +548,7 @@ says each cue on its own, trims its silence, joins the cues with 350 ms between 
 each cue's start and end in `public/path/voice/manifest.json`. The captions and the tour run on
 those timings. It then decodes the encoded clip back and refuses a clip whose length moved more
 than 60 ms in encoding. Clips are staged and published together, so a failed run leaves the last
-set in place. It flags a clip outside 15–30 s or over 60 KB.
+set in place. It flags a clip outside 14–30 s (v3's range, its floor approved at 14 s) or over 60 KB.
 
 | Step          | Clip                                | Cues | Length  | Size    |
 | ------------- | ----------------------------------- | ---- | ------- | ------- |
@@ -563,8 +564,8 @@ Durations were checked with `afinfo` and a muted decode; nothing was played alou
 voice says "m³", "TL;DR" and "SMEs" is unheard.
 
 v3-harden shortened home's third cue to "Behind it rises the Bisalta." and regenerated home's
-clip and timings alone (the other six are byte-for-byte the clips above). The generator flags it
-as just under 15 s. The muted decode gives 14,847 ms, as the manifest has it, and the new cue's
+clip and timings alone (the other six are byte-for-byte the clips above). It sits just above the
+generator's approved 14 s floor. The muted decode gives 14,847 ms, as the manifest has it, and the new cue's
 window (7,236–8,908 ms) carries speech between two silent gaps.
 
 ## Sound (v3)
@@ -596,22 +597,22 @@ silent (`tests/path-sound.spec.ts`), never by playing it aloud.
   the unmerged prototype, but the stage-4 voice, or any voice that ships, needs another provider:
   the generator's `--provider elevenlabs`, or another whose licence allows it.
 - **Three clips are over 60 KB** (switzerland, lille, now), from 63 to 66 KB, at the long end of
-  the 15–30 s range.
+  the 14–30 s range.
 - **The ElevenLabs path is untested since v3.** It now also decodes through macOS `afconvert`
   to measure the cues.
 - **DINOv3 came from a mirror.** TRELLIS.2 and Pixal3D condition on DINOv3, and our Space
   copies loaded it from `camenduru/dinov3-vitl16-pretrain-lvd1689m`, which skips Meta's licence
   gate. Whether the DINOv3 licence's terms reach the generated landmarks was not checked.
-- **Every generated piece is now Hunyuan3D-2.1,** whose licence territory excludes the EU, the
+- **Every generated model is now Hunyuan3D-2.1,** whose licence territory excludes the EU, the
   UK and South Korea; the owner accepted that on 2026-10-29.
 - **`demo_render` cannot go back to cpu-basic** without a PRO subscription. It is paused with
   RTX PRO 6000 requested, which does not bill while paused. A restart would bill at
   $2.75/h until it sleeps (`sleep_time` 300).
-- **Known flaws in the toy pieces.** The sides a reference does not show are plainer: the school
+- **Known flaws in the toys.** The sides a reference does not show are plainer: the school
   has a blank back wall. The Quadrell's block colours bleed across faces.
   The figure's curls flatten a little at 8,000 triangles, and the LOD faceting shows on the face
   up close.
-- **The masters are 11.7 MB** (11,659,876 B) for 22 pieces, in plain git. Their textures are
+- **The masters are 11.7 MB** (11,659,876 B) for 22 models, in plain git. Their textures are
   lossy WebP at quality 85, at the 2048 px Hunyuan generates; with lossless WebP they were
   53.1 MB. Re-running `prepare:path-landmarks` from them keeps every model within its budget,
   with the same triangles and bounds, but no longer reproduces the shipped bytes: each file

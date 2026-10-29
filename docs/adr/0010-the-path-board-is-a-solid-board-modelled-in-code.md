@@ -5,6 +5,12 @@ Decided in v3's world ticket (v3-world, 2026-10-29), from the v3 benchmark
 ADR-0009's own column and pawn spot stand. Extends ADR-0008. ADR-0011 (v3-light) replaces its
 baseline light, adds two path tokens, and raises the GPU budget the consequences below name.
 
+**Superseded in part by ADR-0012** (v3-toys) for the landmarks, props and marker: they are
+generated toys now, and the code-modelled ones stay only as stand-ins and moving parts. Its
+"generate every prop as a model: rejected for now" is reversed there. The board, the tiles, the
+path, the water, the trees and the grass are still modelled in code, and the scene still carries
+no text.
+
 The benchmark set v2's paper board against igloo, Bruno Simon and jesse-zhou. Beside them it read
 as flat cards on a flat board. The owner's call for v3 was a solid tabletop board game with its
 own identity, and nothing written in the scene. The page's text, the overlay and the voice say

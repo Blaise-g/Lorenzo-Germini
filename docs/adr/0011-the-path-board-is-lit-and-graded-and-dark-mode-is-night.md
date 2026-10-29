@@ -4,6 +4,9 @@ Decided in v3's light ticket (v3-light, 2026-10-29), from the v3 benchmark's §4
 It amends ADR-0010's baseline light and token list. It supersedes ADR-0009's supersampling:
 SMAA now does that job.
 
+**Superseded in part by ADR-0012** (v3-toys) for the GPU budget: the toys' textures raised it
+to 440 MB. The light, the grade, the post chain and night stand, and apply to the toys.
+
 v3-world left the board under a plain baseline light: a hemisphere, a 1024² PCF sun and a small
 room, with nothing graded. Beside the benchmark's references it read flat and evenly lit. Dark
 mode was the same board on a dark table. That read as a darker print, not as a scene.
