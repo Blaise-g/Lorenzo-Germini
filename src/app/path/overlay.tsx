@@ -7,6 +7,8 @@ import type { PathStepSlug } from "@/data/path.types";
 import { fragmentForStep, markEntered } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
 
+import { PATH_COPY } from "./copy";
+
 /* The overlay's client leaves. Before they hydrate, the first-paint script in
    `first-paint.ts` has already put the fragment's step on the overlay root and
    on "Flat site", so a load of `/path#lille` paints Lille. Hydration keeps
@@ -68,7 +70,7 @@ export function FlatSiteLink({ className }: { className: string }) {
       suppressHydrationWarning
       className={className}
     >
-      Flat site
+      {PATH_COPY.flatSite}
     </a>
   );
 }

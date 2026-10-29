@@ -9,6 +9,7 @@ import {
   readStorage,
 } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
+import { DOOR_COPY } from "@/app/path/copy";
 
 /** The door's off switch (GH-141, decision 14). It ships `false`, so `/` is
  *  unchanged until the owner turns it on. A code constant, not an env var:
@@ -56,7 +57,7 @@ export function PathDoor() {
       href={`/path${fragmentForStep(selected)}`}
       className="text-accent decoration-border hover:decoration-accent touch-target font-display mt-2 inline-block text-lg font-semibold underline underline-offset-4 print:hidden"
     >
-      {entered ? "Continue the path" : "Walk the path in 3D"}
+      {entered ? DOOR_COPY.returning : DOOR_COPY.firstVisit}
     </Link>
   );
 }

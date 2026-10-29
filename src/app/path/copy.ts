@@ -1,3 +1,17 @@
+/* `/path`'s own labels: the way back to `/`, and the step list's heading,
+   which only a screen reader hears. */
+export const PATH_COPY = {
+  flatSite: "Flat site",
+  stepListHeading: "The path",
+};
+
+/* The door on `/` (GH-151): an invitation first, then, once the visitor has
+   entered `/path`, a way back in (GH-141, decision 6). */
+export const DOOR_COPY = {
+  firstVisit: "Walk the path in 3D",
+  returning: "Continue the path",
+};
+
 /* The scene stage's interface copy on `/path` (GH-148), kept out of the JSX
    like the rest of the site's copy. The fallback's reason lines live with the
    decision that picks them, in `src/components/path/scene/fallback.ts`. */

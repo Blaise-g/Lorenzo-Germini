@@ -32,7 +32,7 @@ import { cn } from "@/lib/utils";
 
 import { stillsFor } from "@/components/path/scene/build-plan";
 
-import { STAGE_COPY } from "./copy";
+import { PATH_COPY, STAGE_COPY } from "./copy";
 import { PATH_OVERLAY_INSET } from "./inset";
 import {
   CAPTION_LIT_CSS,
@@ -150,7 +150,7 @@ export default function PathPage() {
         <div className="mt-8 grid flex-1 content-start gap-x-16 gap-y-10 lg:mt-12 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
           <nav aria-labelledby="path-heading">
             <h2 id="path-heading" className="sr-only">
-              The path
+              {PATH_COPY.stepListHeading}
             </h2>
             <PathSteps
               steps={PATH_STEPS.map((step) => ({
