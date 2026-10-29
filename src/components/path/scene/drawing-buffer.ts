@@ -19,8 +19,9 @@ export const DRAWING_BYTES_PER_PIXEL = 12;
 /** The most device pixels the drawing buffer holds: 40.8 MB at 12 bytes a
  *  pixel, which with the board's textures and shadow map (18.3 MB) comes to
  *  59.1 MB, under the 64 MB budget. MB here is a million bytes, as the
- *  budget is. The stage of a 1440×900 screen at ratio 2 is 3.3 million
- *  device pixels, so only larger stages draw at less than ratio 2. */
+ *  budget is. The stage of a 1440×900 screen at ratio 2 is 2.5 million
+ *  device pixels; a stage over 850,000 CSS pixels, as a 1920×1080
+ *  screen's is, draws at less than ratio 2. */
 export const MAX_DRAWING_PIXELS = 3_400_000;
 
 /** The pixel ratio to draw a `width` × `height` (CSS px) canvas at: the

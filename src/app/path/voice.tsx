@@ -8,6 +8,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { DEFAULT_STEP, readStorage, stepFromFragment } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
@@ -247,7 +248,10 @@ export function VoiceControls({
         </button>
       </div>
       <p data-path-voice-label className="text-faint text-xs">
-        {VOICE_COPY.label(providerName)}
+        {VOICE_COPY.label(
+          providerName,
+          PATH_STEPS.every((step) => clips[step.slug] !== undefined),
+        )}
       </p>
       {/* One line, held open, so a message arriving does not move the text
           panel under it. */}

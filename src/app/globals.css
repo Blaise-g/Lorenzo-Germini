@@ -392,9 +392,12 @@ html {
     }
   }
 
-  /* Laid over the board, the panel's text scrolls inside it; the scrollbar
-     is printed in the card's own hairline. */
-  @media (width >= 64rem) {
+  /* Beside the board, the panel grows to its column's height and its text
+     scrolls inside it after; the scrollbar is printed in the card's own
+     hairline. While more is below, the text fades out at its foot. Not in
+     print, which shows the text whole, nor while the text has the keyboard's
+     focus, as the fade would take the foot of its ring with it. */
+  @media screen and (width >= 64rem) {
     .path-panel-text {
       overflow-y: auto;
       overscroll-behavior: contain;
@@ -402,7 +405,7 @@ html {
       scrollbar-color: var(--color-border) transparent;
     }
 
-    .path-panel-text[data-path-more] {
+    .path-panel-text[data-path-more]:not(:focus-visible) {
       mask-image: linear-gradient(
         to bottom,
         black calc(100% - 4rem),

@@ -13,6 +13,7 @@ import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { VOICE_COPY } from "@/app/path/copy";
 import {
   VOICE_STORAGE_KEY,
   type VoiceManifest,
@@ -100,6 +101,12 @@ test.describe("/path's voice", () => {
     await expect(page.locator("[data-path-voice-label]")).toContainText(
       "synthetic voice",
     );
+    /* Steps without a clip are said once, here, rather than on each. */
+    const everyStep = PATH_STEPS.every((step) => manifest.clips[step.slug]);
+    await expect(page.locator("[data-path-voice-label]")).toContainText(
+      everyStep ? /\.$/ : "Some steps are not narrated yet.",
+    );
+    expect(VOICE_COPY.label("a voice", true)).not.toContain("not narrated");
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(primary(page)).toHaveText("Listen");
   });

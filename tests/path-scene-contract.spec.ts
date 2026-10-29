@@ -33,6 +33,7 @@ import {
   NAME_STRIP,
   PAWN_RADIUS,
   pawnSpotOnTile,
+  TAB_REACH,
   TILE,
   tileCentre,
   tileScale,
@@ -41,7 +42,6 @@ import { CARD_ART, cardsForStep } from "@/components/path/scene/card-art";
 import {
   framed,
   inConvex,
-  middleOf,
   overlaps,
   toClip,
   type ClipPoint,
@@ -226,6 +226,7 @@ test.describe("the drawing buffer", () => {
     [920, 678],
     [760, 498],
     [992, 760],
+    [1336, 858],
     [1976, 1218],
     [375, 300],
   ] as const;
@@ -387,15 +388,23 @@ test.describe("the board", () => {
       expect(z + PAWN_RADIUS, slug).toBeLessThanOrEqual(
         TILE.depth / 2 - NAME_STRIP - NAME_REACH,
       );
+      /* Inside the border, and clear of the chamfered corners. */
       expect(Math.abs(x) + PAWN_RADIUS, slug).toBeLessThanOrEqual(
         TILE.width / 2,
+      );
+      expect(Math.abs(z) + PAWN_RADIUS, slug).toBeLessThanOrEqual(
+        TILE.depth / 2 - TILE.chamfer,
       );
       for (const card of cardsForStep(slug)) {
         if (card.position.y !== 0) continue;
         const left = card.position.x - card.anchor.u * card.width;
         const right = left + card.width;
         const dx = Math.max(left - x, 0, x - right);
-        const dz = Math.max(card.position.z - z, 0, z - card.position.z - 0.26);
+        const dz = Math.max(
+          card.position.z - z,
+          0,
+          z - card.position.z - TAB_REACH,
+        );
         expect(
           Math.hypot(dx, dz),
           `${slug}: ${card.id}`,
@@ -458,7 +467,6 @@ test.describe("the frame", () => {
     expect(inConvex(outline, [0.5, 0.5])).toBe(true);
     expect(inConvex([...outline].reverse(), [0.5, 0.5])).toBe(true);
     expect(inConvex(outline, [1.5, 0.5])).toBe(false);
-    expect(middleOf(outline)).toEqual([0.5, 0.5]);
   });
 
   test("an outline overlaps a card by a corner, by the card's corner, or by an edge alone", () => {

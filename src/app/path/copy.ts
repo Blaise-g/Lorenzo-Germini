@@ -60,8 +60,8 @@ export const VOICE_COPY = {
   resume: "Resume",
   stop: "Stop",
   voiceSwitch: "Voice",
-  label: (providerName: string) =>
-    `Narration: synthetic voice, ${providerName}. Some steps are not narrated yet.`,
+  label: (providerName: string, everyStep: boolean) =>
+    `Narration: synthetic voice, ${providerName}.${everyStep ? "" : " Some steps are not narrated yet."}`,
   blocked: "The browser held the voice back. Press Play to hear it.",
   failed: "The clip did not load.",
 };

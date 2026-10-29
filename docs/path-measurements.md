@@ -56,6 +56,7 @@ and packed depth-stencil, 4 bytes each, and the compositor's copy of the last fr
 | 1280×720, ×2                   | 760×498        | 1520×996           | 2           | 18.2 MB        | 36.5 (34.8)     |
 | 1440×900, ×1                   | 920×678        | 1840×1356          | 2           | 29.9 MB        | 48.3 (46.1)     |
 | 1440×900, ×2                   | 920×678        | 1840×1356          | 2           | 29.9 MB        | 48.3 (46.1)     |
+| 1920×1080, ×1 (computed)       | 1336×858       | 2301×1478          | 1.72        | 40.8 MB        | 59.1 (56.4)     |
 | 2560×1440, ×2                  | 1976×1218      | 2348×1447          | 1.19        | 40.8 MB        | 59.1 (56.4)     |
 
 **How the board got sharp inside 64 MB (round 2).** Round 1 drew the board at about one device
@@ -69,18 +70,23 @@ soft. Round 2 made four changes:
 - **Mipmaps and anisotropy.** Every card texture is mipmapped (already counted in the uploads)
   and sampled with anisotropy min(8, the GPU's limit), so cards seen at a slant stay crisp
   without more pixels.
-- **A smaller shadow map.** 768² rather than 1024²: 1.8 MB less at 4 bytes a texel, for a shadow that is soft and a few pixels wide on screen.
-- **A cap only for very large stages.** `MAX_DRAWING_PIXELS` is 3.4 million: 40.8 MB of buffer and
+- **A smaller shadow map.** 768² rather than 1024²: 1.8 MB less at 4 bytes a texel, for a
+  shadow that is soft and a few pixels wide on screen.
+- **A cap for large stages only.** `MAX_DRAWING_PIXELS` is 3.4 million: 40.8 MB of buffer and
   59.1 MB in all. The 1440×900 stage at ratio 2 is 2.5 million, so it draws at the screen's own
-  sharpness. Only stages much larger than that, the 2560×1440 one among them, draw at less than
-  ratio 2.
+  sharpness. A stage over 850,000 CSS px draws at less than ratio 2: 1920×1080's at 1.72
+  (computed from its measured stage, not measured on the GPU), 2560×1440's at 1.19. Drawing
+  1920×1080's stage at ratio 2 would take 55.0 MB of buffer and 73.4 MB in all, over the
+  budget, so the cap cannot start only above 2560 wide.
 
 `tests/path-scene-contract.spec.ts` checks this arithmetic in MB for these stages, and that the
 1440×900 ×2 stage draws at ratio 2.
 
 Frame time, from `requestAnimationFrame` gaps over a 2.5 s Replay of Lille's build on the GPU:
 a median of 8.3 ms (the display's 120 Hz) and a 95th percentile of 8.9–9.1 ms at 1440×900 ×2,
-2560×1440 ×2 and 375×812 ×3, so drawing four times the pixels did not cost frames here.
+2560×1440 ×2 and 375×812 ×3, so drawing four times the pixels did not cost frames on this
+machine. A slower GPU, as ratio-1 screens tend to have, is not measured; the frame-rate fallback
+is what guards it.
 
 Stills: one per step and mode, all 14 rendered by `generate:path-stills` from the board settled on
 the step at 1440×900 ×1.5, with the board's tabs hidden while the canvas is captured: 1380×1017,

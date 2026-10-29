@@ -466,6 +466,7 @@ test.describe("the first screen on a wide screen", () => {
   for (const [width, height] of [
     [1440, 900],
     [1280, 720],
+    [1024, 800],
   ] as const) {
     test(`at ${width}×${height} every step is whole in the strip, and the strip, the board and the panel are in the first screen`, async ({
       page,
@@ -524,7 +525,7 @@ test.describe("the first screen on a wide screen", () => {
         probe.remove();
         return item.getBoundingClientRect().width / perCharacter;
       });
-    expect(characters).toBeLessThanOrEqual(75);
+    expect(characters).toBeLessThanOrEqual(70);
     expect(characters).toBeGreaterThanOrEqual(40);
   });
 
@@ -539,6 +540,12 @@ test.describe("the first screen on a wide screen", () => {
     expect(await text.evaluate((el) => getComputedStyle(el).maskImage)).toMatch(
       /gradient/,
     );
+    /* Print shows the text whole, unfaded. */
+    await page.emulateMedia({ media: "print" });
+    expect(await text.evaluate((el) => getComputedStyle(el).maskImage)).toBe(
+      "none",
+    );
+    await page.emulateMedia({ media: "screen" });
     await text.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
     await expect(text).not.toHaveAttribute("data-path-more");
 

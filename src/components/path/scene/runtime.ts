@@ -34,6 +34,7 @@ import {
   MVP_INK_STRENGTH,
   MVP_WINDOW_LINES,
   NAME_REACH,
+  TAB_REACH,
   NAME_STRIP,
   PAWN_RADIUS,
   pawnSpot,
@@ -117,8 +118,8 @@ const CONTEXT_RESTORE_MS = 3000;
 const MAX_STEP_MS = 100;
 const CAMERA_FOV = 26;
 /** A high three-quarter view, as comp B's: the camera's angle above the
- *  table. Steeper, the ring stands taller on a wide stage and fills more of
- *  the room the printed cards leave it. */
+ *  table. Steeper, the ring stands taller, and fills more of a stage that is
+ *  taller than the ring is deep. */
 const CAMERA_ELEVATION = 0.95;
 /** How much of the stage's free part the board may fill, either way. The
  *  board's own labels, such as the MVP window's tag, are not among the
@@ -142,10 +143,9 @@ const PRINT_PX = 150;
 const TILE_PX = 84;
 /** A card's cut edge, standing behind its face: the card's thickness. */
 const CARD_THICKNESS = 0.02;
-/** How far a standing card's glued tab reaches in front of its fold, at
- *  most: never over the tile's name. A card too close to the name for a
- *  tab worth seeing has none. */
-const TAB_DEPTH = 0.26;
+/* A standing card's glued tab reaches `TAB_REACH` in front of its fold at
+   most, and never over the tile's name. A card too close to the name for a
+   tab worth seeing has none. */
 const TAB_MIN_DEPTH = 0.1;
 /** A tab is narrower than its card: its ends are cut back. */
 const TAB_WIDTH_SHARE = 0.86;
@@ -282,7 +282,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   sun.position.set(-11, 13, 4);
   sun.castShadow = true;
   /* 768 square: the shadows of a tile's cards stay crisp, and the map
-     takes 4.3 MB less than a 1024 one (`drawing-buffer.ts`). */
+     takes 1.8 MB less than a 1024 one, at 4 bytes a texel
+     (`docs/path-measurements.md`). */
   sun.shadow.mapSize.set(768, 768);
   Object.assign(sun.shadow.camera, {
     left: -15,
@@ -410,7 +411,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function tab(art: CardArt): { tab: Mesh; material: InkMaterial } | null {
     if (art.position.y !== 0 || art.anchor.v !== 0) return null;
     const depth = Math.min(
-      TAB_DEPTH,
+      TAB_REACH,
       TILE.depth / 2 - NAME_STRIP - NAME_REACH - art.position.z,
     );
     if (depth < TAB_MIN_DEPTH) return null;
@@ -825,15 +826,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function pawnBase(slug: PathStepSlug) {
-    return (
-      (TILE.thickness + LIFT_HEIGHT * easeInOut(lifts.get(slug) ?? 0)) *
-      tileScale(slug)
-    );
+    return TILE.thickness * tileScale(slug) + liftOf(slug);
   }
 
   /** How far each tile has risen, 0 on the table to 1 lifted: the selected
    *  one rises, the rest settle. */
   const lifts = new Map<PathStepSlug, number>();
+  const liftTarget = (slug: PathStepSlug) => (slug === current ? 1 : 0);
+  /** How high `slug`'s tile stands off the table now, in scene units. */
+  const liftOf = (slug: PathStepSlug) =>
+    easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT * tileScale(slug);
 
   /** Moves every tile's rise `step` ms toward where it is headed, or all
    *  the way at once; whether any moved. */
@@ -841,7 +843,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     let changed = false;
     for (const slug of LOOP) {
       const from = lifts.get(slug) ?? 0;
-      const to = slug === current ? 1 : 0;
+      const to = liftTarget(slug);
       if (from === to) continue;
       const next =
         reducedMotion || step === Infinity
@@ -849,6 +851,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           : from +
             Math.sign(to - from) *
               Math.min(step / LIFT_MS, Math.abs(to - from));
+      if (next === from) continue;
       lifts.set(slug, next);
       changed = true;
     }
@@ -856,9 +859,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function lifting() {
-    return LOOP.some(
-      (slug) => (lifts.get(slug) ?? 0) !== (slug === current ? 1 : 0),
-    );
+    return LOOP.some((slug) => (lifts.get(slug) ?? 0) !== liftTarget(slug));
   }
 
   /* ─── Loading ─── */
@@ -995,8 +996,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (reducedMotion) liftTiles(Infinity);
     for (const tile of tiles.values()) {
       const slug = tile.slug;
-      tile.group.position.y =
-        easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT * tileScale(slug);
+      tile.group.position.y = liftOf(slug);
       if (slug === current && plan && buildState === "building") {
         const starts = new Map(
           plan.building.map((planned) => [planned.id, planned.startsAt]),
@@ -1129,17 +1129,20 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /** Every tile's outlines, turned as the board is and seen from `distance`
-   *  back, in clip space; null if any point is behind the camera. */
+   *  back, in clip space; null if any point is behind the camera. The
+   *  selected tile's are lifted as it will stand once risen. */
   function projected(distance: number) {
     placeCamera(distance);
     const out: { slug: PathStepSlug; outlines: ClipPoint[][] }[] = [];
     for (const { slug, outlines } of shapes) {
+      const rise = liftTarget(slug) * LIFT_HEIGHT * tileScale(slug);
       const clipped: ClipPoint[][] = [];
       for (const outline of outlines) {
         const points: ClipPoint[] = [];
         for (const point of outline) {
+          probe.copy(point);
+          probe.y += rise;
           probe
-            .copy(point)
             .applyMatrix4(board.matrixWorld)
             .applyMatrix4(camera.matrixWorldInverse);
           if (probe.z > -camera.near) return null;

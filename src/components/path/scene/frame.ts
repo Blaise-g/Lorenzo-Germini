@@ -57,12 +57,6 @@ export function filled(
 }
 
 /** The middle of an outline's corners. */
-export function middleOf(outline: readonly ClipPoint[]): ClipPoint {
-  const x = outline.reduce((sum, [px]) => sum + px, 0) / outline.length;
-  const y = outline.reduce((sum, [, py]) => sum + py, 0) / outline.length;
-  return [x, y];
-}
-
 export function centreOf(rect: ClipRect): ClipPoint {
   return [(rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2];
 }

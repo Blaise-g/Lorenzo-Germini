@@ -1,7 +1,7 @@
 import { MVP_WINDOW_LABEL, PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
-import { cardsForStep, TILE_SIZE } from "./card-art";
+import { type CardArt, cardsForStep, TILE_SIZE } from "./card-art";
 
 /* The board's layout (comp B, "Risograph Pop-up"): seven printed tiles on a
    closed loop in the data's order, home at the back and Lille, the other
@@ -50,8 +50,9 @@ export function tileCentre(slug: PathStepSlug): readonly [number, number] {
  *  standing near it, in the tile's own units. */
 export const PAWN_RADIUS = 0.55;
 const PAWN_CLEARANCE = 0.08;
-/** How deep a card's hinge tab reaches in front of its foot. */
-const TAB_REACH = 0.26;
+/** How far a standing card's glued tab reaches in front of its foot, at
+ *  most. */
+export const TAB_REACH = 0.26;
 /** How far in from a tile's front edge its name is printed, in scene units,
  *  and how far its letters reach back from there. The pawn stands behind
  *  both, so it never stands on the name. */
@@ -61,6 +62,10 @@ export const NAME_REACH = 0.25;
 const SPOT_FRONT_WEIGHT = 0.6;
 /** The grid the spot is searched on. */
 const SPOT_STEP = 0.05;
+
+/* The search is a pure function of the card layout, and the pawn asks for
+   its spot every frame it moves. */
+const spots = new Map<PathStepSlug, { x: number; z: number }>();
 
 /** Where the pawn stands on `slug`'s tile, in the tile's own frame: the
  *  spot behind the name, inside the tile's border, where its foot touches
@@ -72,12 +77,13 @@ export function pawnSpotOnTile(slug: PathStepSlug): {
   x: number;
   z: number;
 } {
+  const known = spots.get(slug);
+  if (known) return known;
   const reach = PAWN_RADIUS + PAWN_CLEARANCE;
   const cards = cardsForStep(slug).filter((card) => card.position.y === 0);
   const clear = (x: number, z: number) =>
     cards.every((card) => {
-      const left = card.position.x - card.anchor.u * card.width;
-      const right = left + card.width;
+      const [left, right] = cardSpan(card);
       const dx = Math.max(left - x, 0, x - right);
       const dz = Math.max(
         card.position.z - z,
@@ -104,7 +110,13 @@ export function pawnSpotOnTile(slug: PathStepSlug): {
     }
   }
   if (!best) throw new Error(`No room for the pawn on ${slug}'s tile`);
+  spots.set(slug, best);
   return best;
+}
+/** A card's left and right edges across its tile, `[left, right]`. */
+export function cardSpan(card: CardArt): readonly [number, number] {
+  const left = card.position.x - card.anchor.u * card.width;
+  return [left, left + card.width];
 }
 
 /** The pawn's spot on `slug`'s tile, on the table. */
@@ -119,10 +131,10 @@ export function pawnSpot(slug: PathStepSlug): readonly [number, number] {
 export type FramePoint = readonly [number, number, number];
 
 /** What the camera keeps in view, as outlines on the table: every tile's
- *  footprint, every card standing on it and the top of the pawn's hop over
- *  it, tile by tile. Each outline is convex and in order round its edge, so
- *  the camera can tell whether a card the page lays over the stage covers
- *  any of it, and keep the selected tile clear of more cards than the rest. */
+ *  footprint, every card standing on it and, last, the top of the pawn's
+ *  hop onto it, tile by tile. Each outline is convex and in order round its
+ *  edge, so the camera can tell whether the tabs laid over the stage cover
+ *  any of it. */
 export function frameShapes(): {
   slug: PathStepSlug;
   outlines: (readonly FramePoint[])[];
@@ -138,8 +150,7 @@ export function frameShapes(): {
     const cards = cardsForStep(slug).map((card) => {
       const foot = TILE.thickness + card.position.y;
       const top = foot + card.height;
-      const left = card.position.x - card.anchor.u * card.width;
-      const right = left + card.width;
+      const [left, right] = cardSpan(card);
       const z = card.position.z;
       return [
         at(left, foot, z),

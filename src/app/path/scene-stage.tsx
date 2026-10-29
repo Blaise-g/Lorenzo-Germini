@@ -213,9 +213,7 @@ export function SceneStage({
      Only while a scene is on the stage. */
   const stageRef = useRef<HTMLDivElement>(null);
 
-  /* The board keeps clear of the cards laid over it, measured again as the
-     stage or any of them changes size: the panel grows and shrinks with
-     its step's text. */
+  /* The board is framed again as the stage changes size. */
   useEffect(() => {
     const box = stageBoxRef.current;
     if (mode !== "webgl" || !box) return;
@@ -223,17 +221,26 @@ export function SceneStage({
       runtimeRef.current?.setFrame(measureFrame(box));
     });
     observer.observe(box);
-    for (const card of document.querySelectorAll("[data-path-cover]")) {
-      observer.observe(card);
-    }
     return () => observer.disconnect();
   }, [mode]);
 
-  /* The board's tabs arrive with the scene and leave with it: the board
-     makes room for them, or takes their corner back. */
-  const measureCovers = useCallback(() => {
-    const box = stageBoxRef.current;
-    if (box) runtimeRef.current?.setFrame(measureFrame(box));
+  /* The board's tabs arrive with the scene and leave with it, and Skip and
+     Replay are not one width: the board makes room for them as they come
+     and change, and takes their corner back once they have gone. */
+  const measureCovers = useCallback((tabs: HTMLElement | null) => {
+    if (!tabs) return;
+    const reframe = () => {
+      const box = stageBoxRef.current;
+      if (box) runtimeRef.current?.setFrame(measureFrame(box));
+    };
+    /* Observing reports the tabs' size at once, so this frames them too. */
+    const observer = new ResizeObserver(reframe);
+    observer.observe(tabs);
+    return () => {
+      observer.disconnect();
+      /* After the tabs have left the page, which they have not yet. */
+      requestAnimationFrame(reframe);
+    };
   }, []);
 
   /* A click on a tile, or on a card standing on it, selects its step, as
@@ -340,10 +347,10 @@ export function SceneStage({
       {/* The board's own controls: tabs cut from the tour's card, laid in
           a corner of the board's frame, where the board keeps clear of them:
           the bottom-left on a wide screen; the bottom-right on a phone, as
-          icons. A phone's board is as wide as the screen, so no corner of it
-          is free: the tabs take a band of the stage under the board, which
-          costs the page height and not the board's size, and as icons the
-          band is as light as it can be.
+          icons. A phone's board is as wide as the screen and no corner of it
+          is free, so the tabs take a band of the stage under the board: the
+          stage's spare height, which a board that wide does not use. As
+          icons the band is as light as it can be.
           Laid over the stage rather than in a row of their own, so nothing
           moves when they arrive. */}
       {live && buildState !== "idle" ? (
