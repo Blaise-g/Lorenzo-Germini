@@ -3,22 +3,6 @@
 /* ─── Class-based dark mode ─── */
 @variant dark (&:where(.dark, .dark *));
 
-/* ─── Coarse-pointer variant ─── */
-/* `lg` is a viewport width, not an input device. iPad landscape is 1024 wide with
-   no pointer, so every `lg:`-gated surface can still be driven by a thumb — the
-   sticky rail's `hidden lg:block` is the one where that matters, because its rows
-   sit on a 28px pitch. Measured: `(pointer: coarse)` does match at 1024 under
-   touch, so the distinction is expressible rather than theoretical. */
-/* Block form with `@slot`, not the parenthesised shorthand: the shorthand takes
-   a selector — which is what `dark` above is — and silently emits nothing for an
-   at-rule, so `coarse:` classes compiled to no CSS at all and every row stayed
-   at 28px with the media query matching. */
-@custom-variant coarse {
-  @media (pointer: coarse) {
-    @slot;
-  }
-}
-
 /* ─── Theme tokens ─── */
 @theme {
   /* Typography */
@@ -210,21 +194,6 @@ html {
       hue-rotate(-5deg);
   }
 
-  /* Named properties, never `all`: `all` also animated `filter`, `box-shadow`
-     and every inherited colour on whatever happened to change, off the GPU. */
-  .card-hover {
-    transition:
-      transform 200ms var(--ease-out),
-      border-color 200ms ease;
-  }
-
-  /* Gated: a touch screen fires `:hover` on tap and leaves the card lifted. */
-  @media (hover: hover) and (pointer: fine) {
-    .card-hover:hover {
-      transform: translateY(-2px);
-    }
-  }
-
   .transition-refined {
     /* `translate` and `scale` beside `transform`: Tailwind v4's `translate-*`
        and `scale-*` set those individual properties, which `transform` does not
@@ -287,20 +256,6 @@ html {
 
   .print-keep-together li {
     break-inside: avoid;
-  }
-
-  .print-projects-section {
-    display: block;
-  }
-
-  .print-projects-section > h2,
-  .print-projects-section > h2 + div {
-    break-after: avoid;
-  }
-
-  .card-hover:hover {
-    transform: none;
-    box-shadow: none;
   }
 
   .transition-refined {
@@ -392,10 +347,6 @@ html {
   .transition-refined {
     transition-property:
       color, background-color, border-color, box-shadow, opacity;
-  }
-
-  .card-hover:hover {
-    transform: none;
   }
 
   .theme-icon {

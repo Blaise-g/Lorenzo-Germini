@@ -8,6 +8,8 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { PATH_STEPS } from "@/data/path";
+
 import { removeDevOverlay } from "./support/dev-overlay";
 
 declare global {
@@ -77,16 +79,20 @@ test.describe("Cache Components prerender baseline", () => {
 
   /* #26 removed the homepage's only runtime read — the `?variant=` knob — so
      the route has no Suspense boundary left to stick on and prerenders whole.
-     Asserting the section count is what would catch a reintroduced boundary
+     Asserting a section per step is what would catch a reintroduced boundary
      resolving to a partial page, and a query string must now change nothing. */
   test("the homepage prerenders whole, with no boundary left to stick on", async ({
     page,
   }) => {
     await page.goto("/");
-    await expect(page.locator("[data-reading-measure]")).toHaveCount(6);
+    await expect(page.locator("[data-path-step]")).toHaveCount(
+      PATH_STEPS.length,
+    );
 
     await page.goto("/?variant=a");
-    await expect(page.locator("[data-reading-measure]")).toHaveCount(6);
+    await expect(page.locator("[data-path-step]")).toHaveCount(
+      PATH_STEPS.length,
+    );
   });
 
   /* #24 took the last runtime read off `/writing` too: the feed arrives from a

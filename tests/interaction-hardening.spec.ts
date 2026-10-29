@@ -263,30 +263,24 @@ test.describe("touch and fixed-chrome geometry", () => {
 });
 
 test.describe("motion, theme initialization, and accessibility", () => {
-  /* The stagger GH-13 removed blanked items under reduced motion; the one that
-     came back is bounded instead. Only the hero's three beats differ, and
-     nothing waits longer than the section beat after them. */
-  test("the hero is the page's only stagger, and it settles within 150ms", async ({
-    page,
-  }) => {
+  /* The stagger GH-13 removed blanked items under reduced motion. The hero
+     that brought a bounded one back is gone with the hub, so the flat site has
+     one reveal — the masthead and the body arriving together — and nothing
+     waits on a delay. */
+  test("the homepage reveals once, with no stagger", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.goto("/");
 
     const delays = await page
       .locator('main [class*="animate-"]')
       .evaluateAll((elements) =>
-        elements.map((element) => ({
-          inHero: Boolean(element.closest("section:has(h1)")),
-          delayMs:
+        elements.map(
+          (element) =>
             Number.parseFloat(getComputedStyle(element).animationDelay) * 1000,
-        })),
+        ),
       );
 
-    expect(
-      delays.filter(({ inHero }) => inHero).map(({ delayMs }) => delayMs),
-    ).toEqual([0, 50, 100]);
-    expect(delays.length).toBeGreaterThan(3);
-    expect(delays.every(({ delayMs }) => delayMs <= 150)).toBe(true);
+    expect(delays).toEqual([0, 0]);
   });
 
   /* Gentler, not none: reveals keep a short fade, but lose their rise and
@@ -460,51 +454,46 @@ test.describe("scroll subscriptions", () => {
     );
   }
 
-  /* 1024 for the rail's gated subscription, `BACK_TO_TOP_MIN_WIDTH` for
-     `BackToTop`'s: both are width-gated now, and the two gates do not open at
-     the same width. */
-  for (const width of [1024, BACK_TO_TOP_MIN_WIDTH] as const) {
-    test(`every window scroll listener is passive at ${width}px`, async ({
-      page,
-    }) => {
+  /* `BackToTop` is the homepage's one scroll reader since the rail and the
+     mobile route bar retired (GH-141, decision 12), and it listens only from
+     `xl`, where it is painted. */
+  test(`every window scroll listener is passive at ${BACK_TO_TOP_MIN_WIDTH}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: BACK_TO_TOP_MIN_WIDTH, height: 800 });
+    await recordWindowScrollRegistrations(page);
+    await page.goto("/");
+
+    /* Polled, because a subscription registers on hydration and an empty list
+       would otherwise pass for the wrong reason. */
+    await expect
+      .poll(async () => (await scrollRegistrations(page)).length, {
+        message: "the homepage should register a window scroll listener",
+      })
+      .toBeGreaterThan(0);
+
+    const registrations = await scrollRegistrations(page);
+    expect(
+      registrations.filter(({ passive }) => !passive),
+      "no window scroll listener should be registered non-passive",
+    ).toEqual([]);
+  });
+
+  /* The other half of the gate. Below `xl` `BackToTop` is not painted, and
+     nothing else on the flat site reads the scroll position: the mobile route
+     bar that used to listen here retired with the rail. */
+  for (const width of [375, 1024] as const) {
+    test(`nothing listens to scroll at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
       await recordWindowScrollRegistrations(page);
       await page.goto("/");
+      /* Proving hydration first, so the empty list is a gate holding rather
+         than a page that has not started. */
+      await proveHydrated(page);
 
-      /* Polled, because a subscription registers on hydration and an empty list
-         would otherwise pass for the wrong reason. */
-      await expect
-        .poll(async () => (await scrollRegistrations(page)).length, {
-          message: "the homepage should register a window scroll listener",
-        })
-        .toBeGreaterThan(0);
-
-      const registrations = await scrollRegistrations(page);
-      expect(
-        registrations.filter(({ passive }) => !passive),
-        "no window scroll listener should be registered non-passive",
-      ).toEqual([]);
+      expect(await scrollRegistrations(page)).toEqual([]);
     });
   }
-
-  /* The other half of the gate, and the reason the phone width left the sweep
-     above: below `xl` `BackToTop` is not painted and below `lg` neither is the
-     rail, so neither may listen — a scroll handler feeding a `display: none`
-     control is exactly what `whileMatching` exists to avoid. The one reader
-     left is the mobile route bar, which is painted here and needs the position
-     it shows. */
-  test("only the mobile route bar listens to scroll at a phone width", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await recordWindowScrollRegistrations(page);
-    await page.goto("/");
-    /* Proving hydration first, so the count here is a gate holding rather
-       than a page that has not started. */
-    await proveHydrated(page);
-
-    expect(await scrollRegistrations(page)).toEqual([{ passive: true }]);
-  });
 
   test("back to top hides again below its threshold", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 800 });

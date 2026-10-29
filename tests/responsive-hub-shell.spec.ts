@@ -66,115 +66,36 @@ async function visibleCount(page: Page, selector: string) {
   );
 }
 
-test.describe("responsive hub shell", () => {
-  for (const width of mobileAndTabletWidths) {
-    test(`${width}px uses one reading measure and mobile orientation`, async ({
+test.describe("responsive flat site shell", () => {
+  /* One identity surface below the masthead at every width, and every text
+     block on one reading measure: the rail that split the page into two
+     columns from `lg` retired with the hub (#141, decision 12). */
+  for (const width of allWidths) {
+    test(`${width}px uses one reading measure and one identity surface`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/");
 
-      await expect(
-        page.getByRole("navigation", { name: "On this page" }),
-      ).toBeVisible();
-      await expect(
-        page.getByRole("complementary", {
-          name: "Profile and page sections",
-        }),
-      ).toBeHidden();
-      await expect(page.getByTestId("mobile-identity")).toBeVisible();
-
+      await expect(page.getByTestId("flat-site-intro")).toBeVisible();
       expect(
         await visibleCount(page, '[data-profile-orientation="identity"]'),
       ).toBe(1);
 
       const readingWidths = await page
-        .locator('[data-reading-measure="true"]')
+        .locator(
+          '[data-testid="flat-site-intro"], [data-path-step], [data-path-side-prop]',
+        )
         .evaluateAll((elements) =>
           elements.map((element) => element.getBoundingClientRect().width),
         );
       expect(readingWidths.length).toBeGreaterThan(0);
       expect(readingWidths.every((measure) => measure <= 672)).toBe(true);
-
-      const projectGrid = page.getByTestId("projects-grid");
-      const projectColumns = await projectGrid.evaluate(
-        (element) =>
-          getComputedStyle(element).gridTemplateColumns.split(" ").length,
-      );
-      expect(projectColumns).toBe(1);
-      expect(
-        await projectGrid.evaluate(
-          (element) => element.getBoundingClientRect().width,
-        ),
-      ).toBeLessThanOrEqual(672);
-    });
-  }
-
-  for (const width of desktopWidths) {
-    test(`${width}px uses the 220px sticky rail and a measure-aligned Projects grid`, async ({
-      page,
-    }) => {
-      await page.setViewportSize({ width, height: 800 });
-      await page.goto("/");
-
-      const rail = page.getByRole("complementary", {
-        name: "Profile and page sections",
-      });
-      await expect(rail).toBeVisible();
-      await expect(
-        page.getByRole("navigation", { name: "On this page" }),
-      ).toBeHidden();
-      await expect(page.getByTestId("mobile-identity")).toBeHidden();
-
-      expect(
-        await visibleCount(page, '[data-profile-orientation="identity"]'),
-      ).toBe(1);
-
-      const railMetrics = await rail.evaluate((element) => {
-        const style = getComputedStyle(element);
-        return {
-          position: style.position,
-          top: Number.parseFloat(style.top),
-          width: element.getBoundingClientRect().width,
-        };
-      });
-      expect(railMetrics.width).toBe(220);
-      expect(railMetrics.position).toBe("sticky");
-      expect(railMetrics.top).toBeGreaterThanOrEqual(24);
-
-      /* The grid follows the count rather than always being two-up (#86): one
-         320px card in a 652px two-column row read as a section that had failed
-         to load, with a left edge 12px outside every sibling's. Under two
-         homepage-visible projects it collapses to one column on the reading
-         measure; from two it holds the wider two-column box. */
-      const homepageProjects = RESUME_DATA.projects.filter(
-        (project) => project.homepage !== false,
-      ).length;
-      const projectGrid = page.getByTestId("projects-grid");
-      const projectColumns = await projectGrid.evaluate(
-        (element) =>
-          getComputedStyle(element).gridTemplateColumns.split(" ").length,
-      );
-      expect(projectColumns).toBe(homepageProjects < 2 ? 1 : 2);
-
-      /* The defect the collapse exists to fix: the grid's left edge has to line
-         up with every other section's, not sit outside it. */
-      const edges = await page.evaluate(() => {
-        const grid = document.querySelector('[data-testid="projects-grid"]')!;
-        const sibling = document.querySelector(
-          '[data-reading-measure="true"]',
-        )!;
-        return {
-          grid: grid.getBoundingClientRect().left,
-          sibling: sibling.getBoundingClientRect().left,
-        };
-      });
-      expect(Math.abs(edges.grid - edges.sibling)).toBeLessThanOrEqual(1);
     });
   }
 
   /* `data-profile-orientation` marks identity surfaces; the masthead carries its
-     own value so the count above sees only band-or-rail. The footer signature is
+     own value so the count above sees only the intro. The footer signature is
      not part of this vocabulary: it attributes the page rather than stating the
      identity, and it is shared with every other route. */
   test("the masthead orientation value is distinct from the body surfaces'", async ({
@@ -189,23 +110,21 @@ test.describe("responsive hub shell", () => {
     const mastheadValue = await masthead.getAttribute(
       "data-profile-orientation",
     );
-    const bodyValues = await Promise.all(
-      [
-        page.getByTestId("mobile-identity"),
-        page.getByRole("complementary", { name: "Profile and page sections" }),
-      ].map((surface) => surface.getAttribute("data-profile-orientation")),
-    );
+    const bodyValues = [
+      await page
+        .getByTestId("flat-site-intro")
+        .getAttribute("data-profile-orientation"),
+    ];
 
-    /* Spelled out rather than compared as a set: these are the values the
-       "exactly one visible" counts above select on, so a rename has to break
+    /* Spelled out rather than compared as a set: this is the value the
+       "exactly one visible" count above selects on, so a rename has to break
        here too. */
-    expect(bodyValues).toEqual(["identity", "identity"]);
+    expect(bodyValues).toEqual(["identity"]);
     expect(bodyValues).not.toContain(mastheadValue);
   });
 
-  /* Plain at every width since #26 removed the band's second `<h1>`: the
-     masthead is now the only surface that states the name, and below 1024 the
-     band states the role and location instead. */
+  /* The masthead's `<h1>` is the only surface that states the name; the intro
+     under it states the role and place instead. */
   for (const width of allWidths) {
     test(`${width}px states the name exactly once`, async ({ page }) => {
       await page.setViewportSize({ width, height: 800 });
@@ -272,9 +191,7 @@ test.describe("responsive hub shell", () => {
      the machine-readable identity claims — while the work history keeps the
      employer's own job title. The two may hold the same words, but neither is
      derived from the other. */
-  test("the masthead role comes from roleLabel, and the bio keeps its surfaces", async ({
-    page,
-  }) => {
+  test("the masthead role comes from roleLabel", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 800 });
     await page.goto("/");
 
@@ -326,182 +243,6 @@ test.describe("responsive hub shell", () => {
     expect(after.right).toBeCloseTo(before.right, 0);
     expect(after.left).toBeCloseTo(0, 0);
     expect(after.right).toBeCloseTo(after.viewportWidth, 0);
-  });
-
-  test("the rail marks the current destination semantically and as the current stop on its road", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 800 });
-    await page.goto("/");
-
-    const railNav = page.getByRole("navigation", { name: "Page sections" });
-    /* Writing is the first destination since #26 made it the page's single
-       primary CTA, so it is what a page at scroll position 0 marks current. */
-    const writingLink = railNav.getByRole("link", { name: "Writing" });
-    /* `location`, not `true`: the token for a position within the page. */
-    await expect(writingLink).toHaveAttribute("aria-current", "location");
-
-    await page.locator("#work").scrollIntoViewIfNeeded();
-    await expect
-      .poll(() => railNav.locator('[aria-current="location"]').textContent())
-      .toBe("Work");
-
-    /* Polled, not read once: the stop's fill and the road's travelled length
-       both transition, so a read in the same tick React swaps the class returns
-       the start value — the stop the reader is leaving, not the one reached. */
-    await expect
-      .poll(() =>
-        railNav.evaluate((nav) => {
-          const root = getComputedStyle(document.documentElement);
-          const probe = document.createElement("span");
-          probe.style.color = root.getPropertyValue("--color-accent");
-          document.body.append(probe);
-          const accent = getComputedStyle(probe).color;
-          probe.remove();
-
-          const links = [...nav.querySelectorAll("a[href^='#']")];
-          const current = nav.querySelector('[aria-current="location"]')!;
-          const stop = current.querySelector("[data-rail-stop]")!;
-          const stopBox = stop.getBoundingClientRect();
-          const road = nav
-            .querySelector('[data-testid="rail-road-travelled"]')!
-            .getBoundingClientRect();
-
-          return {
-            stopFilledWithAccent:
-              getComputedStyle(stop).backgroundColor === accent,
-            linkInAccent: getComputedStyle(current).color === accent,
-            /* Every stop before the current one is marked passed, none after. */
-            stops: links.map((link) =>
-              link
-                .querySelector("[data-rail-stop]")!
-                .getAttribute("data-rail-stop"),
-            ),
-            /* The travelled road ends on the current stop's centre. */
-            roadEndsAtStop:
-              Math.abs(road.bottom - (stopBox.top + stopBox.height / 2)) < 1,
-          };
-        }),
-      )
-      .toEqual({
-        stopFilledWithAccent: true,
-        linkInAccent: true,
-        stops: ["passed", "passed", "current", "ahead", "ahead"],
-        roadEndsAtStop: true,
-      });
-  });
-
-  /* Below `lg` the section row scrolls away with the page, so the route bar
-     takes over once it has gone — and only then, so the two never share the
-     screen and the first view stays as quiet as it was. */
-  test("below lg the route bar takes over from the section row once it scrolls away", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.goto("/");
-
-    const bar = page.getByTestId("mobile-route-bar");
-    /* Out of the accessibility tree and the tab order, not merely off screen. */
-    await expect(bar).toHaveAttribute("aria-hidden", "true");
-    expect(
-      await bar.evaluate((element) => (element as HTMLElement).inert),
-    ).toBe(true);
-
-    await page.locator("#work").scrollIntoViewIfNeeded();
-    await expect(bar).toHaveAttribute("aria-hidden", "false");
-    await expect(bar).toHaveCSS("opacity", "1");
-
-    /* Polled for the same reason as the rail's: the fill and the stops
-       transition, so a read in the tick the state flips returns the start. */
-    await expect
-      .poll(() =>
-        bar.evaluate((nav) => {
-          const current = nav.querySelector('[aria-current="location"]')!;
-          const stop = current
-            .querySelector("[data-rail-stop]")!
-            .getBoundingClientRect();
-          const road = nav
-            .querySelector('[data-testid="mobile-road-travelled"]')!
-            .getBoundingClientRect();
-          return {
-            current: current.getAttribute("aria-label"),
-            label: nav.querySelector("p")!.textContent,
-            stops: [...nav.querySelectorAll("[data-rail-stop]")].map((item) =>
-              item.getAttribute("data-rail-stop"),
-            ),
-            roadEndsAtStop:
-              Math.abs(road.right - (stop.left + stop.width / 2)) < 1,
-          };
-        }),
-      )
-      .toEqual({
-        current: "Work",
-        label: "Work",
-        stops: ["passed", "passed", "current", "ahead", "ahead"],
-        roadEndsAtStop: true,
-      });
-
-    /* Back at the top the row is on screen again, and the bar hands back. */
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(bar).toHaveAttribute("aria-hidden", "true");
-  });
-
-  /* Systems is the last destination and its section is short (87px measured at
-     1440), so at maximum scroll its top never reaches the 28%-of-viewport
-     activation line — the item was unreachable, not merely hard to hit, even by
-     clicking it. */
-  test("the rail marks the last destination once the page is scrolled to the bottom", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 800 });
-    await page.goto("/");
-
-    const railNav = page.getByRole("navigation", { name: "Page sections" });
-    await railNav.getByRole("link", { name: "Systems" }).click();
-
-    /* Waits on the observable fact — scrolling has stopped — rather than
-       re-implementing the production bottom-of-document predicate, which would
-       weaken this to "when the browser satisfies the expression the code
-       satisfies, the code fires". */
-    await page.waitForFunction(
-      () => {
-        const w = window as Window & { __lastScrollY?: number };
-        const settled = w.__lastScrollY === window.scrollY;
-        w.__lastScrollY = window.scrollY;
-        return settled && window.scrollY > 0;
-      },
-      undefined,
-      { timeout: 5_000, polling: 100 },
-    );
-
-    /* The 0.28 ratio is written out rather than imported from `sticky-rail`: a
-       test that reads the production constant cannot notice the constant
-       changing. Numbers, not a boolean, so a failure prints the distance. */
-    const geometry = await page.locator("#systems").evaluate((section) => ({
-      scrollY: Math.round(window.scrollY),
-      maxScroll: Math.round(
-        document.documentElement.scrollHeight - window.innerHeight,
-      ),
-      systemsTop: Math.round(section.getBoundingClientRect().top),
-      activationLine: Math.round(window.innerHeight * 0.28),
-    }));
-
-    expect(
-      geometry.scrollY,
-      "the Systems anchor must leave the page at maximum scroll",
-    ).toBeGreaterThanOrEqual(geometry.maxScroll - 4);
-
-    /* Guards the guard: if the section ever grows tall enough to clear the
-       activation line on its own, this test stops reproducing the defect and
-       should be retired rather than left passing for the wrong reason. */
-    expect(
-      geometry.systemsTop,
-      "#systems now clears the activation line unaided — retire this test rather than leave it green for the wrong reason",
-    ).toBeGreaterThan(geometry.activationLine);
-
-    await expect
-      .poll(() => railNav.locator('[aria-current="location"]').textContent())
-      .toBe("Systems");
   });
 
   /* Decision 2's bottom-right cluster, now that #89 left one control in it:
@@ -597,6 +338,16 @@ test.describe("responsive hub shell", () => {
       visualOrder.map(({ label }) => label),
     );
     expect(inFlowTargets[0]?.top).toBeLessThanOrEqual(800);
+
+    /* The flat site's order, by group: the header's controls, then the path,
+       then the writing. A door, when it lands, goes between the first two. */
+    const labels = inFlowTargets.map(({ label }) => label ?? "");
+    const header = labels.indexOf("Email");
+    const path = labels.findIndex((label) => label.startsWith("Cuneo"));
+    const writing = labels.indexOf("Read the field note →");
+    expect(header).toBeGreaterThanOrEqual(0);
+    expect(path).toBeGreaterThan(header);
+    expect(writing).toBeGreaterThan(path);
   });
 });
 

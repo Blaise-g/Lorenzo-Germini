@@ -1,7 +1,10 @@
 import { connection } from "next/server";
 
+import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
+import type { PathRole, PathStep } from "@/data/path.types";
 import { MARKDOWN_MEDIA_TYPE } from "@/lib/markdown-negotiation";
+import { roleRepeatsLine, stepPeriod } from "@/lib/path-step-labels";
 import { SUBSTACK_FEED_URL } from "@/lib/substack";
 
 /**
@@ -86,6 +89,19 @@ const projectBlock = (project: (typeof RESUME_DATA.projects)[number]) =>
     project.link ? `Link: ${project.link.href}` : "",
   ]);
 
+const roleLine = (step: PathStep, role: PathRole) =>
+  `- ${join(", ", [roleRepeatsLine(step, role) ? "" : role.title, role.organisation, role.location])} (${role.start} - ${role.end})`;
+
+/** A step as `/` sets it: place and period, who he was there, the text, the
+ *  links. Hrefs resolve against the site, so "/cv#…" reads as a full URL. */
+const stepBlock = (step: PathStep) =>
+  lines([
+    `### ${join(" · ", [step.place, stepPeriod(step) ?? ""])}`,
+    ...step.roles.map((role) => roleLine(step, role)),
+    step.text,
+    ...step.links.map((link) => `- ${link.label}: ${site(link.href)}`),
+  ]);
+
 /** `/cv.md`: the complete record, in the section order `/cv` renders. */
 export function renderCvMarkdown(): string {
   return document([
@@ -150,20 +166,24 @@ export function renderWritingMarkdown(): string {
  * It exists because the is-agentic.com check probes `/` — a verified client
  * asking for markdown at the root, which is what amended ADR-0005's rule against
  * inventing sibling paths. Its shape follows the homepage rather than the CV:
- * positioning first, the writing as the first door, the proof underneath. That
- * makes the overlap with `/llms-full.txt` deliberate — this one is addressable as the root's representation, which a
- * `.txt` manifest is not.
+ * the path's steps in order, the side projects beside it, then the writing. That
+ * makes the overlap with `/llms-full.txt` deliberate — this one is addressable
+ * as the root's representation, which a `.txt` manifest is not.
  */
 export function renderIndexMarkdown(): string {
-  const { earlierRoles, hero, systems, writing } = RESUME_DATA.homepage;
-  const { headline } = hero;
+  const { writing } = RESUME_DATA.homepage;
 
   return document([
     `# ${RESUME_DATA.name} — ${RESUME_DATA.roleLabel}`,
     ...identityCore(),
-    "## What I do",
-    `${headline.lead}${headline.emphasis}${headline.trail}`,
-    hero.subhead,
+    "## The path",
+    /* The steps in the order `/` renders them, each one's text exactly as the
+       page shows it — `PATH_STEPS` is the only source of either (GH-141). */
+    ...PATH_STEPS.map(stepBlock),
+    "## Beside the path",
+    ...PATH_SIDE_PROPS.map((prop) =>
+      lines([`### ${prop.title}`, prop.text, `Link: ${site(prop.link.href)}`]),
+    ),
     "## Writing",
     writing.standingLine,
     lines([
@@ -172,20 +192,7 @@ export function renderIndexMarkdown(): string {
       `Link: ${writing.featured.href}`,
     ]),
     `- Index: ${site("/writing")} — as markdown: ${site("/writing.md")}`,
-    "## Work",
-    /* The roles the homepage stands behind, in its own words. The rest fold
-       into one line there rather than rendering a CV bullet, and folding them
-       here too keeps this file the homepage's representation — `/cv.md` is
-       where an agent goes for the complete record. */
-    ...RESUME_DATA.work.filter((role) => role.homepageProof).map(roleBlock),
-    `Earlier: ${earlierRoles.join("; ")}.`,
     `The complete record, with every role, project and grade: ${site("/cv")} — as markdown: ${site("/cv.md")}`,
-    "## Projects",
-    ...RESUME_DATA.projects
-      .filter((project) => project.homepage !== false)
-      .map(projectBlock),
-    "## Systems",
-    systems,
     ...contactSection(),
   ]);
 }

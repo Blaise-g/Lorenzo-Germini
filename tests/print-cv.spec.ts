@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
+import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
 
 import { removeDevOverlay } from "./support/dev-overlay";
@@ -250,7 +251,11 @@ test.describe("print CV baseline", () => {
         expect(printState.headingsThatCanOrphan).toEqual([]);
         expect(printState.fixedVisible).toEqual([]);
         expect(printState.undersizedText).toEqual([]);
-        expect(printState.projectsBreakBefore).toBe("auto");
+        /* The CV's Projects section must not force a page of its own. The
+           flat site has no Projects section to check. */
+        if (route.label === "CV") {
+          expect(printState.projectsBreakBefore).toBe("auto");
+        }
       });
 
       for (const format of ["A4", "Letter"] as const) {
@@ -317,48 +322,44 @@ test.describe("print CV baseline", () => {
             }
           }
 
-          /* Each route prints its own proof: the CV prints the bullets, and
-             since #26 the homepage prints one hand-written line per role and
-             folds the pre-2023 roles into a single earlier line. Asserting the
-             CV's bullets against the homepage would demand text the homepage
-             deliberately no longer carries. */
-          const roleBlocks =
+          /* Each route prints its own proof. The CV prints the bullets and
+             every project; the flat site prints the path — each step's lines
+             and each side project's — so a block there is a step or a side
+             prop, kept whole on one page. */
+          const proofBlocks =
             route.label === "homepage"
-              ? RESUME_DATA.work.flatMap((work) =>
-                  work.homepageProof
-                    ? [{ company: work.company, proof: [work.homepageProof] }]
-                    : [],
-                )
-              : RESUME_DATA.work.map((work) => ({
-                  company: work.company,
-                  proof:
-                    typeof work.description === "string"
-                      ? [work.description]
-                      : (work.description ?? []),
-                }));
+              ? [
+                  ...PATH_STEPS.map((step) => ({
+                    label: `${step.slug} step`,
+                    fragments: [...step.lines],
+                  })),
+                  ...PATH_SIDE_PROPS.map((prop) => ({
+                    label: `${prop.title} side prop`,
+                    fragments: [prop.title, ...prop.lines],
+                  })),
+                ]
+              : [
+                  ...RESUME_DATA.work.map((work) => ({
+                    label: `${work.company} role block`,
+                    fragments: [
+                      work.company,
+                      ...(typeof work.description === "string"
+                        ? [work.description]
+                        : (work.description ?? [])),
+                    ],
+                  })),
+                  ...RESUME_DATA.projects.map((project) => ({
+                    label: `${project.title} project card`,
+                    fragments: [
+                      project.title,
+                      project.description,
+                      ...project.techStack,
+                    ],
+                  })),
+                ];
 
-          for (const { company, proof } of roleBlocks) {
-            expectFragmentsOnOnePage(pages, `${company} role block`, [
-              company,
-              ...proof,
-            ]);
-          }
-
-          /* The homepage grid omits `homepage: false` projects; the CV keeps
-             the complete record. */
-          const printedProjects =
-            route.label === "homepage"
-              ? RESUME_DATA.projects.filter(
-                  (project) => project.homepage !== false,
-                )
-              : RESUME_DATA.projects;
-
-          for (const project of printedProjects) {
-            expectFragmentsOnOnePage(pages, `${project.title} project card`, [
-              project.title,
-              project.description,
-              ...project.techStack,
-            ]);
+          for (const { label, fragments } of proofBlocks) {
+            expectFragmentsOnOnePage(pages, label, fragments);
           }
 
           expect(pages.length).toBeLessThanOrEqual(2);

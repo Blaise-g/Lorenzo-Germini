@@ -17,7 +17,7 @@ import { SiteFooter } from "@/components/site-footer";
 /* No inset constant lives here. `CV_DOCUMENT_INSET` used to, which made this
    module — the one every shell mounts — change whenever `/cv`'s geometry did.
    Each measure now sits with the surface that owns it: `src/app/cv/inset.ts`,
-   `HUB_SHELL_INSET` in `hub-shell.tsx`, and `/writing`'s in `writing-index.tsx`.
+   `FLAT_SITE_INSET` in `flat-site/inset.ts`, and `/writing`'s in `writing-index.tsx`.
    They are deliberately not gathered into one module: ADR 0002's argument is
    that a measure says something only its own shell cares about, and a shared
    home invites the union type that ADR rejects. The cost is the

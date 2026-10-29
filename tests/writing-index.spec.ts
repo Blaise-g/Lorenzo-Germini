@@ -409,7 +409,12 @@ test.describe("a cover that fails to load", () => {
     await breakCoverImages(page);
     await page.goto(fixtureRoute("1"));
 
-    const panel = page.locator("main article [aria-hidden='true']").first();
+    /* The fallback lands after the image's error event, so measuring before it
+       reads whatever `aria-hidden` node came first in the server HTML. */
+    const lead = page.locator("main article").first();
+    await expect(lead.locator("img")).toHaveCount(0);
+
+    const panel = lead.locator("[aria-hidden='true']").first();
     const nestedBorders = await panel.evaluate((el) => {
       let depth = 0;
       let node: Element | null = el;

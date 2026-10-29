@@ -145,6 +145,39 @@ the runnable Ambient Current prototype detour produced real-browser evidence.
     sufficient; WebGL/Radiant is not authorized absent a separate measured
     benefit and decision.
 
+# Rules retired by the path redesign
+
+Amended 2026-10-28 by #141 (Decision 12), with ADR-0007, ADR-0008 and the ADR-0003 amendment.
+The homepage becomes the path: a flat site at `/` with a door to an opt-in 3D path at `/path`.
+Where this section and the text above disagree, this section wins.
+
+**Kept, unchanged:** the first-screen check (`tests/homepage-fold.spec.ts`) and retained proof
+(`docs/spec/retained-proof.json`, [retained-proof.md](retained-proof.md)). Retiring them was
+considered and rejected.
+
+**Kept, with an exemption:** the seven colour roles and the design-system guard, for page
+interface colour. Scene art (bakes, shader colours, generated textures) is exempt, in one
+directory, with its own path colour tokens (ADR-0008).
+
+**Amended:** fixed controls — ADR-0003 is amended so that no fixed control ever covers content.
+
+**Retired:**
+
+- **The WebGL ban** (decision 10's "WebGL/Radiant is not authorized") — retired **for `/path`
+  only**. `/` still loads no 3D code.
+- **The continuous-motion ban** (decision 10's "Continuous motion is not generally authorized")
+  — retired **for `/path` only**, where a selected step's scene builds. The build is skippable,
+  ends on a still composition, never loops and never advances on its own. `/` keeps the default
+  motion contract.
+- **Reduced motion as "at most one composed static frame"** is replaced, on `/path`, by a
+  designed state: cuts instead of travel, end states instead of animation.
+- **The sticky rail and its scroll-spy** (§2.2, including the "condition of the composition"
+  and its 2026-07-31 amendment) — retired with the hub on `/`, and the mobile route bar with
+  them.
+
+Which tests the new `/` breaks, and what happens to each, is in
+[path-test-inventory.md](path-test-inventory.md).
+
 # Open inputs this spec does not decide
 
 These are inputs the implementer needs and does not have. **Nothing in Phase 1 is blocked by any of them.**
@@ -249,13 +282,13 @@ A real Chromium A4 render of the _current_ print CV measures **3 pages**, page 2
 - `break-inside: avoid` on each role block and each project card
 - Remove `.print-force-new-page` from Projects (`globals.css:182-184` + its usage) — it is what strands page 3
 - Raise the 8px floor to ≥9pt
-- Delete the dead URL-printing pattern at `src/components/project-card.tsx:36` — `hidden … print:visible` cannot work, `visibility` does not undo `display: none`. Link URLs have never printed.
+- ~~Delete the dead URL-printing pattern at `src/components/project-card.tsx:36` — `hidden … print:visible` cannot work, `visibility` does not undo `display: none`. Link URLs have never printed.~~ Moot rather than done: the hub's project cards, and this file with them, were deleted after #144 retired them.
 
 **Effort: 4h.** Superseded in shape by Phase 2 §2.3 but not wasted: the global baseline block survives, and the page-break rules port directly.
 
 ## 1.8 Small correctness items
 
-- One production `target="_blank"` link is missing `rel="noopener noreferrer"` — the project title link in `src/components/project-card.tsx`. Six others already have it. (Was two: the location link in `src/app/page.tsx` was deleted with the globe action post-#26, so that half is moot rather than done.) Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
+- ~~One production `target="_blank"` link is missing `rel="noopener noreferrer"` — the project title link in `src/components/project-card.tsx`.~~ Moot rather than done: that file was deleted with the hub's project cards after #144. Six others already have it. (Was two: the location link in `src/app/page.tsx` was deleted with the globe action post-#26, so that half is moot rather than done.) Find them with `grep -rn 'target="_blank"' src | grep -v noopener` (which also matches prototype files — ignore those, they are deleted at [Prototype teardown](#prototype-teardown)).
 - Hover styling on non-interactive skill badges — remove it.
 - Verify `--color-muted-foreground` against AA in both modes at its smallest rendered size.
 - Retire the hardcoded `dateModified: "2026-04-01"` at `src/components/structured-data.tsx:8` in favour of a build-time or data-derived value.

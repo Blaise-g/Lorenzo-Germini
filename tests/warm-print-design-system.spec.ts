@@ -109,7 +109,7 @@ test("palette values, retired aliases, grain, and the border shim stay out of so
    same scanner with source of their own, so the exemptions it carries stay
    pinned — the trade-off ADR-0004 turned down was one that quietly stopped
    catching four shipped palette values. */
-const ordinary = "src/components/hub-shell.tsx";
+const ordinary = "src/components/flat-site/step-section.tsx";
 
 test("the guard still catches every shape of palette literal", () => {
   const mustCatch = [
@@ -299,13 +299,13 @@ test.describe("Warm Print runtime contract", () => {
         };
 
         /* The palette's own primitives — a selected `cmdk` item, the dialog
-           surface, and the shortcut hint's `kbd` — left this set with #89. The
-           theme toggle joins it: it is the `secondary` button variant's only
-           instance on the page, and since #89 it renders against the masthead
-           rather than over the page as fixed chrome. */
+           surface, and the shortcut hint's `kbd` — left this set with #89, and
+           the hub's badge and outline contact buttons with the hub (#144). The
+           theme toggle is the `secondary` button variant's only instance on
+           the page; the illustration label is the flat site's faint text over
+           its own hairline. */
         return {
-          badge: metrics('[data-slot="badge"]'),
-          contactButton: metrics('a[aria-label="Email"]'),
+          illustration: metrics("[data-path-illustration]"),
           themeToggle: metrics('[data-testid="theme-toggle"]'),
         };
       });
@@ -359,40 +359,27 @@ test.describe("Warm Print runtime contract", () => {
     await page.goto("/");
 
     const families = await page.evaluate(() => {
-      const sectionNamed = (name: string) =>
-        Array.from(document.querySelectorAll("section")).find(
-          (section) =>
-            section.querySelector(":scope > h2")?.textContent?.trim() === name,
-        );
+      const family = (selector: string) => {
+        const element = document.querySelector(selector);
+        if (!element) throw new Error(`Missing ${selector}`);
+        return getComputedStyle(element).fontFamily;
+      };
 
       return {
         body: getComputedStyle(document.body).fontFamily,
-        /* The proof line, not the row's date column beside it — that one is
-           metadata and is asserted as mono below. */
-        bodyCopy: getComputedStyle(
-          sectionNamed("Work")!.querySelector(
-            ".print-keep-together p.text-body",
-          )!,
-        ).fontFamily,
-        hero: getComputedStyle(document.querySelector("h1")!).fontFamily,
-        metadata: getComputedStyle(
-          sectionNamed("Work")!.querySelector(".text-faint") as HTMLElement,
-        ).fontFamily,
-        project: getComputedStyle(
-          sectionNamed("Projects")!.querySelector("h3")!,
-        ).fontFamily,
-        projectDescription: getComputedStyle(
-          sectionNamed("Projects")!.querySelector("p")!,
-        ).fontFamily,
-        role: getComputedStyle(sectionNamed("Work")!.querySelector("h3")!)
-          .fontFamily,
-        /* The label role. Every uppercase label shares one face; the date
-           column above stays mono because `tabular-nums` needs the fixed
-           advance, and asserting both is what keeps that boundary from
-           collapsing back to a single family. */
-        label: getComputedStyle(
-          sectionNamed("Work")!.querySelector(":scope > h2")!,
-        ).fontFamily,
+        /* A result line, not the role's date beside it — that one is metadata
+           and is asserted as mono below. */
+        bodyCopy: family('[data-path-step="lille"] .text-body p'),
+        hero: family("h1"),
+        metadata: family('[data-path-step="lille"] [data-path-date]'),
+        project: family("[data-path-side-prop] h3"),
+        projectDescription: family("[data-path-side-prop] .text-body p"),
+        role: family('[data-path-step="lille"] li p'),
+        /* The label role. Every uppercase label shares one face; the dates
+           stay mono because `tabular-nums` needs the fixed advance, and
+           asserting both is what keeps that boundary from collapsing back to a
+           single family. */
+        label: family('[data-flat-site-section="path"] > h2'),
       };
     });
 

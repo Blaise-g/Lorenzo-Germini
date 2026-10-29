@@ -62,3 +62,19 @@ decision 2 asked for as bottom-right clearance and which now reads as page-end s
 below `xl` there is nothing fixed to clear, and above it the button sits in the margin. `tests/responsive-hub-shell.spec.ts` asserts symmetric padding on every inset and
 that `BackToTop` is the only fixed control; `tests/interaction-hardening.spec.ts` hit-tests the
 corners at four widths and asserts no route cancels Ctrl/Cmd+J or Ctrl/Cmd+K.
+
+## Amendment, 2026-10-28: fixed controls never cover content
+
+Decided in #141 (Decision 12), with the path redesign (ADR-0007). The text above stands; this
+section adds a rule to it.
+
+**No fixed control may cover content, at any width or scroll position, on any route.** The
+consequence above — "anything newly fixed collides on arrival" — was a warning; it is now a
+rule. A control that has to stay on screen either sits in flow or sits where measurement shows
+there is no content under it, as `BackToTop` does from `xl`. The 3D path's overlay controls
+(Listen, Skip, Replay, "Flat site") follow the same rule over the overlay's own text.
+
+The sticky rail, its scroll-spy and the mobile route bar retire with the hub (see the redesign
+spec's retired rules), so the hub-specific geometry assertions cited above move with them.
+`tests/interaction-hardening.spec.ts`'s hit-test of fixed chrome against content stays, and is
+the check for this rule.

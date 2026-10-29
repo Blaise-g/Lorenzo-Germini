@@ -154,3 +154,63 @@ margin that already exists; it may not reserve a gutter to sit in, because that 
 charged to every paragraph on every route at every height.
 _Avoid_: floating chrome as a synonym for chrome control — the whole point is that most of it
 no longer floats
+
+### The path
+
+The homepage being redesigned as the path of Lorenzo's life: steps in time order that a visitor can
+pick in any order. It has two forms: the flat site at `/`, and the 3D path at `/path`.
+
+**Path**:
+The line of steps, from Cuneo through Turin, Switzerland and Lille and back home, ending on "?".
+It is drawn on the flat site and walked on the 3D path.
+_Avoid_: board, map, timeline, road (the retiring rail's metaphor)
+
+**Step**:
+One position on the path: a place and a period, with its roles, dates and documented results.
+Cuneo appears as three steps: home, the 2022–23 return, and now.
+_Avoid_: stop (the retiring rail's word for a homepage section), space, square, tile, chapter
+
+**Home**:
+Cuneo, where the path starts and returns twice. Its scene builds up a little more on each return.
+_Avoid_: GO, start, origin
+
+**Place**:
+A city on the path other than home: Turin, Lausanne/Switzerland or Lille.
+_Avoid_: city, property, world
+
+**Scene**:
+The small 3D model a step shows on the 3D path: its place's landmark blended with the work done
+there. Home's three steps share one scene.
+_Avoid_: world, level, diorama, pop-up
+
+**Prop**:
+One object in a scene. Props drop into place when a scene builds.
+_Avoid_: piece (that is the marker), asset, model
+
+**Build**:
+The 2–3 second animation in which a scene's props drop into place, with each prop's caption line
+highlighted as it lands. Skippable; under reduced motion, the finished scene.
+_Avoid_: intro, reveal, assembly animation
+
+**Piece**:
+The single marker that sits on the selected step and travels along the path to the next one.
+_Avoid_: token, avatar, player
+
+**Seen**:
+The tick on a step the visitor has already selected, kept in local storage.
+_Avoid_: visited, read, done
+
+**Flat site**:
+The site at `/` and its other routes, in plain HTML, with the path, step text and stills but no 3D
+and no sound. Always the first paint.
+_Avoid_: lite version, fallback, 2D mode
+
+**3D path**:
+The full-screen version at `/path`, entered by choice, where scenes build and a voice can read the
+step's text.
+_Avoid_: the experience, the world, the game
+
+**Door**:
+The header control on the flat site that leads to the 3D path: "Walk the path in 3D", or "Continue
+the path" for a visitor who has been in before.
+_Avoid_: gate, toggle, mode switch
