@@ -364,6 +364,30 @@ test("visiting /path sets the entered flag, and visiting / does not", async ({
   await expect.poll(entered).toBe("1");
 });
 
+/* The panel rules are layered (AGENTS.md: never bare), and still pick the
+   selected step's text, on screen and in print. */
+test("the panel rules are layered, and print shows the selected step's text only", async ({
+  page,
+}) => {
+  await page.goto("/path#lille");
+  const css = await page
+    .locator("[data-path-overlay] style, style")
+    .evaluateAll((styles) =>
+      styles
+        .map((style) => style.textContent ?? "")
+        .filter((text) => text.includes("data-path-panel")),
+    );
+  expect(css.length).toBe(1);
+  expect(css[0]).toMatch(/^@layer components\{/);
+
+  await page.emulateMedia({ media: "print" });
+  await expect(panel(page).locator('[data-path-panel="lille"]')).toBeVisible();
+  await expect(panel(page).locator("[data-path-panel]:visible")).toHaveCount(1);
+  for (const line of stepNamed("lille").lines) {
+    await expect(panel(page)).toContainText(line);
+  }
+});
+
 test("/path is absent from the sitemap", async ({ request }) => {
   const sitemap = await (await request.get("/sitemap.xml")).text();
   expect(sitemap).toContain("<urlset");

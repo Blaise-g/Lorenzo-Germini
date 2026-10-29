@@ -382,6 +382,21 @@ test.describe("reduced motion", () => {
       captionLines("cuneo-2022"),
     );
     await expect(buildControl(page)).toHaveText("Replay");
+    /* A lit line is set in ink, once its 300 ms transition has run. */
+    const color = (index: number) =>
+      page
+        .locator(`[data-path-panel="cuneo-2022"] [data-path-line="${index}"]`)
+        .evaluate((line) => getComputedStyle(line).color);
+    const ink = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-ink)";
+      document.body.append(probe);
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    });
+    await expect.poll(() => color(0)).toBe(ink);
+    await expect.poll(() => color(1)).toBe(ink);
   });
 });
 

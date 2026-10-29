@@ -114,9 +114,11 @@ export default function PathPage() {
   return (
     <RouteFrame measure={PATH_OVERLAY_INSET}>
       <MarkEntered />
+      {/* In `components`, as AGENTS.md asks of hand-written rules: unlayered,
+          they would beat every utility, `print:` ones included. */}
       <style
         dangerouslySetInnerHTML={{
-          __html: OVERLAY_PANEL_CSS + CAPTION_LIT_CSS,
+          __html: `@layer components{${OVERLAY_PANEL_CSS}${CAPTION_LIT_CSS}}`,
         }}
       />
       <OverlayRoot
