@@ -33,7 +33,7 @@ const MAX_CUMULATIVE_LAYOUT_SHIFT = 0.01;
    place a shift is intended.
 
    `/path` (#147) is measured at a fragment too: its server HTML shows the
-   default step's panel, and the fragment's step replaces it on hydration. */
+   default step, and the fragment's step replaces it on hydration. */
 const routesMeasuredForLayoutShift = [
   "/",
   "/cv",

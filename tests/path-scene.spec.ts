@@ -12,9 +12,7 @@ import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { buildPlan } from "@/components/path/scene/build-plan";
 import { transitTimeline } from "@/components/path/scene/camera-rig";
-import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import {
   FALLBACK_REASON_LINES,
@@ -28,6 +26,12 @@ import {
 } from "@/components/path/scene/scene-assets";
 
 import { setTheme, themeToggle } from "./support/theme";
+
+import {
+  landmarksSettled,
+  propsThrough,
+  stepNamed,
+} from "./support/path-stage";
 
 /* The board draws on this machine's GPU (Metal through ANGLE), not the
    headless default, SwiftShader: five workers sharing one software
@@ -65,31 +69,9 @@ async function listLandmarks(page: Page, ids: readonly string[]) {
 
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
 
-/** Waits for every landmark the index lists to have arrived, or failed:
- *  the board loads all but the first step's after its first paint. */
-async function landmarksSettled(page: Page) {
-  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
-    "data-path-landmarks",
-    "settled",
-    /* A state, waited on for as long as the test may run: on a starved
-       machine the files take what they take. */
-    { timeout: 0 },
-  );
-}
-
 const buildControl = (page: Page) => page.locator("[data-path-build-control]");
 const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
-
-const stepNamed = (slug: PathStepSlug) =>
-  PATH_STEPS.find((step) => step.slug === slug)!;
-
-/** Every prop on the board up to and including `slug`'s, in the data's
- *  order: what stands once the pawn has reached its tile. */
-function propsThrough(slug: PathStepSlug) {
-  const plan = buildPlan(PATH_STEPS.find((step) => step.slug === slug)!);
-  return [...plan.standing, ...plan.building.map((prop) => prop.id)].join(" ");
-}
 
 /** The caption lines a step's props light, as the stage lists them. */
 function captionLines(slug: PathStepSlug) {

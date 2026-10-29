@@ -36,6 +36,13 @@ import { tiltShiftFor } from "@/components/path/scene/post";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
+import {
+  countDraws,
+  draws,
+  landmarksSettled,
+  pauseTime,
+} from "./support/path-stage";
+
 /* The board draws on this machine's GPU, as `path-scene.spec.ts` explains. */
 test.use({
   launchOptions: {
@@ -338,49 +345,6 @@ const stageLog = (page: Page) =>
         .__stage,
   );
 
-/** Draw calls so far, counted at the GL context. */
-async function countDraws(page: Page) {
-  await page.addInitScript(() => {
-    const counts = { draws: 0 };
-    (window as unknown as { __draws: typeof counts }).__draws = counts;
-    const proto = WebGL2RenderingContext.prototype;
-    for (const name of [
-      "drawElements",
-      "drawArrays",
-      "drawElementsInstanced",
-      "drawArraysInstanced",
-    ] as const) {
-      const original = proto[name] as (...args: unknown[]) => void;
-      (proto as unknown as Record<string, unknown>)[name] = function (
-        this: WebGL2RenderingContext,
-        ...args: unknown[]
-      ) {
-        counts.draws += 1;
-        return original.apply(this, args);
-      };
-    }
-  });
-}
-
-/** Waits for every landmark the index lists to have arrived, or failed.
- *  The board loads all but the first step's once it is up, when the page
- *  is idle; one landing in view draws, so a count of draws held still
- *  starts after the last. */
-async function landmarksSettled(page: Page) {
-  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
-    "data-path-landmarks",
-    "settled",
-    /* A state, waited on for as long as the test may run: on a starved
-       machine the files take what they take. */
-    { timeout: 0 },
-  );
-}
-
-const draws = (page: Page) =>
-  page.evaluate(
-    () => (window as unknown as { __draws: { draws: number } }).__draws.draws,
-  );
-
 test.describe("with motion", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
@@ -444,14 +408,6 @@ test.describe("with motion", () => {
     await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
   });
 });
-
-/** Fake time, paused: frames and the tour's timers run only when the test
- *  runs the clock. */
-async function pauseTime(page: Page) {
-  const start = new Date("2026-10-29T09:00:00Z");
-  await page.clock.install({ time: start });
-  await page.clock.pauseAt(new Date(start.getTime() + 1000));
-}
 
 /** Runs frames until the stage reports `slug` settled. The board's files
  *  arrive in real time, not the page's fake time: a clock run while they

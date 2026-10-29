@@ -75,6 +75,8 @@ import { PATH_STEPS } from "@/data/path";
 import { PATH_NARRATION } from "@/data/path-narration";
 import type { PathStepSlug } from "@/data/path.types";
 
+import { countDraws, draws, landmarksSettled } from "./support/path-stage";
+
 /* The board draws on this machine's GPU, as `path-scene.spec.ts` explains. */
 test.use({
   launchOptions: {
@@ -157,7 +159,7 @@ test.describe("the curves", () => {
      landmark sunk part-way, and wakes from there on the pawn's arrival:
      the wake starts where the dormant pose is, so nothing jumps, and ends
      where a fresh rise would. */
-  test("a dormant piece wakes from its dormant pose without a jump", () => {
+  test("a dormant prop wakes from its dormant pose without a jump", () => {
     const rest = wakePose(0, 1200);
     expect(rest).toEqual({
       visible: true,
@@ -221,7 +223,7 @@ test.describe("the curves", () => {
 test.describe("the beats table", () => {
   /* Every prop a cue names has a beat, but the Bisalta, which §4(d) gives
      none; the table names nothing the narration does not. */
-  test("maps every cue's prop to a piece on its tile", () => {
+  test("maps every cue's prop to a landmark or prop on its tile", () => {
     const named = new Set<string>();
     for (const slug of SLUGS) {
       for (const cue of PATH_NARRATION[slug]) {
@@ -236,7 +238,7 @@ test.describe("the beats table", () => {
           continue;
         }
         expect(beat, `${slug}:${cue.prop}`).toBeDefined();
-        /* Throws if the tile has no such piece. */
+        /* Throws if the tile has no such landmark or prop. */
         expect(pieceOf(slug, beat!.piece).prop).toBe(cue.prop);
       }
     }
@@ -339,46 +341,6 @@ test.describe("the ink grade", () => {
 
 const stage = (page: Page) => page.locator("[data-path-stage]");
 const playTab = (page: Page) => page.locator("[data-path-tour-play]");
-
-async function countDraws(page: Page) {
-  await page.addInitScript(() => {
-    const counts = { draws: 0 };
-    (window as unknown as { __draws: typeof counts }).__draws = counts;
-    const proto = WebGL2RenderingContext.prototype;
-    for (const name of [
-      "drawElements",
-      "drawArrays",
-      "drawElementsInstanced",
-      "drawArraysInstanced",
-    ] as const) {
-      const original = proto[name] as (...args: unknown[]) => void;
-      (proto as unknown as Record<string, unknown>)[name] = function (
-        this: WebGL2RenderingContext,
-        ...args: unknown[]
-      ) {
-        counts.draws += 1;
-        return original.apply(this, args);
-      };
-    }
-  });
-}
-
-/** Waits for every landmark the index lists to have arrived, or failed:
- *  each that lands on a tile in view draws its arrival (v3-harden loads
- *  them once the page is idle). A state, waited on for as long as the
- *  test may run. */
-async function landmarksSettled(page: Page) {
-  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
-    "data-path-landmarks",
-    "settled",
-    { timeout: 0 },
-  );
-}
-
-const draws = (page: Page) =>
-  page.evaluate(
-    () => (window as unknown as { __draws: { draws: number } }).__draws.draws,
-  );
 
 /** Every beat the stage reports from now on. */
 async function watchBeats(page: Page) {
@@ -575,7 +537,7 @@ test.describe("with motion", () => {
     expect(await draws(page)).toBe(away);
   });
 
-  /* The "?" tile's lid lifts over a few frames as its piece wakes, not in
+  /* The "?" tile's lid lifts over a few frames as its prop wakes, not in
      one; and a tile built again keeps it off. */
   test("the lid lifts over frames, and stays off when the tile is built again", async ({
     page,
@@ -713,7 +675,7 @@ test.describe("play", () => {
   });
 
   /* A spring at rest returns to its rest pose, so a moment that turns a
-     piece must bring it back while it still moves, never by a jump. */
+     prop must bring it back while it still moves, never by a jump. */
   test("the boat tacks over and back without a jump", () => {
     const board = new Group();
     const play = createPlay({ paint, board });
@@ -742,7 +704,7 @@ test.describe("play", () => {
     expect(play.active()).toBe(false);
   });
 
-  test("under reduced motion, a click lights the piece and moves nothing", () => {
+  test("under reduced motion, a click lights the prop and moves nothing", () => {
     const board = new Group();
     const play = createPlay({ paint, board });
     const mole = reactor("mole");
@@ -775,10 +737,10 @@ test.describe("play", () => {
   });
 });
 
-/* A click on a piece of the shown step's tile, or on the marker, plays its
+/* A click on a prop of the shown step's tile, or on the marker, plays its
    answer and leaves the step where it is; a click on another step's tile
    still goes there (`path-scene.spec.ts`, "picking on the board"). */
-test.describe("clicking the board's pieces", () => {
+test.describe("clicking the board's props", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
   test("answers on the shown tile, and does not change the step", async ({

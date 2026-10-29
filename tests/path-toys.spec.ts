@@ -1,5 +1,5 @@
 /* The toy props and the duo (v3-toys): each prop's model, fitted to the
-   piece it stands in for, carrying the parts its beat moves, and the index
+   stand-in it replaces, carrying the parts its beat moves, and the index
    naming every model the board asks for. The models are read here as the
    board reads them, into three.js, with their textures left out: the fit,
    the parts and the coils' split are geometry. */
@@ -151,7 +151,7 @@ test.describe("the index", () => {
     expect(PROP_MODELS).toContain(MARKER.buddy);
   });
 
-  test("each placement names a piece on its own tile, once", () => {
+  test("each placement names a prop on its own tile, once", () => {
     const seen = new Set<string>();
     for (const placement of PROP_PLACEMENTS) {
       const key = `${placement.step}:${placement.piece}`;
@@ -166,8 +166,8 @@ test.describe("the index", () => {
   });
 });
 
-test.describe("the toy pieces", () => {
-  /* As the code pieces are held to their boxes (`path-scene-contract`),
+test.describe("the toy props", () => {
+  /* As the stand-ins are held to their boxes (`path-scene-contract`),
      with the same give. */
   test("each stands inside its piece's box, and fills it", () => {
     for (const slug of LOOP) {
@@ -196,7 +196,7 @@ test.describe("the toy pieces", () => {
     }
   });
 
-  /* A piece without its parts swells whole: the beat would still play,
+  /* A toy without its parts swells whole: the beat would still play,
      but not as the one written for it. */
   test("each carries every part its beat moves", () => {
     const expected: Record<string, string[]> = {

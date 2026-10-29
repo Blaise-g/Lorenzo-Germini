@@ -16,6 +16,8 @@ import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { ENTERED_STORAGE_KEY, SEEN_STORAGE_KEY } from "@/lib/path-state";
 
+import { hydrated, seenSlugs, stepNamed } from "./support/path-stage";
+
 /* The overlay is what is under test, not the board: the stage shows its
    stills, WebGL refused. Drawn in software, as it is here without a GPU, the
    board takes a loaded machine's main thread for seconds at a time, and
@@ -37,14 +39,6 @@ const readStep = (page: Page) =>
   page.getByRole("link", { name: "Read this step" });
 const flatSiteLink = (page: Page) =>
   page.getByRole("link", { name: "Flat site", exact: true });
-
-const stepNamed = (slug: PathStepSlug) =>
-  PATH_STEPS.find((step) => step.slug === slug)!;
-
-/** The piece mounts on hydration, so waiting for it waits for the handlers. */
-async function hydrated(page: Page) {
-  await expect(piece(page)).toHaveCount(1);
-}
 
 /** The step's text as paper shows it: its place, roles and results, and no
  *  other step's. */
@@ -104,14 +98,6 @@ async function expectLongestCueFits(page: Page) {
       return needed <= held + 1;
     }, longest);
   expect(fits, longest).toBe(true);
-}
-
-async function seenSlugs(page: Page) {
-  return page
-    .locator("[data-path-seen] [data-path-step-link]")
-    .evaluateAll((links) =>
-      links.map((link) => link.getAttribute("data-path-step-link")),
-    );
 }
 
 test("the overlay is server HTML: the step list, every step's text and Flat site", async ({

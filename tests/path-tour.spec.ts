@@ -27,6 +27,8 @@ import {
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
+import { hydrated, pauseTime } from "./support/path-stage";
+
 /* The board draws on this machine's GPU, as `path-scene.spec.ts` explains;
    the tests that only need the tour's timing show the stills instead
    (`stillsStage`), where the stage settles every step at once. */
@@ -89,21 +91,9 @@ const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
 
-async function hydrated(page: Page) {
-  await expect(page.locator("[data-path-piece]")).toHaveCount(1);
-}
-
 async function expectShown(page: Page, slug: PathStepSlug) {
   await expect(page).toHaveURL(new RegExp(`/path#${slug}$`));
   await expect(overlay(page)).toHaveAttribute("data-path-shown", slug);
-}
-
-/** Fake time, paused: it moves only when a test runs it, so a slow first
- *  compile in dev cannot play a step through before the test acts. */
-async function pauseTime(page: Page) {
-  const start = new Date("2026-10-29T09:00:00Z");
-  await page.clock.install({ time: start });
-  await page.clock.pauseAt(new Date(start.getTime() + 1000));
 }
 
 const historyLength = (page: Page) => page.evaluate(() => history.length);
