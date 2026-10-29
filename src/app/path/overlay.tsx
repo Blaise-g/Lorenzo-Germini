@@ -146,7 +146,11 @@ function NodeMark({ node }: { node: PathStepNode }) {
  *  paper's colour, standing on its node. */
 function Pawn() {
   return (
-    <svg aria-hidden viewBox="0 0 16 22" className="size-full overflow-visible">
+    <svg
+      aria-hidden
+      viewBox="0 0 16 22"
+      className="h-full w-[1.125rem] -translate-x-1/2 overflow-visible"
+    >
       <path
         d="M8 2.5 13.5 18.5Q8 20.4 2.5 18.5Z"
         className="fill-accent stroke-ground"
@@ -316,7 +320,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
                 data-path-piece={selected}
                 className="path-pawn"
                 style={{
-                  left: `${((selectedIndex + 0.5) / steps.length) * 100}%`,
+                  translate: `${((selectedIndex + 0.5) / steps.length) * 100}% 0`,
                 }}
               >
                 <Pawn />

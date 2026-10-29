@@ -268,9 +268,6 @@ export function createMoments(options: {
       flockMs = FLOCK_MS;
       poseFlock();
     },
-    dispose() {
-      wing.dispose();
-    },
   };
 }
 

@@ -13,14 +13,17 @@ import {
 import type { PathStepSlug } from "@/data/path.types";
 
 import { beatFor, HOP_REACH, HOPPERS, type Beat } from "./beats";
-import { glowEnvelope, hopBeat, HOP_BEAT_MS } from "./motion";
+import { glowEnvelope, hopBeat, HOP_BEAT_MS, squashScale } from "./motion";
 import type { Paint } from "./paint";
 import {
   LANDMARK_LIGHT,
+  partsFinder,
   playOwn,
+  restOf,
   restOwn,
   swell,
   type BeatTurn,
+  type PartFinder,
 } from "./piece-beats";
 import { softDisc } from "./world";
 
@@ -66,9 +69,12 @@ type Playing = {
   beat: Beat;
   turn: BeatTurn;
   ms: number;
+  /** The target's parts its beat moves, and its lights, found once. */
+  find: PartFinder;
+  lit?: readonly IUniform<number>[];
 };
 
-type Hop = { object: Object3D; ms: number; base: { y: number; z: number } };
+type Hop = { object: Object3D; ms: number };
 
 export function createLife(options: {
   board: Group;
@@ -158,14 +164,14 @@ export function createLife(options: {
     const at = Math.min(ms, span);
     switch (beat.kind) {
       case "own":
-        playOwn(target.beater, target.piece, at, beat, turn, paint);
+        playOwn(target.beater, target.piece, at, beat, turn, paint, entry.find);
         break;
       case "rise":
         swell(target.beater, at, span);
         break;
       case "light": {
         const glow = glowEnvelope(at, span);
-        const lit = target.lit();
+        const lit = (entry.lit ??= target.lit());
         if (lit.length > 0) {
           for (const each of lit) each.value = LANDMARK_LIGHT * glow;
         } else {
@@ -199,15 +205,37 @@ export function createLife(options: {
     ended.push(entry);
   }
 
+  /** The pieces that hop as the pawn passes, found again when a tile's
+   *  pieces change. */
+  let hoppers: LifePiece[] | null = null;
+
+  /** `object` hops if the pawn's `foot` (world space) is near it, once a
+   *  pass. */
+  function passBy(object: Object3D, foot: Vector3) {
+    if (hopped.has(object) || hops.some((hop) => hop.object === object)) {
+      return;
+    }
+    object.getWorldPosition(place);
+    if (Math.hypot(place.x - foot.x, place.z - foot.z) > HOP_REACH) return;
+    hopped.add(object);
+    restOf(object);
+    hops.push({ object, ms: 0 });
+  }
+
   return {
     /** Registers a tile's pieces, replacing any it had. A beat playing on
      *  a piece replaced, as a model swaps in, plays on in its place. */
     setTile(slug: PathStepSlug, list: LifePiece[]) {
       pieces.set(slug, list);
+      hoppers = null;
       for (const entry of [...playing, ...ended]) {
         if (entry.target.slug !== slug) continue;
         const next = list.find((each) => each.piece === entry.target.piece);
-        if (next) entry.target = next;
+        if (next) {
+          entry.target = next;
+          entry.find = partsFinder(next.beater);
+          entry.lit = undefined;
+        }
       }
       /* A beat that has ended keeps its end state on the new piece. */
       for (const entry of [...ended]) {
@@ -232,7 +260,13 @@ export function createLife(options: {
       /* One beat on a piece at a time: the newer takes over. */
       const already = playing.findIndex((each) => each.target === target);
       if (already >= 0) playing.splice(already, 1);
-      const entry = { target, beat, turn, ms: 0 };
+      const entry = {
+        target,
+        beat,
+        turn,
+        ms: 0,
+        find: partsFinder(target.beater),
+      };
       if (reduced) end(entry);
       else playing.push(entry);
       emit(beat.pitch === "high" ? "beat-high" : "beat-low");
@@ -263,28 +297,12 @@ export function createLife(options: {
 
     /** The pawn's foot is at `foot` (world space): what it passes, hops. */
     passing(foot: Vector3) {
-      const candidates: Object3D[] = [...sideProps];
-      for (const list of pieces.values()) {
-        for (const each of list) {
-          if (HOPPERS.includes(each.piece) && each.shown()) {
-            candidates.push(each.beater);
-          }
-        }
-      }
-      for (const object of candidates) {
-        if (hopped.has(object) || hops.some((hop) => hop.object === object)) {
-          continue;
-        }
-        object.getWorldPosition(place);
-        if (Math.hypot(place.x - foot.x, place.z - foot.z) > HOP_REACH) {
-          continue;
-        }
-        hopped.add(object);
-        hops.push({
-          object,
-          ms: 0,
-          base: { y: object.position.y, z: object.rotation.z },
-        });
+      hoppers ??= [...pieces.values()]
+        .flat()
+        .filter((each) => HOPPERS.includes(each.piece));
+      for (const object of sideProps) passBy(object, foot);
+      for (const each of hoppers) {
+        if (each.shown()) passBy(each.beater, foot);
       }
     },
 
@@ -292,11 +310,8 @@ export function createLife(options: {
      *  model arrived after it stood, so the swap reads as a hop. */
     hop(object: Object3D) {
       if (hops.some((hop) => hop.object === object)) return;
-      hops.push({
-        object,
-        ms: 0,
-        base: { y: object.position.y, z: object.rotation.z },
-      });
+      restOf(object);
+      hops.push({ object, ms: 0 });
     },
 
     /** The pawn landed at `at` (the board's frame), `scale` a hero tile's. */
@@ -321,13 +336,10 @@ export function createLife(options: {
         const hop = hops[i];
         hop.ms += ms;
         const pose = hopBeat(hop.ms);
-        hop.object.position.y = hop.base.y + pose.lift * HOP_HEIGHT;
-        hop.object.rotation.z = hop.base.z + pose.tilt;
-        hop.object.scale.set(
-          1 / Math.sqrt(pose.squash),
-          pose.squash,
-          1 / Math.sqrt(pose.squash),
-        );
+        const rest = restOf(hop.object);
+        hop.object.position.y = rest.position.y + pose.lift * HOP_HEIGHT;
+        hop.object.rotation.z = rest.rotation.z + pose.tilt;
+        hop.object.scale.set(...squashScale(pose.squash));
         if (hop.ms >= HOP_BEAT_MS) hops.splice(i, 1);
       }
       if (dustMs < DUST_MS) {
@@ -346,19 +358,14 @@ export function createLife(options: {
       for (const entry of playing) end(entry);
       playing.length = 0;
       for (const hop of hops) {
-        hop.object.position.y = hop.base.y;
-        hop.object.rotation.z = hop.base.z;
+        const rest = restOf(hop.object);
+        hop.object.position.y = rest.position.y;
+        hop.object.rotation.z = rest.rotation.z;
         hop.object.scale.set(1, 1, 1);
       }
       hops.length = 0;
       dustMs = DUST_MS;
       poseDust();
-    },
-
-    dispose() {
-      dust.geometry.dispose();
-      dust.dispose();
-      dustMaterial.alphaMap?.dispose();
     },
   };
 }

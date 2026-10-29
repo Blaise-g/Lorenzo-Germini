@@ -80,7 +80,7 @@ export function parts(root: Object3D, name: string): Object3D[] {
 }
 
 /** The materials under `node` a light can warm. */
-function materialsOf(node: Object3D): MeshStandardMaterial[] {
+export function materialsOf(node: Object3D): MeshStandardMaterial[] {
   const made: MeshStandardMaterial[] = [];
   node.traverse((each) => {
     if (!(each instanceof Mesh)) return;
@@ -96,9 +96,7 @@ function materialsOf(node: Object3D): MeshStandardMaterial[] {
 export function glow(paint: Paint, nodes: Object3D[], amount: number) {
   for (const node of nodes) {
     for (const made of materialsOf(node)) {
-      const lit = made.userData.inkLit as IUniform<number> | undefined;
-      if (lit) lit.value = Math.min(amount, LANDMARK_LIGHT);
-      else paint.boost(made, amount);
+      if (!lightThroughGrade(made, amount)) paint.boost(made, amount);
     }
   }
 }
@@ -106,10 +104,15 @@ export function glow(paint: Paint, nodes: Object3D[], amount: number) {
 /** Lights a generated model under `node` through its grade, and nothing
  *  else. */
 export function glint(node: Object3D, amount: number) {
-  for (const made of materialsOf(node)) {
-    const lit = made.userData.inkLit as IUniform<number> | undefined;
-    if (lit) lit.value = Math.min(amount, LANDMARK_LIGHT);
-  }
+  for (const made of materialsOf(node)) lightThroughGrade(made, amount);
+}
+
+/** Lights `made` through its grade if it is a generated model's; whether
+ *  it was. */
+function lightThroughGrade(made: MeshStandardMaterial, amount: number) {
+  const lit = made.userData.inkLit as IUniform<number> | undefined;
+  if (lit) lit.value = Math.min(amount, LANDMARK_LIGHT);
+  return lit !== undefined;
 }
 
 /** A whole piece swelling up and settling: the beat a piece without its
@@ -251,10 +254,30 @@ const OWN: Readonly<Record<string, OwnBeat>> = {
   },
 };
 
+/** The parts of a root by name, each looked up once: a beat plays every
+ *  frame, and its piece's parts do not change under it. */
+export type PartFinder = (name: string) => Object3D[];
+
+export function partsFinder(root: Object3D): PartFinder {
+  const found = new Map<string, Object3D[]>();
+  return (name) => {
+    let list = found.get(name);
+    if (!list) {
+      list = parts(root, name);
+      found.set(name, list);
+    }
+    return list;
+  };
+}
+
 /** Whether `root` has every part `piece`'s own beat moves. */
-export function hasOwnParts(piece: string, root: Object3D): boolean {
+export function hasOwnParts(
+  piece: string,
+  root: Object3D,
+  find: PartFinder = (name) => parts(root, name),
+): boolean {
   const own = OWN[piece];
-  return !!own && own.needs.every((name) => parts(root, name).length > 0);
+  return !!own && own.needs.every((name) => find(name).length > 0);
 }
 
 /** Plays `piece`'s own beat on `root`, `ms` into it; at `beat.ms` or later,
@@ -267,13 +290,14 @@ export function playOwn(
   beat: Beat,
   turn: BeatTurn,
   paint: Paint,
+  find: PartFinder = partsFinder(root),
 ) {
   const own = OWN[piece];
-  if (!own || !hasOwnParts(piece, root)) {
+  if (!own || !hasOwnParts(piece, root, find)) {
     swell(root, ms, beat.ms);
     return;
   }
-  own.play((name) => parts(root, name), root, ms, beat, turn, paint);
+  own.play(find, root, ms, beat, turn, paint);
 }
 
 /** Puts every part a beat moved under `root` back as built, and its glow

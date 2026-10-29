@@ -83,6 +83,7 @@ import {
   idleSquash,
   landingDip,
   landingSquash,
+  squashScale,
   landmarkSink,
   landmarkWake,
   LANDING_MS,
@@ -90,7 +91,9 @@ import {
   movePose,
   REVEAL_MS,
   risePose,
+  smoothstep,
   wakePose,
+  wrap,
 } from "./motion";
 import { createLighting } from "./lighting";
 import { createPaint } from "./paint";
@@ -113,7 +116,7 @@ import {
   SIDE_MODELS,
   type PropPlacement,
 } from "./scene-assets";
-import { BEAT_NODE } from "./piece-beats";
+import { BEAT_NODE, materialsOf } from "./piece-beats";
 import { prepareModel, toyMarker, toyPiece, toySide } from "./toys";
 import {
   type BuddyParts,
@@ -549,28 +552,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  (`grade.ts`). The board's own materials carry no texture map, so a
    *  stand-in is never graded. */
   function gradeLandmark(object: Object3D) {
-    object.traverse((node) => {
-      if (!(node instanceof Mesh)) return;
-      for (const made of [node.material].flat()) {
-        if (made instanceof MeshStandardMaterial && made.map) {
-          paintBox.landmark(made);
-        }
-      }
-    });
+    for (const made of materialsOf(object)) {
+      if (made.map) paintBox.landmark(made);
+    }
   }
 
   /** How lit each graded material of `object` is, for its `light` beat. */
-  function litOf(object: Object3D) {
-    const lit: IUniform<number>[] = [];
-    object.traverse((node) => {
-      if (!(node instanceof Mesh)) return;
-      for (const made of [node.material].flat()) {
-        if (made instanceof MeshStandardMaterial && made.userData.inkLit) {
-          lit.push(made.userData.inkLit);
-        }
-      }
-    });
-    return lit;
+  function litOf(object: Object3D): IUniform<number>[] {
+    return materialsOf(object).flatMap((made) =>
+      made.userData.inkLit ? [made.userData.inkLit] : [],
+    );
   }
 
   /* ─── The pawn ─── */
@@ -630,8 +621,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     transit: Transit;
   };
 
-  const wrap = (index: number) =>
-    LOOP[((index % LOOP.length) + LOOP.length) % LOOP.length];
+  const loopAt = (index: number) => LOOP[wrap(index, LOOP.length)];
 
   /** How far through its hops `m` is at `ms`: 0 before it leaves, 1 on
    *  landing. */
@@ -660,8 +650,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     pawnPathPoint(from, along, out);
     const base = Math.floor(along);
     const u = along - base;
-    const blend = u * u * (3 - 2 * u);
-    const [a, b] = [liftOf(wrap(from + base)), liftOf(wrap(from + base + 1))];
+    const blend = smoothstep(u);
+    const [a, b] = [
+      liftOf(loopAt(from + base)),
+      liftOf(loopAt(from + base + 1)),
+    ];
     out.y += a + (b - a) * blend;
     return out;
   }
@@ -951,7 +944,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /** The pawn is headed for `slug`: its landmarks and props and the next
    *  step's are fetched now, so the tour's next landing finds its own in. */
   function approach(slug: PathStepSlug) {
-    const next = wrap(stepIndex(slug) + 1);
+    const next = loopAt(stepIndex(slug) + 1);
     void loadModels([...idsOf(slug), ...idsOf(next)]);
     void firstToys.then(() =>
       loadToys([...propModelsOf(slug), ...propModelsOf(next)]),
@@ -1273,7 +1266,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       pawnPathPoint(stepIndex(pawnAt), 0, foot).y += liftOf(pawnAt);
       body.rotation.set(0, 0, 0);
       const squash = landingSquash(landingElapsed) * idleSquash(restMs);
-      body.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
+      body.scale.set(...squashScale(squash));
     }
     pawn.position.copy(foot);
     body.position.y = lift * HOP_HEIGHT;
@@ -1380,6 +1373,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  in, a rung's changed chain — so its time is not the governor's. */
   let unmeasured = false;
   let paused = document.visibilityState === "hidden";
+  /** The canvas scrolled out of view, or not laid out: nothing to draw. */
+  let offscreen = false;
   /** The tour as last reported, and whether its pause has frozen the
    *  board: set by a pause, cleared by play or by the next selection. */
   let tourState: TourState = "playing";
@@ -1416,7 +1411,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function requestFrame() {
-    if (frameRequest || paused || contextLost || fellBack) return;
+    if (frameRequest || paused || offscreen || contextLost || fellBack) return;
     frameRequest = requestAnimationFrame(tick);
   }
 
@@ -1636,6 +1631,18 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (prepared) render();
   });
   resizeObserver.observe(canvas);
+  /* Out of view, the board stops drawing as a hidden tab does, and picks
+     up where it stopped when it comes back. */
+  const viewObserver = new IntersectionObserver(([entry]) => {
+    offscreen = !entry.isIntersecting;
+    if (offscreen) {
+      cancelAnimationFrame(frameRequest);
+      frameRequest = 0;
+    }
+    lastTime = undefined;
+    requestFrame();
+  });
+  viewObserver.observe(canvas);
   document.addEventListener("visibilitychange", onVisibility);
   canvas.addEventListener("webglcontextlost", onContextLost);
   canvas.addEventListener("webglcontextrestored", onContextRestored);
@@ -1669,7 +1676,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     rebuild = false;
     if (move) {
       const { along } = moveAt(move, move.elapsed);
-      pawnAt = wrap(stepIndex(move.from) + Math.round(along));
+      pawnAt = loopAt(stepIndex(move.from) + Math.round(along));
       move = undefined;
     }
     trail = undefined;
@@ -1852,17 +1859,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     };
   }
 
+  /** What lies under a point on the canvas, in `objects`, nearest first. */
+  function castAt(x: number, y: number, objects: Object3D[]) {
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.intersectObjects(objects, true);
+  }
+
   /** The piece under a point that answers a click: on the shown step's
    *  tile, standing, or the marker. */
   function reactorAt(x: number, y: number): Reactor | null {
     const tile = current && tiles.get(current);
     if (!tile || stills) return null;
-    const width = canvas.clientWidth || 1;
-    const height = canvas.clientHeight || 1;
-    pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
-    raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects([tile.group, pawn, buddy], true);
-    for (const { object } of hits) {
+    for (const { object } of castAt(x, y, [tile.group, pawn, buddy])) {
       let node: Object3D | null = object;
       let shown = true;
       while (node && !node.userData.reactor) {
@@ -2019,18 +2030,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (duoHeldMs >= LEAN.holdMs && !gestures.active()) duoHeldMs = undefined;
     }
     rig.lean(duoHeldMs !== undefined ? duoCentre() : null);
-    for (const tile of tiles.values()) {
-      for (const risers of tile.props.values()) {
-        for (const piece of risers) {
-          if (
-            piece.landmark !== undefined &&
-            tile.slug === current &&
-            piece.shown &&
-            !risen.has(piece)
-          ) {
-            risen.add(piece);
-            if (buildState === "building" && !rebuild) event("rise");
-          }
+    /* Only the step shown rises with a sound. */
+    const shown = current && tiles.get(current);
+    for (const risers of shown ? shown.props.values() : []) {
+      for (const piece of risers) {
+        if (piece.landmark !== undefined && piece.shown && !risen.has(piece)) {
+          risen.add(piece);
+          if (buildState === "building" && !rebuild) event("rise");
         }
       }
     }
@@ -2251,15 +2257,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       requestFrame();
     },
     pick(x, y) {
-      const width = canvas.clientWidth || 1;
-      const height = canvas.clientHeight || 1;
-      pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
-      raycaster.setFromCamera(pointer, camera);
-      const hits = raycaster.intersectObjects(
-        [...tiles.values()].map((tile) => tile.group),
-        true,
-      );
-      for (const { object } of hits) {
+      const groups = [...tiles.values()].map((tile) => tile.group);
+      for (const { object } of castAt(x, y, groups)) {
         /* A piece not standing yet is not there to point at. */
         let node: Object3D | null = object;
         let shown = true;
@@ -2310,6 +2309,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       clearTimeout(restoreTimer);
       themeObserver.disconnect();
       resizeObserver.disconnect();
+      viewObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
@@ -2339,7 +2339,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         }
         material.dispose();
       }
-      life.dispose();
       paintBox.dispose();
       lighting.dispose();
       post.dispose();

@@ -19,6 +19,8 @@ import {
 
 import { GRADE_GLSL, inkGrade } from "./grade";
 import type { Palette, PaletteRole } from "./palette";
+import { smoothstep } from "./motion";
+import { parkMiller } from "./props";
 
 /* The board's one material treatment (v3; the benchmark's §4(b) item 3):
    every surface is a `MeshStandardMaterial` at high roughness, for a toy,
@@ -154,11 +156,7 @@ function valueNoise(
   seed: number,
 ): Float32Array {
   const height = new Float32Array(size * size);
-  let state = seed;
-  const random = () => {
-    state = (state * 16807) % 2147483647;
-    return state / 2147483647;
-  };
+  const random = parkMiller(seed);
   for (const [cells, weight] of octaves) {
     const lattice = Array.from({ length: cells * cells }, random);
     const at = (x: number, y: number) =>
@@ -169,8 +167,8 @@ function valueNoise(
         const fy = (y / size) * cells;
         const ix = Math.floor(fx);
         const iy = Math.floor(fy);
-        const sx = (fx - ix) ** 2 * (3 - 2 * (fx - ix));
-        const sy = (fy - iy) ** 2 * (3 - 2 * (fy - iy));
+        const sx = smoothstep(fx - ix);
+        const sy = smoothstep(fy - iy);
         const top = at(ix, iy) + (at(ix + 1, iy) - at(ix, iy)) * sx;
         const bottom =
           at(ix, iy + 1) + (at(ix + 1, iy + 1) - at(ix, iy + 1)) * sx;

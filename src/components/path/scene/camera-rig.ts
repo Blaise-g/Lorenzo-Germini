@@ -523,23 +523,22 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
     return { outlines, points: [...rim, ...outlines.flat()] };
   }
 
-  /* Shots are fitted once per stage, lens and turn of the board. */
-  const shots = new Map<string, Shot>();
+  /* Shots are fitted once per stage, lens and turn of the board. Each
+     shot keeps only its latest turn: a turn refits every frame it moves
+     (about 0.02 ms a frame, measured), and would otherwise fill the cache
+     with turns passed through and flush the shots at rest with them. */
+  const shots = new Map<string, { turn: string; shot: Shot }>();
   function cached(key: string, make: () => Shot): Shot {
     board.updateMatrixWorld();
-    const full = JSON.stringify([
-      key,
-      camera.aspect.toFixed(3),
-      frame,
-      board.rotation.y.toFixed(4),
-    ]);
+    const full = JSON.stringify([key, camera.aspect.toFixed(3), frame]);
+    const turn = board.rotation.y.toFixed(4);
     let found = shots.get(full);
-    if (!found) {
-      if (shots.size > 64) shots.clear();
-      found = make();
+    if (found?.turn !== turn) {
+      if (!found && shots.size > 64) shots.clear();
+      found = { turn, shot: make() };
       shots.set(full, found);
     }
-    return found;
+    return found.shot;
   }
 
   function closeUp(slug: PathStepSlug): Shot {

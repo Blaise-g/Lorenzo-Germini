@@ -177,6 +177,16 @@ export function seededRandom(seed: number) {
   };
 }
 
+/** A longer repeatable sequence in (0, 1), Park and Miller's, from a
+ *  nonzero `state`: for the grass and the felt's noise, which draw more
+ *  than `seededRandom`'s short period gives. */
+export function parkMiller(state: number) {
+  return () => {
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
+  };
+}
+
 /** A tree cluster, instanced: round crowns of a few icospheres on short
  *  trunks, scattered across the piece's box. */
 export function treeCluster(paint: Paint, piece: Piece, seed = 1): Built {
@@ -283,11 +293,7 @@ export function grassField(
   keepOut: (x: number, z: number) => boolean,
   seed = 1,
 ): InstancedMesh {
-  let state = seed * 7919 + 104729;
-  const random = () => {
-    state = (state * 16807) % 2147483647;
-    return state / 2147483647;
-  };
+  const random = parkMiller(seed * 7919 + 104729);
   const mesh = new InstancedMesh(tuftGeometry(), material, count);
   const matrix = new Matrix4();
   const rotation = new Quaternion();

@@ -3,6 +3,7 @@ import { CatmullRomCurve3, Vector3 } from "three";
 import type { PathStepSlug } from "@/data/path.types";
 
 import { LOOP, pawnSpot, TILE, tileCentre, tileScale } from "./board";
+import { smoothstep, wrap } from "./motion";
 
 /* The path's spline and the tiles' anchors, in one place for the camera rig
    and the board alike (v3, the benchmark's §4(a)): a closed CatmullRom curve
@@ -88,11 +89,11 @@ export function pawnPathPoint(
   const count = anchors.length;
   const base = Math.floor(along);
   const u = along - base;
-  const a = anchors[(((from + base) % count) + count) % count];
-  const b = anchors[(((from + base + 1) % count) + count) % count];
+  const a = anchors[wrap(from + base, count)];
+  const b = anchors[wrap(from + base + 1, count)];
   const t = ((((from + along) / count) % 1) + 1) % 1;
   spline.getPoint(t, out);
-  const blend = u * u * (3 - 2 * u);
+  const blend = smoothstep(u);
   offsetA.copy(a.pawn).sub(a.centre);
   offsetB.copy(b.pawn).sub(b.centre);
   out.add(offsetA.lerp(offsetB, blend));

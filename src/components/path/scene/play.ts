@@ -8,6 +8,7 @@ import {
   type Object3D,
 } from "three";
 
+import { squashScale } from "./motion";
 import { BEAT_NODE, glint, glow, parts, restOf } from "./piece-beats";
 import type { Paint } from "./paint";
 import { softDisc } from "./world";
@@ -116,16 +117,9 @@ export function createPlay(options: { paint: Paint; board: Group }) {
       case "x":
         node.position.x = rest.position.x + x;
         break;
-      case "squash": {
-        const up = Math.max(1 + x, 0.4);
-        const out = 1 / Math.sqrt(up);
-        node.scale.set(
-          rest.scale.x * out,
-          rest.scale.y * up,
-          rest.scale.z * out,
-        );
+      case "squash":
+        node.scale.set(...squashScale(Math.max(1 + x, 0.4), rest.scale));
         break;
-      }
       case "lean":
         node.rotation.z = rest.rotation.z + x;
         break;
@@ -151,19 +145,27 @@ export function createPlay(options: { paint: Paint; board: Group }) {
 
   /* A soft pool of lamplight on the tile under a piece: no motion, only
      light, so it is reduced motion's whole answer to a click, and a fine
-     pointer's hint that a piece answers one. */
-  const haloMaterial = new MeshBasicMaterial({
-    color: paint.lampColour.value,
-    transparent: true,
-    depthWrite: false,
-    opacity: 0,
-    alphaMap: softDisc(),
-  });
-  const halo = new Mesh(new PlaneGeometry(1, 1), haloMaterial);
-  halo.rotation.x = -Math.PI / 2;
-  halo.renderOrder = 2;
-  halo.visible = false;
-  board.add(halo);
+     pointer's hint that a piece answers one. Made the first time it is
+     wanted, so a Play that only gestures never has one. */
+  let halo: Mesh<PlaneGeometry, MeshBasicMaterial> | null = null;
+  function haloMesh() {
+    if (halo) return halo;
+    halo = new Mesh(
+      new PlaneGeometry(1, 1),
+      new MeshBasicMaterial({
+        color: paint.lampColour.value,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0,
+        alphaMap: softDisc(),
+      }),
+    );
+    halo.rotation.x = -Math.PI / 2;
+    halo.renderOrder = 2;
+    halo.visible = false;
+    board.add(halo);
+    return halo;
+  }
   const haloLevel = { x: 0, v: 0, target: 0 };
   let haloOn: Reactor | null = null;
   const box = new Box3();
@@ -176,6 +178,7 @@ export function createPlay(options: { paint: Paint; board: Group }) {
     box.getCenter(foot);
     foot.y = box.min.y + 0.03;
     board.worldToLocal(foot);
+    const halo = haloMesh();
     halo.position.copy(foot);
     const across = Math.max(size.x, size.z) / board.scale.x;
     halo.scale.setScalar(Math.min(Math.max(across * 1.5, 0.8), 4));
@@ -388,8 +391,9 @@ export function createPlay(options: { paint: Paint; board: Group }) {
     const towards = haloLevel.target - haloLevel.x;
     haloLevel.x += towards * Math.min(ms / 90, 1);
     if (Math.abs(towards) < 0.01) haloLevel.x = haloLevel.target;
-    haloMaterial.opacity = 0.42 * haloLevel.x;
-    haloMaterial.color.copy(paint.lampColour.value);
+    if (!halo) return;
+    halo.material.opacity = 0.42 * haloLevel.x;
+    halo.material.color.copy(paint.lampColour.value);
     halo.visible = haloLevel.x > 0.001;
     if (!halo.visible && haloLevel.target === 0) haloOn = null;
     if (haloOn) placeHalo(haloOn);
@@ -425,11 +429,6 @@ export function createPlay(options: { paint: Paint; board: Group }) {
         apply(each);
       }
       springs.clear();
-    },
-    dispose() {
-      halo.geometry.dispose();
-      haloMaterial.alphaMap?.dispose();
-      haloMaterial.dispose();
     },
   };
 }

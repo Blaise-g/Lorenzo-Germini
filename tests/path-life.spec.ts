@@ -530,6 +530,29 @@ test.describe("with motion", () => {
     await page.waitForTimeout(1500);
     expect(await draws(page)).toBe(frozen);
   });
+
+  /* v3-emil-polish (R10): a board scrolled out of view draws nothing, as a
+     hidden tab does, and draws again when it comes back. */
+  test("the board stops drawing while scrolled out of view", async ({
+    page,
+  }) => {
+    await countDraws(page);
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-stage-settled", "", {
+      timeout: 15_000,
+    });
+    await page.evaluate(() => {
+      document.body.style.paddingBottom = "4000px";
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    await page.waitForTimeout(300);
+    const away = await draws(page);
+    await page.waitForTimeout(1500);
+    expect(await draws(page)).toBe(away);
+
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect.poll(() => draws(page)).toBeGreaterThan(away);
+  });
 });
 
 /* ─── Play: a click's answer, the duo's gestures, the moments ─── */

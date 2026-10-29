@@ -430,16 +430,18 @@ html {
 
   /* The pawn walks the step list's drawn line, its foot on the current
      step's node. On-screen movement, so ease-in-out; a key's change and
-     reduced motion cut it there. */
+     reduced motion cut it there. It rides a rail as wide as the row, moved
+     by `translate` (a share of the rail's own width) rather than `left`,
+     so the walk is composited and never lays the strip out again. */
   .path-pawn {
     position: absolute;
     top: calc(1.125rem - 1.2rem);
+    left: 0;
     z-index: 1;
-    width: 1.125rem;
+    width: 100%;
     height: 1.5rem;
-    translate: -50% 0;
     pointer-events: none;
-    transition: left 280ms var(--ease-in-out);
+    transition: translate 280ms var(--ease-in-out);
   }
 
   /* The dwell running out under the current row: a printed hairline in the

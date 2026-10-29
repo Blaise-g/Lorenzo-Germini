@@ -564,9 +564,18 @@ export type PawnParts = {
   ring: Mesh<RingGeometry, MeshStandardMaterial>;
 };
 
+let disc: DataTexture | null = null;
+
 /** A disc's alpha, opaque at its centre and gone at its rim: a contact
- *  shadow's softness, with no light to bake it. */
+ *  shadow's softness, with no light to bake it. One texture for every
+ *  soft thing on the board; three uploads it again if a board disposed of
+ *  it before. */
 export function softDisc() {
+  disc ??= makeSoftDisc();
+  return disc;
+}
+
+function makeSoftDisc() {
   const size = 64;
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {

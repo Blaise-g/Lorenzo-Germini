@@ -30,6 +30,7 @@ import {
   type WebGLRenderer,
 } from "three";
 
+import { smoothstep } from "./motion";
 import type { Palette } from "./palette";
 
 /* The board's post-processing (v3; the benchmark's §4(c)), pmndrs
@@ -176,7 +177,6 @@ export function gradeFor(palette: Palette, night: number): Grade {
   };
 }
 
-const smoothstep = (x: number) => x * x * (3 - 2 * x);
 const clamp01 = (x: number) => Math.min(Math.max(x, 0), 1);
 
 /** One sRGB colour through `grade`, into `out`. */

@@ -27,6 +27,26 @@ export function spring(
   );
 }
 
+/** Hermite's smoothstep over [0, 1]: eased at both ends, for a blend. */
+export function smoothstep(x: number): number {
+  return x * x * (3 - 2 * x);
+}
+
+/** `index` round a loop of `count`, never negative. */
+export function wrap(index: number, count: number): number {
+  return ((index % count) + count) % count;
+}
+
+/** A scale that squashes `squash` tall and keeps its volume, widening by
+ *  the root of its inverse, on `base` (a whole 1 by default). */
+export function squashScale(
+  squash: number,
+  base: Readonly<{ x: number; y: number; z: number }> = { x: 1, y: 1, z: 1 },
+): [number, number, number] {
+  const out = 1 / Math.sqrt(squash);
+  return [base.x * out, base.y * squash, base.z * out];
+}
+
 /** The strong ease-in-out the site's CSS uses for on-screen movement,
  *  `cubic-bezier(0.77, 0, 0.175, 1)`, close enough as a quintic. */
 export function easeInOut(t: number): number {
@@ -103,7 +123,7 @@ export function wakePose(progress: number, windowMs: number): RisePose {
 /** How many tiles the pawn moves to get from `from` to `to` on a loop of
  *  `count`, the short way round: negative is backwards along the loop. */
 export function loopSteps(from: number, to: number, count: number): number {
-  const forward = (((to - from) % count) + count) % count;
+  const forward = wrap(to - from, count);
   return forward <= count / 2 ? forward : forward - count;
 }
 
