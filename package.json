@@ -13,7 +13,6 @@
     "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
     "generate:path-cards": "bun run scripts/prepare-path-cards.ts",
     "generate:path-stills": "bun run scripts/render-path-stills.ts",
-    "prepare:path-model": "bun run scripts/prepare-path-model.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",
     "verify:hosts": "bun run scripts/verify-production-hosts.ts",

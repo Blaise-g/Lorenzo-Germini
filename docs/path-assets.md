@@ -3,8 +3,8 @@
 Every generated asset `/path` ships: the tool that made it, what it was made from, and how long it
 took to make and revise. #152's measurement report reads production and revision time from here.
 The pipeline is #141's decision 11 and research §9 (`docs/research/experience-rethink.md`). Code owns
-the style. Hunyuan3D makes the silhouettes that are hard to build in code. GPT Image, through
-Codex, makes reference images and paints the stills over grey-box renders of the coded scene.
+the style. GPT Image, through Codex, makes the board's die-cut cards and reference images. v1 also
+used Hunyuan3D for Lille's silhouettes; v2's paper board retired those meshes (see Lille below).
 
 Times are UTC, from a log written as each step started and ended. "Production" is the wall-clock
 time of the generation call itself. "Revision" counts the attempts after the first and the time
@@ -66,7 +66,13 @@ stills.
 | `public/path/stills/lille-light.webp`  | GPT Image via `codex exec -i`, then `sharp` (resize to 1464×567, WebP quality 86)                  | The light grey box; prompt: keep the composition, toy diorama, light path palette, plaque left blank | 23:51:21–23:52:20 (59 s)                                           | 1. The first call never ran: `-i` took the prompt as a second image. Re-encoded once at a higher quality (78 → 86).                                                                                            | 29.7 KB (budget 150 KB)                  |
 | `public/path/stills/lille-dark.webp`   | As above                                                                                           | The dark grey box; prompt as above with the dark path palette                                        | 23:52:20–23:53:02 (42 s)                                           | As above                                                                                                                                                                                                       | 21.8 KB (budget 150 KB)                  |
 
-Notes:
+**Retired in v2.** The board of printed cards replaced the coded Lille scene, so nothing reads the
+two Hunyuan3D meshes any more. They, `prepare:path-model` (`scripts/prepare-path-model.ts`) and its
+quantised format (`model-format.ts`) were deleted on 2026-10-29 (ticket v2-polish); the rows above
+stay as the record of how v1 was made. The reference images remain the source the belfry and Bourse
+cards were checked against.
+
+Notes (v1):
 
 - **Recoloured to the palette.** The models carry no texture, normals or colour. The runtime
   shades them flat in a palette role (`prop`) and outlines them like any coded solid, so they
@@ -107,6 +113,31 @@ the first grey boxes. The second change only evens out the outline's width, so t
 were painted over is unchanged. A third render, after the branch review, set the MVP window's label ("MVP — killed
 after customer discovery", from step 4's own line) over the window in dimmed accent, so `home-2`
 and `home-3` changed; `home-1` has no window and Lille's paintings are untouched.
+
+## Turin, Switzerland and ? (v2)
+
+The other places "How this was made" lists, from `src/data/making-of.ts`. Each URL answered 200 to
+a plain `curl -I`, no redirect, on 2026-10-29:
+
+- **The Mole Antonelliana**, Turin's landmark, for the Polytechnic of Turin's step.
+  Source: [it.wikipedia.org, Mole Antonelliana](https://it.wikipedia.org/wiki/Mole_Antonelliana).
+- **Galileo Ferraris' rotating magnetic field**, the two coils round the Mole.
+  Source: [it.wikipedia.org, Campo magnetico rotante](https://it.wikipedia.org/wiki/Campo_magnetico_rotante).
+- **Lake Geneva** and **the Jet d'Eau**, for the Switzerland step.
+  Sources: [fr.wikipedia.org, Léman](https://fr.wikipedia.org/wiki/L%C3%A9man),
+  [fr.wikipedia.org, Jet d'eau de Genève](https://fr.wikipedia.org/wiki/Jet_d%27eau_de_Gen%C3%A8ve).
+- **La Ghigliottina**, the quiz round of five clues and one word that the blank card's five empty
+  slots draw from. Source: [it.wikipedia.org, L'eredità](<https://it.wikipedia.org/wiki/L%27eredit%C3%A0_(programma_televisivo)>).
+
+## Drawn in code, not generated (v2 polish)
+
+No generated asset. Recorded so the log is complete:
+
+- **Hinge tabs.** Every card that folds up from a tile stands on a die-cut paper tab with chamfered
+  ends, its cut edge ruled and its crease scored as a slate dashed line. One 256×40 separation,
+  drawn by the runtime (`tabTexture` in `runtime.ts`); no time to make beyond the code.
+- **The ? tile** prints its name once, on the tile's front strip like every tile; the blank card
+  carries only its five empty slots.
 
 ## The board's cards (v2, comp B)
 

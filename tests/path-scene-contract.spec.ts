@@ -200,10 +200,13 @@ test.describe("what each step builds", () => {
 /* GH-141's 64 MB GPU budget, against the stage sizes the measurement report
    estimates (docs/path-measurements.md): CSS width and height of the stage. */
 test.describe("the drawing buffer", () => {
-  const MB = 1024 * 1024;
+  /* The budget's MB is a million bytes; the report's uploads were measured
+     in MiB. Mixing them is how 64.4 MB once passed as 61.4. */
+  const MB = 1000 * 1000;
+  const MiB = 1024 * 1024;
   /** The board's uploaded buffers and textures, shadow map included, from
-   *  the report: 20.2 MiB measured, rounded up. */
-  const UPLOADS = 20.5 * MB;
+   *  the report: 21.6 MiB measured, rounded up. */
+  const UPLOADS = 22 * MiB;
   const bufferBytes = (width: number, height: number, dpr: number) => {
     const ratio = drawingPixelRatio(width, height, dpr);
     return (
@@ -213,12 +216,14 @@ test.describe("the drawing buffer", () => {
     );
   };
 
-  /* The stage's CSS size at 1440×900, 2560×1440 and 375×812, measured. */
+  /* The stage's CSS size at 1440×900, 1280×720, 2560×1440 and 375×812,
+     measured. */
   test("every measured stage stays under the 64 MB budget, at ×2 and ×3", () => {
     for (const [width, height] of [
-      [976, 522],
-      [2096, 640],
-      [327, 471],
+      [1360, 782],
+      [1200, 602],
+      [2480, 1322],
+      [375, 270],
     ]) {
       for (const dpr of [2, 3]) {
         expect(

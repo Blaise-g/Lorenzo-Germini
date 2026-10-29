@@ -21,7 +21,6 @@ import {
   handAngle,
   LILLE_FIGURE,
 } from "@/components/path/scene/lille";
-import { decodeModel, encodeModel } from "@/components/path/scene/model-format";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -109,43 +108,6 @@ test.describe("the illustration", () => {
     for (const inspiration of lille.illustration.inspirations) {
       await expect(label).toContainText(inspiration);
     }
-  });
-});
-
-test.describe("the model format", () => {
-  const mesh = {
-    positions: Float32Array.from([0, 0, 0, 2, 0, 0, 0, 1, -3, 1, 1, 1]),
-    indices: Uint32Array.from([0, 1, 2, 0, 2, 3]),
-  };
-
-  test("reads back what it wrote, to within its quantisation", () => {
-    const decoded = decodeModel(encodeModel(mesh));
-    expect([...decoded.indices]).toEqual([...mesh.indices]);
-    decoded.positions.forEach((value, i) =>
-      expect(value).toBeCloseTo(mesh.positions[i], 4),
-    );
-  });
-
-  test("keeps indices past 65,535 vertices", () => {
-    const count = 70_000;
-    const positions = Float32Array.from({ length: count * 3 }, (_, i) => i);
-    const indices = Uint32Array.from([0, 65_535, count - 1]);
-    const decoded = decodeModel(encodeModel({ positions, indices }));
-    expect([...decoded.indices]).toEqual([0, 65_535, count - 1]);
-    expect(decoded.positions[(count - 1) * 3]).toBeCloseTo((count - 1) * 3, 0);
-  });
-
-  test("refuses a file that is not one, or is cut short", () => {
-    expect(() => decodeModel(new ArrayBuffer(64))).toThrow(/Not a path model/);
-    const stray = encodeModel({
-      ...mesh,
-      indices: Uint32Array.from([0, 1, 4]),
-    });
-    expect(() => decodeModel(stray)).toThrow(/past its vertices/);
-    const whole = encodeModel(mesh);
-    expect(() => decodeModel(whole.slice(0, whole.byteLength - 2))).toThrow(
-      /expected/,
-    );
   });
 });
 

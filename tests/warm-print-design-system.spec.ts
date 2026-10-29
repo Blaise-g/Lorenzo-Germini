@@ -109,7 +109,7 @@ function pathTokenNames(source: string) {
     .sort();
 }
 
-test("the three token sets each declare the six path tokens", async () => {
+test("the three token sets each declare the four path tokens", async () => {
   const css = await readFile(
     path.join(process.cwd(), "src/app/globals.css"),
     "utf8",
