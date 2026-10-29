@@ -10,7 +10,10 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
-import { FALLBACK_REASON_LINES } from "@/components/path/scene/fallback";
+import {
+  FALLBACK_REASON_LINES,
+  SCENE_FALLBACK_LINES,
+} from "@/components/path/scene/fallback";
 
 import { setTheme, themeToggle } from "./support/theme";
 
@@ -327,6 +330,73 @@ test.describe("a step whose scene is not built yet", () => {
     await flatSite.focus();
     await page.keyboard.press("Escape");
     await expect(flatSite).toBeFocused();
+  });
+});
+
+/* An exception in a scene's own code: Lille sets its figure with
+   `fillText`, so a `fillText` that throws breaks Lille's build and nothing
+   else. It is caught whether Lille builds after its models arrive or at once
+   from models it already holds, and only Lille shows its stills. */
+test.describe("a scene that fails to build", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const fillText = CanvasRenderingContext2D.prototype.fillText;
+      CanvasRenderingContext2D.prototype.fillText = function (...args) {
+        if ((window as unknown as { __failText?: boolean }).__failText) {
+          throw new Error("A scene's own code failed");
+        }
+        return fillText.apply(this, args);
+      };
+    });
+  });
+
+  const failText = (page: Page) =>
+    page.evaluate(() => {
+      (window as unknown as { __failText: boolean }).__failText = true;
+    });
+
+  async function expectSceneFailed(page: Page) {
+    await expect(stage(page)).toHaveAttribute(
+      "data-fallback-reason",
+      "scene-failed",
+    );
+    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl");
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveText(
+      SCENE_FALLBACK_LINES["scene-failed"]("Lille"),
+    );
+    await expect(page.locator("[data-path-stage] canvas")).toBeHidden();
+    await expect(buildControl(page)).toHaveCount(0);
+  }
+
+  test("after its assets load, it shows its stills and why", async ({
+    page,
+  }) => {
+    const errors: Error[] = [];
+    page.on("pageerror", (error) => errors.push(error));
+    await page.addInitScript(() => {
+      (window as unknown as { __failText: boolean }).__failText = true;
+    });
+    await page.goto("/path#lille");
+    await expectSceneFailed(page);
+    await stepLink(page, "home").click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test("built at once from held models, it shows its stills and why", async ({
+    page,
+  }) => {
+    const errors: Error[] = [];
+    page.on("pageerror", (error) => errors.push(error));
+    await page.goto("/path#lille");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await stepLink(page, "home").click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await failText(page);
+    await stepLink(page, "lille").click();
+    await expectSceneFailed(page);
+    expect(errors).toEqual([]);
   });
 });
 

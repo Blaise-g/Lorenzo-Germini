@@ -13,6 +13,7 @@ import { probeCapabilities } from "@/components/path/scene/capabilities";
 import {
   decideFallback,
   FALLBACK_REASON_LINES,
+  SCENE_FALLBACK_LINES,
   type FallbackReason,
 } from "@/components/path/scene/fallback";
 import type {
@@ -135,7 +136,10 @@ export function SceneStage({ children }: { children: ReactNode }) {
   }, [selected, show]);
 
   const withScene = hasScene(step);
-  const live = mode === "webgl" && withScene;
+  /* A scene that could not load or build shows its stills; the stage keeps
+     running for the next one. */
+  const sceneStills = mode === "webgl" ? snapshot.stills : undefined;
+  const live = mode === "webgl" && withScene && !sceneStills;
 
   /* Esc in the scene skips the build; once there is nothing to skip, it
      returns focus to the selected step in the list (storyboard §7.7). Only
@@ -169,7 +173,7 @@ export function SceneStage({ children }: { children: ReactNode }) {
         data-scene-mode={mode}
         data-build-state={buildState}
         data-scene-props={shown.length > 0 ? shown.join(" ") : undefined}
-        data-fallback-reason={reason ?? undefined}
+        data-fallback-reason={reason ?? sceneStills}
         className="relative h-[clamp(14rem,42vh,28rem)] w-full overflow-hidden"
       >
         {children}
@@ -232,6 +236,11 @@ export function SceneStage({ children }: { children: ReactNode }) {
         {mode === "fallback" && reason && withScene ? (
           <p data-path-fallback-reason className="text-faint text-xs">
             {FALLBACK_REASON_LINES[reason]}
+          </p>
+        ) : null}
+        {sceneStills && withScene ? (
+          <p data-path-fallback-reason className="text-faint text-xs">
+            {SCENE_FALLBACK_LINES[sceneStills](step.place)}
           </p>
         ) : null}
       </div>

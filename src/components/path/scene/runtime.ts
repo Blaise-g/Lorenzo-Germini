@@ -36,6 +36,7 @@ import {
   FRAME_SAMPLE_SIZE,
   type CapabilitySignals,
   type FallbackReason,
+  type SceneFallbackReason,
 } from "./fallback";
 import { decodeModel, type ModelMesh } from "./model-format";
 import { SCENES } from "./scenes";
@@ -78,6 +79,9 @@ export type SceneSnapshot = {
   /** The props in view, landed or dropping, in the scene's own order. */
   shown: readonly string[];
   turn: number;
+  /** Set when the shown scene shows its stills instead, and why; the stage
+   *  keeps running for the other scenes. */
+  stills?: SceneFallbackReason;
 };
 
 export type SceneRuntimeOptions = {
@@ -350,7 +354,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /* One fetch per model, however many `show` calls wait on it. A failed
-     one drops the stage to its stills for good. */
+     one is forgotten, so the scene's next selection fetches it again. */
   const modelLoads = new Map<string, Promise<void>>();
   function loadModel(url: string) {
     let load = modelLoads.get(url);
@@ -362,6 +366,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         })
         .then((buffer) => {
           models.set(url, decodeModel(buffer));
+        })
+        .catch((error: unknown) => {
+          modelLoads.delete(url);
+          throw error;
         });
       modelLoads.set(url, load);
     }
@@ -389,9 +397,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let turnStep = 0;
   let turnFrom = 0;
   let turnElapsed = TURN_MS;
+  let stills: SceneFallbackReason | undefined;
 
   function emit() {
-    onChange({ buildState, lit, shown, turn: turnStep });
+    onChange({ buildState, lit, shown, turn: turnStep, stills });
   }
 
   function loadScene(next: SceneDefinition | undefined) {
@@ -667,28 +676,43 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     startBuild();
   }
 
+  /* This scene shows its stills: the canvas is see-through over them and
+     holds nothing, and the next step with a scene builds as usual. */
+  function failScene(reason: SceneFallbackReason) {
+    loadScene(undefined);
+    canvas.style.opacity = "0";
+    stills = reason;
+    clearStage("idle");
+  }
+
+  /* An exception in a scene's own code is that scene's failure, whether it
+     builds at once or after its assets arrive. */
+  function buildOrFail(step: PathStep, next: SceneDefinition | undefined) {
+    try {
+      build(step, next);
+    } catch (error) {
+      console.error(error);
+      failScene("scene-failed");
+    }
+  }
+
   return {
     show(step) {
       const next = SCENES[step.sceneId];
       const request = ++showing;
-      if (!next || ready(next)) return build(step, next);
+      stills = undefined;
+      if (!next || ready(next)) return buildOrFail(step, next);
       /* Loading: the canvas is see-through, so the step's still shows, not
-         the last scene, until the assets are in. A scene that cannot get
-         them, or cannot be built from them, shows its stills. */
+         the last scene, until the assets are in. */
       loadScene(undefined);
       clearStage("loading");
       canvas.style.opacity = "0";
       prepare(next).then(
         () => {
-          if (disposed || request !== showing) return;
-          try {
-            build(step, next);
-          } catch {
-            fallBack("context-failed");
-          }
+          if (!disposed && request === showing) buildOrFail(step, next);
         },
         () => {
-          if (!disposed && request === showing) fallBack("assets-failed");
+          if (!disposed && request === showing) failScene("assets-failed");
         },
       );
     },

@@ -20,8 +20,11 @@ export type FallbackReason =
   | "performance-caveat"
   | "save-data"
   | "slow-frames"
-  | "context-lost"
-  | "assets-failed";
+  | "context-lost";
+
+/** Why one scene shows its stills while the stage keeps running: the next
+ *  step with a scene still builds. */
+export type SceneFallbackReason = "assets-failed" | "scene-failed";
 
 export const FRAME_SAMPLE_SIZE = 60;
 
@@ -40,7 +43,15 @@ export const FALLBACK_REASON_LINES: Record<FallbackReason, string> = {
   "slow-frames": "Showing stills: the scene ran too slowly on this device.",
   "context-lost":
     "Showing stills: the browser lost the scene's graphics and did not restore them.",
-  "assets-failed": "Showing stills: the scene's models did not load.",
+};
+
+/** The line under one scene's stills, naming its place. */
+export const SCENE_FALLBACK_LINES: Record<
+  SceneFallbackReason,
+  (place: string) => string
+> = {
+  "assets-failed": (place) => `Showing stills: ${place}’s models did not load.`,
+  "scene-failed": () => "Showing stills: the scene failed to build.",
 };
 
 function median(values: readonly number[]): number {

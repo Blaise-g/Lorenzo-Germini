@@ -14,6 +14,7 @@ import {
 import {
   decideFallback,
   FALLBACK_REASON_LINES,
+  SCENE_FALLBACK_LINES,
   type CapabilitySignals,
 } from "@/components/path/scene/fallback";
 import { SCENES } from "@/components/path/scene/scenes";
@@ -74,6 +75,18 @@ test.describe("the fallback decision", () => {
     for (const line of Object.values(FALLBACK_REASON_LINES)) {
       expect(line).toMatch(/^Showing stills: /);
     }
+    for (const line of Object.values(SCENE_FALLBACK_LINES)) {
+      expect(line("Lille")).toMatch(/^Showing stills: /);
+    }
+  });
+
+  test("a scene's failed assets are named as that scene's", () => {
+    expect(SCENE_FALLBACK_LINES["assets-failed"]("Lille")).toContain(
+      "Lille’s models",
+    );
+    expect(SCENE_FALLBACK_LINES["scene-failed"]("Lille")).toContain(
+      "the scene failed to build",
+    );
   });
 });
 

@@ -14,7 +14,7 @@ import { BoxGeometry, Group, Mesh, type Object3D } from "three";
 
 import { buildPlan, stillsFor } from "@/components/path/scene/build-plan";
 import type { SceneKit } from "@/components/path/scene/definition";
-import { FALLBACK_REASON_LINES } from "@/components/path/scene/fallback";
+import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
 import {
   HAND_END_ANGLE,
   handAngle,
@@ -305,19 +305,27 @@ test.describe("on /path", () => {
     );
   });
 
-  test("a model that does not load shows Lille's still and says why", async ({
+  /* An asset failure is Lille's alone: the stage keeps running, so home
+     still builds, and the line names Lille's models. */
+  test("a model that does not load shows Lille's still and says why, and home still builds", async ({
     page,
   }) => {
     await page.route("**/path/models/**", (route) => route.abort());
     await page.goto("/path#lille");
-    await expect(stage(page)).toHaveAttribute("data-scene-mode", "fallback");
     await expect(stage(page)).toHaveAttribute(
       "data-fallback-reason",
       "assets-failed",
     );
+    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "idle");
     await expect(page.locator("[data-path-fallback-reason]")).toHaveText(
-      FALLBACK_REASON_LINES["assets-failed"],
+      SCENE_FALLBACK_LINES["assets-failed"](lille.place),
     );
+    await expect(page.locator("[data-path-fallback-reason]")).toContainText(
+      "Lille",
+    );
+    await expect(page.locator("[data-path-build-control]")).toHaveCount(0);
+    await expect(page.locator("[data-path-stage] canvas")).toBeHidden();
     const still = page.locator(
       '[data-path-backdrop="lille"] [data-path-still="light"]',
     );
@@ -325,5 +333,17 @@ test.describe("on /path", () => {
     await expect
       .poll(() => still.evaluate((img: HTMLImageElement) => img.naturalWidth))
       .toBeGreaterThan(0);
+
+    await page.locator('[data-path-step-link="home"]').click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
+    await expect(page.locator("[data-path-stage] canvas")).toBeVisible();
+
+    /* A return asks for the models again, and gets them this time. */
+    await page.unroute("**/path/models/**");
+    await page.locator('[data-path-step-link="lille"]').click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
   });
 });
