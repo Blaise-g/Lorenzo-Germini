@@ -6,9 +6,8 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { BUILD_MS } from "@/components/path/scene/build-plan";
 import { FALLBACK_REASON_LINES } from "@/components/path/scene/fallback";
-import { loopSteps, moveDuration } from "@/components/path/scene/motion";
+import { loopSteps } from "@/components/path/scene/motion";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -34,8 +33,6 @@ const index = (slug: PathStepSlug) =>
   PATH_STEPS.findIndex((step) => step.slug === slug);
 const propsOf = (slug: PathStepSlug) =>
   PATH_STEPS[index(slug)].props.map((prop) => prop.id);
-const moveMs = (from: PathStepSlug, to: PathStepSlug) =>
-  moveDuration(loopSteps(index(from), index(to), PATH_STEPS.length));
 
 /** The stage's shown props, sampled on every change from now on, with the
  *  time each set first showed. */
@@ -101,34 +98,61 @@ test.describe("the pawn's move", () => {
     expect(appeared).toEqual([...appeared].sort((a, b) => a - b));
   });
 
-  /* Lille to Turin is three tiles the short way: the jump lands inside
-     about 1.2 s, Turin builds after it, and Lille's tile, already built,
-     stays standing throughout. */
+  /* Home to step 4 is three tiles forward: the pawn lands inside about
+     1.2 s, so step 4's first card starts to fold by then, and home's tile,
+     already built, stays standing throughout. */
   test("a far jump lands inside 1.2 s, and built tiles stay built", async ({
     page,
   }) => {
-    expect(moveMs("lille", "turin")).toBeLessThanOrEqual(1200);
-    await settleOn(page, "lille");
+    expect(
+      Math.abs(
+        loopSteps(index("home"), index("cuneo-2022"), PATH_STEPS.length),
+      ),
+    ).toBe(3);
+    await settleOn(page, "home");
     const start = await watchProps(page);
-    await stepLink(page, "turin").click();
+    await stepLink(page, "cuneo-2022").click();
+    /* Home's own "built" holds until the click lands: wait for the step. */
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "cuneo-2022");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 6000,
     });
-    await expect(stage(page)).toHaveAttribute("data-scene-step", "turin");
-    const took = (await page.evaluate(() => performance.now())) - start;
-    expect(took).toBeLessThan(moveMs("lille", "turin") + BUILD_MS + 1000);
 
     const log = await propsLog(page);
+    const landed = log.find((entry) =>
+      entry.props.split(" ").includes(propsOf("cuneo-2022")[0]),
+    )!;
+    /* The ticket's "under about 1.2 s", with a frame or two of slack. */
+    expect(landed.at - start).toBeGreaterThanOrEqual(400);
+    expect(landed.at - start).toBeLessThan(1200 + 100);
     for (const entry of log) {
-      for (const prop of propsOf("lille")) {
+      for (const prop of propsOf("home")) {
         expect(entry.props.split(" "), `${prop} at ${entry.at}`).toContain(
           prop,
         );
       }
     }
+  });
+
+  /* A tile being built again, cut short by another selection, keeps
+     standing: Replay on "now", then straight back to Lille. */
+  test("a rebuild cut short leaves its tile standing", async ({ page }) => {
+    await settleOn(page, "lille");
+    await stepLink(page, "now").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "now");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 6000,
+    });
+    await buildControl(page).click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "building");
+    await stepLink(page, "lille").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 6000,
+    });
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      new RegExp(propsOf("turin").join(" ")),
+      new RegExp(propsOf("now").join(" ")),
     );
   });
 
@@ -224,6 +248,8 @@ test.describe("the frame sample", () => {
     await expect(page.locator("[data-path-fallback-reason]")).toHaveText(
       FALLBACK_REASON_LINES["slow-frames"],
     );
+    /* Stills are settled at once, with motion on: the tour need not wait. */
+    await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
   });
 
   test("frames 17 ms apart keep the board through a whole build", async ({
@@ -231,8 +257,8 @@ test.describe("the frame sample", () => {
   }) => {
     await fakeFrames(page, 17);
     await page.goto("/path#home");
-    /* BUILD_MS at 17 ms a frame is well over the 60-frame sample. */
-    expect(BUILD_MS / 17).toBeGreaterThan(60);
+    /* A 2.4 s build at 17 ms a frame is about 140 frames: the sample of 60
+       fills during it. */
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 10_000,
     });

@@ -106,6 +106,8 @@ const CAMERA_ELEVATION = 0.64;
 const FRAME_FILL = { x: 0.95, y: 0.9 } as const;
 /** Each card after the first in a prop folds this much later. */
 const CARD_STAGGER_MS = 110;
+/** However many cards a prop has, the last starts with time left to fold. */
+const MAX_CARD_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, folds from part-way back: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REFOLD_FROM = 0.42;
@@ -294,7 +296,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /* Everything the board allocates, for `dispose`. */
   const geometries = new Set<BufferGeometry>();
   const materials = new Set<Material>();
-  const textures = new Set<Texture>();
+  const textures = new Set<Texture>([colours.grain.value!]);
 
   function own<T extends BufferGeometry>(geometry: T) {
     geometries.add(geometry);
@@ -744,6 +746,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /* ─── Loading ─── */
 
   let prepared = false;
+  /** The one `prepare` in flight: a second show while it runs waits on it. */
+  let preparing: Promise<void> | undefined;
 
   async function loadFiles(files: readonly string[]) {
     /* Trees are shared between tiles: each file is fetched once. */
@@ -777,7 +781,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       loadGrain().then(
         (texture) => {
           if (disposed) return texture.dispose();
-          colours.grain.value?.dispose();
           colours.grain.value = texture;
           textures.add(texture);
         },
@@ -847,7 +850,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         const local =
           elapsed === "up"
             ? 1
-            : (elapsed - piece.delay) / (PROP_DROP_MS - piece.delay);
+            : (elapsed - Math.min(piece.delay, MAX_CARD_DELAY_MS)) /
+              (PROP_DROP_MS - Math.min(piece.delay, MAX_CARD_DELAY_MS));
         const pose = foldPose(local, PROP_DROP_MS);
         /* A tile built again never vanishes: it leans back part-way and
            springs up from there. */
@@ -904,7 +908,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
   }
 
-  const pawnPosition = new Vector3();
   function posePawn() {
     if (!pawnAt) {
       pawn.visible = false;
@@ -919,7 +922,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         move.steps,
         move.elapsed / move.duration,
       );
-      const from = LOOP.indexOf(move.from);
+      const from = stepIndex(move.from);
       const base = Math.floor(Math.abs(along)) * Math.sign(along);
       const at = (offset: number) =>
         LOOP[(((from + offset) % LOOP.length) + LOOP.length) % LOOP.length];
@@ -941,8 +944,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const squash = landingSquash(landingElapsed);
       pawn.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
     }
-    pawnPosition.set(x, y, z);
-    pawn.position.copy(pawnPosition);
+    pawn.position.set(x, y, z);
   }
 
   function finish() {
@@ -1086,6 +1088,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     focusFrom = focus.clone();
     focusTo = target;
     focusElapsed = instant ? FOCUS_MS : 0;
+    /* An instant lean is no frame's job: aim now. */
+    if (instant) aim();
   }
 
   /* ─── The frame loop: runs only while something is moving ─── */
@@ -1270,9 +1274,25 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let showing = 0;
   let disposed = false;
 
+  /** Leaves a build that another selection cuts short: a tile being built
+   *  again keeps standing, as it stood before, and a pawn in the air lands
+   *  on the tile it is over, so the next move starts from there. */
+  function abandon() {
+    if (buildState === "building" && refold && current) built.add(current);
+    refold = false;
+    if (move) {
+      const { along } = movePose(move.steps, move.elapsed / move.duration);
+      const from = stepIndex(move.from);
+      const over = (from + Math.round(along)) % LOOP.length;
+      pawnAt = LOOP[(over + LOOP.length) % LOOP.length];
+      move = undefined;
+    }
+  }
+
   /* This step's tile shows its stills: the canvas is see-through over them,
      and the next step with a tile builds as usual. */
   function failScene(step: PathStep, reason: SceneFallbackReason) {
+    abandon();
     canvas.style.opacity = "0";
     stills = { reason, slug: step.slug };
     current = step.slug;
@@ -1284,14 +1304,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function build(step: PathStep) {
+    abandon();
     canvas.style.opacity = "";
     stills = undefined;
     const slug = step.slug;
     const first = !pawnAt;
     plan = buildPlan(step);
-    const passed = new Set(
-      PATH_STEPS.slice(0, stepIndex(slug)).map((other) => other.slug),
-    );
+    const passed = new Set(LOOP.slice(0, stepIndex(slug)));
 
     if (reducedMotion) {
       /* Reduced motion is a designed state: the whole board built, the pawn
@@ -1363,6 +1382,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (prepared && retry.length === 0) return buildOrFail(step);
       /* Loading: the canvas is see-through, so the step's still shows until
          the art is in. */
+      abandon();
       canvas.style.opacity = "0";
       stills = undefined;
       current = step.slug;
@@ -1371,7 +1391,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       shown = [];
       buildState = "loading";
       emit();
-      const ready = prepared ? loadFiles(retry) : prepare();
+      const ready = prepared ? loadFiles(retry) : (preparing ??= prepare());
       ready.then(
         () => {
           if (disposed || request !== showing) return;
@@ -1416,7 +1436,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     setReducedMotion(reduced) {
       reducedMotion = reduced;
-      if (reduced && buildState === "building") finish();
+      if (!reduced || !plan) return;
+      /* Reduced motion's designed state is the whole board built. */
+      for (const tile of tiles.keys()) built.add(tile);
+      catchingUp.clear();
+      finish();
     },
     dispose() {
       disposed = true;
@@ -1430,6 +1454,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       for (const geometry of geometries) geometry.dispose();
       for (const material of materials) material.dispose();
       for (const texture of textures) texture.dispose();
+      for (const texture of [...textures, ...cardTextures.values()]) {
+        /* A decoded card is an ImageBitmap, which `dispose` leaves open. */
+        const bitmap = texture.source.data as Partial<ImageBitmap> | null;
+        bitmap?.close?.();
+      }
       for (const texture of cardTextures.values()) texture.dispose();
       table.geometry.dispose();
       tableMaterial.dispose();

@@ -9,6 +9,7 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { buildPlan } from "@/components/path/scene/build-plan";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import {
@@ -54,10 +55,8 @@ const stepNamed = (slug: PathStepSlug) =>
 /** Every prop on the board up to and including `slug`'s, in the data's
  *  order: what stands once the pawn has reached its tile. */
 function propsThrough(slug: PathStepSlug) {
-  const index = PATH_STEPS.findIndex((step) => step.slug === slug);
-  return PATH_STEPS.slice(0, index + 1)
-    .flatMap((step) => step.props.map((prop) => prop.id))
-    .join(" ");
+  const plan = buildPlan(PATH_STEPS.find((step) => step.slug === slug)!);
+  return [...plan.standing, ...plan.building.map((prop) => prop.id)].join(" ");
 }
 
 /** The caption lines a step's props light, as the overlay root lists them. */

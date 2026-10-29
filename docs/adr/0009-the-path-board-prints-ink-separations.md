@@ -10,8 +10,8 @@ ADR-0008, and its art is generated rather than drawn by hand, so it will be rege
 What ships:
 
 - **A card's texture is an ink separation, not a picture.** R is the terracotta ink's coverage,
-  G the slate blue's, A the die-cut mask with its white margin, and B is unused: six of the
-  cards are lossy WebP, so B is never read. The same shape covers the cards
+  G the slate blue's, A the die-cut mask with its white margin, and B is unused: the shader
+  never samples it, so the lossy encoding six of the cards use may leave it off zero. The same shape covers the cards
   (`public/path/cards/`, whose manifest is `card-art.ts`) and the board's own prints: tile tops,
   plaques, the MVP tag and the pawn, all drawn in code on three canvases and merged
   (`drawnInk` in `ink.ts`).
@@ -21,6 +21,10 @@ What ships:
   stock's grain from `grain.webp`, tiled at one size in scene units; a round-dot screen at each
   ink's own angle, in the mid-tones only; and each ink a hair off register. A card fading in is
   dithered rather than blended, so the board needs no sorting and its shadows stay crisp.
+- **A card's white cut edge is its art's margin; its thickness is stock a shade darker.** The
+  die-cut mask carries the white margin round every shape, and the card's back layer, a hair
+  behind it, prints bare stock at 86% so the cut reads as a thickness against the face. Pure
+  white there would glow on dark stock.
 - **The path tokens are the stock, the two inks and the table:** `--path-paper`,
   `--path-ink-warm`, `--path-ink-cool` and `--path-fog`, in all three `globals.css` blocks. They
   replace ADR-0008's six (`--path-ground`, `--path-tile`, `--path-prop`, `--path-accent`,

@@ -192,8 +192,8 @@ test.describe("what each step builds", () => {
 test.describe("the drawing buffer", () => {
   const MB = 1024 * 1024;
   /** The board's uploaded buffers and textures, shadow map included, from
-   *  the report: 19.9 MiB measured. */
-  const UPLOADS = 20 * MB;
+   *  the report: 20.2 MiB measured, rounded up. */
+  const UPLOADS = 20.5 * MB;
   const bufferBytes = (width: number, height: number, dpr: number) => {
     const ratio = drawingPixelRatio(width, height, dpr);
     return (

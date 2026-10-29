@@ -12,7 +12,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
 
-import { stillsFor } from "@/components/path/scene/build-plan";
+import { buildPlan, stillsFor } from "@/components/path/scene/build-plan";
 import { CARD_ART } from "@/components/path/scene/card-art";
 import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
 import { GRAIN_FILE } from "@/components/path/scene/ink";
@@ -23,6 +23,7 @@ import {
 } from "@/components/path/scene/lille";
 import { decodeModel, encodeModel } from "@/components/path/scene/model-format";
 import { PATH_STEPS } from "@/data/path";
+import type { PathStepSlug } from "@/data/path.types";
 
 /* The board draws on this machine's GPU (Metal through ANGLE), not the
    headless default, SwiftShader: five workers sharing one software
@@ -47,11 +48,9 @@ const overlay = (page: Page) => page.locator("[data-path-overlay]");
 
 /** Every prop on the board up to and including `slug`'s, in the data's
  *  order: what stands once the pawn has reached its tile. */
-function propsThrough(slug: string) {
-  const index = PATH_STEPS.findIndex((step) => step.slug === slug);
-  return PATH_STEPS.slice(0, index + 1)
-    .flatMap((step) => step.props.map((prop) => prop.id))
-    .join(" ");
+function propsThrough(slug: PathStepSlug) {
+  const plan = buildPlan(PATH_STEPS.find((step) => step.slug === slug)!);
+  return [...plan.standing, ...plan.building.map((prop) => prop.id)].join(" ");
 }
 
 /* §9 and §11's budgets. */
