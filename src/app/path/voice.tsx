@@ -1,59 +1,72 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useSyncExternalStore } from "react";
+import type { ReactNode } from "react";
 
-import { PATH_STEPS } from "@/data/path";
-import type { PathStepSlug } from "@/data/path.types";
-import { DEFAULT_STEP, readStorage, stepFromFragment } from "@/lib/path-state";
+import { fragmentForStep, readStorage } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
+import { cn } from "@/lib/utils";
 
 import { VOICE_COPY } from "./copy";
-import { CONTROL_CLASS_NAME } from "./scene-stage";
-import { useSetNarrating } from "./tour";
-import { VOICE_CHANGE_EVENT, VOICE_STORAGE_KEY } from "./voice-manifest";
+import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
+import { useNarrationCue } from "./stage-status";
+import { useNarrationPlayhead } from "./tour";
+import {
+  CAPTIONS_CHANGE_EVENT,
+  CAPTIONS_STORAGE_KEY,
+  VOICE_CHANGE_EVENT,
+  VOICE_STORAGE_KEY,
+} from "./voice-manifest";
 
-/* The voice on `/path` (GH-150; GH-141, decision 9; storyboard §7.6). Off by
-   default: "Listen" plays the selected step's clip, and the Voice switch,
-   remembered in local storage, plays the clip of each step selected after it
-   is on. Nothing plays on load: a refresh or a shared link never starts a
-   voice (decision 13), so the switch answers `hashchange` — a selection, a
-   Back, or the tour moving on — and not the selected step itself, which
-   hydration also changes. And only once the visitor has pressed, clicked or
-   tapped something in this visit: the tour moves on by itself, and a
-   remembered switch must not start a voice on a page nobody has touched yet.
-   The audio element has no source until a clip is first played, so a visit
-   that never listens fetches no audio. */
+/* The narration on `/path` (GH-150; v3): the voice, the caption line under
+   the board, and their switches. The tour's clock leads; the voice follows
+   it. While the tour plays a step's narration, the caption line shows the
+   cue it is on and, with the Voice switch on, the step's clip plays from the
+   same point, so pausing, skipping or switching the voice on part-way keeps
+   the two together.
 
-type Status = "idle" | "loading" | "playing" | "paused" | "blocked" | "failed";
+   Nothing plays on load, and nothing before the visitor has pressed, clicked,
+   tapped or typed on the page in this visit (decision 13): a refresh, a
+   shared link or a remembered switch must not start a voice on a page nobody
+   has touched. Until then the tour runs on captions, and the first press —
+   Play, the Voice switch, anything — lets the voice join at the current
+   step. The audio element has no source until a clip first plays, so a visit
+   that never listens fetches no audio.
 
-/* What the primary control says, and the line under the label, per status. */
-const PRIMARY_LABEL: Record<Status, string> = {
-  idle: VOICE_COPY.listen,
-  loading: VOICE_COPY.loading,
-  playing: VOICE_COPY.pause,
-  paused: VOICE_COPY.resume,
-  blocked: VOICE_COPY.play,
-  failed: VOICE_COPY.listen,
-};
+   The captions are on by default whenever the voice cannot be heard — off,
+   not yet allowed, or held back by the browser — so the tour is never both
+   silent and textless unless the visitor chose it. A choice either way is
+   remembered. */
 
-const MESSAGE: Partial<Record<Status, string>> = {
-  blocked: VOICE_COPY.blocked,
-  failed: VOICE_COPY.failed,
-};
+type VoiceState = "off" | "waiting" | "playing" | "paused" | "blocked";
 
-function subscribeToVoice(onChange: () => void) {
-  window.addEventListener("storage", onChange);
-  window.addEventListener(VOICE_CHANGE_EVENT, onChange);
-  return () => {
-    window.removeEventListener("storage", onChange);
-    window.removeEventListener(VOICE_CHANGE_EVENT, onChange);
+/** A clip and the voice drifting further apart than this, the clip is moved
+ *  back onto the tour's clock: about a syllable. */
+const MAX_DRIFT_MS = 250;
+
+function subscribeTo(event: string) {
+  return (onChange: () => void) => {
+    window.addEventListener("storage", onChange);
+    window.addEventListener(event, onChange);
+    return () => {
+      window.removeEventListener("storage", onChange);
+      window.removeEventListener(event, onChange);
+    };
   };
+}
+
+const subscribeToVoice = subscribeTo(VOICE_CHANGE_EVENT);
+const subscribeToCaptions = subscribeTo(CAPTIONS_CHANGE_EVENT);
+
+function store(key: string, event: string, value: string | null) {
+  try {
+    if (value === null) window.localStorage.removeItem(key);
+    else window.localStorage.setItem(key, value);
+  } catch {
+    /* Unavailable storage: the switch lasts as long as nothing. */
+  }
+  window.dispatchEvent(new Event(event));
 }
 
 function useVoiceSwitch(): [boolean, (on: boolean) => void] {
@@ -62,206 +75,272 @@ function useVoiceSwitch(): [boolean, (on: boolean) => void] {
     () => readStorage(VOICE_STORAGE_KEY) === "on",
     () => false,
   );
-  const set = useCallback((next: boolean) => {
-    try {
-      if (next) window.localStorage.setItem(VOICE_STORAGE_KEY, "on");
-      else window.localStorage.removeItem(VOICE_STORAGE_KEY);
-    } catch {
-      /* Unavailable storage: the switch lasts as long as nothing. */
-    }
-    window.dispatchEvent(new Event(VOICE_CHANGE_EVENT));
-  }, []);
+  const set = useCallback(
+    (next: boolean) =>
+      store(VOICE_STORAGE_KEY, VOICE_CHANGE_EVENT, next ? "on" : null),
+    [],
+  );
   return [on, set];
 }
 
-/** The step a `hashchange` selected, as `useSelectedStep` reads it: none for
- *  a fragment that names no step, which keeps the last selection. Mirrors
- *  `fragmentStep` in `use-path-state.ts`; a change there belongs here too. */
-function selectedByFragment(): PathStepSlug | undefined {
-  const { hash } = window.location;
-  return hash === "" || hash === "#" ? DEFAULT_STEP : stepFromFragment(hash);
+/** The visitor's Captions choice, or null before they have made one. */
+function useCaptionsChoice(): [boolean | null, (on: boolean) => void] {
+  const stored = useSyncExternalStore(
+    subscribeToCaptions,
+    () => readStorage(CAPTIONS_STORAGE_KEY),
+    () => null,
+  );
+  const set = useCallback(
+    (next: boolean) =>
+      store(CAPTIONS_STORAGE_KEY, CAPTIONS_CHANGE_EVENT, next ? "on" : "off"),
+    [],
+  );
+  return [stored === "on" ? true : stored === "off" ? false : null, set];
 }
 
-/** Whether the visitor has pressed, clicked, tapped or typed on the page in
- *  this visit. Counted here rather than read from `navigator.userActivation`,
- *  which an automated navigation can already have set. */
-let pressed = false;
+/** Whether the visitor has clicked, tapped or typed on the page in this
+ *  visit. Counted here rather than read from `navigator.userActivation`,
+ *  which an automated navigation can already have set. Module state, so a
+ *  client-side return to `/path` keeps it. Counted a task after the press,
+ *  once the press's own handlers have run: React renders and runs effects
+ *  for a press's capture phase before its button's `onClick`, so a first
+ *  press on Pause would otherwise start the voice before pausing it. The
+ *  browser's activation outlasts the wait. */
+let pressedInVisit = false;
 
-export function VoiceControls({
-  clips,
-  providerName,
+function usePressed(onPress: () => void): boolean {
+  const [pressed, setPressed] = useState(pressedInVisit);
+  const onPressRef = useRef(onPress);
+  useEffect(() => {
+    onPressRef.current = onPress;
+  }, [onPress]);
+  useEffect(() => {
+    let timer = 0;
+    function press() {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        pressedInVisit = true;
+        setPressed(true);
+        onPressRef.current();
+      });
+    }
+    window.addEventListener("pointerdown", press, true);
+    window.addEventListener("keydown", press, true);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", press, true);
+      window.removeEventListener("keydown", press, true);
+    };
+  }, []);
+  return pressed;
+}
+
+function Switch({
+  checked,
+  onChange,
+  children,
+  ...data
 }: {
-  /** Each clip's URL, by step; a step without one has no narration yet. */
-  clips: Partial<Record<PathStepSlug, string>>;
-  providerName: string;
+  checked: boolean;
+  onChange: (on: boolean) => void;
+  children: ReactNode;
+} & Record<`data-${string}`, string | boolean>) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      {...data}
+      className="group touch-target text-faint hover:text-ink font-label transition-refined inline-flex items-center gap-2 text-xs tracking-[0.12em] uppercase"
+      onClick={() => onChange(!checked)}
+    >
+      <span
+        aria-hidden
+        className="border-border group-aria-checked:border-accent group-aria-checked:bg-accent relative inline-flex h-4 w-7 items-center rounded-full border transition-colors"
+      >
+        <span className="bg-faint group-aria-checked:bg-accent-foreground absolute left-0.5 size-2.5 rounded-full transition-transform group-aria-checked:translate-x-3" />
+      </span>
+      {children}
+    </button>
+  );
+}
+
+const subscribeToNothing = () => () => {};
+
+/** The caption line, the tour's transport (`transport`), and the Voice and
+ *  Captions switches, as one bar under the board. */
+export function NarrationBar({
+  transport,
+  className,
+}: {
+  transport: ReactNode;
+  className?: string;
 }) {
   const { selected } = useSelectedStep();
+  const cue = useNarrationCue();
+  const playhead = useNarrationPlayhead();
   const [voiceOn, setVoiceOn] = useVoiceSwitch();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  /* The step whose clip is in the element, read by handlers that run before
-     React re-renders. */
-  const loadedRef = useRef<PathStepSlug | null>(null);
-  const [loaded, setLoaded] = useState<PathStepSlug | null>(null);
-  const [status, setStatus] = useState<Status>("idle");
-  const setNarrating = useSetNarrating();
-
-  const play = useCallback(
-    (slug: PathStepSlug) => {
-      const audio = audioRef.current;
-      const src = clips[slug];
-      if (!audio || !src) return;
-      /* A clip that failed is fetched again rather than replayed as failed. */
-      if (loadedRef.current !== slug || audio.error) {
-        loadedRef.current = slug;
-        setLoaded(slug);
-        audio.src = src;
-      }
-      /* Until it plays, it is loading, and Stop can cancel it. */
-      setStatus("loading");
-      audio.play().then(
-        () => setStatus("playing"),
-        (error: unknown) => {
-          const name = error instanceof DOMException ? error.name : "";
-          /* A newer source or a pause interrupted it: nothing to report. */
-          if (name === "AbortError") return;
-          /* Autoplay held it back, as it can for a switch-started clip on a
-             Back: the visitor's own press on Play is allowed. */
-          setStatus(name === "NotAllowedError" ? "blocked" : "failed");
-        },
-      );
-    },
-    [clips],
+  const [captionsChoice, setCaptions] = useCaptionsChoice();
+  /* Held back by the browser, or a clip that did not load: the voice waits
+     for the next press, and the captions stand in. */
+  const [blocked, setBlocked] = useState(false);
+  const pressed = usePressed(useCallback(() => setBlocked(false), []));
+  const hydrated = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
   );
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
 
-  const stop = useCallback(() => {
+  const narration = narrationFor(selected);
+  const src = narration.clip.src;
+  const audible = voiceOn && pressed && !blocked && src !== undefined;
+  const narrating = cue?.running ?? false;
+
+  /* The clip plays while the tour narrates the step, from where the tour
+     is. Anything else — a pause, a new step, the narration's end, the voice
+     switched off — stops it where it is. */
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    /* Idle before the pause event arrives, so it leaves this alone. */
-    setStatus("idle");
-    audio.pause();
-    audio.currentTime = 0;
-  }, []);
-
-  /* After hydration a selection is a `hashchange`, so it is the one place a
-     clip is stopped and started. A clip belongs to its step: selecting
-     another stops it, and with the switch on, starts the new step's. */
-  useEffect(() => {
-    function onHashChange() {
-      const slug = selectedByFragment();
-      if (!slug) return;
-      if (loadedRef.current !== null && loadedRef.current !== slug) stop();
-      if (voiceOn && pressed) play(slug);
+    if (!audible || !narrating || !src) {
+      audio.pause();
+      return;
     }
-    window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
-  }, [voiceOn, play, stop]);
+    if (audio.getAttribute("src") !== src) audio.src = src;
+    /* A clip that failed is fetched again rather than replayed as failed. */ else if (
+      audio.error
+    )
+      audio.load();
+    audio.currentTime = playhead() / 1000;
+    audio.play().catch((error: unknown) => {
+      /* A newer source or a pause interrupted it: nothing to report. */
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setBlocked(true);
+    });
+  }, [audible, narrating, src, selected, playhead]);
 
-  useEffect(() => {
-    const onPress = () => {
-      pressed = true;
-    };
-    window.addEventListener("pointerdown", onPress, true);
-    window.addEventListener("keydown", onPress, true);
-    return () => {
-      window.removeEventListener("pointerdown", onPress, true);
-      window.removeEventListener("keydown", onPress, true);
-    };
-  }, []);
+  useEffect(() => () => audioRef.current?.pause(), []);
 
-  /* While a clip is reading, the tour waits for it to finish before moving
-     on from its step. Not while it loads: a load that hangs must not hold
-     the tour for good. */
-  useEffect(() => {
-    setNarrating(status === "playing" ? loaded : null);
-  }, [status, loaded, setNarrating]);
-
-  const hasClip = clips[selected] !== undefined;
-  /* What the controls show for the selected step: another step's clip,
-     stopped when it was deselected, is not this one's. */
-  const shown: Status = loaded === selected ? status : "idle";
-  const playing = shown === "playing";
-  /* A step with no clip says nothing of it here: the label under the
-     controls says once that some steps have none, and Listen is faint. */
-  const message = MESSAGE[shown] ?? "";
+  const captionsOn = captionsChoice ?? !audible;
+  const state: VoiceState = !voiceOn
+    ? "off"
+    : blocked
+      ? "blocked"
+      : !pressed
+        ? "waiting"
+        : playing
+          ? "playing"
+          : "paused";
+  const message =
+    state === "waiting"
+      ? VOICE_COPY.waiting
+      : state === "blocked"
+        ? VOICE_COPY.blocked
+        : "";
+  const caption =
+    hydrated && captionsOn && cue
+      ? narrationFor(cue.slug).cues[cue.index].text
+      : "";
 
   return (
-    <div data-path-voice data-voice-state={shown} className="print:hidden">
+    /* The cue, as attributes too: what the board reads from
+       `useNarrationCue`, where a spec or a reader of the DOM can see it. */
+    <div
+      data-path-narration
+      data-path-cue={cue?.index}
+      data-path-cue-prop={cue?.prop ?? undefined}
+      data-path-cue-running={cue?.running ? "" : undefined}
+      data-path-captions={captionsOn ? "on" : "off"}
+      className={cn(
+        "path-card flex flex-col gap-y-3 px-5 py-4 md:px-6 xl:flex-row xl:items-center xl:gap-x-6",
+        className,
+      )}
+    >
       <audio
         ref={audioRef}
         preload="none"
         data-path-voice-audio
-        /* A pause of a playing clip lands here, whoever asked for it: Pause,
-           the end of the clip, the system's media keys. Stop has already
-           made it idle. */
-        onPause={(event) => {
-          const { ended } = event.currentTarget;
-          setStatus((current) =>
-            current === "playing" ? (ended ? "idle" : "paused") : current,
-          );
+        onPlaying={(event) => {
+          setPlaying(true);
+          /* Loading took time the tour's clock did not wait for: catch up. */
+          const audio = event.currentTarget;
+          const behind = playhead() - audio.currentTime * 1000;
+          if (Math.abs(behind) > MAX_DRIFT_MS) {
+            audio.currentTime = playhead() / 1000;
+          }
         }}
-        onError={() => setStatus("failed")}
+        onPause={() => setPlaying(false)}
+        onError={() => {
+          setPlaying(false);
+          setBlocked(true);
+        }}
       />
-      <div className="flex h-11 items-center gap-6">
-        <button
-          type="button"
-          data-path-voice-primary
-          disabled={!hasClip}
-          className={CONTROL_CLASS_NAME}
-          onClick={() => {
-            /* Not disabled while loading: a focused control that turns
-               disabled drops keyboard focus to the page. */
-            if (shown === "loading") return;
-            if (playing) audioRef.current?.pause();
-            else play(selected);
-          }}
+      <div className="min-w-0 flex-1">
+        {/* Two lines held open, so a longer cue does not move the board. */}
+        <p
+          data-path-caption
+          suppressHydrationWarning
+          className="path-caption font-display text-ink text-base leading-snug text-pretty lg:text-lg"
         >
-          {PRIMARY_LABEL[shown]}
-        </button>
-        <button
-          type="button"
-          data-path-voice-stop
-          className={CONTROL_CLASS_NAME}
-          /* Always pressable (storyboard §7.6), and never disabled, so focus
-             stays on it after a press. With nothing loaded it does nothing,
-             so it says so, and is printed faint rather than as live as
-             Listen. */
-          aria-disabled={shown === "idle" ? true : undefined}
-          onClick={stop}
+          {caption}
+        </p>
+        {/* The step's full text, on the flat site. Printed only once
+            hydrated, when the selected step is known: the server cannot see
+            the fragment, and without JavaScript the text is on the page
+            anyway. Its space is held either way. */}
+        <a
+          href={hydrated ? `/${fragmentForStep(selected)}` : undefined}
+          data-path-read-step
+          className={cn(
+            "path-quiet-control text-faint font-label mt-1 inline-block text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4",
+            !hydrated && "invisible",
+          )}
         >
-          {VOICE_COPY.stop}
-        </button>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={voiceOn}
-          data-path-voice-switch
-          className="group touch-target text-faint hover:text-ink font-label transition-refined ml-auto inline-flex items-center gap-2 text-xs tracking-[0.12em] uppercase"
-          onClick={() => setVoiceOn(!voiceOn)}
-        >
-          <span
-            aria-hidden
-            className="border-border group-aria-checked:border-accent group-aria-checked:bg-accent relative inline-flex h-4 w-7 items-center rounded-full border transition-colors"
-          >
-            <span className="bg-faint group-aria-checked:bg-accent-foreground absolute left-0.5 size-2.5 rounded-full transition-transform group-aria-checked:translate-x-3" />
-          </span>
-          {VOICE_COPY.voiceSwitch}
-        </button>
+          {VOICE_COPY.readStep}
+        </a>
       </div>
-      <p data-path-voice-label className="text-faint text-xs">
-        {VOICE_COPY.label(
-          providerName,
-          PATH_STEPS.every((step) => clips[step.slug] !== undefined),
-        )}
-      </p>
-      {/* One line, held open, so a message arriving does not move the text
-          panel under it. */}
-      <p
-        aria-live="polite"
-        data-path-voice-message
-        className="text-faint min-h-[1lh] text-xs"
-      >
-        {message}
-      </p>
+      {/* Under the caption, side by side where they fit; in the caption's
+          row from `xl`, where it keeps two lines' width. */}
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-3 xl:contents">
+        <div data-path-tour-keys className="shrink-0">
+          {transport}
+        </div>
+        <div
+          data-path-voice
+          data-voice-state={state}
+          className="flex shrink-0 flex-col xl:w-56"
+        >
+          <div className="flex items-center gap-x-6">
+            <Switch
+              checked={voiceOn}
+              onChange={setVoiceOn}
+              data-path-voice-switch
+            >
+              {VOICE_COPY.voiceSwitch}
+            </Switch>
+            <Switch
+              checked={captionsOn}
+              onChange={setCaptions}
+              data-path-captions-switch
+            >
+              {VOICE_COPY.captionsSwitch}
+            </Switch>
+          </div>
+          <p data-path-voice-label className="text-faint text-xs">
+            {VOICE_COPY.label(VOICE_PROVIDER_NAME)}
+          </p>
+          {/* One line, held open, so a message arriving moves nothing. */}
+          <p
+            aria-live="polite"
+            data-path-voice-message
+            className="text-faint min-h-[1lh] text-xs"
+          >
+            {message}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

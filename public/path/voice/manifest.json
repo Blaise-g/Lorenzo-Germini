@@ -5,23 +5,247 @@
   "clips": {
     "home": {
       "src": "/path/voice/home.m4a",
-      "script": "Where I grew up and went to school.",
-      "bytes": 9657
+      "bytes": 41010,
+      "durationMs": 16422,
+      "cues": [
+        {
+          "text": "This is Cuneo, where I grew up and went to school.",
+          "startMs": 0,
+          "endMs": 2831
+        },
+        {
+          "text": "The town sits on a wedge-shaped plateau between the Stura and the Gesso.",
+          "startMs": 3180,
+          "endMs": 6887
+        },
+        {
+          "text": "Behind it, the Bisalta, the mountain behind Cuneo.",
+          "startMs": 7236,
+          "endMs": 10483
+        },
+        {
+          "text": "And here, my old high school.",
+          "startMs": 10832,
+          "endMs": 12593
+        },
+        {
+          "text": "The path comes back here, and each time it builds up a little more.",
+          "startMs": 12942,
+          "endMs": 16422
+        }
+      ]
+    },
+    "turin": {
+      "src": "/path/voice/turin.m4a",
+      "bytes": 41773,
+      "durationMs": 16669,
+      "cues": [
+        {
+          "text": "Then Turin, for a Bachelor's Degree in Electrical Engineering at the Polytechnic of Turin.",
+          "startMs": 0,
+          "endMs": 5224
+        },
+        {
+          "text": "Its landmark is the Mole Antonelliana.",
+          "startMs": 5573,
+          "endMs": 7766
+        },
+        {
+          "text": "Beside it, Galileo Ferraris' coils, for his rotating magnetic field.",
+          "startMs": 8115,
+          "endMs": 12719
+        },
+        {
+          "text": "Together, an illustration for a degree in electrical engineering.",
+          "startMs": 13068,
+          "endMs": 16669
+        }
+      ]
+    },
+    "switzerland": {
+      "src": "/path/voice/switzerland.m4a",
+      "bytes": 67345,
+      "durationMs": 29218,
+      "cues": [
+        {
+          "text": "Next, Switzerland, for an MSc in Life Sciences Engineering at EPFL.",
+          "startMs": 0,
+          "endMs": 5204
+        },
+        {
+          "text": "It specialized in neuroscience and neuroengineering.",
+          "startMs": 5553,
+          "endMs": 8431
+        },
+        {
+          "text": "My thesis turned biomedical papers into a detailed analysis or a TL;DR.",
+          "startMs": 8780,
+          "endMs": 13470
+        },
+        {
+          "text": "At Roche, in Basel, I took a filling prototype through integration testing.",
+          "startMs": 13819,
+          "endMs": 18220
+        },
+        {
+          "text": "And built a model that tunes fill parameters 20% faster than manual tuning.",
+          "startMs": 18569,
+          "endMs": 23166
+        },
+        {
+          "text": "At Burgeon Labs, in Geneva, I fine-tuned language models to summarize biomedical literature.",
+          "startMs": 23515,
+          "endMs": 29218
+        }
+      ]
     },
     "cuneo-2022": {
       "src": "/path/voice/cuneo-2022.m4a",
-      "script": "Taught math and physics at my old high school. Built an interior-design MVP with Stable Diffusion and Dreambooth fine-tuning on a hand-curated dataset of room designs I preprocessed myself. Killed it on the evidence after customer discovery.",
-      "bytes": 34501
+      "bytes": 46246,
+      "durationMs": 19009,
+      "cues": [
+        {
+          "text": "Back in Cuneo, I taught math and physics at my old high school.",
+          "startMs": 0,
+          "endMs": 3690
+        },
+        {
+          "text": "As a freelancer, I built an interior-design MVP with Stable Diffusion.",
+          "startMs": 4039,
+          "endMs": 8384
+        },
+        {
+          "text": "I fine-tuned it with Dreambooth on a hand-curated dataset of room designs.",
+          "startMs": 8733,
+          "endMs": 12673
+        },
+        {
+          "text": "I preprocessed the dataset myself.",
+          "startMs": 13022,
+          "endMs": 15237
+        },
+        {
+          "text": "Then I killed it on the evidence, after customer discovery.",
+          "startMs": 15586,
+          "endMs": 19009
+        }
+      ]
     },
     "lille": {
       "src": "/path/voice/lille.m4a",
-      "script": "Found inefficiencies across pharmaceutical utilities with Python and multi-source sensor data, and designed water rejection strategies projected to save 10,000 m³ a year. Built anomaly detection and time-series forecasting for manufacturing operations, and semantic NLP for fault detection and maintenance decisions. Built natural-language interfaces and generative AI use cases that made plant data usable on the floor.",
-      "bytes": 64462
+      "bytes": 64834,
+      "durationMs": 27656,
+      "cues": [
+        {
+          "text": "Then France, as an AI Engineer at GSK, in Saint-Amand-les-Eaux, near Lille.",
+          "startMs": 0,
+          "endMs": 5143
+        },
+        {
+          "text": "I found inefficiencies across pharmaceutical utilities.",
+          "startMs": 5492,
+          "endMs": 8795
+        },
+        {
+          "text": "And designed water rejection strategies projected to save 10,000 m³ a year.",
+          "startMs": 9144,
+          "endMs": 14603
+        },
+        {
+          "text": "I built anomaly detection and time-series forecasting for manufacturing.",
+          "startMs": 14952,
+          "endMs": 19100
+        },
+        {
+          "text": "And semantic NLP for fault detection and maintenance decisions.",
+          "startMs": 19449,
+          "endMs": 23244
+        },
+        {
+          "text": "And natural-language interfaces that made plant data usable on the floor.",
+          "startMs": 23593,
+          "endMs": 27656
+        }
+      ]
     },
     "now": {
       "src": "/path/voice/now.m4a",
-      "script": "Built a RAG stack on pgai with custom parsing pipelines for machine-readable and handwritten content, and used tracing and evaluation workflows to tune prompts and retrieval quality. Led MVP engineering, managing two other developers. Complaion helps European SMEs implement, maintain, and get real value from ISO certifications. Building the agentic AI core of the product: agents and automation workflows that combine business context with expert feedback, backed by evaluations that track reliability in production. Shaping product decisions with business stakeholders and shipping AI features end-to-end, from problem definition to production, across AI, backend, and frontend.",
-      "bytes": 99502
+      "bytes": 65824,
+      "durationMs": 28446,
+      "cues": [
+        {
+          "text": "Home again, as founding AI engineer at a stealth GenAI startup.",
+          "startMs": 0,
+          "endMs": 3918
+        },
+        {
+          "text": "I built a RAG stack with custom parsing for handwritten content.",
+          "startMs": 4267,
+          "endMs": 7743
+        },
+        {
+          "text": "And tuned it with tracing and evaluation workflows.",
+          "startMs": 8092,
+          "endMs": 10876
+        },
+        {
+          "text": "And led MVP engineering, managing two other developers.",
+          "startMs": 11224,
+          "endMs": 14721
+        },
+        {
+          "text": "Now I'm an AI Product Engineer at Complaion.",
+          "startMs": 15070,
+          "endMs": 17545
+        },
+        {
+          "text": "It helps European SMEs get real value from ISO certifications.",
+          "startMs": 17894,
+          "endMs": 21823
+        },
+        {
+          "text": "I'm building the agentic AI core of the product.",
+          "startMs": 22172,
+          "endMs": 24661
+        },
+        {
+          "text": "Backed by evaluations that track reliability in production.",
+          "startMs": 25010,
+          "endMs": 28446
+        }
+      ]
+    },
+    "next": {
+      "src": "/path/voice/next.m4a",
+      "bytes": 39917,
+      "durationMs": 15998,
+      "cues": [
+        {
+          "text": "And the last step is a question mark.",
+          "startMs": 0,
+          "endMs": 1989
+        },
+        {
+          "text": "A blank card with empty clue slots.",
+          "startMs": 2338,
+          "endMs": 4460
+        },
+        {
+          "text": "After La Ghigliottina, the quiz round that finds the word connecting five clues.",
+          "startMs": 4809,
+          "endMs": 9334
+        },
+        {
+          "text": "It's not yet written.",
+          "startMs": 9683,
+          "endMs": 10796
+        },
+        {
+          "text": "The flat site has my email, and germinai, the newsletter, for what comes next.",
+          "startMs": 11145,
+          "endMs": 15998
+        }
+      ]
     }
   }
 }

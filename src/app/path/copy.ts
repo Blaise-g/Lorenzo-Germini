@@ -50,18 +50,16 @@ export const TOUR_COPY = {
   ended: "The tour has ended. Pick a step, or play it again.",
 };
 
-/* The voice controls on `/path` (GH-150). The label says what the voice is,
-   and it is never presented as Lorenzo's (GH-141, decision 9). */
+/* The narration on `/path` (GH-150; v3): the Voice and Captions switches,
+   the way to a step's full text, and the lines under the switches. The label
+   says what the voice is, and it is never presented as Lorenzo's (GH-141,
+   decision 9). */
 export const VOICE_COPY = {
-  listen: "Listen",
-  loading: "Loading",
-  play: "Play",
-  pause: "Pause",
-  resume: "Resume",
-  stop: "Stop",
   voiceSwitch: "Voice",
-  label: (providerName: string, everyStep: boolean) =>
-    `Narration: synthetic voice, ${providerName}.${everyStep ? "" : " Some steps are not narrated yet."}`,
-  blocked: "The browser held the voice back. Press Play to hear it.",
-  failed: "The clip did not load.",
+  captionsSwitch: "Captions",
+  readStep: "Read this step",
+  label: (providerName: string) =>
+    `Narration: synthetic voice, ${providerName}.`,
+  waiting: "The voice starts at your first click or key.",
+  blocked: "The voice was held back. Click or press a key to hear it.",
 };

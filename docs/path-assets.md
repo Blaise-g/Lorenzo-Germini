@@ -231,8 +231,27 @@ separation by eye) are written by `--preview <dir>`; they are not shipped.
 ## Voice (#150)
 
 The clips are made by `bun run generate:path-voice` with macOS `say` (the stock "Samantha" voice),
-encoded to mono HE-AAC at 16 kbps (`docs/path-measurements.md` has the sizes). The page labels
-them as a synthetic voice, never as Lorenzo's.
+encoded to mono HE-AAC at 16 kbps. The page labels them as a synthetic voice, never as Lorenzo's.
+
+Since v3 the voice tells every step, from the cues in `src/data/path-narration.ts`. The generator
+says each cue on its own, trims its silence, joins the cues with 350 ms between them, and records
+each cue's start and end in `public/path/voice/manifest.json`. The captions and the tour run on
+those timings. It then decodes the encoded clip back and refuses a clip whose length moved more
+than 60 ms in encoding. Clips are staged and published together, so a failed run leaves the last
+set in place. It flags a clip outside 15–30 s or over 60 KB.
+
+| Step          | Clip                                | Cues | Length  | Size    |
+| ------------- | ----------------------------------- | ---- | ------- | ------- |
+| `home`        | `public/path/voice/home.m4a`        | 5    | 16.42 s | 40.0 KB |
+| `turin`       | `public/path/voice/turin.m4a`       | 4    | 16.67 s | 40.8 KB |
+| `switzerland` | `public/path/voice/switzerland.m4a` | 6    | 29.22 s | 65.8 KB |
+| `cuneo-2022`  | `public/path/voice/cuneo-2022.m4a`  | 5    | 19.01 s | 45.2 KB |
+| `lille`       | `public/path/voice/lille.m4a`       | 6    | 27.66 s | 63.3 KB |
+| `now`         | `public/path/voice/now.m4a`         | 8    | 28.45 s | 64.3 KB |
+| `next`        | `public/path/voice/next.m4a`        | 5    | 16.00 s | 39.0 KB |
+
+Durations were checked with `afinfo` and a muted decode; nothing was played aloud, so how the
+voice says "m³", "TL;DR" and "SMEs" is unheard.
 
 ## Open items
 
@@ -240,3 +259,7 @@ them as a synthetic voice, never as Lorenzo's.
   system voices allows their output for personal, non-commercial use only. That is acceptable for
   the unmerged prototype, but the stage-4 voice, or any voice that ships, needs another provider:
   the generator's `--provider elevenlabs`, or another whose licence allows it.
+- **Three clips are over 60 KB** (switzerland, lille, now), from 63 to 66 KB, at the long end of
+  the 15–30 s range.
+- **The ElevenLabs path is untested since v3.** It now also decodes through macOS `afconvert`
+  to measure the cues.

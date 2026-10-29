@@ -103,7 +103,9 @@ test.describe("the illustration", () => {
     const label = page.locator(
       '[data-path-panel="lille"] [data-path-illustration]',
     );
-    await expect(label).toBeVisible();
+    /* In the page's text, which v3 keeps off the screen, where the voice
+       tells the step, and the label off paper, as `StepSection` prints it. */
+    await expect(label).toBeAttached();
     await expect(label).toContainText(lille.illustration.label);
     for (const inspiration of lille.illustration.inspirations) {
       await expect(label).toContainText(inspiration);

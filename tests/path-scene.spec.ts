@@ -331,15 +331,15 @@ test.describe("the build", () => {
   }) => {
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
-    const stop = page.locator("[data-path-voice-stop]");
-    await stop.focus();
+    const voiceSwitch = page.locator("[data-path-voice-switch]");
+    await voiceSwitch.focus();
     await page.keyboard.press("Escape");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 500,
     });
-    await expect(stop).toBeFocused();
+    await expect(voiceSwitch).toBeFocused();
     await page.keyboard.press("Escape");
-    await expect(stop).toBeFocused();
+    await expect(voiceSwitch).toBeFocused();
   });
 
   test("Esc from the stage's controls returns focus to the step list", async ({

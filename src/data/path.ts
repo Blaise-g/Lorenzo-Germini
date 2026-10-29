@@ -10,11 +10,12 @@ import type {
 } from "./path.types";
 
 /* The path (GH-141): seven steps in time order and two side props, and the only
-   source of their text, captions and voice scripts. Every sentence a step
-   shows is a RESUME_DATA field, or a CV bullet picked by its opening words, so
-   a reworded bullet fails loudly here instead of leaving a stale copy on the
-   path. The exceptions have no CV counterpart and live here: "?"'s line, and
-   the scene copy — illustration labels, inspirations, prop names.
+   source of their text and captions; the voice retells them in
+   `path-narration.ts`. Every sentence a step shows is a RESUME_DATA field,
+   or a CV bullet picked by its opening words, so a reworded bullet fails
+   loudly here instead of leaving a stale copy on the path. The exceptions
+   have no CV counterpart and live here: "?"'s line, and the scene copy —
+   illustration labels, inspirations, prop names.
 
    Decision 10's closed list of numbers outranks the wording elsewhere in
    GH-141: home's "two peaks" and "?"'s "five empty clue slots" lose their
@@ -112,8 +113,7 @@ const inTheCv = {
   education: { label: "Education in the CV", href: "/cv#cv-education" },
 } satisfies Record<string, PathLink>;
 
-type StepSource = Omit<PathStepBase, "period" | "text" | "voiceScript"> &
-  PathStepScene;
+type StepSource = Omit<PathStepBase, "period" | "text"> & PathStepScene;
 
 function step(source: StepSource): PathStep {
   const text = source.lines.join(" ");
@@ -121,7 +121,6 @@ function step(source: StepSource): PathStep {
     ...source,
     ...(source.roles.length > 0 && { period: period(source.roles) }),
     text,
-    voiceScript: text,
   };
 }
 

@@ -182,7 +182,7 @@ html {
   }
 
   /* ─── /path's overlay, printed on card stock ───
-     The step list, the text panel, "Flat site" and the tour's tabs are cut
+     The step list, the narration bar, "Flat site" and the tour's tabs are cut
      from the same card as the board (comp B), in the page's two inks: ink
      and accent. A die-cut bevel where the browser can draw one, a round
      corner where it cannot. The card's thickness is a hairline step under
@@ -392,31 +392,26 @@ html {
     }
   }
 
-  /* Beside the board, the panel grows to its column's height and its text
-     scrolls inside it after; the scrollbar is printed in the card's own
-     hairline. While more is below, the text fades out at its foot. Not in
-     print, which shows the text whole, nor while the text has the keyboard's
-     focus, as the fade would take the foot of its ring with it. */
-  @media screen and (width >= 64rem) {
-    .path-panel-text {
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      scrollbar-width: thin;
-      scrollbar-color: var(--color-border) transparent;
-    }
-
-    .path-panel-text[data-path-more]:not(:focus-visible) {
-      mask-image: linear-gradient(
-        to bottom,
-        black calc(100% - 4rem),
-        transparent
-      );
+  /* The steps' full text is for paper, and for a page without JavaScript:
+     once scripted, the screen has the voice and the caption line instead
+     (owner, v3). */
+  @media screen {
+    [data-path-overlay][data-path-scripted] [data-path-text-panel] {
+      display: none;
     }
   }
 
-  .path-panel-text:focus-visible {
-    outline: 2px solid var(--color-accent);
-    outline-offset: -4px;
+  /* The caption line holds its longest cue's lines open — three on a phone,
+     two wider — so a longer cue, or captions turned off, never moves what is
+     around it. */
+  .path-caption {
+    min-height: 3lh;
+  }
+
+  @media (width >= 48rem) {
+    .path-caption {
+      min-height: 2lh;
+    }
   }
 
   /* The pawn walks the step list's drawn line, its foot on the current
@@ -453,46 +448,14 @@ html {
     transform-origin: left center;
   }
 
-  /* A step's panel arrives with a short fade, and its lines follow in turn
-     (the stagger is generated per line in `first-paint.ts`). Not a
-     crossfade — the last panel has already gone — so no blur. */
-  [data-path-text-panel] [data-path-panel] {
-    transition: opacity 200ms var(--ease-out);
-  }
-
-  [data-path-text-panel] [data-path-line] {
-    transition:
-      color 240ms var(--ease-out),
-      opacity 220ms var(--ease-out),
-      translate 220ms var(--ease-out);
-  }
-
-  @starting-style {
-    [data-path-text-panel] [data-path-panel] {
-      opacity: 0;
-    }
-
-    [data-path-text-panel] [data-path-line] {
-      opacity: 0;
-      translate: 0 0.25rem;
-    }
-  }
-
-  /* A change made from the keyboard cuts: no fade, no stagger, no glide. */
-  [data-path-overlay][data-path-input="keyboard"]
-    :is([data-path-panel], [data-path-line], .path-pawn) {
+  /* A change made from the keyboard cuts: no glide. */
+  [data-path-overlay][data-path-input="keyboard"] .path-pawn {
     transition: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .path-pawn {
       transition: none;
-    }
-
-    [data-path-text-panel] [data-path-line] {
-      transition:
-        color 240ms var(--ease-out),
-        opacity 220ms var(--ease-out);
     }
   }
 
@@ -501,10 +464,6 @@ html {
     .dark .path-card {
       border: 0;
       box-shadow: none;
-    }
-
-    .path-panel-text {
-      overflow: visible;
     }
   }
 }

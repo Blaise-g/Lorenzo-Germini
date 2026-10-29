@@ -1,42 +1,33 @@
 import { PATH_STEPS } from "@/data/path";
-import type { PathStep, PathStepSlug } from "@/data/path.types";
+import type { PathStepSlug } from "@/data/path.types";
+
+import { narrationFor } from "./narration";
 
 /* The pure half of `/path`'s tour: how long it stays at a step, and the clock
    that decides when it moves on. No React and no DOM here, so the specs run
    it directly; the hook that drives it is in `tour.tsx`. */
 
-/** Words a visitor reads per minute on screen: the middle of the usual
- *  200–260 range for prose. */
-export const READING_WORDS_PER_MINUTE = 230;
-/** Time to find the panel and start reading, before the first word. */
-export const DWELL_LEAD_MS = 1500;
-/** No step goes by faster than this, however little it says. */
-export const DWELL_MIN_MS = 5000;
-/** Nor slower: the longest panels run past it, and a visitor reading one holds
- *  the tour by pointing at or focusing the panel, which pauses it. */
-export const DWELL_MAX_MS = 20000;
+/** The pause after a step's narration ends, before the pawn moves on: long
+ *  enough to see the last prop settle, short enough not to read as a stall. */
+export const NARRATION_BEAT_MS = 1200;
 /** How long the tour waits for the stage to report a step settled before it
  *  starts the dwell anyway: no runtime, a stuck load, a stage that never
  *  reports. A build takes about two to three seconds. */
 export const SETTLE_MAX_WAIT_MS = 6000;
 
-/** What the text panel shows of a step and a visitor reads: its place, each
- *  role's title and organisation, and its lines. */
-export function panelWords(step: PathStep): number {
-  const roles = step.roles.map((role) => `${role.title} ${role.organisation}`);
-  return [step.place, ...roles, ...step.lines]
-    .join(" ")
-    .split(/\s+/)
-    .filter(Boolean).length;
+/** The dwell at a step: its narration, then a beat. The same with the voice
+ *  on or off, as the captions run on the clip's own timings. */
+export function dwellMs(slug: PathStepSlug): number {
+  return narrationFor(slug).durationMs + NARRATION_BEAT_MS;
 }
 
-/** The dwell at a step: the lead plus the panel's reading time, clamped to
- *  `DWELL_MIN_MS`–`DWELL_MAX_MS`. */
-export function dwellMs(step: PathStep): number {
-  const reading = (panelWords(step) / READING_WORDS_PER_MINUTE) * 60_000;
-  return Math.round(
-    Math.min(DWELL_MAX_MS, Math.max(DWELL_MIN_MS, DWELL_LEAD_MS + reading)),
-  );
+/** How far into its narration a step is: nothing while it waits for the
+ *  stage, the dwell's elapsed time after. `runningFor` is the time the clock
+ *  has run since `clock` was set, which its timer has not yet reported. */
+export function playheadMs(clock: StepClock, runningFor = 0): number {
+  if (clock.phase === "waiting") return 0;
+  if (clock.phase === "done") return clock.dwell;
+  return Math.min(clock.dwell, clock.dwell - clock.remaining + runningFor);
 }
 
 const slugs = PATH_STEPS.map((step) => step.slug);

@@ -1,21 +1,20 @@
 /* The tour on `/path` (v2, comp B): the board plays itself step by step from
    home, or from the fragment's step, and stops at "?"; picking a step skips
    there like a tape; the tour's own steps replace the history entry while a
-   pick pushes; it pauses on one click, the K key and a hidden tab, holds
-   while the visitor reads the panel, and never plays under reduced motion.
-   The timing is `src/app/path/tour-clock.ts`, tested directly first. The page
-   tests install Playwright's clock so a dwell is skipped, not waited out. */
+   pick pushes; it pauses on one click, the K key and a hidden tab, and never
+   plays under reduced motion. A step dwells for its narration and a beat,
+   and the caption line runs on the narration's cue timings (v3). The timing
+   is `src/app/path/tour-clock.ts`, tested directly first. The page tests
+   install Playwright's clock so a dwell is skipped, not waited out. */
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { narrationFor } from "@/app/path/narration";
 import {
-  DWELL_LEAD_MS,
-  DWELL_MAX_MS,
-  DWELL_MIN_MS,
   dwellMs,
   elapseClock,
-  panelWords,
-  READING_WORDS_PER_MINUTE,
+  NARRATION_BEAT_MS,
+  playheadMs,
   SETTLE_MAX_WAIT_MS,
   settleClock,
   startClock,
@@ -25,7 +24,6 @@ import {
   type Timing,
   type TimingAction,
 } from "@/app/path/tour-clock";
-import { VOICE_STORAGE_KEY } from "@/app/path/voice-manifest";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -43,9 +41,6 @@ test.use({
   },
 });
 
-const stepNamed = (slug: PathStepSlug) =>
-  PATH_STEPS.find((step) => step.slug === slug)!;
-
 const tourPhase = (page: Page) =>
   page.locator("[data-path-tour]").getAttribute("data-path-tour-phase");
 
@@ -53,7 +48,7 @@ const tourPhase = (page: Page) =>
  *  dwell, then the dwell. `short` stops that much before its end. */
 async function playThrough(page: Page, slug: PathStepSlug, short = 0) {
   await expect.poll(() => tourPhase(page)).toBe("dwelling");
-  await page.clock.runFor(dwellMs(stepNamed(slug)) - short);
+  await page.clock.runFor(dwellMs(slug) - short);
 }
 
 /** Plays a step through on a stage that never settles it: the whole wait,
@@ -64,7 +59,7 @@ async function waitThenPlayThrough(page: Page, slug: PathStepSlug) {
   await expect.poll(() => tourPhase(page)).toBe("waiting");
   await page.clock.runFor(SETTLE_MAX_WAIT_MS);
   await expect.poll(() => tourPhase(page)).toBe("dwelling");
-  await page.clock.runFor(dwellMs(stepNamed(slug)));
+  await page.clock.runFor(dwellMs(slug));
 }
 
 /** Runs the clock past a whole step, wait and dwell, pausing between them as
@@ -73,7 +68,7 @@ async function waitThenPlayThrough(page: Page, slug: PathStepSlug) {
 async function runPastStep(page: Page, slug: PathStepSlug) {
   await page.clock.runFor(SETTLE_MAX_WAIT_MS + 100);
   await page.waitForTimeout(200);
-  await page.clock.runFor(dwellMs(stepNamed(slug)) + 100);
+  await page.clock.runFor(dwellMs(slug) + 100);
   await page.waitForTimeout(200);
 }
 
@@ -92,7 +87,6 @@ const previousTab = (page: Page) => page.locator("[data-path-tour-previous]");
 const nextTab = (page: Page) => page.locator("[data-path-tour-next]");
 const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
-const panel = (page: Page) => page.locator("[data-path-text-panel]");
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
 
 async function hydrated(page: Page) {
@@ -115,42 +109,28 @@ async function pauseTime(page: Page) {
 const historyLength = (page: Page) => page.evaluate(() => history.length);
 
 test.describe("the clock", () => {
-  test("the dwell is the panel's reading time plus a lead, clamped", () => {
+  test("the dwell is the step's narration plus a beat, voice or no voice", () => {
     for (const step of PATH_STEPS) {
-      const reading =
-        DWELL_LEAD_MS + (panelWords(step) / READING_WORDS_PER_MINUTE) * 60_000;
-      const dwell = dwellMs(step);
-      expect(dwell, step.slug).toBeGreaterThanOrEqual(DWELL_MIN_MS);
-      expect(dwell, step.slug).toBeLessThanOrEqual(DWELL_MAX_MS);
-      expect(dwell, step.slug).toBe(
-        Math.round(Math.min(DWELL_MAX_MS, Math.max(DWELL_MIN_MS, reading))),
+      const { durationMs } = narrationFor(step.slug);
+      expect(dwellMs(step.slug), step.slug).toBe(
+        durationMs + NARRATION_BEAT_MS,
       );
     }
-    /* The data reaches both ends of the clamp and the middle between them,
-       so a change to any of the three shows here. */
-    const dwells = PATH_STEPS.map(dwellMs);
-    expect(dwells).toContain(DWELL_MIN_MS);
-    expect(dwells).toContain(DWELL_MAX_MS);
-    expect(
-      dwells.some((dwell) => dwell > DWELL_MIN_MS && dwell < DWELL_MAX_MS),
-    ).toBe(true);
-    /* A longer panel never dwells less. */
-    expect(dwellMs(stepNamed("lille"))).toBeGreaterThan(
-      dwellMs(stepNamed("turin")),
-    );
+    /* A longer narration dwells longer: Lille says more than Turin. */
+    expect(dwellMs("lille")).toBeGreaterThan(dwellMs("turin"));
   });
 
-  test("the panel's words are its place, roles and lines", () => {
-    const lille = stepNamed("lille");
-    const words = (text: string) => text.split(/\s+/).filter(Boolean).length;
-    expect(panelWords(lille)).toBe(
-      words(lille.place) +
-        lille.roles.reduce(
-          (sum, role) => sum + words(role.title) + words(role.organisation),
-          0,
-        ) +
-        lille.lines.reduce((sum, line) => sum + words(line), 0),
-    );
+  test("the playhead is nothing while waiting, the dwell's elapsed time after", () => {
+    const waiting = startClock(10_000, 6000);
+    expect(playheadMs(waiting)).toBe(0);
+    expect(playheadMs(elapseClock(waiting, 2000))).toBe(0);
+
+    const dwelling = elapseClock(settleClock(waiting), 3000);
+    expect(playheadMs(dwelling)).toBe(3000);
+    /* Time the timer has not yet reported counts, up to the dwell's end. */
+    expect(playheadMs(dwelling, 500)).toBe(3500);
+    expect(playheadMs(dwelling, 60_000)).toBe(10_000);
+    expect(playheadMs(elapseClock(dwelling, 7000))).toBe(10_000);
   });
 
   test("settled starts the dwell early, and only once", () => {
@@ -399,34 +379,63 @@ test.describe("with motion allowed", () => {
     await expectShown(page, "home");
   });
 
-  test("pointing at the text panel holds the tour until the pointer leaves", async ({
+  test("the caption line runs on the cue timings, and a pause holds it", async ({
     page,
   }) => {
-    await page.goto("/path");
+    const { cues } = narrationFor("lille");
+    const caption = page.locator("[data-path-caption]");
+    const bar = page.locator("[data-path-narration]");
+    await page.goto("/path#lille");
     await hydrated(page);
 
-    await panel(page).hover();
-    await runPastStep(page, "home");
-    await expectShown(page, "home");
-    /* Held, not paused: the tab still offers Pause. */
-    await expect(tour(page)).toHaveAttribute("data-path-tour", "playing");
+    await expect.poll(() => tourPhase(page)).toBe("dwelling");
+    await expect(caption).toHaveText(cues[0].text);
+    await expect(bar).toHaveAttribute("data-path-cue", "0");
+    await expect(bar).toHaveAttribute("data-path-cue-running", "");
+    expect(cues[0].prop).toBeUndefined();
+    await expect(bar).not.toHaveAttribute("data-path-cue-prop");
 
-    await page.mouse.move(1, 1);
-    await playThrough(page, "home");
-    await expectShown(page, "turin");
+    /* Just short of the next cue, the first holds; at it, the next shows,
+       with its prop. */
+    await page.clock.runFor(cues[1].startMs - 50);
+    await expect(caption).toHaveText(cues[0].text);
+    await page.clock.runFor(50);
+    await expect(caption).toHaveText(cues[1].text);
+    await expect(bar).toHaveAttribute("data-path-cue", "1");
+    await expect(bar).toHaveAttribute("data-path-cue-prop", cues[1].prop!);
+
+    /* Paused, the caption stays on its cue however long it waits. */
+    await playTab(page).click();
+    await expect(tour(page)).toHaveAttribute("data-path-tour", "paused");
+    await expect(bar).not.toHaveAttribute("data-path-cue-running");
+    await page.clock.runFor(dwellMs("lille"));
+    await expect(caption).toHaveText(cues[1].text);
+    await expectShown(page, "lille");
+
+    /* Played again, it carries on from there to the next cue. */
+    await playTab(page).click();
+    await page.clock.runFor(cues[2].startMs - cues[1].startMs);
+    await expect(caption).toHaveText(cues[2].text);
   });
 
-  test("focus inside the text panel holds the tour", async ({ page }) => {
-    await page.goto("/path#cuneo-2022");
+  test("after its narration a step holds a beat with its last caption, then moves on", async ({
+    page,
+  }) => {
+    const { cues, durationMs } = narrationFor("turin");
+    const caption = page.locator("[data-path-caption]");
+    const bar = page.locator("[data-path-narration]");
+    await page.goto("/path#turin");
     await hydrated(page);
+    await expect.poll(() => tourPhase(page)).toBe("dwelling");
 
-    await panel(page).getByRole("link").first().focus();
-    await runPastStep(page, "cuneo-2022");
-    await expectShown(page, "cuneo-2022");
+    await page.clock.runFor(durationMs);
+    await expect(caption).toHaveText(cues[cues.length - 1].text);
+    await expect(bar).not.toHaveAttribute("data-path-cue-running");
+    await expectShown(page, "turin");
 
-    await stepLink(page, "cuneo-2022").focus();
-    await playThrough(page, "cuneo-2022");
-    await expectShown(page, "lille");
+    await page.clock.runFor(NARRATION_BEAT_MS);
+    await expectShown(page, "switzerland");
+    await expect(caption).toHaveText(narrationFor("switzerland").cues[0].text);
   });
 
   test("Back and Next tabs and the J and L keys push steps, and stop at the ends", async ({
@@ -502,7 +511,7 @@ test.describe("with motion allowed", () => {
     await expect(progress).toHaveCount(1);
   });
 
-  test("a tour step changes the text without animating from a key, and animates otherwise", async ({
+  test("a tour step moves the pawn without animating from a key, and animates otherwise", async ({
     page,
   }) => {
     await page.goto("/path");
@@ -510,17 +519,17 @@ test.describe("with motion allowed", () => {
     await playThrough(page, "home");
     await expectShown(page, "turin");
     await expect(overlay(page)).toHaveAttribute("data-path-input", "tour");
-    const lineTransition = () =>
+    const pawnTransition = () =>
       page
-        .locator('[data-path-panel]:visible [data-path-line="0"]')
-        .evaluate((line) => getComputedStyle(line).transitionDuration);
-    expect(await lineTransition()).not.toMatch(/^0s(, 0s)*$/);
+        .locator(".path-pawn")
+        .evaluate((pawn) => getComputedStyle(pawn).transitionDuration);
+    expect(await pawnTransition()).not.toMatch(/^0s(, 0s)*$/);
 
     await stepLink(page, "lille").focus();
     await page.keyboard.press("Enter");
     await expectShown(page, "lille");
     await expect(overlay(page)).toHaveAttribute("data-path-input", "keyboard");
-    expect(await lineTransition()).toMatch(/^0s(, 0s)*$/);
+    expect(await pawnTransition()).toMatch(/^0s(, 0s)*$/);
   });
 
   test.describe("on a phone", () => {
@@ -534,47 +543,6 @@ test.describe("with motion allowed", () => {
       await page.clock.runFor(500);
       expect(await page.evaluate(() => window.scrollY)).toBe(0);
     });
-  });
-
-  test("a remembered voice says nothing until the visitor has pressed something", async ({
-    page,
-  }) => {
-    await page.addInitScript((key) => {
-      window.localStorage.setItem(key, "on");
-    }, VOICE_STORAGE_KEY);
-    const requested: string[] = [];
-    page.on("request", (request) => {
-      if (/\.(m4a|mp3)(\?|$)/.test(request.url()))
-        requested.push(request.url());
-    });
-
-    /* Switzerland moves on to Cuneo, which has a clip. */
-    await page.goto("/path#switzerland");
-    await hydrated(page);
-    await playThrough(page, "switzerland");
-    await expectShown(page, "cuneo-2022");
-    await expect(page.locator("[data-path-voice]")).toHaveAttribute(
-      "data-voice-state",
-      "idle",
-    );
-    expect(requested).toEqual([]);
-
-    /* A press, and the next step the tour plays is read aloud. */
-    await playTab(page).click();
-    await playTab(page).click();
-    await playThrough(page, "cuneo-2022");
-    await expectShown(page, "lille");
-    await expect(page.locator("[data-path-voice]")).toHaveAttribute(
-      "data-voice-state",
-      "playing",
-    );
-    expect(requested.some((url) => url.includes("lille"))).toBe(true);
-
-    /* The tour waits for the voice to finish Lille before moving on. */
-    await runPastStep(page, "lille");
-    await expectShown(page, "lille");
-    await page.locator("[data-path-voice-stop]").click();
-    await expectShown(page, "now");
   });
 });
 
@@ -600,7 +568,7 @@ test.describe("under reduced motion", () => {
     /* Reduced motion's board is built at once: the stage has settled. */
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
     await expect(page.locator("[data-path-tour-progress]")).toHaveCount(0);
-    await page.clock.runFor(dwellMs(stepNamed("now")));
+    await page.clock.runFor(dwellMs("now"));
     await expectShown(page, "next");
   });
 });
@@ -715,7 +683,7 @@ test.describe("with the board drawing", () => {
     await expect(stage).toHaveAttribute("data-build-state", "built");
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
 
-    await page.clock.runFor(dwellMs(stepNamed("turin")));
+    await page.clock.runFor(dwellMs("turin"));
     await expectShown(page, "switzerland");
   });
 
@@ -737,7 +705,7 @@ test.describe("with the board drawing", () => {
     await page.clock.runFor(500);
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
     await expect(page.locator("[data-path-tour-progress]")).toHaveCount(1);
-    await page.clock.runFor(dwellMs(stepNamed("turin")));
+    await page.clock.runFor(dwellMs("turin"));
     await expectShown(page, "switzerland");
 
     await waitThenPlayThrough(page, "switzerland");

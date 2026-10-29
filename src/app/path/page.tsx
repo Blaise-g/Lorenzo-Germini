@@ -1,18 +1,20 @@
 /*
 THESIS: The 3D path, entered by choice: the same seven steps as `/`, walked one
 scene at a time. The overlay paints first, over the step's still; the scene
-then builds in its stage, and the tour plays the board by itself.
-OWN-WORLD: Warm Print printed on card stock (comp B) — the step list, the text
-panel, "Flat site" and the tour's die-cut tabs in two inks, serif places, mono
-dates, terracotta for the pawn, the links and the way back.
-STORY: Watch the path play from home, or pick a step like a track on a tape,
-read what happened there, go back to the flat site at the same step.
-FIRST VIEWPORT: The name, "Flat site", the path in small and the selected
-step's text — all HTML, painted before any 3D.
+then builds in its stage, and the tour plays the board by itself while the
+voice tells each step.
+OWN-WORLD: Warm Print printed on card stock (comp B) — the step list, the
+caption bar, "Flat site" and the tour's die-cut tabs in two inks, serif
+places and captions, mono dates, terracotta for the pawn, the links and the
+way back.
+STORY: Watch and hear the path play from home, or pick a step like a track
+on a tape, and go to the flat site to read a step in full.
+FIRST VIEWPORT: The name, "Flat site", the path in small and the board's
+still — all HTML, painted before any 3D.
 FORM: Masthead row, then the board filling the first screen, the step list
-as a strip across its top and the tour's tabs and the text panel in a
-column down its right. On a phone: the board, the steps as a strip, the
-tabs, the panel.
+as a strip across its top and one bar under it: the caption line, the tour's
+tabs, the Voice and Captions switches. On a phone: the board, the steps as a
+strip, the bar.
 */
 
 import type { Metadata } from "next";
@@ -44,14 +46,11 @@ import {
   MarkEntered,
   OverlayRoot,
   PathStepList,
-  RevealSelectedText,
 } from "./overlay";
 import { SceneStage } from "./scene-stage";
 import { StageStatusProvider } from "./stage-status";
-import { TourHoldPanel, TourProvider, TourTransport } from "./tour";
-import { VoiceControls } from "./voice";
-import type { VoiceManifest } from "./voice-manifest";
-import voiceManifestJson from "../../../public/path/voice/manifest.json";
+import { TourProvider, TourTransport } from "./tour";
+import { NarrationBar } from "./voice";
 
 /* No markdown alternate and no sitemap entry: `/path` adds no content the flat
    site lacks, and `/` is the crawlable form (GH-141, implementation decision
@@ -60,13 +59,6 @@ export const metadata: Metadata = {
   title: "The 3D path",
   description: `The path of ${RESUME_DATA.name}'s life, step by step: where he studied and worked, his roles and their results.`,
 };
-
-/* Written by `bun run generate:path-voice` beside the clips. The client gets
-   each clip's URL and not its script, which is the panel's text already. */
-const voiceManifest = voiceManifestJson as VoiceManifest;
-const voiceClips = Object.fromEntries(
-  Object.entries(voiceManifest.clips).map(([slug, clip]) => [slug, clip.src]),
-);
 
 /* The drawn path's node per step, as `/` draws it. */
 function stepNode(step: PathStep): PathStepNode {
@@ -112,13 +104,14 @@ function StageBackdrop({ step }: { step: PathStep }) {
 
 /* Its own shell (ADR-0002): `RouteFrame` with this route's inset, so `main`
    and the one `contentinfo` stay paired. The overlay fills the first screen;
-   the footer sits under it. Every step's text is in the HTML; the 3D runtime
-   is not imported here but by the stage, after the overlay paints (GH-148). */
+   the footer sits under it. Every step's text is in the HTML, for print and
+   for a visit without JavaScript, though not on screen once the page is
+   scripted: there the voice and the captions tell it. The 3D runtime is not
+   imported here but by the stage, after the overlay paints (GH-148). */
 export default function PathPage() {
   return (
     <RouteFrame measure={PATH_OVERLAY_INSET}>
       <MarkEntered />
-      <RevealSelectedText />
       {/* In `components`, as AGENTS.md asks of hand-written rules: unlayered,
           they would beat every utility, `print:` ones included. */}
       <style
@@ -162,35 +155,27 @@ export default function PathPage() {
               dangerouslySetInnerHTML={{ __html: OVERLAY_FIRST_PAINT_SCRIPT }}
             />
 
-            {/* The board is the hero (comp B): it fills the first screen, its
-                tabs in a corner of its frame. On a wide screen the step list
-                is one printed strip across the top, and the tour's tabs and
-                the text panel are a column down the right. Comp B laid the
-                list and the panel over the board's corners instead; there no
-                tile may go under the panel, so a panel tall enough to hold a
-                long step without scrolling left the board a third of the
-                width. Beside it, the panel grows to the column's height before
-                its text scrolls, and the board keeps the rest. The canvas
-                spans only the board's own part, so it is drawn sharp within
-                the GPU budget (`drawing-buffer.ts`). Step list and panel are
-                both measure-capped: seven steps across, and lines of about 60
-                characters.
+            {/* The board is the hero (comp B): it fills the first screen,
+                full width, with the step list as one printed strip across its
+                top and the narration bar under it — the caption line, the
+                tour's tabs and the switches (owner, v3: no text panel; the
+                voice tells each step). The canvas spans only the board's own
+                part, so it is drawn sharp within the GPU budget
+                (`drawing-buffer.ts`).
 
                 On a phone: the board first, full width; then the steps, the
-                same strip three at a time; the tour's tabs; then the panel,
-                in the page's flow, which a pick scrolls into view (impeccable
-                adapt: rethink, not scale). Print keeps only the selected
-                step's text. */}
+                same strip three at a time; then the bar. Print shows none of
+                these, only the selected step's text. */}
             <div
               data-path-world
-              className="mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-6 lg:gap-y-4 xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:grid-cols-[minmax(0,1fr)_30rem] print:mt-6 print:block"
+              className="mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-y-4 print:mt-6 print:block"
             >
               {/* The tour's keys work with focus anywhere in here, or on the
                   tour's tabs. */}
               <nav
                 aria-labelledby="path-heading"
                 data-path-tour-keys
-                className="relative z-10 lg:col-span-2 print:hidden"
+                className="relative z-10 print:hidden"
               >
                 <h2 id="path-heading" className="sr-only">
                   {PATH_COPY.stepListHeading}
@@ -211,31 +196,24 @@ export default function PathPage() {
                 ))}
               </SceneStage>
 
-              <div className="flex flex-col gap-y-5 lg:min-h-0 lg:gap-y-4 print:block">
-                <div data-path-tour-keys className="print:hidden">
-                  <TourTransport />
-                </div>
+              <NarrationBar
+                transport={<TourTransport />}
+                className="print:hidden"
+              />
 
-                {/* The text panel. Its sections are not anchored: the
-                    fragment selects here rather than scrolling, and focus
-                    stays on the step that was selected (storyboard §7.7).
-                    Pointing at it or focusing in it holds the tour. The voice
-                    reads it, so its controls are printed at its foot. */}
-                <TourHoldPanel
-                  footer={
-                    <VoiceControls
-                      clips={voiceClips}
-                      providerName={voiceManifest.providerName}
-                    />
-                  }
-                  className="lg:min-h-0 print:max-h-none"
-                >
-                  {PATH_STEPS.map((step) => (
-                    <div key={step.slug} data-path-panel={step.slug}>
-                      <StepSection step={step} anchored={false} />
-                    </div>
-                  ))}
-                </TourHoldPanel>
+              {/* Every step's full text, as the flat site has it: on paper,
+                  and on screen only without JavaScript (`globals.css`). Its
+                  sections are not anchored: the fragment selects a step
+                  rather than scrolling. */}
+              <div
+                data-path-text-panel
+                className="path-card max-w-[46rem] px-6 py-6 md:px-8 print:max-w-none print:p-0"
+              >
+                {PATH_STEPS.map((step) => (
+                  <div key={step.slug} data-path-panel={step.slug}>
+                    <StepSection step={step} anchored={false} />
+                  </div>
+                ))}
               </div>
             </div>
           </OverlayRoot>

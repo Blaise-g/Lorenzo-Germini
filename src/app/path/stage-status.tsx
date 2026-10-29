@@ -41,3 +41,35 @@ export function useStageStatus(): StageStatus {
 export function useSetStageStatus() {
   return useContext(SetStageStatusContext);
 }
+
+/* The contract between the narration and the board (v3): the cue being
+   spoken or captioned now, so the board can move the prop its sentence is
+   about while it is said. The tour publishes it, from the same clock with
+   the voice on or off. It names a prop by the data's id (`path.ts`), never by
+   how the board draws it. */
+
+/** The cue playing at the selected step. Consumers re-render when `slug`,
+ *  `index`, `prop` or `running` change, and not as the cue plays: read
+ *  `progress()` per frame for that. */
+export type NarrationCue = {
+  /** The step being narrated: the selected step. */
+  slug: PathStepSlug;
+  /** The cue's index in `narrationFor(slug).cues`. */
+  index: number;
+  /** The prop the cue is about, by its id in the step's `props`, or null
+   *  for a cue about none. */
+  prop: string | null;
+  /** Whether the narration is moving: false while the step waits for the
+   *  stage, while the tour is paused or held, and after its narration. */
+  running: boolean;
+  /** How far through the cue's speech the narration is, 0 to 1, read live.
+   *  Call it each frame; a held value goes stale. */
+  progress: () => number;
+};
+
+export const NarrationCueContext = createContext<NarrationCue | null>(null);
+
+/** For the board: the cue playing now, or null outside the tour. */
+export function useNarrationCue(): NarrationCue | null {
+  return useContext(NarrationCueContext);
+}

@@ -1,24 +1,27 @@
-/* The voice on `/path` (#150). The contract is #141 — decision 9 (optional,
-   off by default, Listen or a remembered Voice switch, the step's text word
-   for word, labelled synthetic), decision 13 (a refresh never starts a voice)
-   and implementation decision 9 (pre-generated clips) — with storyboard §7.6
-   of docs/research/experience-rethink.md: a blocked play falls back to Play,
-   pause and stop are always there, and a clip loads only when first played.
-   The browser is launched with `--mute-audio` (playwright.config.ts). `/`
-   requesting no audio is `tests/flat-site.spec.ts`'s "/ loads no 3D code and
-   plays no sound". */
+/* The narration on `/path` (#150; v3): the voice and the caption line. The
+   contract is #141 — decision 9 (optional, off by default, a remembered
+   Voice switch, labelled synthetic), decision 13 (a refresh never starts a
+   voice) and implementation decision 9 (pre-generated clips) — and the v3
+   ticket: every step narrated, the tour's clock leading and the voice
+   following it, the voice joining at the current step on the first press,
+   a pause pausing both, and captions on by default whenever the voice cannot
+   be heard. The browser is launched with `--mute-audio`
+   (playwright.config.ts). `/` requesting no audio is
+   `tests/flat-site.spec.ts`'s "/ loads no 3D code and plays no sound". */
 
 import { existsSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { VOICE_COPY } from "@/app/path/copy";
+import { narrationFor } from "@/app/path/narration";
 import {
+  CAPTIONS_STORAGE_KEY,
   VOICE_STORAGE_KEY,
   type VoiceManifest,
 } from "@/app/path/voice-manifest";
 import { PATH_STEPS } from "@/data/path";
+import { PATH_NARRATION } from "@/data/path-narration";
 import type { PathStepSlug } from "@/data/path.types";
 
 const manifest = JSON.parse(
@@ -28,21 +31,13 @@ const manifest = JSON.parse(
   ),
 ) as VoiceManifest;
 
-const stepNamed = (slug: PathStepSlug) =>
-  PATH_STEPS.find((step) => step.slug === slug)!;
-
-/* The prototype's steps (#150): home's three, steps 1, 4 and 6, and Lille. */
-const PROTOTYPE_STEPS: readonly PathStepSlug[] = [
-  "home",
-  "cuneo-2022",
-  "lille",
-  "now",
-];
-
 const voice = (page: Page) => page.locator("[data-path-voice]");
-const primary = (page: Page) => page.locator("[data-path-voice-primary]");
-const stopButton = (page: Page) => page.locator("[data-path-voice-stop]");
+const caption = (page: Page) => page.locator("[data-path-caption]");
+const message = (page: Page) => page.locator("[data-path-voice-message]");
 const voiceSwitch = (page: Page) => page.getByRole("switch", { name: "Voice" });
+const captionsSwitch = (page: Page) =>
+  page.getByRole("switch", { name: "Captions" });
+const playTab = (page: Page) => page.locator("[data-path-tour-play]");
 const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
 
@@ -66,6 +61,14 @@ async function hydrated(page: Page) {
   await expect(page.locator("[data-path-piece]")).toHaveCount(1);
 }
 
+/** The narration is playing its step: settled, dwelling, the tour running. */
+async function narrating(page: Page) {
+  await expect(page.locator("[data-path-narration]")).toHaveAttribute(
+    "data-path-cue-running",
+    "",
+  );
+}
+
 async function audioState(page: Page) {
   return page
     .locator("[data-path-voice-audio]")
@@ -76,65 +79,60 @@ async function audioState(page: Page) {
     }));
 }
 
+function remember(page: Page, key: string, value: string) {
+  return page.addInitScript(
+    ([key, value]) => window.localStorage.setItem(key, value),
+    [key, value] as const,
+  );
+}
+
 test.describe("the clips", () => {
-  test("cover the prototype's steps, each reading its step's text word for word", () => {
+  test("narrate every step, each saying its cues as the data has them now", () => {
     expect(Object.keys(manifest.clips).sort()).toEqual(
-      [...PROTOTYPE_STEPS].sort(),
+      PATH_STEPS.map((step) => step.slug).sort(),
     );
-    for (const slug of PROTOTYPE_STEPS) {
-      const clip = manifest.clips[slug]!;
-      expect(clip.script, slug).toBe(stepNamed(slug).text);
-      expect(clip.script, slug).toBe(stepNamed(slug).voiceScript);
+    for (const step of PATH_STEPS) {
+      const clip = manifest.clips[step.slug]!;
+      /* A cue reworded since the clip was made fails here until
+         `bun run generate:path-voice` is run again. */
+      expect(
+        clip.cues.map((cue) => cue.text),
+        step.slug,
+      ).toEqual(PATH_NARRATION[step.slug].map((cue) => cue.text));
       const file = path.join(process.cwd(), "public", clip.src);
       expect(existsSync(file), clip.src).toBe(true);
       expect(statSync(file).size, clip.src).toBe(clip.bytes);
+      /* About 15–30 s a step (v3). */
+      expect(clip.durationMs, step.slug).toBeGreaterThan(14_000);
+      expect(clip.durationMs, step.slug).toBeLessThan(31_000);
+      /* What the page plays is this clip, timed by it. */
+      expect(narrationFor(step.slug).clip.src, step.slug).toBe(clip.src);
+      expect(narrationFor(step.slug).durationMs, step.slug).toBe(
+        clip.durationMs,
+      );
     }
   });
 });
 
 test.describe("/path's voice", () => {
-  test("is labelled a synthetic voice and is off by default", async ({
+  test("is labelled a synthetic voice and is off by default, with captions on", async ({
     page,
   }) => {
     await page.goto("/path#lille");
     await hydrated(page);
-    await expect(page.locator("[data-path-voice-label]")).toContainText(
-      "synthetic voice",
+    await expect(page.locator("[data-path-voice-label]")).toHaveText(
+      `Narration: synthetic voice, ${manifest.providerName}.`,
     );
-    /* Steps without a clip are said once, here, rather than on each. */
-    const everyStep = PATH_STEPS.every((step) => manifest.clips[step.slug]);
-    await expect(page.locator("[data-path-voice-label]")).toContainText(
-      everyStep ? /\.$/ : "Some steps are not narrated yet.",
-    );
-    expect(VOICE_COPY.label("a voice", true)).not.toContain("not narrated");
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "false");
-    await expect(primary(page)).toHaveText("Listen");
-  });
-
-  /* Decision 13: a refresh or a shared link never starts a voice, whatever
-     the remembered switch says. */
-  test("requests no audio on load or refresh, even with the switch on", async ({
-    page,
-  }) => {
-    await page.addInitScript((key) => {
-      window.localStorage.setItem(key, "on");
-    }, VOICE_STORAGE_KEY);
-    const requested = audioRequests(page);
-
-    await page.goto("/path#lille", { waitUntil: "networkidle" });
-    await hydrated(page);
-    await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "true");
-    await page.reload({ waitUntil: "networkidle" });
-    await hydrated(page);
-
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    expect(requested).toEqual([]);
-    expect((await audioState(page)).src).toBe("");
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "off");
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    /* Under reduced motion the tour waits, and the caption shows the step's
+       first cue. */
+    await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
   });
 
   /* #141's testing decision for fragments: goto, Back, Forward and reload
-     request no audio. Off by default, so Back and Forward play nothing; with
-     the switch on they are selections like any other. */
+     request no audio. */
   test("requests no audio across fragments, Back, Forward and reload", async ({
     page,
   }) => {
@@ -148,108 +146,144 @@ test.describe("/path's voice", () => {
     await page.reload({ waitUntil: "networkidle" });
     await hydrated(page);
 
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "off");
     expect(requested).toEqual([]);
   });
+});
 
-  test("Listen loads and plays the selected step's clip; Pause, Resume and Stop work", async ({
-    page,
-  }) => {
-    const requested = audioRequests(page);
-    await page.goto("/path#lille");
-    await hydrated(page);
-    await expect(stopButton(page)).toHaveAttribute("aria-disabled", "true");
+/* The tour plays, so the narration runs. WebGL is refused, so the stage
+   shows its stills and settles each step at once. Real time: the audio
+   element keeps its own. */
+test.describe("with the tour playing", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-    expect(requested).toContain(manifest.clips.lille!.src);
-    expect(requested.every((url) => url === manifest.clips.lille!.src)).toBe(
-      true,
-    );
-    expect((await audioState(page)).paused).toBe(false);
-
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "paused");
-    await expect(primary(page)).toHaveText("Resume");
-    expect((await audioState(page)).paused).toBe(true);
-
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-
-    await expect(stopButton(page)).toBeEnabled();
-    await stopButton(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    await expect(primary(page)).toHaveText("Listen");
-    await expect(stopButton(page)).toBeFocused();
-    /* Nothing loaded now: Stop says it has nothing to stop. */
-    await expect(stopButton(page)).toHaveAttribute("aria-disabled", "true");
-    const stopped = await audioState(page);
-    expect(stopped.paused).toBe(true);
-    expect(stopped.currentTime).toBe(0);
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      HTMLCanvasElement.prototype.getContext = () => null;
+    });
   });
 
-  test("Stop works from paused too", async ({ page }) => {
-    await page.goto("/path#lille");
-    await hydrated(page);
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "paused");
-
-    await stopButton(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    expect((await audioState(page)).currentTime).toBe(0);
-  });
-
-  test("selecting another step stops the clip when the switch is off", async ({
+  /* Decision 13: a refresh or a shared link never starts a voice, whatever
+     the remembered switch says. Until a press the tour runs on captions. */
+  test("a remembered voice requests no audio on load or refresh, and the captions stand in", async ({
     page,
   }) => {
+    await remember(page, VOICE_STORAGE_KEY, "on");
     const requested = audioRequests(page);
-    await page.goto("/path#lille");
-    await hydrated(page);
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
 
-    await stepLink(page, "home").click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    expect((await audioState(page)).paused).toBe(true);
-    expect(requested).not.toContain(manifest.clips.home!.src);
-  });
-
-  test("the Voice switch is remembered and plays each later selection's clip", async ({
-    page,
-  }) => {
-    const requested = audioRequests(page);
-    await page.goto("/path#lille");
+    await page.goto("/path#lille", { waitUntil: "networkidle" });
     await hydrated(page);
-    await voiceSwitch(page).click();
+    await narrating(page);
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "true");
-    /* Turning it on plays nothing: it is for the selections after it. */
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
+    await page.reload({ waitUntil: "networkidle" });
+    await hydrated(page);
+    await narrating(page);
+
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "waiting");
+    await expect(message(page)).not.toBeEmpty();
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(caption(page)).not.toBeEmpty();
     expect(requested).toEqual([]);
+    expect((await audioState(page)).src).toBe("");
+  });
 
-    await stepLink(page, "home").click();
+  test("the first press lets the voice join at the current step, where the tour is", async ({
+    page,
+  }) => {
+    await remember(page, VOICE_STORAGE_KEY, "on");
+    const requested = audioRequests(page);
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+    await page.waitForTimeout(1500);
+
+    /* Pause, then Play: the press, and the tour carries on from where it
+       stopped, the voice with it. */
+    await playTab(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "paused");
+    expect(requested).toEqual([]);
+    await playTab(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-    expect((await audioState(page)).src).toBe(manifest.clips.home!.src);
+    expect(requested).toEqual([manifest.clips.lille!.src]);
+    const joined = await audioState(page);
+    expect(joined.src).toBe(manifest.clips.lille!.src);
+    expect(joined.currentTime).toBeGreaterThan(1);
+    /* Heard now, so the captions step aside unless asked for. */
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(caption(page)).toBeEmpty();
+  });
 
-    /* A step with no clip stops the last one and starts nothing. */
-    await stepLink(page, "turin").click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
+  test("pausing the tour pauses the voice, and playing resumes both together", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+    await voiceSwitch(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+
+    await playTab(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "paused");
+    const paused = await audioState(page);
+    expect(paused.paused).toBe(true);
+    await page.waitForTimeout(1000);
+    expect((await audioState(page)).currentTime).toBe(paused.currentTime);
+
+    await playTab(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    const resumed = await audioState(page);
+    /* From where the tour is, which a pause did not move. */
+    expect(Math.abs(resumed.currentTime - paused.currentTime)).toBeLessThan(
+      0.5,
+    );
+  });
+
+  test("turning the voice on mid-step joins there, and off stops it", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+    await page.waitForTimeout(2000);
+
+    await voiceSwitch(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    expect((await audioState(page)).currentTime).toBeGreaterThan(1.5);
+
+    await voiceSwitch(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "off");
     expect((await audioState(page)).paused).toBe(true);
-    await expect(primary(page)).toBeDisabled();
-
+    /* Remembered across a reload. */
     await page.reload();
     await hydrated(page);
-    await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "true");
-
-    await voiceSwitch(page).click();
     await expect(voiceSwitch(page)).toHaveAttribute("aria-checked", "false");
-    await stepLink(page, "lille").click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    expect(requested).not.toContain(manifest.clips.lille!.src);
   });
 
-  test("a blocked play shows a Play button that plays the clip", async ({
+  test("a new step stops the clip, and its own plays once the step settles", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+    await voiceSwitch(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+
+    await stepLink(page, "now").click();
+    await expect
+      .poll(async () => (await audioState(page)).src)
+      .toBe(manifest.clips.now!.src);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    /* From the start of its narration. */
+    expect((await audioState(page)).currentTime).toBeLessThan(1);
+
+    await page.goBack();
+    await expect
+      .poll(async () => (await audioState(page)).src)
+      .toBe(manifest.clips.lille!.src);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+  });
+
+  test("a play the browser holds back falls back to captions until the next press", async ({
     page,
   }) => {
     /* The browser refuses the first play, as autoplay policy can. */
@@ -264,62 +298,19 @@ test.describe("/path's voice", () => {
     });
     await page.goto("/path#lille");
     await hydrated(page);
+    await narrating(page);
 
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "blocked");
-    await expect(primary(page)).toHaveText("Play");
-    await expect(page.locator("[data-path-voice-message]")).not.toBeEmpty();
-
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-  });
-
-  test("with the switch on, the next selection's clip replaces the playing one, and Back is a selection", async ({
-    page,
-  }) => {
-    await page.goto("/path#lille");
-    await hydrated(page);
     await voiceSwitch(page).click();
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "blocked");
+    await expect(message(page)).not.toBeEmpty();
+    await expect(caption(page)).not.toBeEmpty();
 
-    await stepLink(page, "home").click();
-    await expect
-      .poll(async () => (await audioState(page)).src)
-      .toBe(manifest.clips.home!.src);
+    await page.keyboard.press("Shift");
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-
-    await page.goBack();
-    await expect
-      .poll(async () => (await audioState(page)).src)
-      .toBe(manifest.clips.lille!.src);
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    await expect(message(page)).toBeEmpty();
   });
 
-  test("Stop cancels a clip still loading", async ({ page }) => {
-    let release!: () => void;
-    const held = new Promise<void>((resolve) => (release = resolve));
-    await page.route(`**${manifest.clips.lille!.src}`, async (route) => {
-      await held;
-      await route.continue();
-    });
-    await page.goto("/path#lille");
-    await hydrated(page);
-
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "loading");
-    await expect(primary(page)).toBeFocused();
-    await expect(stopButton(page)).toBeEnabled();
-    await stopButton(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-
-    release();
-    await page.waitForTimeout(500);
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
-    expect((await audioState(page)).paused).toBe(true);
-  });
-
-  test("a clip that failed to load is fetched again on the next Listen", async ({
+  test("a clip that failed to load is fetched again on the next press", async ({
     page,
   }) => {
     let requests = 0;
@@ -330,13 +321,48 @@ test.describe("/path's voice", () => {
     });
     await page.goto("/path#lille");
     await hydrated(page);
+    await narrating(page);
 
-    await primary(page).click();
-    await expect(voice(page)).toHaveAttribute("data-voice-state", "failed");
-    await expect(page.locator("[data-path-voice-message]")).not.toBeEmpty();
+    await voiceSwitch(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "blocked");
+    await expect(caption(page)).not.toBeEmpty();
 
-    await primary(page).click();
+    await page.keyboard.press("Shift");
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
     expect(requests).toBeGreaterThan(1);
+  });
+});
+
+test.describe("the captions", () => {
+  test("turned off, the line is empty and its space held; the choice is remembered", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await expect(caption(page)).not.toBeEmpty();
+    const height = (await caption(page).boundingBox())!.height;
+
+    await captionsSwitch(page).click();
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(caption(page)).toBeEmpty();
+    expect((await caption(page).boundingBox())!.height).toBe(height);
+
+    await page.reload();
+    await hydrated(page);
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
+    await expect(caption(page)).toBeEmpty();
+  });
+
+  test("a remembered choice to show them holds with the voice on", async ({
+    page,
+  }) => {
+    await remember(page, CAPTIONS_STORAGE_KEY, "on");
+    await remember(page, VOICE_STORAGE_KEY, "on");
+    await page.goto("/path#lille");
+    await hydrated(page);
+    /* The press that lets the voice be heard. */
+    await page.keyboard.press("Shift");
+    await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
   });
 });

@@ -21,11 +21,17 @@ import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
 import { TOUR_COPY } from "./copy";
-import { useStageStatus } from "./stage-status";
+import { cueIndexAt, cueProgress, narrationFor } from "./narration";
+import {
+  NarrationCueContext,
+  useStageStatus,
+  type NarrationCue,
+} from "./stage-status";
 import {
   dwellMs,
   FIRST_STEP,
   LAST_STEP,
+  playheadMs,
   startClock,
   stepAfter,
   stepBefore,
@@ -36,27 +42,26 @@ import {
 
 /* The tour on `/path`: the board plays itself, step by step, and the visitor
    can skip to any step like a tape. It drives the selection, the one thing
-   the stage, the panels and the voice already follow, and nothing else.
+   the stage and the voice already follow, and the narration's cue, which the
+   captions, the voice and the board follow.
 
    - Playing: at each step it waits for the stage to report the step settled
      (`stage-status.tsx`), at most `SETTLE_MAX_WAIT_MS`, then dwells for the
-     panel's reading time (`tour-clock.ts`), then replaces the history entry
-     with the next step, so Back skips the auto-steps. It stops at the last.
+     step's narration and a beat (`tour-clock.ts`), then replaces the history
+     entry with the next step, so Back skips the auto-steps. It stops at the
+     last. The narration's cues run on the dwell's clock, with the voice on
+     or off, and the voice follows that clock rather than leading it.
    - Picking a step — the list, Back, Forward, Previous, Next — pushes as
      before, and the tour carries on from there, after the end too.
    - Paused: one click on the middle tab or the K key (WCAG 2.2.2), and on the
      tab going hidden, where it stays when the tab returns. Under reduced
-     motion it starts paused and plays nothing until asked.
-   - Held: while the pointer is over the text panel or focus is in it, and
-     while the voice is still reading the step, the clock stops without
-     pausing, so nothing moves on under someone reading or listening.
+     motion it starts paused and plays nothing until asked. A pause holds
+     the captions and the voice where they are.
 
    Keys, with focus in the step list or on the tabs and no modifier: K plays
    or pauses, J goes to the previous step, L to the next. */
 
 export type TourStatus = "playing" | "paused" | "ended";
-
-type Hold = "pointer" | "focus";
 
 type TourContextValue = {
   status: TourStatus;
@@ -66,8 +71,9 @@ type TourContextValue = {
   togglePlay: () => void;
   previous: () => void;
   next: () => void;
-  setHold: (hold: Hold, on: boolean) => void;
-  setNarrating: (slug: PathStepSlug | null) => void;
+  /** How far into the selected step's narration the tour is now, read
+   *  live. */
+  playhead: () => number;
 };
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -78,18 +84,15 @@ function useTour(): TourContextValue {
   return tour;
 }
 
-/** For the voice: tells the tour which step it is reading aloud, so the tour
- *  does not move on in the middle of a sentence. Outside a tour, it does
- *  nothing. */
-export function useSetNarrating() {
-  return useContext(TourContext)?.setNarrating ?? noop;
+/** For the voice: how far into the selected step's narration the tour is,
+ *  in milliseconds, read live. */
+export function useNarrationPlayhead(): () => number {
+  return useTour().playhead;
 }
-
-function noop() {}
 
 const stepsBySlug = new Map(PATH_STEPS.map((step) => [step.slug, step]));
 const stepNamed = (slug: PathStepSlug) => stepsBySlug.get(slug)!;
-const dwellFor = (slug: PathStepSlug) => dwellMs(stepNamed(slug));
+const dwellFor = dwellMs;
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -126,11 +129,6 @@ export function TourProvider({ children }: { children: ReactNode }) {
   /* Play or pause as the visitor or a hidden tab last chose; until then the
      tour plays where motion is allowed and waits where it is not. */
   const [chosen, setChosen] = useState<"playing" | "paused" | null>(null);
-  const [holds, setHolds] = useState<Record<Hold, boolean>>({
-    pointer: false,
-    focus: false,
-  });
-  const [narrating, setNarrating] = useState<PathStepSlug | null>(null);
 
   /* Each step gets a new clock, whatever selected it (`timingReducer`). Until
      the new step's clock has started, this render shows a fresh one and
@@ -159,17 +157,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const playing =
     (chosen ?? (motionAllowed ? "playing" : "paused")) === "playing";
-  /* The last step, played to its end and no longer being read aloud. Picking
-     any step starts a new clock, so the tour plays on from there. */
-  const finished =
-    clock.phase === "done" && narrating !== selected && selected === LAST_STEP;
-  const status: TourStatus = !playing
-    ? "paused"
-    : finished
-      ? "ended"
-      : "playing";
-  const running = status === "playing" && !holds.pointer && !holds.focus;
+  /* The last step, played to its end. Picking any step starts a new clock,
+     so the tour plays on from there. */
   const atEnd = clock.phase === "done" && selected === LAST_STEP;
+  const status: TourStatus = !playing ? "paused" : atEnd ? "ended" : "playing";
+  const running = status === "playing";
   const statusRef = useRef(status);
   useEffect(() => {
     statusRef.current = status;
@@ -183,31 +175,92 @@ export function TourProvider({ children }: { children: ReactNode }) {
     if (!stepFromFragment(window.location.hash)) replaceStep(FIRST_STEP);
   }, []);
 
-  /* The clock runs only while the tour plays and nothing holds it. Stopping
-     it keeps what is left of the phase, so a pause or a hold resumes where it
-     was. The identity checks leave alone a clock that a new step or a settle
-     has already replaced. */
+  /* The clock as it runs: the clock last set and when it started running,
+     for reading the playhead between its timer's reports. Null while it is
+     stopped, when the clock alone says where it is. */
+  const clockRef = useRef(clock);
+  const liveRef = useRef<{ clock: StepClock; since: number } | null>(null);
+  useLayoutEffect(() => {
+    clockRef.current = clock;
+  }, [clock]);
+  const playhead = useCallback(() => {
+    const live = liveRef.current;
+    if (live && live.clock === clockRef.current) {
+      return playheadMs(live.clock, performance.now() - live.since);
+    }
+    return playheadMs(clockRef.current);
+  }, []);
+
+  /* The clock runs only while the tour plays. Stopping it keeps what is
+     left of the phase, so a pause resumes where it was. The identity checks
+     leave alone a clock that a new step or a settle has already replaced. */
   useEffect(() => {
     if (!running || !timed || clock.phase === "done") return;
     const started = performance.now();
+    liveRef.current = { clock, since: started };
     const timer = window.setTimeout(() => {
       dispatch({ type: "elapse", from: clock, ms: clock.remaining });
     }, clock.remaining);
     return () => {
       window.clearTimeout(timer);
+      liveRef.current = null;
       const elapsed = performance.now() - started;
       dispatch({ type: "elapse", from: clock, ms: elapsed });
     };
   }, [running, timed, clock]);
 
-  /* A finished step moves on, once the voice has finished reading it, and
-     not while the visitor is reading the panel. */
+  /* A finished step moves on. */
   useEffect(() => {
     if (!running || !timed || clock.phase !== "done") return;
-    if (narrating === selected) return;
     const after = stepAfter(selected);
     if (after) replaceStep(after);
-  }, [clock.phase, running, timed, narrating, selected]);
+  }, [clock.phase, running, timed, selected]);
+
+  /* Where the narration is, as of the last cue boundary the clock crossed:
+     each cue's start and the narration's end. A timer per boundary, so the
+     tour re-renders as a cue changes and not as it plays. Between
+     boundaries, and whenever the clock is replaced, the clock alone says
+     where it is. */
+  const narration = narrationFor(selected);
+  const [crossed, setCrossed] = useState<{ clock: StepClock; ms: number }>({
+    clock,
+    ms: 0,
+  });
+  const at = crossed.clock === clock ? crossed.ms : playheadMs(clock);
+  useEffect(() => {
+    if (!running || !timed || clock.phase !== "dwelling") return;
+    const boundaries = [
+      ...narration.cues.map((cue) => cue.startMs),
+      narration.durationMs,
+    ];
+    let timer = 0;
+    function schedule() {
+      const now = playhead();
+      const next = boundaries.find((boundary) => boundary > now);
+      if (next === undefined) return;
+      timer = window.setTimeout(() => {
+        setCrossed({ clock, ms: next });
+        schedule();
+      }, next - now);
+    }
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, [running, timed, clock, narration, playhead]);
+
+  const index = cueIndexAt(narration.cues, at);
+  const cue = narration.cues[index];
+  const speaking =
+    running && clock.phase === "dwelling" && at < narration.durationMs;
+  const narrationCue = useMemo<NarrationCue>(
+    () => ({
+      slug: selected,
+      index,
+      prop: cue.prop ?? null,
+      running: speaking,
+      progress: () => cueProgress(cue, playhead()),
+    }),
+    [selected, index, cue, speaking, playhead],
+  );
 
   /* A hidden tab pauses the tour, and it stays paused when the tab returns:
      the visitor comes back to the step they left, not three steps on. */
@@ -257,27 +310,16 @@ export function TourProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [togglePlay, previous, next]);
 
-  const setHold = useCallback((hold: Hold, on: boolean) => {
-    setHolds((current) =>
-      current[hold] === on ? current : { ...current, [hold]: on },
-    );
-  }, []);
-
   const value = useMemo(
-    () => ({
-      status,
-      clock,
-      running,
-      togglePlay,
-      previous,
-      next,
-      setHold,
-      setNarrating,
-    }),
-    [status, clock, running, togglePlay, previous, next, setHold],
+    () => ({ status, clock, running, togglePlay, previous, next, playhead }),
+    [status, clock, running, togglePlay, previous, next, playhead],
   );
 
-  return <TourContext value={value}>{children}</TourContext>;
+  return (
+    <TourContext value={value}>
+      <NarrationCueContext value={narrationCue}>{children}</NarrationCueContext>
+    </TourContext>
+  );
 }
 
 const PLAY_LABEL: Record<TourStatus, string> = {
@@ -398,75 +440,5 @@ export function TourProgress() {
     >
       <span ref={lineRef} className="path-tour-progress-line" />
     </span>
-  );
-}
-
-/** The text panel. Its text holds the tour while the pointer is over it or
- *  focus is in it; only a mouse or a pen hovers, and a finger's tap is not
- *  reading. The voice's controls at its foot do not hold: pressing Stop is
- *  not reading. The text scrolls inside the panel where it is laid over the
- *  board, so the longest step's does not push it off the screen, and
- *  `footer` stays put under it. The scrolling part takes focus, so the keys
- *  can scroll it too. */
-export function TourHoldPanel({
-  className,
-  footer,
-  children,
-}: {
-  className?: string;
-  footer?: ReactNode;
-  children: ReactNode;
-}) {
-  const { setHold } = useTour();
-  const textRef = useRef<HTMLDivElement>(null);
-  const [more, setMore] = useState(false);
-
-  /* Where the text scrolls and has more below, its foot fades out like ink
-     running off the card, so the cut reads as meant. Measured again as it
-     scrolls, as the panel resizes, and as a step's text replaces another. */
-  useEffect(() => {
-    const text = textRef.current;
-    if (!text) return;
-    const measure = () =>
-      setMore(text.scrollTop + text.clientHeight < text.scrollHeight - 2);
-    const observer = new ResizeObserver(measure);
-    observer.observe(text);
-    for (const child of text.children) observer.observe(child);
-    text.addEventListener("scroll", measure, { passive: true });
-    return () => {
-      observer.disconnect();
-      text.removeEventListener("scroll", measure);
-    };
-  }, []);
-
-  return (
-    <div className={cn("path-card flex max-w-[46rem] flex-col", className)}>
-      <div
-        ref={textRef}
-        data-path-text-panel
-        data-path-more={more ? "" : undefined}
-        tabIndex={0}
-        onPointerEnter={(event) => {
-          if (event.pointerType !== "touch") setHold("pointer", true);
-        }}
-        onPointerLeave={() => setHold("pointer", false)}
-        onFocus={() => setHold("focus", true)}
-        onBlur={(event) => {
-          if (
-            !event.currentTarget.contains(event.relatedTarget as Node | null)
-          ) {
-            setHold("focus", false);
-          }
-        }}
-        className="path-panel-text min-h-0 flex-1 px-6 pt-6 pb-5 md:px-8 print:px-0 print:pt-0"
-      >
-        {children}
-      </div>
-      {footer ? (
-        <div className="border-border border-t border-dashed px-6 pt-1 pb-2 md:px-8 print:hidden">
-          {footer}
-        </div>
-      ) : null}
-    </div>
   );
 }

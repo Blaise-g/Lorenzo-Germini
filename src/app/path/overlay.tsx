@@ -46,10 +46,13 @@ export function useSetLitLines() {
 }
 
 /** The overlay root, carrying the selected step as `data-path-shown`. CSS
- *  shows that step's panel from it, so selecting a step shows its text at
- *  once, with nothing to fetch (GH-141, decision 7). It carries the lit
- *  caption lines too, as `data-path-lit`: the captions are the panel's own
- *  lines, server HTML, so they are lit from here rather than re-rendered. */
+ *  shows that step's still and, on paper or without JavaScript, its text
+ *  from it, with nothing to fetch (GH-141, decision 7). `data-path-scripted`
+ *  marks a page with JavaScript running, which takes the text off the
+ *  screen: the first-paint script sets it before paint, and hydration keeps
+ *  it. It carries the lit caption lines too, as `data-path-lit`: the lines
+ *  are the text's own, server HTML, so they are lit from here rather than
+ *  re-rendered. */
 export function OverlayRoot({
   className,
   children,
@@ -58,6 +61,7 @@ export function OverlayRoot({
   children: ReactNode;
 }) {
   const { selected } = useSelectedStep();
+  const hydrated = useHydrated();
   const [lit, setLit] = useState<LitLines>({ slug: selected, lines: [] });
   /* Lines lit for one step never light another's: on a Back or a fragment,
      the new panel shows a render before its scene's build resets them. */
@@ -65,8 +69,8 @@ export function OverlayRoot({
   const rootRef = useRef<HTMLDivElement>(null);
 
   /* What changed the step last, as `data-path-input`: a key, a pointer or
-     the tour. A change from the keyboard is not animated — the panel and the
-     pawn cut — because a key is pressed far more often than it is watched.
+     the tour. A change from the keyboard is not animated — the pawn cuts —
+     because a key is pressed far more often than it is watched.
      Written straight onto the element, ahead of the render the change
      causes, so the cut applies to that render. */
   useEffect(() => {
@@ -94,6 +98,7 @@ export function OverlayRoot({
       ref={rootRef}
       data-path-overlay
       data-path-shown={selected}
+      data-path-scripted={hydrated ? "" : undefined}
       data-path-lit={lines.length > 0 ? lines.join(" ") : undefined}
       suppressHydrationWarning
       className={className}
@@ -127,41 +132,6 @@ export function FlatSiteLink({ className }: { className: string }) {
 export function MarkEntered() {
   useEffect(() => {
     markEntered();
-  }, []);
-  return null;
-}
-
-/** Below `lg` the text panel sits under the step list and the stage, out of
- *  the first screen on a phone. Selecting a step — a click, a key, Back or
- *  Forward, all of which change the fragment — brings the panel's text into
- *  view when none of it is, so the text appears as it is selected (GH-141,
- *  decision 7). It scrolls and nothing else: focus stays on the step that
- *  was selected. `html`'s `scroll-behavior` makes it a glide, or a jump
- *  under reduced motion. A load is not a selection, so it does not scroll,
- *  and nor does a step the tour moves on to. */
-export function RevealSelectedText() {
-  useEffect(() => {
-    const wide = window.matchMedia("(min-width: 64rem)");
-    let frame = 0;
-    function onHashChange() {
-      /* The tour moving on is not the visitor's selection: scrolling the
-         page under them on every step would take the list out of reach. */
-      if (wide.matches || isReplacingStep()) return;
-      cancelAnimationFrame(frame);
-      /* After the selected panel has rendered, so its height is its own. */
-      frame = requestAnimationFrame(() => {
-        const panel = document.querySelector("[data-path-text-panel]");
-        if (!panel) return;
-        const { top, bottom } = panel.getBoundingClientRect();
-        if (top < window.innerHeight * 0.85 && bottom > 0) return;
-        panel.scrollIntoView({ block: "nearest" });
-      });
-    }
-    window.addEventListener("hashchange", onHashChange);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("hashchange", onHashChange);
-    };
   }, []);
   return null;
 }
@@ -282,7 +252,7 @@ const ARROW_STEP: Record<string, 1 | -1> = {
 };
 
 /** Each link is a plain anchor to its step's fragment, so the browser pushes
- *  the history entry and the tour, the stage and the panels follow the
+ *  the history entry and the tour, the stage and the narration follow the
  *  fragment. */
 export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
   const hydrated = useHydrated();

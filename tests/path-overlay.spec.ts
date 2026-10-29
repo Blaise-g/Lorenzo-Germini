@@ -1,5 +1,8 @@
 /* `/path` before any 3D (#147): its HTML overlay — the step list with the piece
-   and seen ticks, the step's text panel, and the permanent "Flat site" link.
+   and seen ticks, the narration bar, and the permanent "Flat site" link. The
+   steps' full text is in the HTML too, for print and for a visit without
+   JavaScript; once scripted, the screen has the voice and captions instead
+   (v3), and "Read this step" for the text.
    The contract is #141 — decisions 6, 7 and 13, implementation decisions 4
    and 6 — with storyboard §7.4 and §7.7 of docs/research/experience-rethink.md
    and ADR-0002 (its own shell, one `contentinfo`). `/path` is deliberately not
@@ -7,6 +10,7 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { narrationFor } from "@/app/path/narration";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { ENTERED_STORAGE_KEY, SEEN_STORAGE_KEY } from "@/lib/path-state";
@@ -17,6 +21,9 @@ const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
 const piece = (page: Page) => page.locator("[data-path-piece]");
 const panel = (page: Page) => page.locator("[data-path-text-panel]");
+const bar = (page: Page) => page.locator("[data-path-narration]");
+const readStep = (page: Page) =>
+  page.getByRole("link", { name: "Read this step" });
 const flatSiteLink = (page: Page) =>
   page.getByRole("link", { name: "Flat site", exact: true });
 
@@ -28,18 +35,11 @@ async function hydrated(page: Page) {
   await expect(piece(page)).toHaveCount(1);
 }
 
-/** Selected means all of it: the link is current, the piece is on the step,
- *  the panel shows that step's place, roles and results and no other step's,
- *  and "Flat site" carries it back to `/`. */
-async function expectSelected(page: Page, slug: PathStepSlug) {
+/** The step's text as paper shows it: its place, roles and results, and no
+ *  other step's. */
+async function expectPrinted(page: Page, slug: PathStepSlug) {
   const step = stepNamed(slug);
-  await expect(stepLink(page, slug)).toHaveAttribute(
-    "aria-current",
-    "location",
-  );
-  await expect(stepList(page).locator("[aria-current]")).toHaveCount(1);
-  await expect(piece(page)).toHaveAttribute("data-path-piece", slug);
-
+  await page.emulateMedia({ media: "print" });
   const shown = panel(page).locator("[data-path-panel]:visible");
   await expect(shown).toHaveCount(1);
   await expect(shown).toHaveAttribute("data-path-panel", slug);
@@ -50,8 +50,49 @@ async function expectSelected(page: Page, slug: PathStepSlug) {
   for (const role of step.roles) {
     await expect(shown).toContainText(`${role.start} – ${role.end}`);
   }
+  await page.emulateMedia({ media: null });
+}
+
+/** Selected means all of it: the link is current, the piece is on the step,
+ *  the caption line tells that step, its full text is a click away, on
+ *  paper and on the flat site, and "Flat site" carries it back to `/`. */
+async function expectSelected(page: Page, slug: PathStepSlug) {
+  await expect(stepLink(page, slug)).toHaveAttribute(
+    "aria-current",
+    "location",
+  );
+  await expect(stepList(page).locator("[aria-current]")).toHaveCount(1);
+  await expect(piece(page)).toHaveAttribute("data-path-piece", slug);
+
+  /* Under reduced motion the tour waits, on the step's first cue. */
+  await expect(page.locator("[data-path-caption]")).toHaveText(
+    narrationFor(slug).cues[0].text,
+  );
+  await expect(panel(page)).toBeHidden();
+  await expect(readStep(page)).toHaveAttribute("href", `/#${slug}`);
+  await expectPrinted(page, slug);
 
   await expect(flatSiteLink(page)).toHaveAttribute("href", `/#${slug}`);
+}
+
+/** The longest cue fits in the lines the caption holds open, so no cue
+ *  moves what is around the caption. */
+async function expectLongestCueFits(page: Page) {
+  const longest = PATH_STEPS.flatMap(
+    (step) => narrationFor(step.slug).cues,
+  ).reduce((a, b) => (b.text.length > a.text.length ? b : a)).text;
+  const fits = await page
+    .locator("[data-path-caption]")
+    .evaluate((caption, text) => {
+      const held = caption.getBoundingClientRect().height;
+      const probe = caption.cloneNode() as HTMLElement;
+      probe.textContent = text;
+      caption.after(probe);
+      const needed = probe.getBoundingClientRect().height;
+      probe.remove();
+      return needed <= held + 1;
+    }, longest);
+  expect(fits, longest).toBe(true);
 }
 
 async function seenSlugs(page: Page) {
@@ -62,13 +103,16 @@ async function seenSlugs(page: Page) {
     );
 }
 
-test("the overlay is server HTML: the step list, the text panel and Flat site", async ({
+test("the overlay is server HTML: the step list, every step's text and Flat site", async ({
   request,
 }) => {
   const html = await (await request.get("/path")).text();
   for (const step of PATH_STEPS) {
     expect(html, `${step.slug}'s link`).toContain(
       `data-path-step-link="${step.slug}"`,
+    );
+    expect(html, `${step.slug}'s text`).toContain(
+      `data-path-panel="${step.slug}"`,
     );
   }
   /* With no fragment the panel shows now, as `/` selects it. */
@@ -89,6 +133,9 @@ test.describe("with JavaScript off", () => {
     await expect(stepList(page).getByRole("link")).toHaveCount(
       PATH_STEPS.length,
     );
+    /* The text is on screen here: no voice and no captions without
+       JavaScript. */
+    await expect(panel(page)).toBeVisible();
     await expect(panel(page)).toContainText(stepNamed("now").lines[0]);
     await expect(flatSiteLink(page)).toBeVisible();
     /* Every step's text is in the page, hidden or not, so selecting one
@@ -111,7 +158,7 @@ test.describe("before hydration", () => {
     );
   });
 
-  test("a load of /path#lille paints Lille's panel and Flat site to /#lille", async ({
+  test("a load of /path#lille keeps the text off the screen, puts Lille's on paper, and Flat site to /#lille", async ({
     page,
   }) => {
     const response = await page.goto("/path#lille");
@@ -125,10 +172,9 @@ test.describe("before hydration", () => {
       "data-path-shown",
       "lille",
     );
-    const shown = panel(page).locator("[data-path-panel]:visible");
-    await expect(shown).toHaveCount(1);
-    await expect(shown).toHaveAttribute("data-path-panel", "lille");
-    await expect(shown).toContainText(stepNamed("lille").lines[0]);
+    /* Scripted before paint, so the text never flashes on screen. */
+    await expect(panel(page)).toBeHidden();
+    await expectPrinted(page, "lille");
     await expect(flatSiteLink(page)).toHaveAttribute("href", "/#lille");
     /* `display: none`, so the hidden panels are out of the tree too. */
     await expect(
@@ -142,6 +188,8 @@ test.describe("before hydration", () => {
     }) => {
       await page.goto(`/path${fragment}`);
       await expect(piece(page)).toHaveCount(0);
+      await expect(panel(page)).toBeHidden();
+      await page.emulateMedia({ media: "print" });
       await expect(
         panel(page).locator("[data-path-panel]:visible"),
       ).toHaveAttribute("data-path-panel", "now");
@@ -246,9 +294,10 @@ test("every step can be selected in any order by click, Enter and Space", async 
     await expect(page, `${slug} by ${how}`).toHaveURL(
       new RegExp(`/path#${slug}$`),
     );
-    await expectSelected(page, slug);
-    /* Focus stays on the step that was selected (storyboard §7.7). */
+    /* Focus stays on the step that was selected (storyboard §7.7). Before
+       the print check, whose media switch takes the page's focus. */
     await expect(link).toBeFocused();
+    await expectSelected(page, slug);
   }
 });
 
@@ -388,35 +437,8 @@ test("the panel rules are layered, and print shows the selected step's text only
   }
 });
 
-/* Decision 7: a step's text appears the moment it is selected. On a phone
-   the panel is under the list and the stage, so selecting brings it into
-   view, without taking focus off the step. */
 test.describe("on a phone", () => {
   test.use({ viewport: { width: 375, height: 812 } });
-
-  const panelInView = (page: Page) =>
-    panel(page).evaluate((element) => {
-      const { top } = element.getBoundingClientRect();
-      return top >= 0 && top < window.innerHeight * 0.85;
-    });
-
-  test("selecting a step brings its text into view and keeps focus on it", async ({
-    page,
-  }) => {
-    /* A short phone: on a tall one the panel's top shows under the board
-       already. */
-    await page.setViewportSize({ width: 375, height: 667 });
-    await page.goto("/path");
-    await expect(stepLink(page, "now")).toBeVisible();
-    expect(await panelInView(page)).toBe(false);
-    await stepLink(page, "lille").focus();
-    await page.keyboard.press("Enter");
-    await expect.poll(() => panelInView(page)).toBe(true);
-    await expect(stepLink(page, "lille")).toBeFocused();
-    await expect(
-      panel(page).locator('[data-path-panel="lille"]'),
-    ).toBeInViewport();
-  });
 
   test("a load of a step's fragment does not scroll", async ({ page }) => {
     await page.goto("/path#lille");
@@ -425,19 +447,40 @@ test.describe("on a phone", () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(0);
   });
 
-  test.describe("with motion allowed", () => {
-    test.use({ contextOptions: { reducedMotion: "no-preference" } });
-
-    /* With motion allowed the tour has already put a bare `/path` on home,
-       so the pick is another step. */
-    test("the text glides into view", async ({ page }) => {
-      await page.goto("/path");
-      await hydrated(page);
-      await stepLink(page, "lille").click();
-      await expect.poll(() => panelInView(page)).toBe(true);
-      await expect(stepLink(page, "lille")).toBeFocused();
-    });
+  test("the caption and the tour's tabs are in the first screen", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await expect(page.locator("[data-path-caption]")).toBeInViewport();
+    await expect(page.locator("[data-path-tour-play]")).toBeInViewport();
+    await expectLongestCueFits(page);
   });
+});
+
+test("Read this step goes to the step's section on the flat site", async ({
+  page,
+}) => {
+  await page.goto("/path#lille");
+  await hydrated(page);
+  await expect(readStep(page)).toHaveAttribute("href", "/#lille");
+  await stepLink(page, "turin").click();
+  await expect(readStep(page)).toHaveAttribute("href", "/#turin");
+  await readStep(page).click();
+  await expect(page).toHaveURL(/\/#turin$/);
+  await expect(page.locator("#turin")).toBeInViewport();
+});
+
+test("/path hydrates without a mismatch", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  await page.goto("/path#lille");
+  await hydrated(page);
+  await page.waitForTimeout(300);
+  expect(errors.filter((error) => /hydrat/i.test(error))).toEqual([]);
 });
 
 test("on a wide screen, selecting a step does not scroll", async ({ page }) => {
@@ -459,16 +502,15 @@ test("/path is absent from the sitemap", async ({ request }) => {
 });
 
 /* The first screen on a wide screen: the steps as one strip across the
-   top, the board under it, the tour's tabs and the text panel down the
-   right. Nothing is cut: every step is whole in the strip, and the panel's
-   text, where it scrolls, fades at its foot rather than stopping. */
+   top, the board under it, the narration bar under that. Nothing is cut:
+   every step is whole in the strip. */
 test.describe("the first screen on a wide screen", () => {
   for (const [width, height] of [
     [1440, 900],
     [1280, 720],
     [1024, 800],
   ] as const) {
-    test(`at ${width}×${height} every step is whole in the strip, and the strip, the board and the panel are in the first screen`, async ({
+    test(`at ${width}×${height} every step is whole in the strip, and the strip, the board and the bar are in the first screen`, async ({
       page,
     }) => {
       await page.setViewportSize({ width, height });
@@ -498,61 +540,19 @@ test.describe("the first screen on a wide screen", () => {
 
       const stage = (await page.locator("[data-path-stage]").boundingBox())!;
       const list = (await stepList(page).boundingBox())!;
-      const card = (await panel(page).locator("..").boundingBox())!;
+      const card = (await bar(page).boundingBox())!;
       for (const box of [stage, list, card]) {
         expect(box.y + box.height).toBeLessThanOrEqual(height);
       }
-      /* The strip above the board, the panel beside it. */
+      /* The strip above the board, the bar under it, all three as wide. */
       expect(list.y + list.height).toBeLessThanOrEqual(stage.y);
-      expect(stage.x + stage.width).toBeLessThanOrEqual(card.x);
+      expect(stage.y + stage.height).toBeLessThanOrEqual(card.y);
+      expect(Math.abs(card.width - list.width)).toBeLessThanOrEqual(1);
+      /* The longest cue fits the caption's held lines: a cue changing
+         never moves the bar. */
+      await expectLongestCueFits(page);
     });
   }
-
-  test("the panel's lines stay at a readable measure", async ({ page }) => {
-    await page.setViewportSize({ width: 2560, height: 1440 });
-    await page.goto("/path#lille");
-    await hydrated(page);
-    const characters = await panel(page)
-      .locator('[data-path-panel="lille"] li')
-      .first()
-      .evaluate((item) => {
-        const style = getComputedStyle(item);
-        const probe = document.createElement("span");
-        probe.style.font = style.font;
-        probe.textContent = "abcdefghijklmnopqrstuvwxyz".repeat(4);
-        document.body.append(probe);
-        const perCharacter = probe.getBoundingClientRect().width / 104;
-        probe.remove();
-        return item.getBoundingClientRect().width / perCharacter;
-      });
-    expect(characters).toBeLessThanOrEqual(70);
-    expect(characters).toBeGreaterThanOrEqual(40);
-  });
-
-  test("a step's text too long for the panel fades at its foot, until it is read to the end", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1280, height: 720 });
-    await page.goto("/path#lille");
-    await hydrated(page);
-    const text = panel(page);
-    await expect(text).toHaveAttribute("data-path-more", "");
-    expect(await text.evaluate((el) => getComputedStyle(el).maskImage)).toMatch(
-      /gradient/,
-    );
-    /* Print shows the text whole, unfaded. */
-    await page.emulateMedia({ media: "print" });
-    expect(await text.evaluate((el) => getComputedStyle(el).maskImage)).toBe(
-      "none",
-    );
-    await page.emulateMedia({ media: "screen" });
-    await text.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
-    await expect(text).not.toHaveAttribute("data-path-more");
-
-    /* A short step fits, and does not fade. */
-    await stepLink(page, "home").click();
-    await expect(text).not.toHaveAttribute("data-path-more");
-  });
 });
 
 /* On a phone the strip shows three steps at a time, whole, the current one
