@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 
 import { VOICE_COPY } from "./copy";
 import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
+import { SoundSwitch } from "./sound";
 import { useNarrationCue } from "./stage-status";
 import { useNarrationPlayhead } from "./tour";
 import {
@@ -151,7 +152,7 @@ function usePressed(onPress: () => void): boolean {
   return pressed;
 }
 
-function Switch({
+export function Switch({
   checked,
   onChange,
   children,
@@ -324,7 +325,9 @@ export function NarrationBar({
           data-voice-state={state}
           className="flex shrink-0 flex-col xl:w-56"
         >
-          <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6">
+          {/* Three switches overrun the column's width from \`xl\`: Sound
+              wraps under the other two there. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:gap-x-6">
             <Switch
               checked={voiceOn}
               onChange={setVoiceOn}
@@ -339,6 +342,7 @@ export function NarrationBar({
             >
               {VOICE_COPY.captionsSwitch}
             </Switch>
+            <SoundSwitch />
           </div>
           <p data-path-voice-label className="text-faint text-xs">
             {VOICE_COPY.label(VOICE_PROVIDER_NAME)}

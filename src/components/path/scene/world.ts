@@ -15,6 +15,7 @@ import {
   Shape,
   Vector2,
   Vector3,
+  type IUniform,
   type Object3D,
 } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -146,7 +147,18 @@ const BAND = { from: 0.4, to: 0.1, inset: 0.12, height: 0.05 } as const;
 /** The board: a thick slab under everything, its top at y = 0, with a
  *  raised frame round its edge, grass across its middle and the two side
  *  props. */
-export function makeBoard(paint: Paint): Group {
+/** A phone draws half the grass (§4(f)); the clouds' shadows stay. */
+export const PHONE_GRASS_SHARE = 0.5;
+
+/** How many tufts a field of `count` plants on a device drawing `share` of
+ *  them. */
+export function grassCount(count: number, share: number): number {
+  return Math.round(count * share);
+}
+
+/** The board's own grass, its side props, its frame and felt; `grassShare`
+ *  of the grass a desktop plants. */
+export function makeBoard(paint: Paint, grassShare = 1): Group {
   const group = new Group();
   const top = solid(
     slab(
@@ -188,14 +200,14 @@ export function makeBoard(paint: Paint): Group {
   const margin = BOARD.frameWidth + 0.25;
   group.add(
     grassField(
-      paint,
+      paint.grass,
       [
         -BOARD.halfWidth + margin,
         -BOARD.halfDepth + margin,
         BOARD.halfWidth - margin,
         BOARD.halfDepth - margin,
       ],
-      200,
+      grassCount(200, grassShare),
       keepOut,
       3,
     ),
@@ -208,6 +220,8 @@ export function makeBoard(paint: Paint): Group {
   for (const [object, spot] of side) {
     object.position.set(spot.x, 0, spot.z);
     object.rotation.y = spot.x < 0 ? 0.35 : -0.35;
+    /* Beside the path: it hops as the pawn passes (`beats.ts`). */
+    object.userData.hopper = true;
     group.add(object);
   }
   return group;
@@ -215,7 +229,14 @@ export function makeBoard(paint: Paint): Group {
 
 /** A tile's slab and colour band, and the grass on its free ground, in the
  *  tile's own frame. */
-export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
+/** A tile's slab, band and grass; the grass grows out from `grow` (x, z in
+ *  the tile's frame, and its radius) as the tile's landmark rises. */
+export function makeTileBase(
+  paint: Paint,
+  slug: PathStepSlug,
+  grow: IUniform<Vector3>,
+  grassShare = 1,
+): Group {
   const group = new Group();
   group.add(
     solid(slab(tileShape(), TILE.thickness, TILE.bevel), paint, "paper", {
@@ -271,9 +292,9 @@ export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
         Math.abs(z - piece.z) < piece.d / 2 + 0.06,
     );
   const field = grassField(
-    paint,
+    paint.tileGrass(grow),
     [-TILE.width / 2, -TILE.depth / 2, TILE.width / 2, TILE.depth / 2],
-    46,
+    grassCount(46, grassShare),
     keepOut,
     LOOP.indexOf(slug) + 11,
   );
@@ -394,7 +415,12 @@ export function makePawn(paint: Paint): Object3D {
      stay on the tile under it, so the pawn is found at a glance, even in
      the air. */
   const body = new Group();
-  body.add(pawn);
+  /* The figure inside the body: what a click or a gesture moves, and what
+     the generated figurine replaces. */
+  const figure = new Group();
+  figure.name = MARKER.figure;
+  figure.add(pawn);
+  body.add(figure);
   const contact = new Mesh(
     new CircleGeometry(r * 1.5, 40),
     paint.material({ base: "ink-cool", shade: 0.25 }),
@@ -419,6 +445,86 @@ export function makePawn(paint: Paint): Object3D {
   return group;
 }
 
+/** The marker's two handles, by the names their generated models take
+ *  (`marker-lorenzo`, `marker-robot`): a model swapped in goes inside its
+ *  handle, and everything that moves the marker moves the handle. */
+export const MARKER = {
+  figure: "marker-lorenzo",
+  buddy: "marker-robot",
+} as const;
+
+/** The buddy's height, against the figure's `PAWN_HEIGHT`. */
+export const BUDDY_HEIGHT = 0.62;
+
+/** The figure's buddy, standing in until its model exists: a small robot
+ *  of rounded blocks, a head with two eyes and an antenna, travelling
+ *  beside the pawn. Its foot at the origin; `body` hops, and the handle
+ *  inside it reacts. */
+export function makeBuddy(paint: Paint): Object3D {
+  const shell = paint.material(
+    { base: "paper", toward: "ink-cool", amount: 0.18 },
+    { roughness: 0.4 },
+  );
+  const trim = paint.material({ base: "ink-cool", shade: 0.85 });
+  const eye = paint.material({ base: "ink-sun" }, { glow: 0.6 });
+  const buddy = new Group();
+  buddy.name = MARKER.buddy;
+  const round = (
+    size: readonly [number, number, number],
+    at: readonly [number, number, number],
+    material: MeshStandardMaterial,
+    radius: number,
+  ) => {
+    const mesh = new Mesh(
+      new RoundedBoxGeometry(size[0], size[1], size[2], 3, radius),
+      material,
+    );
+    mesh.position.set(at[0], at[1] + size[1] / 2, at[2]);
+    mesh.castShadow = true;
+    return mesh;
+  };
+  const h = BUDDY_HEIGHT;
+  buddy.add(
+    /* Two stubby feet, a body, and a head wider than the body. */
+    round([0.1, 0.07, 0.14], [-0.07, 0, 0.01], trim, 0.03),
+    round([0.1, 0.07, 0.14], [0.07, 0, 0.01], trim, 0.03),
+    round([0.28, h * 0.36, 0.22], [0, 0.06, 0], shell, 0.07),
+    round([0.36, h * 0.34, 0.28], [0, 0.06 + h * 0.36, 0], shell, 0.09),
+    round([0.07, 0.07, 0.02], [-0.08, 0.06 + h * 0.48, 0.14], eye, 0.02),
+    round([0.07, 0.07, 0.02], [0.08, 0.06 + h * 0.48, 0.14], eye, 0.02),
+    round([0.025, 0.12, 0.025], [0, 0.06 + h * 0.7, 0], trim, 0.01),
+    round([0.06, 0.06, 0.06], [0, 0.06 + h * 0.7 + 0.11, 0], eye, 0.03),
+  );
+  /* Drawn small, then sized up to read beside the figure from the whole
+     board's view. */
+  buddy.scale.setScalar(1.35);
+  const body = new Group();
+  body.add(buddy);
+  const contact = new Mesh(
+    new CircleGeometry(0.34, 32),
+    paint.material({ base: "ink-cool", shade: 0.25 }),
+  );
+  contact.material.alphaMap = softDisc();
+  contact.material.transparent = true;
+  contact.material.depthWrite = false;
+  contact.material.opacity = 0.38;
+  contact.userData.opacity = contact.material.opacity;
+  contact.rotation.x = -Math.PI / 2;
+  contact.position.y = 0.012;
+  contact.renderOrder = 1;
+  const group = new Group();
+  group.add(contact, body);
+  group.userData.buddy = { body, contact } satisfies BuddyParts;
+  return group;
+}
+
+/** The buddy's parts the runtime moves: its body, which hops, and its
+ *  contact shadow, which stays on the tile. */
+export type BuddyParts = {
+  body: Group;
+  contact: Mesh<CircleGeometry, MeshStandardMaterial>;
+};
+
 /** The pawn's parts the runtime moves: the body, which hops, and the
  *  contact shadow and ring, which stay on the tile and fade as it rises. */
 export type PawnParts = {
@@ -429,7 +535,7 @@ export type PawnParts = {
 
 /** A disc's alpha, opaque at its centre and gone at its rim: a contact
  *  shadow's softness, with no light to bake it. */
-function softDisc() {
+export function softDisc() {
   const size = 64;
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {

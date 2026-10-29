@@ -418,6 +418,28 @@ clip and timings alone (the other six are byte-for-byte the clips above). The ge
 as just under 15 s. The muted decode gives 14,847 ms, as the manifest has it, and the new cue's
 window (7,236–8,908 ms) carries speech between two silent gaps.
 
+## Sound (v3)
+
+The board's sound, behind the Sound switch beside Voice (§4(e) of
+`docs/research/path-v3-benchmark.md`), is all synthesized in code with plain Web Audio, in
+`src/app/path/sound-engine.ts`. No recordings, so there is nothing to license or log, and
+`public/path/sound/` was never created. **0 bytes download**, with the switch off or on. The
+bed is rendered once on an `OfflineAudioContext` when the switch first goes on.
+
+| Sound               | Made from                                                                                              | Length    |
+| ------------------- | ------------------------------------------------------------------------------------------------------ | --------- |
+| hop                 | band-passed noise knock over a triangle click at 880 Hz, pitch ±3%                                     | 0.08 s    |
+| land                | sine falling 130 to 58 Hz, low-passed noise slap                                                       | 0.4 s     |
+| rise                | noise swept up 380 to 1700 Hz through a band, small knock at the end                                   | 0.75 s    |
+| beat-high, beat-low | soft mallet (a fundamental and a quieter partial at ×3.93) on G5 and C5                                | 0.7 s     |
+| skip                | noise whoosh, band swept 320 to 2400 to 600 Hz                                                         | 0.8 s     |
+| end                 | C major mallets, struck 45 ms apart                                                                    | 2.4 s     |
+| bed                 | low-passed noise breathing twice a loop, nine seeded bird calls, last second crossfaded into the first | 20 s loop |
+
+The bed sits at 0.32 against the effects and ducks 9 dB (×0.355) under the voice in 150 ms.
+Every sound was checked by rendering offline and measuring peak, RMS and where it falls
+silent (`tests/path-sound.spec.ts`), never by playing it aloud.
+
 ## Open items
 
 - **The macOS voice is for personal, non-commercial use only.** Apple's licence for the macOS

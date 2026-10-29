@@ -57,6 +57,7 @@ export const TOUR_COPY = {
 export const VOICE_COPY = {
   voiceSwitch: "Voice",
   captionsSwitch: "Captions",
+  soundSwitch: "Sound",
   readStep: "Read this step",
   label: (providerName: string) =>
     `Narration: synthetic voice, ${providerName}.`,

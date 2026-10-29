@@ -29,7 +29,14 @@ import { cn } from "@/lib/utils";
 
 import { STAGE_COPY } from "./copy";
 import { narrationFor } from "./narration";
-import { useSetStageStatus } from "./stage-status";
+import { playSound } from "./sound";
+import { useNarrationCue, useSetStageStatus } from "./stage-status";
+
+declare global {
+  interface Window {
+    __pathScene?: Pick<SceneRuntime, "locate" | "moment">;
+  }
+}
 import { useTourStatus } from "./tour";
 
 /* The board's stage on `/path` (GH-148): page interface around the 3D board,
@@ -152,6 +159,26 @@ export function SceneStage({
     runtimeRef.current?.setTourState(tourStatus);
   }, [tourStatus]);
 
+  /* The narration's beats (v3): as each cue starts playing, the prop it
+     is about moves, with the voice on or off, since both follow the same
+     clock. Once a cue: a pause and resume does not play it again. */
+  const cue = useNarrationCue();
+  const cuedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!cue) {
+      cuedRef.current = null;
+      return;
+    }
+    const key = `${cue.slug}:${cue.index}`;
+    if (!cue.running || cuedRef.current === key) return;
+    cuedRef.current = key;
+    runtimeRef.current?.cue({
+      slug: cue.slug,
+      prop: cue.prop,
+      index: cue.index,
+    });
+  }, [cue]);
+
   /* Capabilities first, so a browser that gets the stills fetches no 3D
      code; then the runtime, in its own chunk. A new runtime shows the
      selected step at once, so one made again (Fast Refresh) is never blank. */
@@ -182,11 +209,21 @@ export function SceneStage({
             setSnapshot(next);
           },
           onFallback: fallBack,
+          onEvent: playSound,
         });
       } catch {
         return fallBack("context-failed");
       }
       setMode("webgl");
+      if (process.env.NODE_ENV !== "production") {
+        /* For the suite and the clips: where a piece is, and a moment on
+           demand. */
+        const runtime = runtimeRef.current;
+        window.__pathScene = {
+          locate: (piece) => runtime.locate(piece),
+          moment: (name) => runtime.moment(name),
+        };
+      }
       runtimeRef.current.setTourState(tourStatusRef.current);
       if (stageBoxRef.current) {
         runtimeRef.current.setFrame(measureFrame(stageBoxRef.current));
@@ -199,6 +236,7 @@ export function SceneStage({
       reducedMotion.removeEventListener("change", onMotionChange);
       runtimeRef.current?.dispose();
       runtimeRef.current = null;
+      if (process.env.NODE_ENV !== "production") delete window.__pathScene;
       setMode("pending");
       setSnapshot(IDLE);
     };
@@ -273,7 +311,9 @@ export function SceneStage({
   /* A click on a tile, or on a card standing on it, selects its step, as
      its row in the list does; the list is the keyboard's way to it. A click
      on the tile being built, or off the tiles, skips the build. */
-  const [pointing, setPointing] = useState(false);
+  /* What a fine pointer is over: another step's tile, or a piece that
+     answers a click. */
+  const [pointing, setPointing] = useState<"step" | "piece" | null>(null);
   const pointFrame = useRef(0);
   function tileAt(target: Element, clientX: number, clientY: number) {
     const box = target.getBoundingClientRect();
@@ -334,6 +374,9 @@ export function SceneStage({
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-camera-shot={mode === "webgl" ? snapshot.shot : undefined}
+        data-scene-beat={mode === "webgl" ? snapshot.beat : undefined}
+        data-scene-reaction={mode === "webgl" ? snapshot.reaction : undefined}
+        data-scene-moment={mode === "webgl" ? snapshot.moment : undefined}
         data-fallback-reason={reason ?? sceneStills}
         className="relative h-[clamp(20rem,48svh,34rem)] w-full overflow-hidden lg:h-full"
       >
@@ -345,14 +388,18 @@ export function SceneStage({
         <canvas
           ref={canvasRef}
           aria-hidden
+          data-path-pointing={pointing ?? undefined}
           onClick={(event) => {
-            const slug = tileAt(
-              event.currentTarget,
-              event.clientX,
-              event.clientY,
-            );
-            if (slug && slug !== selected) pushStep(slug);
-            else runtimeRef.current?.skip();
+            const { currentTarget, clientX, clientY } = event;
+            const slug = tileAt(currentTarget, clientX, clientY);
+            if (slug && slug !== selected) return pushStep(slug);
+            /* A piece on the shown tile, or the marker, answers the click;
+               the step stays. */
+            const box = currentTarget.getBoundingClientRect();
+            const answered =
+              buildState !== "building" &&
+              runtimeRef.current?.react(clientX - box.left, clientY - box.top);
+            if (!answered) runtimeRef.current?.skip();
           }}
           onPointerMove={(event) => {
             if (event.pointerType !== "mouse") return;
@@ -360,12 +407,28 @@ export function SceneStage({
             cancelAnimationFrame(pointFrame.current);
             pointFrame.current = requestAnimationFrame(() => {
               const slug = tileAt(currentTarget, clientX, clientY);
-              setPointing(Boolean(slug && slug !== selected));
+              const elsewhere = Boolean(slug && slug !== selected);
+              const box = currentTarget.getBoundingClientRect();
+              /* A piece that answers a click lights faintly under it. */
+              const answers =
+                !elsewhere &&
+                buildState !== "building" &&
+                Boolean(
+                  runtimeRef.current?.hover(
+                    clientX - box.left,
+                    clientY - box.top,
+                  ),
+                );
+              if (elsewhere || buildState === "building") {
+                runtimeRef.current?.hover(null);
+              }
+              setPointing(elsewhere ? "step" : answers ? "piece" : null);
             });
           }}
           onPointerLeave={() => {
             cancelAnimationFrame(pointFrame.current);
-            setPointing(false);
+            runtimeRef.current?.hover(null);
+            setPointing(null);
           }}
           className={cn(
             "absolute inset-0 size-full",
@@ -399,7 +462,12 @@ export function SceneStage({
             onClick={() => {
               if (loading) return;
               if (buildState === "building") runtimeRef.current?.skip();
-              else runtimeRef.current?.replay();
+              else {
+                /* The replay rests the tile's pieces: the cue playing now
+                   may play its beat again. */
+                cuedRef.current = null;
+                runtimeRef.current?.replay();
+              }
             }}
           >
             {/* Its word on a wide screen; on a phone, its sign, so the

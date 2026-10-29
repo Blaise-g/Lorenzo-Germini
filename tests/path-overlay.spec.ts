@@ -324,30 +324,24 @@ test.describe("on a touch screen", () => {
     await expectSelected(page, "switzerland");
   });
 
-  /* The switches were at the screen's bottom edge (v3-harden), and a third,
-     Sound, is to join them in the same row. */
-  test("the Voice and Captions switches are whole in the first screen, with room for a third beside them", async ({
+  /* The switches were at the screen's bottom edge (v3-harden); Sound
+     (v3-life) joins them in the same row. */
+  test("the Voice, Captions and Sound switches are whole in the first screen, in one row", async ({
     page,
   }) => {
     await page.goto("/path#lille");
     await hydrated(page);
-    const voice = page.locator("[data-path-voice-switch]");
-    const captions = page.locator("[data-path-captions-switch]");
-    await expect(voice).toBeInViewport({ ratio: 1 });
-    await expect(captions).toBeInViewport({ ratio: 1 });
-    /* A third switch, labelled as Sound will be, laid in the row: it has
-       to stay in the row and in the screen. */
-    const third = await voice.evaluate((button) => {
-      const probe = button.cloneNode(true) as HTMLElement;
-      probe.lastChild!.textContent = "Sound";
-      button.parentElement!.append(probe);
-      const at = probe.getBoundingClientRect();
-      const first = button.getBoundingClientRect();
-      probe.remove();
-      return { top: at.top, firstTop: first.top, bottom: at.bottom };
-    });
-    expect(third.top).toBe(third.firstTop);
-    expect(third.bottom).toBeLessThanOrEqual(812);
+    const switches = [
+      "[data-path-voice-switch]",
+      "[data-path-captions-switch]",
+      "[data-path-sound-switch]",
+    ].map((selector) => page.locator(selector));
+    const tops: number[] = [];
+    for (const each of switches) {
+      await expect(each).toBeInViewport({ ratio: 1 });
+      tops.push((await each.boundingBox())!.y);
+    }
+    expect(new Set(tops).size).toBe(1);
   });
 });
 
