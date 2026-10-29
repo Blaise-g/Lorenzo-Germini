@@ -52,7 +52,10 @@ export function checkTimings(
   }
   let previousEnd = 0;
   for (const [index, { startMs, endMs }] of clip.cues.entries()) {
-    if (!(startMs >= previousEnd && endMs > startMs)) {
+    if (!(endMs > startMs)) {
+      throw new Error(`${slug}: cue ${index} has no length`);
+    }
+    if (!(startMs >= previousEnd)) {
       throw new Error(`${slug}: cue ${index} is out of order`);
     }
     previousEnd = endMs;
@@ -175,6 +178,9 @@ export function readWav(bytes: Buffer): Pcm {
     }
     if (id === "data") {
       if (!sampleRate) throw new Error("The WAV's data comes before its fmt");
+      if (size % 2) {
+        throw new Error(`The WAV's data is ${size} bytes, not whole samples`);
+      }
       const data = bytes.subarray(body, body + size);
       const samples = new Int16Array(data.length / 2);
       for (let i = 0; i < samples.length; i += 1) {
@@ -239,6 +245,10 @@ export function joinCues(
   }
   const gap = Math.round((gapMs / 1000) * sampleRate);
   const trimmed = cues.map((cue) => trimSilence(cue.samples));
+  /* A cue the synthesiser left silent would trim to nothing and take a span
+     of no length, which reads later as a timing out of order. */
+  const silent = trimmed.findIndex((part) => part.length === 0);
+  if (silent !== -1) throw new Error(`Cue ${silent} synthesised to silence`);
   const total =
     trimmed.reduce((sum, part) => sum + part.length, 0) +
     gap * (trimmed.length - 1);

@@ -52,8 +52,9 @@ const run = promisify(execFile);
 
 /** A clip is about 60 KB (storyboard §7.6); one past it is reported. */
 const TARGET_BYTES = 60 * 1024;
-/** A step's narration runs about 15–30 s (v3); one outside it is reported. */
-const TARGET_SECONDS = [15, 30] as const;
+/** A step's narration runs about 14–30 s (v3, its floor approved at 14 s); one
+ *  outside it is reported. */
+const TARGET_SECONDS = [14, 30] as const;
 /** The encoded clip may differ from the joined PCM by a frame or so; more,
  *  and the timings would not line up with what is heard. */
 const MAX_DRIFT_MS = 60;

@@ -135,7 +135,7 @@ test("timings that overlap, run backwards or past the clip publish nothing", asy
       },
     ],
     [
-      "out of order",
+      "cue 0 has no length",
       {
         cues: [
           { startMs: 500, endMs: 500 },
@@ -208,6 +208,12 @@ test("cues are trimmed of their silence and joined a gap apart, each timed by it
   expect(() => checkTimings("home", ["A.", "B.", "C."], joined)).not.toThrow();
 });
 
+test("a cue synthesised to silence is named as silent, not as a timing out of order", () => {
+  expect(() => joinCues([cue(0, 10), cue(40, 0), cue(0, 10)])).toThrow(
+    "Cue 1 synthesised to silence",
+  );
+});
+
 test("cues of different sample rates are refused", () => {
   expect(() =>
     joinCues([cue(0, 10), { ...cue(0, 10), sampleRate: 2000 }]),
@@ -234,4 +240,9 @@ test("a WAV round-trips, and one with chunks before its fmt is read past them", 
   const stereo = Buffer.from(plain);
   stereo.writeUInt16LE(2, 22);
   expect(() => readWav(stereo)).toThrow("mono 16-bit");
+
+  /* A data chunk cut mid-sample says so, rather than a bare RangeError. */
+  const odd = Buffer.concat([plain, Buffer.alloc(1)]);
+  odd.writeUInt32LE(pcm.samples.length * 2 + 1, 40);
+  expect(() => readWav(odd)).toThrow("not whole samples");
 });
