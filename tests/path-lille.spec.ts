@@ -15,6 +15,7 @@ import sharp from "sharp";
 import { stillsFor } from "@/components/path/scene/build-plan";
 import { CARD_ART } from "@/components/path/scene/card-art";
 import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
+import { GRAIN_FILE } from "@/components/path/scene/ink";
 import {
   HAND_END_ANGLE,
   handAngle,
@@ -172,11 +173,13 @@ test.describe("the budgets", () => {
     }
   });
 
-  /* Every landing loads the whole board's cards and one still, on top of
-     the page itself. */
+  /* Every landing loads the whole board's cards, the grain and one still,
+     on top of the page itself. */
   test("the board's cards and a still fit 1.5 MB with the page", async () => {
     let cards = 0;
-    for (const url of CARD_FILES) cards += (await stat(publicFile(url))).size;
+    for (const url of [...CARD_FILES, GRAIN_FILE]) {
+      cards += (await stat(publicFile(url))).size;
+    }
     const stills = PATH_STEPS.flatMap((step) =>
       Object.values(stillsFor(step) ?? {}),
     );
@@ -213,9 +216,12 @@ test.describe("on /path", () => {
         propsThrough("lille"),
       );
       await expect(overlay(page)).toHaveAttribute("data-path-lit", "0 1 2");
-      /* One fetch each, however many times the stage asked to show Lille. */
+      /* One fetch each, however many times the stage asked to show Lille,
+         and the stock's grain. */
       expect(cards.sort()).toEqual(
-        CARD_FILES.map((url) => new URL(url, page.url()).href).sort(),
+        [...CARD_FILES, GRAIN_FILE]
+          .map((url) => new URL(url, page.url()).href)
+          .sort(),
       );
     });
 

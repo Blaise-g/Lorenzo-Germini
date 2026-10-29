@@ -3,6 +3,7 @@ import {
   BufferGeometry,
   Color,
   ConeGeometry,
+  DataTexture,
   DirectionalLight,
   DoubleSide,
   ExtrudeGeometry,
@@ -59,8 +60,9 @@ import {
 import {
   drawnInk,
   inkMaterial,
+  loadGrain,
   loadInk,
-  type InkColours,
+  type InkShared,
   type InkMaterial,
   type InkOptions,
   type InkPlates,
@@ -200,6 +202,12 @@ function chamferPath(context: CanvasRenderingContext2D, w: number, h: number) {
   context.closePath();
 }
 
+function flatGrain() {
+  const texture = new DataTexture(Uint8Array.from([128, 128, 128, 255]), 1, 1);
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const { canvas, signals, onChange, onFallback } = options;
   let reducedMotion = options.reducedMotion;
@@ -261,10 +269,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let themeTarget = themeMix.value;
   let themeElapsed = THEME_MS;
 
-  const colours: InkColours = {
+  const colours: InkShared = {
     paper: { value: new Color() },
     ink1: { value: new Color() },
     ink2: { value: new Color() },
+    /* Even grey until `grain.webp` arrives, which is no grain at all. */
+    grain: { value: flatGrain() },
   };
   const background = new Color();
 
@@ -272,8 +282,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const mix = (role: keyof Palette) =>
       palettes.light[role].clone().lerp(palettes.dark[role], themeMix.value);
     colours.paper.value.copy(mix("paper"));
-    colours.ink1.value.copy(mix("ink-1"));
-    colours.ink2.value.copy(mix("ink-2"));
+    colours.ink1.value.copy(mix("ink-warm"));
+    colours.ink2.value.copy(mix("ink-cool"));
     background.copy(mix("fog"));
     scene.background = background;
     /* A shadow on dark stock reads with a little more weight. */
@@ -736,8 +746,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let prepared = false;
 
   async function loadFiles(files: readonly string[]) {
+    /* Trees are shared between tiles: each file is fetched once. */
     await Promise.all(
-      files.map(async (file) => {
+      [...new Set(files)].map(async (file) => {
         if (cardTextures.has(file)) return;
         try {
           const texture = await loadInk(file);
@@ -756,12 +767,22 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /* Everything the board needs before it can show: the faces its labels
-     are printed in, and every card's art. A face that does not load is
-     printed in its fallback, not a reason to drop the board. */
+     are printed in, the stock's grain and every card's art. A face or a
+     grain that does not load is printed without, not a reason to drop the
+     board. */
   async function prepare() {
     await Promise.all([
       document.fonts.load(displayFont(32)).catch(() => undefined),
       document.fonts.load(labelFont(32)).catch(() => undefined),
+      loadGrain().then(
+        (texture) => {
+          if (disposed) return texture.dispose();
+          colours.grain.value?.dispose();
+          colours.grain.value = texture;
+          textures.add(texture);
+        },
+        () => undefined,
+      ),
       loadFiles(LOOP.flatMap(filesOf)),
     ]);
     prepared = true;

@@ -128,7 +128,7 @@ test.describe("loading", () => {
   }) => {
     await page.goto("/path");
     const tokens = await page.evaluate(() =>
-      ["paper", "ink-1", "ink-2", "fog"].map((role) =>
+      ["paper", "ink-warm", "ink-cool", "fog"].map((role) =>
         getComputedStyle(document.documentElement)
           .getPropertyValue(`--path-${role}`)
           .trim(),

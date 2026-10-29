@@ -5,6 +5,7 @@ import {
   LinearMipmapLinearFilter,
   MeshDepthMaterial,
   MeshLambertMaterial,
+  RepeatWrapping,
   RGBADepthPacking,
   RGBAFormat,
   Texture,
@@ -17,14 +18,17 @@ import {
    terracotta ink's coverage, G the slate blue's, A the die-cut mask, B
    unused (`card-art.ts`). This material colours the stock and the two inks
    from the path tokens, so one texture serves light and dark, and adds what
-   a print has: paper grain and each ink a hair off register. */
+   a print has: the stock's grain (`grain.webp`), each ink's halftone screen
+   in its mid-tones, and each ink a hair off register. */
 
-/** The colours every ink surface shares; the runtime repaints them on a
- *  theme change and every material follows. */
-export type InkColours = {
+/** What every ink surface shares: the stock's and inks' colours, which the
+ *  runtime repaints on a theme change for every material to follow, and the
+ *  stock's grain, a tileable grey texture. */
+export type InkShared = {
   paper: IUniform<Color>;
   ink1: IUniform<Color>;
   ink2: IUniform<Color>;
+  grain: IUniform<Texture | null>;
 };
 
 export type InkOptions = {
@@ -36,13 +40,18 @@ export type InkOptions = {
   inkStrength?: number;
   /** Seeds the misregistration, so each card is off in its own way. */
   seed?: string;
-  /** The surface's size in scene units, so the grain is the same size on a
-   *  tree as on a tile. */
+  /** The surface's size in scene units, so the grain and the screen are the
+   *  same size on a tree as on a tile. */
   size?: readonly [number, number];
 };
 
 /** How far each ink drifts off register, in scene units. */
 const MISREGISTRATION = 0.012;
+/** How much stock one tile of the grain texture covers, in scene units. */
+const GRAIN_TILE = 1.6;
+/** The halftone screen's ruling, in cells a scene unit: coarse enough to
+ *  read as a riso screen on a board a few hundred pixels across. */
+const SCREEN_RULING = 18;
 
 function hash(text: string) {
   let value = 2166136261;
@@ -63,8 +72,13 @@ function offset(seed: number, size: readonly [number, number]) {
 
 const INK_FRAGMENT = /* glsl */ `
   vec4 cut = texture2D( map, vMapUv );
+  vec2 inUnits = vMapUv * uSize;
   float inkA = texture2D( map, vMapUv + uMisA ).r * uInkStrength;
   float inkB = texture2D( map, vMapUv + uMisB ).g * uInkStrength;
+  /* Each drum's screen, at its own angle, in the mid-tones only: a solid
+     stays solid and bare stock stays bare. */
+  inkA = mix( inkA, inkScreen( inUnits * ${SCREEN_RULING.toFixed(1)}, 0.26, inkA ), 2.0 * inkA * ( 1.0 - inkA ) );
+  inkB = mix( inkB, inkScreen( inUnits * ${SCREEN_RULING.toFixed(1)}, 1.31, inkB ), 2.0 * inkB * ( 1.0 - inkB ) );
   /* Two inks over the stock, each multiplied in as a riso drum lays it:
      where they overlap the colours mix rather than one hiding the other.
      A light ink on dark stock lightens it the same way. */
@@ -72,11 +86,14 @@ const INK_FRAGMENT = /* glsl */ `
   vec3 colour = paper;
   colour *= mix( vec3( 1.0 ), uInk1 / max( paper, vec3( 0.001 ) ), inkA );
   colour *= mix( vec3( 1.0 ), uInk2 / max( paper, vec3( 0.001 ) ), inkB );
+  /* On dark stock the light inks would lighten each other past either
+     where they overlap, to white: no overprint is brighter than its
+     brightest ink. On light stock this is the paper, which nothing passes. */
+  colour = min( colour, max( paper, max( uInk1, uInk2 ) ) );
   colour = mix( colour, paper * 0.86, uEdge );
-  /* The stock's grain: two octaves of value noise, fixed to the surface. */
-  vec2 grainUv = vMapUv * uGrainScale;
-  float grain = inkNoise( grainUv ) * 0.6 + inkNoise( grainUv * 2.7 ) * 0.4;
-  colour *= 1.0 + ( grain - 0.5 ) * 0.07;
+  /* The stock's grain, fixed to the surface at one size everywhere. */
+  float grain = texture2D( uGrain, inUnits / ${GRAIN_TILE.toFixed(1)} ).r;
+  colour *= 1.0 + ( grain - 0.5 ) * 0.16;
   diffuseColor = vec4( colour, cut.a );
   /* A card fading in is dithered, not blended, so the board needs no
      sorting and its shadows stay crisp. */
@@ -87,24 +104,26 @@ const INK_HEADER = /* glsl */ `
   uniform vec3 uPaper;
   uniform vec3 uInk1;
   uniform vec3 uInk2;
+  uniform sampler2D uGrain;
   uniform vec2 uMisA;
   uniform vec2 uMisB;
-  uniform vec2 uGrainScale;
+  uniform vec2 uSize;
   uniform float uInkStrength;
   uniform float uEdge;
   uniform float uOpacity;
   float inkHash( vec2 p ) {
     return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
   }
-  float inkNoise( vec2 p ) {
-    vec2 i = floor( p );
-    vec2 f = fract( p );
-    vec2 u = f * f * ( 3.0 - 2.0 * f );
-    return mix(
-      mix( inkHash( i ), inkHash( i + vec2( 1.0, 0.0 ) ), u.x ),
-      mix( inkHash( i + vec2( 0.0, 1.0 ) ), inkHash( i + vec2( 1.0, 1.0 ) ), u.x ),
-      u.y
-    );
+  /* A round-dot screen at \`angle\`: whether \`p\` is inside the dot that
+     prints coverage \`c\`, antialiased over a pixel. */
+  float inkScreen( vec2 p, float angle, float c ) {
+    float s = sin( angle );
+    float k = cos( angle );
+    vec2 cell = fract( mat2( k, -s, s, k ) * p ) - 0.5;
+    float d = length( cell ) * 1.4142;
+    float w = fwidth( d );
+    float r = sqrt( c );
+    return 1.0 - smoothstep( r - w, r + w, d );
   }
 `;
 
@@ -117,7 +136,7 @@ export type InkMaterial = MeshLambertMaterial & {
  *  cut shape through `depthMaterial`. */
 export function inkMaterial(
   texture: Texture,
-  colours: InkColours,
+  shared: InkShared,
   options: InkOptions = {},
 ): { material: InkMaterial; depthMaterial: MeshDepthMaterial } {
   const size = options.size ?? [1, 1];
@@ -130,12 +149,13 @@ export function inkMaterial(
   material.userData.opacity = opacity;
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, {
-      uPaper: colours.paper,
-      uInk1: colours.ink1,
-      uInk2: colours.ink2,
+      uPaper: shared.paper,
+      uInk1: shared.ink1,
+      uInk2: shared.ink2,
+      uGrain: shared.grain,
       uMisA: { value: offset(seed, size) },
       uMisB: { value: offset(seed + 0.5, size) },
-      uGrainScale: { value: new Vector2(size[0] * 70, size[1] * 70) },
+      uSize: { value: new Vector2(size[0], size[1]) },
       uInkStrength: { value: options.inkStrength ?? 1 },
       uEdge: { value: options.edge ? 1 : 0 },
       uOpacity: opacity,
@@ -242,5 +262,15 @@ export async function loadInk(url: string): Promise<Texture> {
   texture.generateMipmaps = true;
   texture.minFilter = LinearMipmapLinearFilter;
   texture.needsUpdate = true;
+  return texture;
+}
+
+/** The stock's grain, tiled across every surface. */
+export const GRAIN_FILE = "/path/cards/grain.webp";
+
+export async function loadGrain(): Promise<Texture> {
+  const texture = await loadInk(GRAIN_FILE);
+  texture.wrapS = RepeatWrapping;
+  texture.wrapT = RepeatWrapping;
   return texture;
 }

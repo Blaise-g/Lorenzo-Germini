@@ -98,8 +98,8 @@ test("the three color token sets declare exactly the seven Warm Print roles", as
    so these are counted here, in each of the three blocks. */
 const pathTokens = [
   "--path-fog",
-  "--path-ink-1",
-  "--path-ink-2",
+  "--path-ink-cool",
+  "--path-ink-warm",
   "--path-paper",
 ];
 

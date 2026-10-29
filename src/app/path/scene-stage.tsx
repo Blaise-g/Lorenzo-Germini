@@ -160,9 +160,7 @@ export function SceneStage({ children }: { children: ReactNode }) {
     !withScene ||
     Boolean(sceneStills) ||
     reducedMotion ||
-    (live &&
-      snapshot.step === selected &&
-      snapshot.buildState === "built");
+    (live && snapshot.step === selected && snapshot.buildState === "built");
   useEffect(() => {
     setStageStatus({ slug: selected, settled });
   }, [selected, settled, setStageStatus]);

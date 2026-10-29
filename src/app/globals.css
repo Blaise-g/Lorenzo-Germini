@@ -32,8 +32,8 @@
      seven roles. Scene code under `src/components/path/scene/` reads them;
      the overlay above the scene keeps the roles. */
   --path-paper: #f4ecdc;
-  --path-ink-1: #c4562f;
-  --path-ink-2: #3f6290;
+  --path-ink-warm: #c4562f;
+  --path-ink-cool: #3f6290;
   --path-fog: #faf6ef;
 
   /* Motion. Two curves, both stronger than the CSS built-ins: `ease-out` for
@@ -62,8 +62,8 @@
   --color-border: #6f6258;
 
   --path-paper: #2e2723;
-  --path-ink-1: #e0916a;
-  --path-ink-2: #8fa8cc;
+  --path-ink-warm: #e0916a;
+  --path-ink-cool: #8fa8cc;
   --path-fog: #171412;
 }
 
@@ -329,8 +329,8 @@ html {
     /* Scenes do not print (the stage is \`print:hidden\`); these are set so
        print never inherits a screen mode's scene values. */
     --path-paper: #ffffff;
-    --path-ink-1: #7a2f16;
-    --path-ink-2: #2b3f5c;
+    --path-ink-warm: #7a2f16;
+    --path-ink-cool: #2b3f5c;
     --path-fog: #ffffff;
   }
 }
