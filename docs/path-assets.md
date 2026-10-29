@@ -316,7 +316,13 @@ All times are UTC on 2026-10-29.
   output of the public `tencent/Hunyuan3D-2.1` Space on ZeroGPU (no cost to us). Our paid copy
   (Python 3.10, Gradio 5.33.0, `bpy` optional, pydantic 2.11.7, `zero.startup()` guarded) never
   generated: L40S twice failed to schedule (12:28 and 13:08), and on the A100 attempt (restarted once after a patch, for `spaces.zero` having no `startup`) all six landmarks failed with `tensor does not have a device` from a C++ extension. The
-  rasteriser wheel does carry sm_80, so the architecture was not the cause.
+  rasteriser wheel does carry sm_80, so the architecture was not the cause. The cause is
+  the torch version: upstream leaves torch unpinned (ZeroGPU supplies it), so our build took
+  2.14.1, while the prebuilt `custom_rasterizer` wheel was compiled against torch 2.7. The
+  error's source line, `TensorImpl.h:1265`, is the device check only in torch 2.6–2.8 (2.14.1
+  has it at 1302), and all 17 header assertion lines compiled into the wheel match 2.7.0 and
+  2.7.1 exactly. Against 2.14's `TensorImpl` layout, the wheel's inlined code finds no device.
+  The fix pins `torch==2.7.1` and `torchvision==0.22.1` in our copy.
 - **Hi3DGen** (`Stable-X/Hi3DGen`, A10G large) was dropped: two builds failed, and the third,
   patched, died at startup compiling nvdiffrast. Hi3D v1.0 was not tried (refinement only, a
   custom licence), nor UniForge3D (multi-view input, CC BY-NC).
@@ -420,15 +426,15 @@ voice says "m³", "TL;DR" and "SMEs" is unheard.
 - **DINOv3 came from a mirror.** TRELLIS.2 and Pixal3D condition on DINOv3, and our Space
   copies loaded it from `camenduru/dinov3-vitl16-pretrain-lvd1689m`, which skips Meta's licence
   gate. Whether the DINOv3 licence's terms reach the generated landmarks was not checked.
-- **Hunyuan3D-2.1 covers only the belfry.** Our paid copy never generated (A100: `tensor does
-not have a device`), so it was not compared on the other six. Its licence excludes the EU,
+- **Hunyuan3D-2.1 covers only the belfry so far.** Our paid copy never generated (A100: `tensor
+does not have a device`, traced above to the unpinned torch), so it was not compared on the
+  other six. The owner asked for a retry on the four buildings with the torch pin. It waits
+  on Hugging Face's Space-creation limit (20 a day): a create at 14:40 on 2026-10-29 was
+  refused with "retry in about 22 hours". Its licence excludes the EU,
   the UK and South Korea; the owner accepted that on 2026-10-29.
 - **Known flaws in the picks.** `home-school` has see-through window holes. `lille-bourse` has
   pale brick and a crumpled roof. `cuneo-2022-schoolroom` grew an annex the reference does not
   have, and as Pixal3D output it does not quite match the TRELLIS.2 facade beside it.
 - **The LOD can drift up to 1% of the height** from the full file's bounds, since both share one
   placement and simplifying pulls extremes in. It never sinks below the ground.
-- **The cleanup imports transitive packages.** The script imports `@gltf-transform/core`,
-  `/extensions`, `/functions` and `meshoptimizer`, which arrive through the direct dev
-  dependency `@gltf-transform/cli`; none is listed in `package.json` itself (outside this
-  ticket's footprint). KTX2 textures are deferred.
+- **KTX2 textures are deferred.**
