@@ -10,6 +10,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { buildPlan } from "@/components/path/scene/build-plan";
+import { transitTimeline } from "@/components/path/scene/camera-rig";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import {
@@ -168,9 +169,11 @@ test.describe("the build", () => {
       propsThrough("home"),
     );
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
-      timeout: 5000,
+      timeout: 8000,
     });
-    const took = Date.now() - started;
+    /* The first show opens with the swoop to the close-up (v3), and the
+       pieces rise once the pawn has dropped onto its tile. */
+    const took = Date.now() - started - transitTimeline("opening", 0).landMs;
     expect(took).toBeGreaterThan(1500);
     expect(took).toBeLessThan(4000);
     expect(await buildStates(page)).toEqual(["loading", "building", "built"]);

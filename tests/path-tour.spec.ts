@@ -662,7 +662,9 @@ test.describe("with the board drawing", () => {
     await pauseTime(page);
   });
 
-  test("the dwell starts when the tile has built, not when the wait runs out", async ({
+  /* The stage settles when the camera's push-in lands (v3); the tile's
+     build carries on into the dwell and finishes well inside it. */
+  test("the dwell starts when the camera has landed, and the build finishes inside it", async ({
     page,
   }) => {
     await page.goto("/path#turin");
@@ -672,7 +674,7 @@ test.describe("with the board drawing", () => {
     await expect.poll(() => tourPhase(page)).toBe("waiting");
 
     /* The board loads its cards in real time; fake time then runs its
-       frames, a little at a time, until the hop and the build are done. */
+       frames, a little at a time, until the camera has landed. */
     let elapsed = 0;
     while (elapsed < SETTLE_MAX_WAIT_MS) {
       if ((await stage.getAttribute("data-stage-settled")) !== null) break;
@@ -680,10 +682,13 @@ test.describe("with the board drawing", () => {
       elapsed += 100;
     }
     expect(elapsed).toBeLessThan(SETTLE_MAX_WAIT_MS);
-    await expect(stage).toHaveAttribute("data-build-state", "built");
+    await expect(stage).toHaveAttribute("data-camera-shot", "close-up");
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
 
-    await page.clock.runFor(dwellMs("turin"));
+    await page.clock.runFor(dwellMs("turin") - 500);
+    await expect(stage).toHaveAttribute("data-build-state", "built");
+    await expectShown(page, "turin");
+    await page.clock.runFor(1000);
     await expectShown(page, "switzerland");
   });
 

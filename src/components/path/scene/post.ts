@@ -276,11 +276,36 @@ const GRAIN = { day: 0.07, night: 0.1 } as const;
  *  sparkles; a night's windows halo. */
 const BLOOM = { day: 0.35, night: 1.4 } as const;
 
+/** The tilt-shift at a close-up and at the whole board, in clip space (the
+ *  stage is 2 high): `area` is the band's half-height to where the blur is
+ *  full, `feather` the soft part of it, `strength` the blur's opacity.
+ *  `wide` is the share of the whole board a shot holds (`camera-rig.ts`):
+ *  at or under `close.wide` the close-up's look, at or over `whole.wide`
+ *  the whole board's, blended between. */
+export const TILT_SHIFT = {
+  close: { wide: 0.55, area: 0.95, feather: 0.6, strength: 0.6 },
+  whole: { wide: 0.95, area: 1.6, feather: 0.6, strength: 0.15 },
+} as const;
+
+/** The tilt-shift for a shot holding `wide` of the whole board. */
+export function tiltShiftFor(wide: number) {
+  const { close, whole } = TILT_SHIFT;
+  const t = smoothstep(
+    clamp01((wide - close.wide) / (whole.wide - close.wide)),
+  );
+  const mix = (a: number, b: number) => a + (b - a) * t;
+  return {
+    area: mix(close.area, whole.area),
+    feather: mix(close.feather, whole.feather),
+    strength: mix(close.strength, whole.strength),
+  };
+}
+
 export type PostOptions = {
   renderer: WebGLRenderer;
   scene: Scene;
   camera: Camera;
-  /** Half-size bloom and a full-height sharp band (§4(f)). */
+  /** Half-size bloom (§4(f)). */
   phone: boolean;
   /** The quality to start on: the governor's. */
   quality: Quality;
@@ -330,13 +355,12 @@ export function createPost({
   });
   if (phone) bloom.resolution.scale = 0.5;
 
-  /* A band through the stage's middle stays sharp; the top and the
-     bottom soften, as a model railway's photograph does. */
-  /* A phone's stage is short, the board filling it top to bottom: its
-     band is wider, so the far tiles stay readable. */
+  /* A band through the shot's subject stays sharp; above and below it
+     the frame softens, as a model railway's photograph does. How much is
+     set per frame by `setFocus`. */
   const tiltShift = new TiltShiftEffect({
-    focusArea: phone ? 1 : 0.74,
-    feather: phone ? 0.12 : 0.24,
+    focusArea: TILT_SHIFT.close.area,
+    feather: TILT_SHIFT.close.feather,
     kernelSize: KernelSize.SMALL,
     resolutionScale: 0.5,
   });
@@ -407,6 +431,19 @@ export function createPost({
     setQuality(next: Quality) {
       quality = next;
       ao.enabled = next.ao;
+    },
+    /** Fits the tilt-shift to the camera's shot (`camera-rig.ts`): its
+     *  sharp band centred on `height`, the subject's height in clip space
+     *  (-1 at the stage's foot, 1 at its top), so a close-up is never the
+     *  part blurred; and, by `wide` (the share of the whole board the shot
+     *  holds), from a close-up's gentle falloff to a whole-board shot that
+     *  is all but sharp. */
+    setFocus(height: number, wide: number) {
+      const { area, feather, strength } = tiltShiftFor(wide);
+      tiltShift.offset = Math.min(Math.max(height, -1), 1);
+      tiltShift.feather = feather;
+      tiltShift.focusArea = area;
+      tiltShift.blendMode.opacity.value = strength;
     },
     /** Grades and glows the frame for `night`, and hands the page's ground
      *  back where the board is not. */

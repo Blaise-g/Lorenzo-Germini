@@ -84,6 +84,12 @@ function useTour(): TourContextValue {
   return tour;
 }
 
+/** For the stage: whether the tour plays, is paused or has ended, which the
+ *  board's camera follows. */
+export function useTourStatus(): TourStatus {
+  return useTour().status;
+}
+
 /** For the voice: how far into the selected step's narration the tour is,
  *  in milliseconds, read live. */
 export function useNarrationPlayhead(): () => number {

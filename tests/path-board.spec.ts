@@ -1,5 +1,5 @@
 /* The pawn on the `/path` board (v2's board ticket): one arc to the next
-   tile, a far jump inside about 1.2 s and the tile's build after it, tiles
+   tile, a far jump inside the skip flight and the tile's build after it, tiles
    already built staying built, Skip during a hop, reduced motion cutting,
    the tour's settled cue, and the frame sample's verdict. The motion curves
    themselves are `path-scene-contract.spec.ts`'s. */
@@ -98,10 +98,13 @@ test.describe("the pawn's move", () => {
     expect(appeared).toEqual([...appeared].sort((a, b) => a - b));
   });
 
-  /* Home to step 4 is three tiles forward: the pawn lands inside about
-     1.2 s, so step 4's first piece starts to rise by then, and home's tile,
-     already built, stays standing throughout. */
-  test("a far jump lands inside 1.2 s, and built tiles stay built", async ({
+  /* Home to step 4 is three tiles forward, a pick: the skip flight's one
+     long hop lands inside its 1.4 s (a 0.3 s hold and a 1.1 s flight, the
+     benchmark's §4(a)), so step 4's first piece starts to rise before the
+     flight settles, and home's tile, already built, stays standing
+     throughout. Timed against the settle rather than the clock: both run
+     from the same frames, so a loaded machine slows them alike. */
+  test("a far jump lands inside the skip flight, and built tiles stay built", async ({
     page,
   }) => {
     expect(
@@ -111,6 +114,21 @@ test.describe("the pawn's move", () => {
     ).toBe(3);
     await settleOn(page, "home");
     const start = await watchProps(page);
+    /* When the stage, unsettled by the click, settles again. */
+    const settled = page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const element = document.querySelector("[data-path-stage]")!;
+          let left = false;
+          new MutationObserver(() => {
+            if (!element.hasAttribute("data-stage-settled")) left = true;
+            else if (left) resolve(performance.now());
+          }).observe(element, {
+            attributes: true,
+            attributeFilter: ["data-stage-settled"],
+          });
+        }),
+    );
     await stepLink(page, "cuneo-2022").click();
     /* Home's own "built" holds until the click lands: wait for the step. */
     await expect(stage(page)).toHaveAttribute("data-scene-step", "cuneo-2022");
@@ -122,9 +140,9 @@ test.describe("the pawn's move", () => {
     const landed = log.find((entry) =>
       entry.props.split(" ").includes(propsOf("cuneo-2022")[0]),
     )!;
-    /* The ticket's "under about 1.2 s", with a frame or two of slack. */
+    /* The pawn is in the air first, and down before the flight ends. */
     expect(landed.at - start).toBeGreaterThanOrEqual(400);
-    expect(landed.at - start).toBeLessThan(1200 + 100);
+    expect(landed.at).toBeLessThan(await settled);
     for (const entry of log) {
       for (const prop of propsOf("home")) {
         expect(entry.props.split(" "), `${prop} at ${entry.at}`).toContain(
@@ -174,22 +192,26 @@ test.describe("the pawn's move", () => {
   });
 });
 
-/* The tour's cue (`stage-status.tsx`): settled once the pawn has landed and
-   the tile is built, and at once for reduced motion. */
+/* The tour's cue (`stage-status.tsx`): settled once the camera has landed
+   on the close-up, its push-in done, with the tile's build rising on into
+   the dwell (v3); at once for reduced motion. */
 test.describe("the settled cue", () => {
   test.describe("with motion", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    test("waits for the landing and the build", async ({ page }) => {
+    test("waits for the camera to land on the close-up", async ({ page }) => {
       await settleOn(page, "lille");
       await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
       await stepLink(page, "now").click();
       await expect(stage(page)).toHaveAttribute("data-build-state", "building");
       await expect(stage(page)).not.toHaveAttribute("data-stage-settled", /.*/);
+      await expect(stage(page)).toHaveAttribute("data-stage-settled", "", {
+        timeout: 6000,
+      });
+      await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up");
       await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
         timeout: 6000,
       });
-      await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
     });
   });
 
