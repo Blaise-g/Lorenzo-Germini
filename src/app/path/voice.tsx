@@ -316,7 +316,7 @@ export function NarrationBar({
       {/* Under the caption, side by side where they fit; in the caption's
           row from `xl`, where it keeps two lines' width. */}
       <div className="flex flex-wrap items-start gap-x-8 gap-y-3 xl:contents">
-        <div data-path-tour-keys className="shrink-0">
+        <div data-path-tour-keys className="max-w-full shrink-0">
           {transport}
         </div>
         <div

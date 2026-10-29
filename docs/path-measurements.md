@@ -8,6 +8,65 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## Lazy landmarks (v3-harden)
+
+v3-harden loads the landmarks lazily. A landing fetches its own step's models before the first
+frame, and the rest follow once the page is idle, nearest step first; a step picked before its
+models arrive builds with stand-ins and swaps them in on arrival. A phone, and the governor's
+rungs from ×0.75 down, fetch each landmark's `.lod.glb`: 512² and 256² textures instead of 1024²
+and 512².
+
+Measured 2026-10-29 on a production build of `path-v3-harden` (`next build`, then
+`next start -p 3268`), with muted Chromium on the machine's GPU (ANGLE Metal, Apple M5), the cache
+disabled, the same units as below, and the canvas counted at 8 bytes a pixel. Each landing was
+loaded cold at 1440×900 ×2 under reduced motion.
+
+| Budget                          | Budget     | Measured                                                               | Within |
+| ------------------------------- | ---------- | ---------------------------------------------------------------------- | ------ |
+| Transfer to first paint, cold   | 1.5 MB     | 851.0–1,486.5 KB; the largest `#lille`; on a phone 851.0–1,077.0 KB    | Yes    |
+| Transfer once settled, cold     | none       | 3,094.1–3,123.0 KB; on a phone, on the LODs, 1,605.5–1,634.4 KB        | —      |
+| GPU memory, live, all landmarks | **400 MB** | 125.6–380.4 MB; 348.0 MB at 1440×900 ×2; a phone, on the LODs, 71.3 MB | Yes    |
+| Frame time, with motion         | 33 ms      | Median 8.3 ms, 95th percentile 9.0–9.2 ms                              | Yes    |
+
+**Transfer to first paint** is what the page has fetched when the board starts to build. `#lille`
+is the costliest landing, because Lille has two landmarks:
+
+- JavaScript 510.8 KB;
+- fonts 255.7 KB;
+- the HTML 16.0 KB and the CSS 12.3 KB;
+- the belfry and the Bourse, 608.0 KB;
+- the still, `grain.webp` and `landmarks.json` 83.6 KB.
+
+The page alone, before any world file, is therefore 794.8 KB, and `path-lille.spec.ts` takes it
+at 800 KB. `#next`, with no landmark, is 851.0 KB. Once the idle loads have finished, every landing
+has fetched about 3.1 MB, as before; that is no longer the cost of the first screen.
+
+**The GPU budget is raised from 360 MB to 400 MB.** The owner has set no limit for now, so the
+budget is the measured worst case, 2560×1440 ×2 with every landmark loaded at full size, with
+about 5% to spare. The seven landmarks' textures are 48.9 MB at full size, counted from the GLBs
+in `path-scene-contract.spec.ts`, which now adds them to the model it checks the budget with. The
+phone row was taken with touch emulation, so the page took the phone's ratio, 1.5, and the LODs:
+71.3 MB, against 125.6 MB without.
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
+| 375×812, ×3, touch             | 375×390        | 562×585            | 64.9     | 2.9     | 0.8           | 2.6            | 71.3 (68.0)     |
+| 375×812, ×3                    | 375×390        | 750×780            | 115.7    | 3.9     | 1.4           | 4.7            | 125.6 (119.8)   |
+| 1280×720, ×2                   | 1200×375       | 2400×750           | 222.4    | 4.6     | 2.6           | 14.4           | 244.0 (232.7)   |
+| 1440×900, ×1                   | 1360×555       | 1360×555           | 142.6    | 4.6     | 1.5           | 6.0            | 154.8 (147.6)   |
+| 1440×900, ×2                   | 1360×555       | 2720×1110          | 315.5    | 4.6     | 3.8           | 24.2           | 348.0 (331.9)   |
+| 1920×1080, ×1                  | 1840×735       | 1840×735           | 188.2    | 4.6     | 2.1           | 10.8           | 205.8 (196.2)   |
+| 2560×1440, ×2                  | 2480×1095      | 2774×1225          | 344.4    | 4.6     | 4.2           | 27.2           | 380.4 (362.7)   |
+
+**Limits.** A landmark is fetched at the quality of the moment: a model already loaded at full
+size is not swapped for its LOD when the governor later steps down, so a desktop that slows after
+the idle loads keeps the full textures. The governor now times each frame's draw on the CPU rather
+than the gap between frames, which the display's refresh rate set. A board bound by the GPU reads
+short there, and is caught by the fallback's frame sample instead (`post.ts`).
+
+**Frame time.** From `requestAnimationFrame` gaps over 2.5 s of the tour playing Lille, every
+landmark loaded, at 375×812 ×3 with touch, 1440×900 ×2 and 2560×1440 ×2.
+
 ## The camera (v3)
 
 v3's camera rig (ticket v3-camera, `docs/path-camera.md`) flies the tour in close-ups, and the

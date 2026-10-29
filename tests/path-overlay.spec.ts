@@ -503,6 +503,15 @@ test.describe("on a phone", () => {
     const box = (await keys.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(375);
+    /* Where it fits, it is one line: a second would take its height off
+       the board. */
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const lines = await keys.evaluate(
+      (line) =>
+        line.getBoundingClientRect().height /
+        parseFloat(getComputedStyle(line).lineHeight),
+    );
+    expect(lines).toBeLessThan(1.5);
   });
 });
 

@@ -32,6 +32,9 @@ import {
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { NodeIO } from "@gltf-transform/core";
+import { ALL_EXTENSIONS } from "@gltf-transform/extensions";
+import { MeshoptDecoder } from "meshoptimizer";
 import { LookupTexture } from "postprocessing";
 import { Box3, Color, Matrix4, Mesh, Vector3 } from "three";
 
@@ -245,8 +248,36 @@ test.describe("the drawing buffer", () => {
   const MB = 1000 * 1000;
   /** What does not scale with the canvas: the board's buffers and
    *  textures, the shadow map and the environment, 41.5 MB measured,
-   *  rounded up. */
-  const FIXED = 42 * MB;
+   *  rounded up. The landmarks' textures are added from their files. */
+  const BOARD_FIXED = 42 * MB;
+  /** Every landmark's textures at full size, as the GPU holds them: RGBA,
+   *  a third more for mipmaps. All seven are loaded once the page is idle;
+   *  this is the worst case, before a phone or a low rung takes the LODs. */
+  let landmarkTextures = 0;
+  let FIXED = 0;
+  test.beforeAll(async () => {
+    await MeshoptDecoder.ready;
+    const io = new NodeIO()
+      .registerExtensions(ALL_EXTENSIONS)
+      .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
+    const index = JSON.parse(
+      await readFile(
+        path.join(process.cwd(), "public/path/models/landmarks.json"),
+        "utf8",
+      ),
+    ) as Record<string, { file: string }>;
+    /* Summed afresh: a worker can run this hook more than once. */
+    let bytes = 0;
+    for (const { file } of Object.values(index)) {
+      const document = await io.read(path.join(process.cwd(), "public", file));
+      for (const texture of document.getRoot().listTextures()) {
+        const [width, height] = texture.getSize()!;
+        bytes += (width * height * 4 * 4) / 3;
+      }
+    }
+    landmarkTextures = bytes;
+    FIXED = BOARD_FIXED + landmarkTextures;
+  });
   const PER_PIXEL = DRAWING_BYTES_PER_PIXEL + POST_BYTES_PER_PIXEL;
   const gpuBytes = (
     width: number,
@@ -267,15 +298,22 @@ test.describe("the drawing buffer", () => {
     [1200, 375],
     [1840, 735],
     [2480, 1095],
-    [375, 300],
+    [375, 390],
   ] as const;
 
-  /* Measured totals: 299.1 MB at 1440×900×2 and 331.5 MB at 2560×1440×2.
-     The model has to come out at or above them, or the budget checks
-     nothing. */
+  /* The seven landmarks measured 47.6 MB of textures, live, against the
+     same board with every piece standing in (docs/path-measurements.md). */
+  test("the landmarks' textures are counted, about 49 MB", () => {
+    expect(landmarkTextures).toBeGreaterThanOrEqual(47.6 * MB);
+    expect(landmarkTextures).toBeLessThan(55 * MB);
+  });
+
+  /* Measured totals, every landmark loaded: 348.0 MB at 1440×900×2 and
+     380.4 MB at 2560×1440×2. The model has to come out at or above them,
+     or the budget checks nothing. */
   test("the per-pixel model covers the measured totals", () => {
-    expect(gpuBytes(1360, 555, 2)).toBeGreaterThanOrEqual(299.1 * MB);
-    expect(gpuBytes(2480, 1095, 2)).toBeGreaterThanOrEqual(331.5 * MB);
+    expect(gpuBytes(1360, 555, 2)).toBeGreaterThanOrEqual(348.0 * MB);
+    expect(gpuBytes(2480, 1095, 2)).toBeGreaterThanOrEqual(380.4 * MB);
   });
 
   test("every measured stage stays under the GPU budget, at ×1, ×2 and ×3", () => {

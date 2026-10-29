@@ -36,13 +36,17 @@ export const POST_BYTES_PER_PIXEL = 78;
 
 /** The scene's GPU budget, in MB of a million bytes. v2's 64 MB held a
  *  canvas and its textures; v3's post chain holds ten times the canvas
- *  again (`POST_BYTES_PER_PIXEL`), so the budget is raised to what the
- *  chain needs at the pixel cap, 331.5 MB measured, with room to spare. */
-export const GPU_BUDGET_MB = 360;
+ *  again (`POST_BYTES_PER_PIXEL`), and the seven landmarks' textures add
+ *  49 MB once all have loaded. The worst case, 2560×1440 at ×2, measured
+ *  380.4 MB; the budget is that with about 5% to spare, raised from 360
+ *  because the owner set no limit for now (`docs/path-measurements.md`).
+ *  A phone, on the landmarks' LODs, measured 71.3 MB. */
+export const GPU_BUDGET_MB = 400;
 
 /** The most device pixels the drawing buffer holds: at 86 bytes a pixel,
  *  canvas and post chain, 292 MB, which with the board's textures, shadow
- *  map and environment (42 MB) comes to 334 MB, under `GPU_BUDGET_MB`. MB
+ *  map and environment (42 MB) and the landmarks' (49 MB) comes to 383 MB,
+ *  under `GPU_BUDGET_MB`. MB
  *  here is a million bytes, as the budget is. The stage of a 1440×900
  *  screen at ratio 2 is 3 million device pixels; a stage over 850,000 CSS
  *  pixels, as a 2560×1440 screen's is, draws at less than ratio 2. */

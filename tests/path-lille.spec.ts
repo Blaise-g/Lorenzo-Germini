@@ -57,9 +57,9 @@ function propsThrough(slug: PathStepSlug) {
 const STILL_BYTES = 150 * 1024;
 const SCENE_BYTES = 1.5 * 1024 * 1024;
 /** What a cold `/path` costs before any world file: the HTML, fonts, CSS,
- *  Next's chunks and three.js, measured on a production build
- *  (`docs/path-measurements.md`), rounded up. */
-const PAGE_BYTES = 640 * 1024;
+ *  Next's chunks and three.js, 794.8 KB measured on a production build
+ *  (`docs/path-measurements.md`, v3-harden), rounded up. */
+const PAGE_BYTES = 800 * 1024;
 /** The landmarks shipped: the ids the index lists. */
 async function listedIds(): Promise<string[]> {
   return Object.keys(
