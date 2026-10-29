@@ -486,8 +486,8 @@ test.describe("a step whose scene is not built yet", () => {
 });
 
 /* An exception in a scene's own code: Lille sets its figure with
-   `fillText`, so a `fillText` that throws breaks Lille's build and nothing
-   else. It is caught whether Lille builds after its models arrive or at once
+   `fillText`, so a `fillText` that throws breaks Lille's build. Home sets
+   its MVP label the same way, so the switch is turned off before home. It is caught whether Lille builds after its models arrive or at once
    from models it already holds, and only Lille shows its stills. */
 test.describe("a scene that fails to build", () => {
   test.beforeEach(async ({ page }) => {
@@ -502,10 +502,10 @@ test.describe("a scene that fails to build", () => {
     });
   });
 
-  const failText = (page: Page) =>
-    page.evaluate(() => {
-      (window as unknown as { __failText: boolean }).__failText = true;
-    });
+  const failText = (page: Page, fail = true) =>
+    page.evaluate((value) => {
+      (window as unknown as { __failText: boolean }).__failText = value;
+    }, fail);
 
   async function expectSceneFailed(page: Page) {
     await expect(stage(page)).toHaveAttribute(
@@ -530,7 +530,8 @@ test.describe("a scene that fails to build", () => {
     });
     await page.goto("/path#lille");
     await expectSceneFailed(page);
-    await stepLink(page, "home").click();
+    await failText(page, false);
+    await stepLink(page, "cuneo-2022").click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
     expect(errors).toEqual([]);

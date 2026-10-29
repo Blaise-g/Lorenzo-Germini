@@ -149,6 +149,19 @@ const stealth = job("Stealth GenAI Startup");
 const complaion = job("Complaion");
 const summariser = project("Biomedical Paper Summarizer");
 
+/* Step 4's MVP line, and decision 3's label for its dimmed window, "MVP —
+   killed after customer discovery", taken from that line's own words so the
+   two cannot drift. */
+const mvpLine = pick(bullets(teaching), "Built an interior-design MVP");
+const mvpWords = mvpLine.match(
+  /\b(MVP)\b.*\b(Killed) it on the evidence (after customer discovery)\.$/,
+);
+if (!mvpWords) {
+  throw new Error("The MVP window expects its line's customer discovery");
+}
+/** The dimmed MVP window's label, on its prop and in the scene. */
+export const MVP_WINDOW_LABEL = `${mvpWords[1]} — ${mvpWords[2].toLowerCase()} ${mvpWords[3]}`;
+
 export const PATH_STEPS: readonly PathStep[] = [
   step({
     slug: "home",
@@ -226,14 +239,11 @@ export const PATH_STEPS: readonly PathStep[] = [
     slug: "cuneo-2022",
     place: "Cuneo",
     roles: [workRole(teaching)],
-    lines: [
-      pick(bullets(teaching), "Taught math and physics"),
-      pick(bullets(teaching), "Built an interior-design MVP"),
-    ],
+    lines: [pick(bullets(teaching), "Taught math and physics"), mvpLine],
     links: [inTheCv.experience],
     props: [
       { id: "schoolroom", name: "The schoolroom", captionLine: 0 },
-      { id: "mvp-window", name: "The dimmed MVP window", captionLine: 1 },
+      { id: "mvp-window", name: MVP_WINDOW_LABEL, captionLine: 1 },
     ],
     illustration: homeIllustration,
     sceneId: "home",

@@ -19,11 +19,12 @@ export type SceneKit = {
    *  solid and outlined like any other. */
   model(name: string, role: SurfaceRole, height: number): Object3D;
   /** Lines of text in `role`'s colour, centred, each `lineHeight` tall, on a
-   *  plane facing +z. */
+   *  plane facing +z; `opacity` below 1 dims it. */
   text(
     lines: readonly string[],
     role: PaletteRole,
     lineHeight: number,
+    opacity?: number,
   ): Object3D;
 };
 

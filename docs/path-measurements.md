@@ -101,22 +101,25 @@ compositing buffers are not counted.
 | ------------------- | ---- | ------ |
 | `home-1-light.webp` | 8.9  | 150 KB |
 | `home-1-dark.webp`  | 4.2  | 150 KB |
-| `home-2-light.webp` | 9.7  | 150 KB |
-| `home-2-dark.webp`  | 4.7  | 150 KB |
-| `home-3-light.webp` | 10.1 | 150 KB |
-| `home-3-dark.webp`  | 5.2  | 150 KB |
+| `home-2-light.webp` | 10.1 | 150 KB |
+| `home-2-dark.webp`  | 5.1  | 150 KB |
+| `home-3-light.webp` | 10.6 | 150 KB |
+| `home-3-dark.webp`  | 5.6  | 150 KB |
 | `lille-light.webp`  | 29.7 | 150 KB |
 | `lille-dark.webp`   | 21.8 | 150 KB |
-| **All stills**      | 94.2 |        |
+| **All stills**      | 96.0 |        |
+
+`home-2` and `home-3` were rendered again for the MVP window's label (see the asset log); their
+sizes here are the new files.
 
 File sizes on disk. Each is also checked against the budget by `generate:path-stills` and
 `tests/path-lille.spec.ts`.
 
 ## Everything opened
 
-Home cold (592.1 KB), then Lille (183.4 KB), then every other still in both modes (55.7 KB, file sizes), then
+Home cold (592.1 KB), then Lille (183.4 KB), then every other still in both modes (57.4 KB, file sizes), then
 every voice clip played (`home` 9.4, `cuneo-2022` 33.7, `lille` 63.0, `now` 97.2: 203.3 KB, file
-sizes) comes to about **1,035 KB, 1.01 MB**, against 8 MB. The three.js runtime and the decoders
+sizes) comes to about **1,036 KB, 1.01 MB**, against 8 MB. The three.js runtime and the decoders
 are in it, as above. The voice manifest (1.8 KB) is in the route's data.
 
 ## Voice clips

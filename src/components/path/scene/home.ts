@@ -9,6 +9,8 @@ import {
   type Group,
 } from "three";
 
+import { MVP_WINDOW_LABEL } from "@/data/path";
+
 import type { SceneDefinition, SceneKit } from "./definition";
 import { at, gable, group } from "./parts";
 
@@ -23,6 +25,15 @@ const PLATEAU_DEPTH = 0.35;
 const PLATEAU_BEVEL = 0.08;
 /** Where props stand: the plateau's top face. */
 const TOP = BASE_TOP + PLATEAU_DEPTH + PLATEAU_BEVEL * 2;
+
+/** The MVP window's label as it is set over the window, in two lines, as
+ *  Lille's figure is: decision 3's words, from the step's own line. */
+export const MVP_WINDOW_LINES = MVP_WINDOW_LABEL.replace(" — ", " —\n").split(
+  "\n",
+);
+/** Dimmed, like the window it names. In the accent, as Lille's figure is:
+ *  the outline's near-black does not read over dark mode's peaks. */
+export const MVP_WINDOW_LABEL_OPACITY = 0.6;
 
 /** A building: a box with a gabled roof, standing on `TOP`. */
 function building(
@@ -123,7 +134,8 @@ export const HOME_SCENE: SceneDefinition = {
       return at(group(room, board), 0.45, TOP, 1.15);
     },
 
-    /* The MVP killed after customer discovery: a window left dimmed. */
+    /* The MVP killed after customer discovery: a window left dimmed, and
+       labelled so, in dimmed text. */
     "mvp-window": (kit) => {
       const frame = new Shape();
       frame.moveTo(-0.5, 0);
@@ -148,7 +160,18 @@ export const HOME_SCENE: SceneDefinition = {
         0.6,
         0.06,
       );
-      return at(group(kit.solid(geometry, "prop"), pane), 1.75, TOP, 0.1);
+      const label = at(
+        kit.text(MVP_WINDOW_LINES, "accent", 0.22, MVP_WINDOW_LABEL_OPACITY),
+        0,
+        1.62,
+        0.06,
+      );
+      return at(
+        group(kit.solid(geometry, "prop"), pane, label),
+        1.75,
+        TOP,
+        0.1,
+      );
     },
 
     "startup-desk": (kit) => {

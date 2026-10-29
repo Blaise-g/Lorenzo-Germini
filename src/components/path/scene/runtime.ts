@@ -295,7 +295,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       geometry.scale(height, height, height);
       return kit.solid(geometry, role);
     },
-    text(lines, role, lineHeight) {
+    text(lines, role, lineHeight, opacity = 1) {
       const font = labelFont();
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d")!;
@@ -321,6 +321,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const material = new MeshBasicMaterial({
         map: texture,
         transparent: true,
+        opacity,
         fog: true,
       });
       labels.push({ material, role });

@@ -4,6 +4,7 @@
    browser half is `path-scene.spec.ts`. */
 
 import { expect, test } from "@playwright/test";
+import { BoxGeometry, Group, Mesh } from "three";
 
 import {
   buildPlan,
@@ -23,8 +24,10 @@ import {
   MAX_DRAWING_PIXELS,
   MAX_PIXEL_RATIO,
 } from "@/components/path/scene/drawing-buffer";
+import { HOME_SCENE } from "@/components/path/scene/home";
+import type { SceneKit } from "@/components/path/scene/definition";
 import { SCENES } from "@/components/path/scene/scenes";
-import { PATH_STEPS } from "@/data/path";
+import { MVP_WINDOW_LABEL, PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
 const capable: CapabilitySignals = {
@@ -208,5 +211,37 @@ test.describe("the drawing buffer", () => {
   test("a stage under the cap keeps the device's ratio, up to 1.5", () => {
     expect(drawingPixelRatio(976, 378, 2)).toBe(MAX_PIXEL_RATIO);
     expect(drawingPixelRatio(342, 224, 1)).toBe(1);
+  });
+});
+
+/* Decision 3: home's step 4 shows the dimmed "MVP — killed after customer
+   discovery" window. The words come from the step's own line. */
+test.describe("the MVP window", () => {
+  const cuneo = PATH_STEPS.find((step) => step.slug === "cuneo-2022")!;
+  const prop = cuneo.props.find((p) => p.id === "mvp-window")!;
+
+  test("carries decision 3's label, from the line it captions", () => {
+    expect(MVP_WINDOW_LABEL).toBe("MVP — killed after customer discovery");
+    expect(prop.name).toBe(MVP_WINDOW_LABEL);
+    expect(cuneo.lines[prop.captionLine]).toMatch(
+      /MVP.*Killed it on the evidence after customer discovery\.$/,
+    );
+  });
+
+  test("sets the label over the window, dimmed", () => {
+    const texts: { lines: readonly string[]; opacity?: number }[] = [];
+    const kit: SceneKit = {
+      solid: (geometry) => new Mesh(geometry),
+      pane: (geometry) => new Mesh(geometry),
+      model: () => new Group(),
+      text: (lines, _role, _lineHeight, opacity) => {
+        texts.push({ lines, opacity });
+        return new Mesh(new BoxGeometry());
+      },
+    };
+    HOME_SCENE.props["mvp-window"](kit);
+    expect(texts).toHaveLength(1);
+    expect(texts[0].lines.join(" ")).toBe(MVP_WINDOW_LABEL);
+    expect(texts[0].opacity).toBeLessThan(1);
   });
 });
