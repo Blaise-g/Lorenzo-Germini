@@ -45,6 +45,11 @@ export const BEAT_NODE = {
   plume: "plume",
 } as const;
 
+/** How far a generated landmark lights at most, through its grade: its
+ *  light texels warm and its dark ones barely, so a building glows like
+ *  lit stone rather than a lamp (checked by night, close up). */
+export const LANDMARK_LIGHT = 0.6;
+
 /** Which of a prop's cues this is, for a beat told across several. */
 export type BeatTurn = { nth: number; last: boolean };
 
@@ -92,7 +97,7 @@ export function glow(paint: Paint, nodes: Object3D[], amount: number) {
   for (const node of nodes) {
     for (const made of materialsOf(node)) {
       const lit = made.userData.inkLit as IUniform<number> | undefined;
-      if (lit) lit.value = Math.min(amount, 1.5);
+      if (lit) lit.value = Math.min(amount, LANDMARK_LIGHT);
       else paint.boost(made, amount);
     }
   }
@@ -103,7 +108,7 @@ export function glow(paint: Paint, nodes: Object3D[], amount: number) {
 export function glint(node: Object3D, amount: number) {
   for (const made of materialsOf(node)) {
     const lit = made.userData.inkLit as IUniform<number> | undefined;
-    if (lit) lit.value = Math.min(amount, 1.5);
+    if (lit) lit.value = Math.min(amount, LANDMARK_LIGHT);
   }
 }
 

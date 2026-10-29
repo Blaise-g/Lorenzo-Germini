@@ -172,13 +172,13 @@ export function createMoments(options: {
     const { gestures } = play;
     switch (name) {
       case "wave":
-        gestures.wave(stage.figure, 1.2);
+        gestures.wave(stage.figure, 1.6);
         return true;
       case "spin":
         gestures.spin(stage.buddy, 1);
         return true;
       case "jab":
-        gestures.jab(stage.buddy, 1.2);
+        gestures.jab(stage.buddy, 1.6);
         return true;
       case "birds":
         startFlock(stage.centre);

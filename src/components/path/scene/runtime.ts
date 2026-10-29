@@ -520,7 +520,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const BUDDY_LAG_MS = 130;
   /** Where the buddy stands beside the figure, in the board's frame, before
    *  the tile's scale: to its left and a little in front. */
-  const BUDDY_SIDE = new Vector3(-0.98, 0, 0.32);
+  const BUDDY_SIDE = new Vector3(-1.05, 0, 0.34);
   /** Its hop, against the figure's: higher for its size, so bouncier. */
   const BUDDY_HOP = 0.82;
   /** The move the buddy is still finishing after the figure has landed. */

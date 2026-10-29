@@ -686,7 +686,7 @@ export function createPaint(palette: Palette) {
               "#include <emissivemap_fragment>",
               /* A building's lights warming on: lamplight, strongest where
                  its texture is light. */
-              "totalEmissiveRadiance += uLamp * uLit * ( 0.25 + 0.75 * inkLum );",
+              "totalEmissiveRadiance += uLamp * uLit * inkLum * inkLum;",
             );
           },
         },

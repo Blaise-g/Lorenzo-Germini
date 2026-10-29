@@ -495,10 +495,13 @@ export function makeBuddy(paint: Paint): Object3D {
     round([0.025, 0.12, 0.025], [0, 0.06 + h * 0.7, 0], trim, 0.01),
     round([0.06, 0.06, 0.06], [0, 0.06 + h * 0.7 + 0.11, 0], eye, 0.03),
   );
+  /* Drawn small, then sized up to read beside the figure from the whole
+     board's view. */
+  buddy.scale.setScalar(1.35);
   const body = new Group();
   body.add(buddy);
   const contact = new Mesh(
-    new CircleGeometry(0.26, 32),
+    new CircleGeometry(0.34, 32),
     paint.material({ base: "ink-cool", shade: 0.25 }),
   );
   contact.material.alphaMap = softDisc();

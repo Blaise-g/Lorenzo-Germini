@@ -15,7 +15,13 @@ import type { PathStepSlug } from "@/data/path.types";
 import { beatFor, HOP_REACH, HOPPERS, type Beat } from "./beats";
 import { glowEnvelope, hopBeat, HOP_BEAT_MS } from "./motion";
 import type { Paint } from "./paint";
-import { playOwn, restOwn, swell, type BeatTurn } from "./piece-beats";
+import {
+  LANDMARK_LIGHT,
+  playOwn,
+  restOwn,
+  swell,
+  type BeatTurn,
+} from "./piece-beats";
 import { softDisc } from "./world";
 
 /* The board's life (v3; the benchmark's §4(d)): what plays on top of the
@@ -155,7 +161,7 @@ export function createLife(options: {
         const glow = glowEnvelope(at, span);
         const lit = target.lit();
         if (lit.length > 0) {
-          for (const each of lit) each.value = glow;
+          for (const each of lit) each.value = LANDMARK_LIGHT * glow;
         } else {
           /* A stand-in has no texture to light: its lit panes glow. */
           paint.boost(paint.panes[0], 1.4 * glow);
