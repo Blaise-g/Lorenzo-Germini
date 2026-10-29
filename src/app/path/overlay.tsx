@@ -443,7 +443,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
           <button
             type="button"
             onClick={onClearSeen}
-            className="text-faint hover:text-accent touch-target font-label text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4 hover:underline"
+            className="path-quiet-control text-faint touch-target font-label text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4"
           >
             {PATH_COPY.clearSeen}
           </button>

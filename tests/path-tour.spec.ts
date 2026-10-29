@@ -286,12 +286,12 @@ test.describe("with motion allowed", () => {
     await runPastStep(page, "home");
     await expectShown(page, "home");
 
-    await page.locator("body").press("k");
+    await playTab(page).press("k");
     await expect(tour(page)).toHaveAttribute("data-path-tour", "playing");
     await playThrough(page, "home");
     await expectShown(page, "turin");
 
-    await page.locator("body").press("k");
+    await stepLink(page, "turin").press("k");
     await expect(tour(page)).toHaveAttribute("data-path-tour", "paused");
   });
 
@@ -376,9 +376,9 @@ test.describe("with motion allowed", () => {
 
     await nextTab(page).click();
     await expectShown(page, "turin");
-    await page.locator("body").press("l");
+    await nextTab(page).press("l");
     await expectShown(page, "switzerland");
-    await page.locator("body").press("j");
+    await stepLink(page, "switzerland").press("j");
     await expectShown(page, "turin");
     expect(await historyLength(page)).toBe(length + 3);
 
@@ -391,13 +391,20 @@ test.describe("with motion allowed", () => {
     await expect(nextTab(page)).toBeFocused();
   });
 
-  test("the tour's keys leave a modified key and a text field alone", async ({
+  test("the tour's keys work only from the list or the tabs, and leave a modified key alone", async ({
     page,
   }) => {
     await page.goto("/path");
     await hydrated(page);
-    await page.locator("body").press("Shift+K");
-    await page.locator("body").press("Control+l");
+    await stepLink(page, "home").press("Shift+K");
+    await playTab(page).press("Control+l");
+    await expect(tour(page)).toHaveAttribute("data-path-tour", "playing");
+    await expectShown(page, "home");
+
+    /* Elsewhere on the page a single letter is not the tour's (WCAG 2.1.4). */
+    await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+    await page.locator("body").press("k");
+    await page.locator("body").press("l");
     await expect(tour(page)).toHaveAttribute("data-path-tour", "playing");
     await expectShown(page, "home");
 

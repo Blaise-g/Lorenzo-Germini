@@ -151,18 +151,21 @@ export function VoiceControls({
       if (loadedRef.current !== null && loadedRef.current !== slug) stop();
       if (voiceOn && pressed) play(slug);
     }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [voiceOn, play, stop]);
+
+  useEffect(() => {
     const onPress = () => {
       pressed = true;
     };
-    window.addEventListener("hashchange", onHashChange);
     window.addEventListener("pointerdown", onPress, true);
     window.addEventListener("keydown", onPress, true);
     return () => {
-      window.removeEventListener("hashchange", onHashChange);
       window.removeEventListener("pointerdown", onPress, true);
       window.removeEventListener("keydown", onPress, true);
     };
-  }, [voiceOn, play, stop]);
+  }, []);
 
   /* While a clip is reading, the tour waits for it to finish before moving
      on from its step. Not while it loads: a load that hangs must not hold

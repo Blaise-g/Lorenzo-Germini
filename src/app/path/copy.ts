@@ -46,7 +46,7 @@ export const TOUR_COPY = {
   previousTitle: "Back a step (J)",
   nextTitle: "Next step (L)",
   playTitle: "Play or pause the tour (K)",
-  keys: "Keys: J back · K play or pause · L next",
+  keys: "Keys, from the list or the tabs: J back · K play or pause · L next",
   nowPlaying: (place: string) => `Now playing: ${place}`,
   ended: "The tour has ended. Pick a step, or play it again.",
 };

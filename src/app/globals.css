@@ -207,6 +207,15 @@ html {
     box-shadow: 0 2px 0 -1px var(--color-border);
   }
 
+  /* "Flat site" is a focusable card: the card's shadow would otherwise
+     replace the base focus ring, which is a shadow too. */
+  .path-card:focus-visible,
+  .dark .path-card:focus-visible {
+    box-shadow:
+      0 0 0 2px var(--color-ground),
+      0 0 0 4px var(--color-accent);
+  }
+
   /* The tour's tabs: a pointed tag for Back and Next, pointing the way they
      go, and a solid bevelled tab printed in the accent for play and pause.
      The shape is two clipped layers behind the label — the cut edge in the
@@ -293,14 +302,6 @@ html {
     filter: none;
   }
 
-  .path-tab[aria-disabled="true"]:active {
-    transform: none;
-  }
-
-  .path-tab[aria-disabled="true"]::after {
-    inset: 1px;
-  }
-
   .path-tab-face {
     position: relative;
   }
@@ -322,6 +323,11 @@ html {
     .path-step-link:hover > span:first-child {
       color: var(--color-accent);
     }
+
+    .path-quiet-control:hover {
+      color: var(--color-accent);
+      text-decoration-line: underline;
+    }
   }
 
   /* The step link fills its row, so the whole row is the target. */
@@ -340,7 +346,7 @@ html {
     offset-rotate: 0deg;
     offset-anchor: 50% 80%;
     pointer-events: none;
-    transition: offset-distance 360ms var(--ease-in-out);
+    transition: offset-distance 280ms var(--ease-in-out);
   }
 
   /* The dwell running out under the current row: a printed hairline in the
@@ -463,6 +469,12 @@ html {
      so unlike hover it needs no pointer gate. */
   .press:active {
     transform: scale(0.97);
+  }
+
+  /* An unavailable tour tab does nothing, so it does not answer a press.
+     Here, beside `.press`, because it has to beat it. */
+  .path-tab[aria-disabled="true"]:active {
+    transform: none;
   }
 
   .primary-control:hover {

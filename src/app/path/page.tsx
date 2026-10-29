@@ -162,7 +162,8 @@ export default function PathPage() {
             />
 
             <div className="mt-8 grid flex-1 content-start gap-x-12 gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
-              <div className="space-y-6">
+              {/* The tour's keys work with focus anywhere in here. */}
+              <div data-path-tour-keys className="space-y-6">
                 <nav aria-labelledby="path-heading">
                   <h2 id="path-heading" className="sr-only">
                     {PATH_COPY.stepListHeading}

@@ -50,8 +50,8 @@ import {
      while the voice is still reading the step, the clock stops without
      pausing, so nothing moves on under someone reading or listening.
 
-   Keys, outside text fields and with no modifier: K plays or pauses, J goes
-   to the previous step, L to the next. */
+   Keys, with focus in the step list or on the tabs and no modifier: K plays
+   or pauses, J goes to the previous step, L to the next. */
 
 export type TourStatus = "playing" | "paused" | "ended";
 
@@ -108,12 +108,13 @@ function useMotionAllowed() {
   );
 }
 
-/** A key typed into a field is the field's, not the tour's. */
-function isTyping(target: EventTarget | null) {
+/** The tour's keys work only with focus in the step list or on the tabs —
+ *  `data-path-tour-keys` — so a single-letter key typed anywhere else on the
+ *  page is never taken from it (WCAG 2.1.4). */
+function inKeyScope(target: EventTarget | null) {
   return (
-    target instanceof HTMLElement &&
-    (target.isContentEditable ||
-      target.matches("input, textarea, select, [role='textbox']"))
+    target instanceof Element &&
+    target.closest("[data-path-tour-keys]") !== null
   );
 }
 
@@ -130,20 +131,25 @@ export function TourProvider({ children }: { children: ReactNode }) {
   });
   const [narrating, setNarrating] = useState<PathStepSlug | null>(null);
 
-  /* A new step starts a new clock, whatever selected it. */
-  const [clockStep, setClockStep] = useState(selected);
+  /* A new step starts a new clock, whatever selected it, and remembers the
+     stage's report as it stood then. */
+  const [clockStart, setClockStart] = useState({ slug: selected, stage });
   const [clock, setClock] = useState<StepClock>(() =>
     startClock(dwellFor(selected)),
   );
-  if (clockStep !== selected) {
-    setClockStep(selected);
+  if (clockStart.slug !== selected) {
+    setClockStart({ slug: selected, stage });
     setClock(startClock(dwellFor(selected)));
   }
   /* The stage settling this step starts its dwell; once dwelling, a later or
-     repeated report changes nothing. A report for another step is stale. */
+     repeated report changes nothing. A report for another step is stale, and
+     so is one already standing when the clock started: back on a step that
+     settled before, the stage has to report it again, after it has rebuilt
+     it. Each report is a new object, so identity tells them apart. */
   if (
-    clockStep === selected &&
+    clockStart.slug === selected &&
     clock.phase === "waiting" &&
+    stage !== clockStart.stage &&
     stage.slug === selected &&
     stage.settled
   ) {
@@ -162,6 +168,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       ? "ended"
       : "playing";
   const running = status === "playing" && !holds.pointer && !holds.focus;
+  const atEnd = clock.phase === "done" && selected === LAST_STEP;
   const statusRef = useRef(status);
   useEffect(() => {
     statusRef.current = status;
@@ -196,13 +203,14 @@ export function TourProvider({ children }: { children: ReactNode }) {
     };
   }, [running, clock]);
 
-  /* A finished step moves on, once the voice has finished reading it. */
+  /* A finished step moves on, once the voice has finished reading it, and
+     not while the visitor is reading the panel. */
   useEffect(() => {
-    if (status !== "playing" || clock.phase !== "done") return;
+    if (!running || clock.phase !== "done") return;
     if (narrating === selected) return;
     const after = stepAfter(selected);
     if (after) replaceStep(after);
-  }, [clock.phase, status, narrating, selected]);
+  }, [clock.phase, running, narrating, selected]);
 
   /* A hidden tab pauses the tour, and it stays paused when the tab returns:
      the visitor comes back to the step they left, not three steps on. */
@@ -218,10 +226,11 @@ export function TourProvider({ children }: { children: ReactNode }) {
 
   const togglePlay = useCallback(() => {
     if (status === "playing") return setChosen("paused");
-    /* From the end it plays again from the start, a step the visitor chose. */
-    if (status === "ended") pushStep(FIRST_STEP);
+    /* From the end — reached, or reached while paused — it plays again from
+       the start, a step the visitor chose. */
+    if (status === "ended" || atEnd) pushStep(FIRST_STEP);
     setChosen("playing");
-  }, [status]);
+  }, [status, atEnd]);
 
   const previous = useCallback(() => {
     const before = stepBefore(selected);
@@ -239,7 +248,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
       if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
         return;
       }
-      if (isTyping(event.target)) return;
+      if (!inKeyScope(event.target)) return;
       const action = { k: togglePlay, j: previous, l: next }[
         event.key.toLowerCase()
       ];
@@ -368,17 +377,8 @@ export function TourTransport({ className }: { className?: string }) {
 export function TourProgress() {
   const { clock, running } = useTour();
   const lineRef = useRef<HTMLSpanElement>(null);
-  const [reduced, setReduced] = useState(true);
-
-  useEffect(() => {
-    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(query.matches);
-    update();
-    query.addEventListener("change", update);
-    return () => query.removeEventListener("change", update);
-  }, []);
-
-  const dwelling = clock.phase === "dwelling" && !reduced;
+  const motionAllowed = useMotionAllowed();
+  const dwelling = clock.phase === "dwelling" && motionAllowed;
 
   useEffect(() => {
     const line = lineRef.current;
@@ -394,7 +394,11 @@ export function TourProgress() {
 
   if (!dwelling) return null;
   return (
-    <span aria-hidden data-path-tour-progress className="path-tour-progress">
+    <span
+      aria-hidden
+      data-path-tour-progress
+      className="path-tour-progress print:hidden"
+    >
       <span ref={lineRef} className="path-tour-progress-line" />
     </span>
   );

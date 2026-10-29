@@ -39,7 +39,8 @@ const mostLines = Math.max(...PATH_STEPS.map((step) => step.lines.length));
  *  displayed, so only its lines can light. As a panel arrives its lines fade
  *  in one after another, `LINE_STAGGER_MS` apart; their transitions are in
  *  `globals.css`, in the order colour, opacity, translate, so only the
- *  arrival is staggered and the lighting never waits. One rule per index the
+ *  arrival is staggered and the lighting never waits. Under reduced motion
+ *  the lines arrive together: no delay survives it. One rule per index the
  *  data can reach, generated so a longer step cannot be left without one. */
 export const LINE_STAGGER_MS = 40;
 
@@ -49,6 +50,6 @@ export const CAPTION_LIT_CSS = [
   ...Array.from({ length: mostLines }, (_, index) => {
     const line = `[data-path-overlay][data-path-lit~="${index}"] [data-path-text-panel] [data-path-line="${index}"]`;
     const delay = `${index * LINE_STAGGER_MS}ms`;
-    return `[data-path-text-panel] [data-path-line="${index}"]{transition-delay:0ms,${delay},${delay}}${line}{color:var(--color-ink)}${line}::before{opacity:1}`;
+    return `@media (prefers-reduced-motion:no-preference){[data-path-text-panel] [data-path-line="${index}"]{transition-delay:0ms,${delay},${delay}}}${line}{color:var(--color-ink)}${line}::before{opacity:1}`;
   }),
 ].join("");
