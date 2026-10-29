@@ -29,7 +29,7 @@ import { softDisc } from "./world";
    pawn passes, and the dust its landing kicks up. The runtime owns the
    clocks and tells this module when to move on; nothing here is text. */
 
-/** Something the board did that has a sound (`src/app/path/sound.ts`). */
+/** Something the board did that has a sound (`src/app/path/sound.tsx`). */
 export type SceneEvent =
   | "hop"
   | "land"
@@ -106,6 +106,9 @@ export function createLife(options: {
     DUST_COUNT,
   );
   dust.visible = false;
+  /* Its sprites move to each landing; a culling sphere would stay at the
+     first. */
+  dust.frustumCulled = false;
   dust.renderOrder = 3;
   /* Kept out of picking: the runtime casts only at the tiles. */
   board.add(dust);
@@ -163,8 +166,9 @@ export function createLife(options: {
         if (lit.length > 0) {
           for (const each of lit) each.value = LANDMARK_LIGHT * glow;
         } else {
-          /* A stand-in has no texture to light: its lit panes glow. */
-          paint.boost(paint.panes[0], 1.4 * glow);
+          /* A stand-in has no texture to light, and its panes are shared
+             with every building on the board: it swells instead. */
+          swell(target.beater, at, span);
         }
         break;
       }

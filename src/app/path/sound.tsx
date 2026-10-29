@@ -52,7 +52,8 @@ async function start() {
   const mine = ++generation;
   const made = createSoundEngine();
   engine = made;
-  await made.resume();
+  /* Closed by a quick switch off before it resumed: nothing to do. */
+  await made.resume().catch(() => undefined);
   if (mine !== generation) return;
   const voice = document.querySelector<HTMLMediaElement>(
     "[data-path-voice-audio]",
@@ -84,8 +85,12 @@ export function SoundSwitch() {
       checked={on}
       onChange={(next) => {
         setOn(next);
-        if (next) void start();
-        else stop();
+        if (!next) return stop();
+        /* A browser without Web Audio leaves the switch off. */
+        start().catch(() => {
+          stop();
+          setOn(false);
+        });
       }}
       data-path-sound-switch
     >

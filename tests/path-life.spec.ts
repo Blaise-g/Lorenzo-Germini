@@ -13,6 +13,7 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   type PlaneGeometry,
+  Vector3,
   ShaderChunk,
 } from "three";
 
@@ -42,7 +43,9 @@ import {
 } from "@/components/path/scene/motion";
 import { inject, SUN_ANCHOR, VIEW_ANCHOR } from "@/components/path/scene/paint";
 import {
+  createMoments,
   type MomentName,
+  type MomentStage,
   momentsFor,
   momentWait,
   nextMoment,
@@ -409,6 +412,7 @@ test.describe("play", () => {
   const paint = {
     lampColour: { value: new Color(1, 0.8, 0.5) },
     boost() {},
+    material: () => new MeshStandardMaterial(),
   } as unknown as Paint;
 
   function reactor(piece: string) {
@@ -473,6 +477,52 @@ test.describe("play", () => {
     const peak = (play: Play, r: Reactor) =>
       Math.max(...run(play, 900, () => Math.abs(r.handle.position.y)));
     expect(peak(twice, b)).toBeGreaterThan(peak(once, a));
+  });
+
+  /* The springs' clock stops once they rest, as frames do on a paused
+     board: a second click long after the first is a first click again. */
+  test("a click long after the last is not a repeat, though nothing ticked", async () => {
+    const play = createPlay({ paint, board: new Group() });
+    const mole = reactor("mole");
+    const peak = () =>
+      Math.max(...run(play, 900, () => Math.abs(mole.handle.position.y)));
+    play.react(mole, false);
+    const first = peak();
+    for (let t = 0; play.active() && t < 5000; t += 16) play.tick(16);
+    expect(play.active()).toBe(false);
+    await new Promise((done) => setTimeout(done, 1600));
+    play.react(mole, false);
+    expect(peak()).toBeCloseTo(first, 4);
+  });
+
+  /* A spring at rest returns to its rest pose, so a moment that turns a
+     piece must bring it back while it still moves, never by a jump. */
+  test("the boat tacks over and back without a jump", () => {
+    const board = new Group();
+    const play = createPlay({ paint, board });
+    const moments = createMoments({ board, paint, play });
+    const boat = new Group();
+    const stage: MomentStage = {
+      figure: new Group(),
+      buddy: new Group(),
+      piece: (_, id) => (id === "sailboat" ? boat : undefined),
+      centre: new Vector3(),
+    };
+    moments.play("tack", "switzerland", () => stage);
+    let previous = 0;
+    let widest = 0;
+    let jump = 0;
+    for (let t = 0; t < 4000; t += 16) {
+      play.tick(16);
+      const heading = boat.rotation.y;
+      jump = Math.max(jump, Math.abs(heading - previous));
+      widest = Math.max(widest, Math.abs(heading));
+      previous = heading;
+    }
+    expect(widest).toBeGreaterThan(0.4);
+    expect(jump).toBeLessThan(0.1);
+    expect(boat.rotation.y).toBe(0);
+    expect(play.active()).toBe(false);
   });
 
   test("under reduced motion, a click lights the piece and moves nothing", () => {

@@ -247,6 +247,7 @@ export function SceneStage({
       reducedMotion.removeEventListener("change", onMotionChange);
       runtimeRef.current?.dispose();
       runtimeRef.current = null;
+      if (process.env.NODE_ENV !== "production") delete window.__pathScene;
       setMode("pending");
       setSnapshot(IDLE);
     };
@@ -469,7 +470,12 @@ export function SceneStage({
             onClick={() => {
               if (loading) return;
               if (buildState === "building") runtimeRef.current?.skip();
-              else runtimeRef.current?.replay();
+              else {
+                /* The replay rests the tile's pieces: the cue playing now
+                   may play its beat again. */
+                cuedRef.current = null;
+                runtimeRef.current?.replay();
+              }
             }}
           >
             {/* Its word on a wide screen; on a phone, its sign, so the

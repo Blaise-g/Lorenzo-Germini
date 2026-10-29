@@ -200,8 +200,10 @@ export function createPlay(options: { paint: Paint; board: Group }) {
    *  third, never more than half again. */
   function escalation(piece: string) {
     const last = clicks.get(piece);
-    const n = last && clock - last.at < AGAIN_MS ? Math.min(last.n + 1, 3) : 1;
-    clicks.set(piece, { n, at: clock });
+    /* Wall time, not the springs' clock, which stops when they rest. */
+    const now = performance.now();
+    const n = last && now - last.at < AGAIN_MS ? Math.min(last.n + 1, 3) : 1;
+    clicks.set(piece, { n, at: now });
     return 1 + 0.25 * (n - 1);
   }
 
@@ -291,7 +293,8 @@ export function createPlay(options: { paint: Paint; board: Group }) {
       case "coils":
         if (named(BEAT_NODE.rotor).length === 0) break;
         for (const rotor of named(BEAT_NODE.rotor)) {
-          retarget(rotor, "turn", Math.PI * 4 * force);
+          /* Whole turns only: a spring at rest returns to its rest heading. */
+          retarget(rotor, "turn", Math.PI * 2 * Math.round(2 * force));
         }
         named(BEAT_NODE.coil).forEach((coil, i) =>
           after(i * 50, () => kick(coil, "squash", 2 * force)),
@@ -400,9 +403,11 @@ export function createPlay(options: { paint: Paint; board: Group }) {
     after,
     shake,
     /** Hovered by a fine pointer: a faint pool of light under it. */
+    /** Returns whether the highlight changed, so a frame is wanted. */
     hover(on: Reactor | null) {
-      if (on === haloOn && on) return;
+      if (on === haloOn && haloLevel.target === (on ? 0.45 : 0)) return false;
       showHalo(on, 0.45);
+      return true;
     },
     tick,
     active() {

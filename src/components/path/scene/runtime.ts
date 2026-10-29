@@ -965,8 +965,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* Frames are drawn on demand: a move, a build, a turn, a theme change,
      or the camera moving, which includes its close-up breathing while the
-     tour plays. The frame sample fills only from those, so a settled board
-     draws nothing while it waits for a verdict. A paused tour freezes the
+     tour plays, and the board's life while it lives (`alive()`). The frame
+     sample fills only from those, so a settled board — paused, ended or
+     under reduced motion — draws nothing while it waits for a verdict. A paused tour freezes the
      tour's own motion; a theme change or a turn, the visitor's, plays on. */
   function moving() {
     if (themeElapsed < THEME_MS || turnElapsed < TURN_MS) return true;
@@ -1508,11 +1509,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       step,
       living > 0 &&
         !life.active() &&
+        !reactions.active() &&
+        !gestures.active() &&
+        !moments.active() &&
         !move &&
         !trail &&
         buildState !== "building",
       current,
-      momentStage(),
+      momentStage,
     );
     if (played) {
       lastMoment = `${played}:${++momentCount}`;
@@ -1626,13 +1630,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     hover(x, y) {
       const on = x === null || y === undefined ? null : reactorAt(x, y);
-      reactions.hover(on);
-      requestFrame();
+      if (reactions.hover(on)) requestFrame();
       return on !== null;
     },
     moment(name) {
       if (!current || reducedMotion) return;
-      moments.play(name, current, momentStage());
+      moments.play(name, current, momentStage);
       lastMoment = `${name}:${++momentCount}`;
       emit();
       requestFrame();
@@ -1704,11 +1707,17 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     setReducedMotion(reduced) {
       reducedMotion = reduced;
       rig.setReducedMotion(reduced);
-      if (!reduced || !plan) return;
+      if (reduced) {
+        reactions.settle();
+        gestures.settle();
+        moments.finish();
+      }
+      /* Turned off on a resting board, its life starts again. */
+      if (!reduced || !plan) {
+        requestFrame();
+        return;
+      }
       life.finish();
-      reactions.settle();
-      gestures.settle();
-      moments.finish();
       arrivals.clear();
       /* Reduced motion's designed state is the whole board built. */
       for (const tile of tiles.keys()) built.add(tile);

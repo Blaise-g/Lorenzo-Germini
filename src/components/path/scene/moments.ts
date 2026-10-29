@@ -168,8 +168,13 @@ export function createMoments(options: {
 
   /* ─── Playing one ─── */
 
-  function play1(name: MomentName, slug: PathStepSlug, stage: MomentStage) {
+  function play1(
+    name: MomentName,
+    slug: PathStepSlug,
+    stageOf: () => MomentStage,
+  ) {
     const { gestures } = play;
+    const stage = stageOf();
     switch (name) {
       case "wave":
         gestures.wave(stage.figure, 1.6);
@@ -193,10 +198,11 @@ export function createMoments(options: {
         const boat = stage.piece(slug, "sailboat");
         if (!boat) return false;
         /* Comes about: turns onto the other tack, leaning into it, and
-           back again. */
+           back again before it settles there (a spring at rest returns to
+           its rest heading, so the return must start while it moves). */
         play.retarget(boat, "turn", 0.9, TURN);
         play.kick(boat, "lean", -1.6, SOFT);
-        play.after(1300, () => play.retarget(boat, "turn", -0.9, TURN));
+        play.after(700, () => play.retarget(boat, "turn", -0.9, TURN));
         return true;
       }
       case "chime": {
@@ -229,7 +235,8 @@ export function createMoments(options: {
       ms: number,
       quiet: boolean,
       slug: PathStepSlug | undefined,
-      stage: MomentStage,
+      /** The stage, asked for only when a moment is due. */
+      stage: () => MomentStage,
     ): MomentName | undefined {
       if (ms <= 0) return undefined;
       if (flockMs < FLOCK_MS) {
@@ -251,7 +258,7 @@ export function createMoments(options: {
       return undefined;
     },
     /** Plays `name` now (for the clips, and a spec). */
-    play(name: MomentName, slug: PathStepSlug, stage: MomentStage) {
+    play(name: MomentName, slug: PathStepSlug, stage: () => MomentStage) {
       if (play1(name, slug, stage)) last = name;
     },
     active() {
