@@ -26,8 +26,11 @@ What ships:
   these are built in code, in the toy's paint, and set into the toy where the part goes. A spec
   (`tests/path-toys.spec.ts`) checks each toy carries every part its beat moves.
 - **The GPU budget is 440 MB.** The toys' textures add 36.7 MB at full size. The worst case,
-  2560×1440 ×2 with every landmark, prop and marker loaded at full size, measured 417.0 MB; 440
-  MB is that with some headroom (`docs/path-measurements.md`).
+  2560×1440 ×2 with every landmark, prop and marker loaded at full size, measured 417.1 MB on
+  a production build. Two tallies once disagreed; they were reconciled on that build, and the
+  higher one priced the canvas at about 32 bytes a pixel. 440 MB is the worst case with some
+  headroom, and the pixel cap keeps a larger screen under it. The contract test counts the
+  textures from the shipped GLBs rather than pinning totals (`docs/path-measurements.md`).
 
 ## Considered options
 

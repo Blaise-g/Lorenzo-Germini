@@ -324,12 +324,25 @@ test.describe("the drawing buffer", () => {
     expect(toyTextures).toBeLessThan(40 * MB);
   });
 
-  /* Measured totals, every landmark, toy prop and marker loaded: 372.0 MB
-     at 1440×900×2 and 417.0 MB at 2560×1440×2. The model has to come out
-     at or above them, or the budget checks nothing. */
+  /* Measured on a production build (docs/path-measurements.md):
+     every landmark, toy prop and marker loaded, 372.1 MB at 1440×900×2 and
+     417.1 MB at 2560×1440×2. Pinned here is only what the models' textures
+     do not account for — render targets, buffers, the drawing buffer, the
+     board — so a re-baked GLB moves both sides by what its files hold. The
+     model has to come out at or above them, or the budget checks nothing;
+     it clears both by under 3 MB, the margin BOARD_FIXED's rounding and the
+     post chain's per-pixel figure leave. */
   test("the per-pixel model covers the measured totals", () => {
-    expect(gpuBytes(1360, 528, 2)).toBeGreaterThanOrEqual(372.0 * MB);
-    expect(gpuBytes(2480, 1068, 2)).toBeGreaterThanOrEqual(417.0 * MB);
+    const models = landmarkTextures + toyTextures;
+    for (const [width, height, rest] of [
+      [1360, 528, 286.5],
+      [2480, 1068, 331.5],
+    ] as const) {
+      expect(
+        gpuBytes(width, height, 2),
+        `${width}×${height} at ×2`,
+      ).toBeGreaterThanOrEqual(rest * MB + models);
+    }
   });
 
   test("every measured stage stays under the GPU budget, at ×1, ×2 and ×3", () => {

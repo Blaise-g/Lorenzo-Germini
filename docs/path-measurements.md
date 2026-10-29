@@ -8,6 +8,57 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The whole-branch fix (reconciled)
+
+The whole-branch review found two GPU tallies that disagreed: v3-toys' 417.0 MB worst case,
+and v3-emil-polish's 439.7 MB at 1440×900 ×2 and 496.0 MB at 2560×1440 ×2, which would have
+broken the 440 MB budget. They were reconciled on a production build of `e9d4433`
+(`next build`, then `next start`), with muted Chromium on the machine's GPU, a fresh context
+per viewport and the cache disabled. A third tally wrapped WebGL2's allocation calls and its
+deletions, and was read once Lille had built under reduced motion and every model had
+settled. It reproduces v3-toys' figures to 0.2 MB, so v3-toys' tally stands:
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
+| 375×812, ×3, touch             | 375×390        | 562×585            | 72.8     | 2.1     | 0.8           | 2.6            | 78.3 (74.7)     |
+| 375×812, ×3                    | 375×390        | 750×780            | 147.2    | 3.8     | 1.4           | 4.7            | 157.1 (149.8)   |
+| 1280×720, ×2                   | 1200×348       | 2400×696           | 249.3    | 4.5     | 2.5           | 13.4           | 269.6 (257.1)   |
+| 1440×900, ×1                   | 1360×528       | 1360×528           | 176.6    | 4.5     | 1.5           | 5.7            | 188.3 (179.6)   |
+| 1440×900, ×2                   | 1360×528       | 2720×1056          | 341.0    | 4.5     | 3.7           | 23.0           | 372.1 (354.9)   |
+| 1920×1080, ×1                  | 1840×708       | 1840×708           | 221.2    | 4.5     | 2.1           | 10.4           | 238.2 (227.2)   |
+| 2560×1440, ×2                  | 2480×1068      | 2809×1210          | 381.2    | 4.5     | 4.2           | 27.2           | 417.1 (397.8)   |
+| 3840×2160, ×2                  | 3760×1788      | 2673×1271          | 381.1    | 4.5     | 4.2           | 27.2           | 416.9 (397.6)   |
+
+The worst case is 417.1 MB, inside the 440 MB budget, and the pixel cap holds it there: a
+4K stage draws fewer pixels than a 1440p one. No resolution cut was needed. Ignoring every
+deletion adds a constant 10.7 MB (382.9 and 427.8 MB), so missed frees do not explain the
+polish tally's figures. Its excess grows with the canvas, about 23.6 bytes a pixel, which
+fits an accounting convention that priced the canvas at about 32 bytes a pixel, not memory
+the page holds. The polish table below is kept only for the difference between its two
+commits, which is the same 0.1 MB either way.
+
+`path-scene-contract.spec.ts` no longer pins the totals. It pins what the models' textures
+do not account for, 286.5 MB at 1440×900 ×2 and 331.5 MB at 2560×1440 ×2, and adds the
+textures it counts from the shipped GLBs (48.9 MB of landmarks, 36.7 MB of toys) to both
+sides. A re-baked model therefore moves the measurement and the model together. The model
+clears the measurement by 2.5 and 2.8 MB. Most of that comes from `BOARD_FIXED`, 42 MB against
+41.5 MB measured, and the post chain's per-pixel figure; it is a thin margin, and a change to
+the post chain should be re-measured rather than trusted to it.
+
+The same production build, measured the same day:
+
+| Budget                        | Budget | Measured                                                | Within |
+| ----------------------------- | ------ | ------------------------------------------------------- | ------ |
+| Transfer to first paint, cold | 1.5 MB | 1,334.8 KB at `#lille`, the costliest landing           | Yes    |
+| GPU memory, live, every model | 440 MB | 78.3–417.1 MB; 372.1 MB at 1440×900 ×2                  | Yes    |
+| Frame time, with motion       | 33 ms  | Median and 95th percentile 16.7 ms; no frame over 20 ms | Yes    |
+
+The first paint is `path-lille.spec.ts`'s costliest-landing test, run with `PLAYWRIGHT_PORT`
+at the production server. The dev server ships unminified chunks and a hot-reload client, so
+the test skips the budget there. Frame time is `requestAnimationFrame` gaps over 300 frames
+of Lille built with motion, at 1440×900 ×2 and 2560×1440 ×2, in headless Chromium, which
+paints at 60 Hz. That is why the median is 16.7 ms rather than v3-toys' 8.3 ms at 120 Hz.
+
 ## The polish (v3-emil-polish)
 
 v3-emil-polish adds no file to the board's loads: the lid, the confetti and the grass tufts
@@ -19,7 +70,8 @@ with muted Chromium on the machine's GPU, a fresh context and the cache disabled
 was counted by a tally written again for this ticket, from wrapping the same calls as v3-harden
 did, once Lille had built under reduced motion and every model had settled. That tally comes
 out higher than v3-toys' on both commits (439.7 MB at 1440×900 ×2 on `e12e984`, against the
-372.0 MB below), so only the difference between the two commits is read from it:
+372.0 MB below). The whole-branch fix above traced the excess to how that tally priced the
+canvas, so only the difference between the two commits is read from it:
 
 | Viewport (CSS px, pixel ratio) | Before, MB | After, MB | Difference |
 | ------------------------------ | ---------- | --------- | ---------- |
@@ -69,8 +121,8 @@ before it builds; the two rows are not the same load.
 the change: the toys' textures are 36.7 MB at full size (thirteen props at 512² and 256², the
 two markers at 1024² and 512²), counted from the GLBs in `path-scene-contract.spec.ts`, which
 adds them to the model it checks the budget with. The worst case, 2560×1440 ×2 with every
-landmark, prop and marker loaded at full size, measured 417.0 MB; 440 MB is that with about
-5% to spare. Desktop keeps the full textures; a phone and the lower rungs take the LODs (9.2
+landmark, prop and marker loaded at full size, measured 417.0 MB (417.1 MB when reconciled; see the whole-branch fix above); 440 MB is that
+with about 5% to spare. Desktop keeps the full textures; a phone and the lower rungs take the LODs (9.2
 MB for the toys). Counted as v3-harden's, once Lille has built under reduced motion and every
 model has settled:
 
