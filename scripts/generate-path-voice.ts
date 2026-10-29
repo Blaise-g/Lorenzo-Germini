@@ -18,7 +18,14 @@
    the unmerged prototype; a shipped voice needs another provider. */
 
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -34,9 +41,8 @@ import {
 
 const run = promisify(execFile);
 
-/** A clip is about 60 KB (storyboard §7.6); one well past it is reported. */
+/** A clip is about 60 KB (storyboard §7.6); one past it is reported. */
 const TARGET_BYTES = 60 * 1024;
-const WARN_BYTES = 90 * 1024;
 
 const SAY_VOICE = "Samantha";
 /* Mono AAC at 24 kbps, about 3 KB a second: the lowest rate at which
@@ -49,16 +55,18 @@ const SAY_BITRATE = 24000;
 const ELEVENLABS_VOICE =
   process.env.ELEVENLABS_VOICE_ID ?? "21m00Tcm4TlvDq8ikWAM";
 
+/** `--provider say`, `--provider=say`, or the default without one. */
 function providerFromArgs(): VoiceProvider {
-  const flag = process.argv.find((arg) => arg.startsWith("--provider"));
-  const value = flag?.includes("=")
-    ? flag.split("=")[1]
-    : flag
-      ? process.argv[process.argv.indexOf(flag) + 1]
-      : undefined;
-  if (value === undefined) {
+  const args = process.argv.slice(2);
+  const index = args.findIndex(
+    (arg) => arg === "--provider" || arg.startsWith("--provider="),
+  );
+  if (index === -1) {
     return process.env.ELEVENLABS_API_KEY ? "elevenlabs" : "say";
   }
+  const value = args[index].includes("=")
+    ? args[index].slice("--provider=".length)
+    : args[index + 1];
   if (value !== "say" && value !== "elevenlabs") {
     throw new Error(`Unknown provider "${value}": use say or elevenlabs`);
   }
@@ -136,22 +144,37 @@ const manifest: VoiceManifest = {
   clips: {},
 };
 
-for (const step of steps) {
-  const { bytes, extension } = await synthesise(
-    provider,
-    step.voiceScript,
-    scratch,
-  );
-  const file = `${step.slug}.${extension}`;
-  await writeFile(path.join(outDirectory, file), bytes);
-  const size = (await stat(path.join(outDirectory, file))).size;
-  manifest.clips[step.slug] = {
-    src: `/${VOICE_DIRECTORY}/${file}`,
-    script: step.voiceScript,
-    bytes: size,
-  };
-  const note = size > WARN_BYTES ? " (well past the ~60 KB target)" : "";
-  console.log(`${file}: ${(size / 1024).toFixed(1)} KB${note}`);
+try {
+  for (const step of steps) {
+    const { bytes, extension } = await synthesise(
+      provider,
+      step.voiceScript,
+      scratch,
+    );
+    const file = `${step.slug}.${extension}`;
+    await writeFile(path.join(outDirectory, file), bytes);
+    manifest.clips[step.slug] = {
+      src: `/${VOICE_DIRECTORY}/${file}`,
+      script: step.voiceScript,
+      bytes: bytes.byteLength,
+    };
+    const note =
+      bytes.byteLength > TARGET_BYTES ? " (past the ~60 KB target)" : "";
+    console.log(`${file}: ${(bytes.byteLength / 1024).toFixed(1)} KB${note}`);
+  }
+} finally {
+  await rm(scratch, { recursive: true, force: true });
+}
+
+/* A clip the manifest no longer lists — another provider's format, a step
+   that lost its scene — would ship with nothing pointing at it. */
+const kept = new Set(
+  Object.values(manifest.clips).map((clip) => path.basename(clip.src)),
+);
+for (const file of await readdir(outDirectory)) {
+  if (/\.(m4a|mp3)$/.test(file) && !kept.has(file)) {
+    await rm(path.join(outDirectory, file));
+  }
 }
 
 await writeFile(

@@ -1,4 +1,4 @@
-/* The voice on `/path` (GH-150). The contract is GH-141 — decision 9 (optional,
+/* The voice on `/path` (#150). The contract is #141 — decision 9 (optional,
    off by default, Listen or a remembered Voice switch, the step's text word
    for word, labelled synthetic), decision 13 (a refresh never starts a voice)
    and implementation decision 9 (pre-generated clips) — with storyboard §7.6
@@ -13,8 +13,10 @@ import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { VOICE_STORAGE_KEY } from "@/app/path/voice";
-import type { VoiceManifest } from "@/app/path/voice-manifest";
+import {
+  VOICE_STORAGE_KEY,
+  type VoiceManifest,
+} from "@/app/path/voice-manifest";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -28,7 +30,7 @@ const manifest = JSON.parse(
 const stepNamed = (slug: PathStepSlug) =>
   PATH_STEPS.find((step) => step.slug === slug)!;
 
-/* The prototype's steps (GH-150): home's three, steps 1, 4 and 6, and Lille. */
+/* The prototype's steps (#150): home's three, steps 1, 4 and 6, and Lille. */
 const PROTOTYPE_STEPS: readonly PathStepSlug[] = [
   "home",
   "cuneo-2022",
@@ -123,7 +125,7 @@ test.describe("/path's voice", () => {
     expect((await audioState(page)).src).toBe("");
   });
 
-  /* GH-141's testing decision for fragments: goto, Back, Forward and reload
+  /* #141's testing decision for fragments: goto, Back, Forward and reload
      request no audio. Off by default, so Back and Forward play nothing; with
      the switch on they are selections like any other. */
   test("requests no audio across fragments, Back, Forward and reload", async ({
@@ -259,5 +261,70 @@ test.describe("/path's voice", () => {
 
     await primary(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+  });
+
+  test("with the switch on, the next selection's clip replaces the playing one, and Back is a selection", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await voiceSwitch(page).click();
+    await primary(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+
+    await stepLink(page, "home").click();
+    await expect
+      .poll(async () => (await audioState(page)).src)
+      .toBe(manifest.clips.home!.src);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+
+    await page.goBack();
+    await expect
+      .poll(async () => (await audioState(page)).src)
+      .toBe(manifest.clips.lille!.src);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+  });
+
+  test("Stop cancels a clip still loading", async ({ page }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route(`**${manifest.clips.lille!.src}`, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto("/path#lille");
+    await hydrated(page);
+
+    await primary(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "loading");
+    await expect(stopButton(page)).toBeEnabled();
+    await stopButton(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
+
+    release();
+    await page.waitForTimeout(500);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
+    expect((await audioState(page)).paused).toBe(true);
+  });
+
+  test("a clip that failed to load is fetched again on the next Listen", async ({
+    page,
+  }) => {
+    let requests = 0;
+    await page.route(`**${manifest.clips.lille!.src}`, async (route) => {
+      requests += 1;
+      if (requests === 1) await route.fulfill({ status: 404 });
+      else await route.continue();
+    });
+    await page.goto("/path#lille");
+    await hydrated(page);
+
+    await primary(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "failed");
+    await expect(page.locator("[data-path-voice-message]")).not.toBeEmpty();
+
+    await primary(page).click();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
+    expect(requests).toBeGreaterThan(1);
   });
 });

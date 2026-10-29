@@ -1,8 +1,13 @@
 import type { PathStepSlug } from "@/data/path.types";
 
 /* The shape of `public/path/voice/manifest.json`, which
-   `scripts/generate-path-voice.ts` writes beside the clips it makes (GH-150).
-   No React and no Node here, so the script, the page and the specs share it. */
+   `scripts/generate-path-voice.ts` writes beside the clips it makes (GH-150),
+   and the Voice switch's storage key. No React and no Node here, so the
+   script, the page, the controls and the specs share it. */
+
+/** "on" while the Voice switch on `/path` is on; absent otherwise. */
+export const VOICE_STORAGE_KEY = "path:voice";
+export const VOICE_CHANGE_EVENT = "path:voice-change";
 
 export type VoiceProvider = "say" | "elevenlabs";
 

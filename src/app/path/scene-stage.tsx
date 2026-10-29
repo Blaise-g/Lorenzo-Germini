@@ -35,7 +35,8 @@ import { useSetLitLines } from "./overlay";
 
 type Mode = "pending" | "webgl" | "fallback";
 
-const CONTROL_CLASS_NAME =
+/** The stage's text controls, shared with the voice's beside them. */
+export const CONTROL_CLASS_NAME =
   "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline";
 
 const TURN_CLASS_NAME =

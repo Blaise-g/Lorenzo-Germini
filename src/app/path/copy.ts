@@ -14,6 +14,7 @@ export const STAGE_COPY = {
    and it is never presented as Lorenzo's (GH-141, decision 9). */
 export const VOICE_COPY = {
   listen: "Listen",
+  loading: "Loading",
   play: "Play",
   pause: "Pause",
   resume: "Resume",

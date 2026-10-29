@@ -11,9 +11,10 @@ import {
 import type { PathStepSlug } from "@/data/path.types";
 import { DEFAULT_STEP, readStorage, stepFromFragment } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
-import { cn } from "@/lib/utils";
 
 import { VOICE_COPY } from "./copy";
+import { CONTROL_CLASS_NAME } from "./scene-stage";
+import { VOICE_CHANGE_EVENT, VOICE_STORAGE_KEY } from "./voice-manifest";
 
 /* The voice on `/path` (GH-150; GH-141, decision 9; storyboard §7.6). Off by
    default: "Listen" plays the selected step's clip, and the Voice switch,
@@ -24,14 +25,22 @@ import { VOICE_COPY } from "./copy";
    audio element has no source until a clip is first played, so a visit that
    never listens fetches no audio. */
 
-/** "on" while the Voice switch is on; absent otherwise. */
-export const VOICE_STORAGE_KEY = "path:voice";
-const VOICE_CHANGE_EVENT = "path:voice-change";
+type Status = "idle" | "loading" | "playing" | "paused" | "blocked" | "failed";
 
-type Status = "idle" | "playing" | "paused" | "blocked" | "failed";
+/* What the primary control says, and the line under the label, per status. */
+const PRIMARY_LABEL: Record<Status, string> = {
+  idle: VOICE_COPY.listen,
+  loading: VOICE_COPY.loading,
+  playing: VOICE_COPY.pause,
+  paused: VOICE_COPY.resume,
+  blocked: VOICE_COPY.play,
+  failed: VOICE_COPY.listen,
+};
 
-const CONTROL_CLASS_NAME =
-  "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline";
+const MESSAGE: Partial<Record<Status, string>> = {
+  blocked: VOICE_COPY.blocked,
+  failed: VOICE_COPY.failed,
+};
 
 function subscribeToVoice(onChange: () => void) {
   window.addEventListener("storage", onChange);
@@ -61,7 +70,8 @@ function useVoiceSwitch(): [boolean, (on: boolean) => void] {
 }
 
 /** The step a `hashchange` selected, as `useSelectedStep` reads it: none for
- *  a fragment that names no step, which keeps the last selection. */
+ *  a fragment that names no step, which keeps the last selection. Mirrors
+ *  `fragmentStep` in `use-path-state.ts`; a change there belongs here too. */
 function selectedByFragment(): PathStepSlug | undefined {
   const { hash } = window.location;
   return hash === "" || hash === "#" ? DEFAULT_STEP : stepFromFragment(hash);
@@ -89,11 +99,14 @@ export function VoiceControls({
       const audio = audioRef.current;
       const src = clips[slug];
       if (!audio || !src) return;
-      if (loadedRef.current !== slug) {
+      /* A clip that failed is fetched again rather than replayed as failed. */
+      if (loadedRef.current !== slug || audio.error) {
         loadedRef.current = slug;
         setLoaded(slug);
         audio.src = src;
       }
+      /* Until it plays, it is loading, and Stop can cancel it. */
+      setStatus("loading");
       audio.play().then(
         () => setStatus("playing"),
         (error: unknown) => {
@@ -137,14 +150,7 @@ export function VoiceControls({
      stopped when it was deselected, is not this one's. */
   const shown: Status = loaded === selected ? status : "idle";
   const playing = shown === "playing";
-  const message =
-    shown === "blocked"
-      ? VOICE_COPY.blocked
-      : shown === "failed"
-        ? VOICE_COPY.failed
-        : hasClip
-          ? ""
-          : VOICE_COPY.noClip;
+  const message = MESSAGE[shown] ?? (hasClip ? "" : VOICE_COPY.noClip);
 
   return (
     <div data-path-voice data-voice-state={shown} className="print:hidden">
@@ -167,25 +173,21 @@ export function VoiceControls({
         <button
           type="button"
           data-path-voice-primary
-          disabled={!hasClip}
+          disabled={!hasClip || shown === "loading"}
           className={CONTROL_CLASS_NAME}
           onClick={() => {
             if (playing) audioRef.current?.pause();
             else play(selected);
           }}
         >
-          {playing
-            ? VOICE_COPY.pause
-            : shown === "paused"
-              ? VOICE_COPY.resume
-              : shown === "blocked"
-                ? VOICE_COPY.play
-                : VOICE_COPY.listen}
+          {PRIMARY_LABEL[shown]}
         </button>
         <button
           type="button"
           data-path-voice-stop
-          disabled={shown !== "playing" && shown !== "paused"}
+          disabled={
+            shown !== "loading" && shown !== "playing" && shown !== "paused"
+          }
           className={CONTROL_CLASS_NAME}
           onClick={stop}
         >
@@ -203,12 +205,7 @@ export function VoiceControls({
             aria-hidden
             className="border-border group-aria-checked:border-accent group-aria-checked:bg-accent relative inline-flex h-4 w-7 items-center rounded-full border transition-colors"
           >
-            <span
-              className={cn(
-                "bg-faint group-aria-checked:bg-accent-foreground absolute left-0.5 size-2.5 rounded-full transition-transform",
-                "group-aria-checked:translate-x-3",
-              )}
-            />
+            <span className="bg-faint group-aria-checked:bg-accent-foreground absolute left-0.5 size-2.5 rounded-full transition-transform group-aria-checked:translate-x-3" />
           </span>
           {VOICE_COPY.voiceSwitch}
         </button>
