@@ -13,7 +13,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
 
-import { buildPlan, stillsFor } from "@/components/path/scene/build-plan";
+import { stillsFor } from "@/components/path/scene/build-plan";
 import { GRAIN_FILE } from "@/components/path/scene/assets";
 import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
 import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
@@ -29,6 +29,12 @@ import {
 import { MARKER } from "@/components/path/scene/world";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
+
+import {
+  landmarksSettled,
+  pauseTime,
+  propsThrough,
+} from "./support/path-stage";
 
 /* The board draws on this machine's GPU (Metal through ANGLE), not the
    headless default, SwiftShader: five workers sharing one software
@@ -51,20 +57,9 @@ const publicFile = (url: string) => path.join(process.cwd(), "public", url);
 const stage = (page: Page) => page.locator("[data-path-stage]");
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
 
-/** Every prop on the board up to and including `slug`'s, in the data's
- *  order: what stands once the pawn has reached its tile. */
-function propsThrough(slug: PathStepSlug) {
-  const plan = buildPlan(PATH_STEPS.find((step) => step.slug === slug)!);
-  return [...plan.standing, ...plan.building.map((prop) => prop.id)].join(" ");
-}
-
 /* §9 and §11's budgets. */
 const STILL_BYTES = 150 * 1024;
 const SCENE_BYTES = 1.5 * 1024 * 1024;
-/** What a cold `/path` costs before any world file: the HTML, fonts, CSS,
- *  Next's chunks and three.js, 794.8 KB measured on a production build
- *  (`docs/path-measurements.md`, v3-harden), rounded up. */
-const PAGE_BYTES = 800 * 1024;
 /** The landmarks shipped: the ids the index lists. */
 async function listedIds(): Promise<string[]> {
   return Object.keys(
@@ -85,18 +80,6 @@ async function firstPaintFiles(slug: PathStepSlug): Promise<string[]> {
       .filter((asset) => listed.includes(asset.id))
       .map((asset) => asset.file),
   ];
-}
-
-/** Waits for every landmark the index lists to have arrived, or failed:
- *  until then one may land and take its stand-in's place. */
-async function landmarksSettled(page: Page) {
-  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
-    "data-path-landmarks",
-    "settled",
-    /* A state, waited on for as long as the test may run: on a starved
-       machine the files take what they take. */
-    { timeout: 0 },
-  );
 }
 
 /** The toy props and markers shipped: the ids the prop index lists. */
@@ -200,29 +183,83 @@ test.describe("the budgets", () => {
       }
     }
   });
+});
 
-  /* A landing's first paint loads the grain, the index, its own step's
-     landmarks and one still, on top of the page itself; the rest of the
-     board's landmarks follow it. The costliest landing is the budget's. */
-  test("a landing's first-paint files and a still fit 1.5 MB with the page", async () => {
-    let world = 0;
+/* A landing's first paint is everything the page has fetched when the
+   board starts to build: the HTML, fonts, CSS, Next's chunks and three.js,
+   then the grain, the index, its own step's landmarks and its still. The
+   rest of the board follows it. Measured on the wire, at the costliest
+   landing, so the page's own growth counts as much as a model's. */
+test.describe("the first paint", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("the costliest landing fetches at most 1.5 MB before it builds", async ({
+    page,
+  }) => {
+    let costliest: PathStepSlug = PATH_STEPS[0].slug;
+    let most = 0;
     for (const step of PATH_STEPS) {
       let files = 0;
       for (const url of await firstPaintFiles(step.slug)) {
         files += (await stat(publicFile(url))).size;
       }
-      world = Math.max(world, files);
+      if (files > most) [costliest, most] = [step.slug, files];
     }
-    const stills = PATH_STEPS.flatMap((step) =>
-      Object.values(stillsFor(step) ?? {}),
+    /* Summed in the page the moment the build starts: a poll from here
+       would count what arrived after it. */
+    await page.addInitScript(() => {
+      const seen = {
+        bytes: null as number | null,
+        files: [] as string[],
+      };
+      (window as unknown as { __firstPaint: typeof seen }).__firstPaint = seen;
+      new MutationObserver(() => {
+        const element = document.querySelector("[data-path-stage]");
+        if (
+          seen.bytes !== null ||
+          element?.getAttribute("data-build-state") !== "building"
+        ) {
+          return;
+        }
+        const entries = [
+          ...performance.getEntriesByType("navigation"),
+          ...performance.getEntriesByType("resource"),
+        ] as PerformanceResourceTiming[];
+        seen.files = entries.map((entry) => entry.name);
+        seen.bytes = entries.reduce(
+          (sum, entry) => sum + entry.transferSize,
+          0,
+        );
+      }).observe(document, { subtree: true, attributes: true });
+    });
+    await page.goto(`/path#${costliest}`);
+    await expect(stage(page)).toHaveAttribute(
+      "data-build-state",
+      "building",
+      /* The files take what they take; the build starting is the state. */
+      { timeout: 0 },
     );
-    let still = 0;
-    for (const url of stills) {
-      still = Math.max(still, (await stat(publicFile(url))).size);
-    }
-    /* Files on disk, stricter than the wire (Lille's two models are
-       644.7 KB here, 608.0 KB sent): with Lille's, about 5 KB to spare. */
-    expect(PAGE_BYTES + world + still).toBeLessThanOrEqual(SCENE_BYTES);
+    const { bytes, files } = await page.evaluate(
+      () =>
+        (
+          window as unknown as {
+            __firstPaint: { bytes: number; files: string[] };
+          }
+        ).__firstPaint,
+    );
+    test.info().annotations.push({
+      type: "first paint",
+      description: `#${costliest}: ${(bytes / 1024).toFixed(1)} KB`,
+    });
+    /* A dev server ships Next's chunks and three.js unminified, with its
+       hot-reload client: several times the page a visitor gets. The budget
+       is the production page's, so it is held only against `next start`
+       (PLAYWRIGHT_PORT at a production server; docs/path-measurements.md). */
+    test.skip(
+      files.some((file) => /hmr-client/.test(file)),
+      "the dev server's bundles are not the shipped page; run against next start",
+    );
+    expect(bytes).toBeLessThanOrEqual(SCENE_BYTES);
   });
 });
 
@@ -230,7 +267,7 @@ test.describe("on /path", () => {
   test.describe("the build", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    test("Lille asks for its own files first, then builds in about 2–3 s and ends still", async ({
+    test("Lille asks for its own files first, then builds and ends still", async ({
       page,
     }) => {
       const files: string[] = [];
@@ -281,13 +318,9 @@ test.describe("on /path", () => {
         ),
       ].map(href);
       expect(firstPaint.filter((file) => toys.includes(file))).toEqual([]);
-      const started = Date.now();
       await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
-        timeout: 5000,
+        timeout: 15_000,
       });
-      const took = Date.now() - started;
-      expect(took).toBeGreaterThan(1500);
-      expect(took).toBeLessThan(4000);
       await expect(stage(page)).toHaveAttribute(
         "data-scene-props",
         propsThrough("lille"),
@@ -312,6 +345,31 @@ test.describe("on /path", () => {
          stage asked to show Lille, and no landmark the index does not list. */
       await landmarksSettled(page);
       expect(files.sort()).toEqual((await worldFiles()).map(href).sort());
+    });
+
+    /* On the page's own clock, paused: a loaded machine slows the frames,
+       not the build's length. The files arrive in real time, so the clock
+       runs only once the build has started. */
+    test("Lille builds in about 2–3 s", async ({ page }) => {
+      await pauseTime(page);
+      await page.goto("/path#lille");
+      await expect(stage(page)).toHaveAttribute(
+        "data-build-state",
+        "building",
+        { timeout: 0 },
+      );
+      await page.clock.runFor(1500);
+      await expect(stage(page)).toHaveAttribute("data-build-state", "building");
+      let took = 1500;
+      while (
+        (await stage(page).getAttribute("data-build-state")) !== "built" &&
+        took < 4000
+      ) {
+        await page.clock.runFor(100);
+        took += 100;
+      }
+      await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+      expect(took).toBeLessThan(4000);
     });
 
     test("Skip ends it at once", async ({ page }) => {

@@ -24,6 +24,8 @@ import { PATH_STEPS } from "@/data/path";
 import { PATH_NARRATION } from "@/data/path-narration";
 import type { PathStepSlug } from "@/data/path.types";
 
+import { hydrated } from "./support/path-stage";
+
 const manifest = JSON.parse(
   readFileSync(
     path.join(process.cwd(), "public/path/voice/manifest.json"),
@@ -66,17 +68,30 @@ function audioRequests(page: Page): string[] {
   return urls;
 }
 
-/** The piece mounts on hydration, so waiting for it waits for the handlers. */
-async function hydrated(page: Page) {
-  await expect(page.locator("[data-path-piece]")).toHaveCount(1);
-}
-
 /** The narration is playing its step: settled, dwelling, the tour running. */
 async function narrating(page: Page) {
   await expect(page.locator("[data-path-narration]")).toHaveAttribute(
     "data-path-cue-running",
     "",
   );
+}
+
+/** Waits for the tour's clock to reach the step's cue `index`, so a voice
+ *  joining now starts at least that far in. A state, not a sleep: on a
+ *  loaded machine the clock takes what it takes. */
+async function reachedCue(page: Page, slug: PathStepSlug, index: number) {
+  await expect
+    .poll(
+      async () =>
+        Number(
+          await page
+            .locator("[data-path-narration]")
+            .getAttribute("data-path-cue"),
+        ),
+      { timeout: 30_000 },
+    )
+    .toBeGreaterThanOrEqual(index);
+  return narrationFor(slug).cues[index].startMs / 1000;
 }
 
 async function audioState(page: Page) {
@@ -203,7 +218,7 @@ test.describe("with the tour playing", () => {
     await page.goto("/path#lille");
     await hydrated(page);
     await narrating(page);
-    await page.waitForTimeout(1500);
+    const reached = await reachedCue(page, "lille", 1);
 
     /* Pause, then Play: the press, and the tour carries on from where it
        stopped, the voice with it. */
@@ -215,7 +230,7 @@ test.describe("with the tour playing", () => {
     expect(requested).toEqual([manifest.clips.lille!.src]);
     const joined = await audioState(page);
     expect(joined.src).toBe(manifest.clips.lille!.src);
-    expect(joined.currentTime).toBeGreaterThan(1);
+    expect(joined.currentTime).toBeGreaterThanOrEqual(reached);
     /* Heard now, so the captions step aside unless asked for. */
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(caption(page)).toBeEmpty();
@@ -291,11 +306,13 @@ test.describe("with the tour playing", () => {
     await page.goto("/path#lille");
     await hydrated(page);
     await narrating(page);
-    await page.waitForTimeout(2000);
+    const reached = await reachedCue(page, "lille", 1);
 
     await voiceSwitch(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
-    expect((await audioState(page)).currentTime).toBeGreaterThan(1.5);
+    expect((await audioState(page)).currentTime).toBeGreaterThanOrEqual(
+      reached,
+    );
 
     await voiceSwitch(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "off");
