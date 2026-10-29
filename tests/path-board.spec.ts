@@ -1,11 +1,12 @@
 /* The pawn on the `/path` board (v2's board ticket): one arc to the next
-   tile, a far jump inside about 1.2 s and the tile's build after it, tiles
+   tile, a far jump inside the skip flight and the tile's build after it, tiles
    already built staying built, Skip during a hop, reduced motion cutting,
    the tour's settled cue, and the frame sample's verdict. The motion curves
    themselves are `path-scene-contract.spec.ts`'s. */
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { transitTimeline } from "@/components/path/scene/camera-rig";
 import { FALLBACK_REASON_LINES } from "@/components/path/scene/fallback";
 import { loopSteps } from "@/components/path/scene/motion";
 import { PATH_STEPS } from "@/data/path";
@@ -98,10 +99,11 @@ test.describe("the pawn's move", () => {
     expect(appeared).toEqual([...appeared].sort((a, b) => a - b));
   });
 
-  /* Home to step 4 is three tiles forward: the pawn lands inside about
-     1.2 s, so step 4's first piece starts to rise by then, and home's tile,
-     already built, stays standing throughout. */
-  test("a far jump lands inside 1.2 s, and built tiles stay built", async ({
+  /* Home to step 4 is three tiles forward, a pick: the skip flight's one
+     long hop lands inside its 1.4 s (a 0.3 s hold and a 1.1 s flight, the
+     benchmark's §4(a)), so step 4's first piece starts to rise by then, and
+     home's tile, already built, stays standing throughout. */
+  test("a far jump lands inside the skip flight, and built tiles stay built", async ({
     page,
   }) => {
     expect(
@@ -122,9 +124,11 @@ test.describe("the pawn's move", () => {
     const landed = log.find((entry) =>
       entry.props.split(" ").includes(propsOf("cuneo-2022")[0]),
     )!;
-    /* The ticket's "under about 1.2 s", with a frame or two of slack. */
+    /* Inside the flight, with a frame or two of slack. */
     expect(landed.at - start).toBeGreaterThanOrEqual(400);
-    expect(landed.at - start).toBeLessThan(1200 + 100);
+    expect(landed.at - start).toBeLessThan(
+      transitTimeline("skip", 3).endMs + 100,
+    );
     for (const entry of log) {
       for (const prop of propsOf("home")) {
         expect(entry.props.split(" "), `${prop} at ${entry.at}`).toContain(

@@ -343,7 +343,7 @@ export function SceneStage({
         data-stage-settled={settled ? "" : undefined}
         data-camera-shot={mode === "webgl" ? snapshot.shot : undefined}
         data-fallback-reason={reason ?? sceneStills}
-        className="relative h-[clamp(20rem,56svh,34rem)] w-full overflow-hidden lg:h-full"
+        className="relative h-[clamp(20rem,48svh,34rem)] w-full overflow-hidden lg:h-full"
       >
         {children}
         {/* The scene is an illustration of the text beside it, which carries

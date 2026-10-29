@@ -8,6 +8,52 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The camera (v3)
+
+v3's camera rig (ticket v3-camera, `docs/path-camera.md`) flies the tour in close-ups, and the
+stage is taller on a phone: `clamp(20rem, 48svh, 34rem)`, against `clamp(16rem, 80vw, 26rem)`.
+
+Measured 2026-10-29 on a production build of the v3-camera tree (`next build`, then
+`next start -p 3285`), as for v3's board below: muted Chromium on the machine's GPU (ANGLE
+Metal, Apple M5), the cache disabled, the same units.
+
+| Budget                   | Budget | Measured                                                          | Within |
+| ------------------------ | ------ | ----------------------------------------------------------------- | ------ |
+| Transfer per scene, cold | 1.5 MB | 687.9 KB                                                          | Yes    |
+| GPU memory, estimated    | 64 MB  | 32.9–57.9 MB (31.4–55.2 MiB); 53.3 MB at 1440×900 ×2              | Yes    |
+| Each still               | 150 KB | Largest 69.0 KB (`lille-light.webp`)                              | Yes    |
+| Frame time, with motion  | 33 ms  | Median 8.3 ms, 95th percentile 9.7–10.0 ms, at every size sampled | Yes    |
+
+**Transfer.** `#next`, cold at 1440×900 ×2, the larger of `#home` and `#next` by 1 KB. The
+JavaScript is 351.8 KB, 3.5 KB more than v3's board below. The step's still, `grain.webp` and
+`landmarks.json` come to 50.9 KB, against 48.0 KB there.
+
+**GPU memory**, counted as below, once Lille has built under reduced motion:
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
+| 375×812, ×3                    | 375×390        | 1125×1170          | 10.4     | 6.0     | 0.8           | 15.8           | 32.9 (31.4)     |
+| 1280×720, ×2                   | 1200×375       | 2400×750           | 10.4     | 6.0     | 0.8           | 21.6           | 38.7 (36.9)     |
+| 1440×900, ×1                   | 1360×555       | 2720×1110          | 10.4     | 6.0     | 0.8           | 36.2           | 53.3 (50.9)     |
+| 1440×900, ×2                   | 1360×555       | 2720×1110          | 10.4     | 6.0     | 0.8           | 36.2           | 53.3 (50.9)     |
+| 1920×1080, ×1                  | 1840×735       | 2917×1165          | 10.4     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
+| 2560×1440, ×2                  | 2480×1095      | 2774×1225          | 10.4     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
+
+The pawn's contact shadow adds a 64² alpha texture; the textures round to 10.4 MB, against
+10.3. The phone's taller stage costs 3.6 MB of drawing buffer, and the largest stages are
+unchanged: the headroom for a model's textures is still about 6 MB there.
+
+**Frame time.** From `requestAnimationFrame` gaps at 375×812 ×3, 1440×900 ×2 and 2560×1440 ×2,
+over 2.5 s of Lille's close-up drifting while the tour plays, 2.5 s of a Replay of its build,
+and 1.5 s of the skip flight to Turin: a median of 8.3 ms (the display's 120 Hz) in every
+sample, and a 95th percentile of 9.7–10.0 ms. **Rendering is no longer idle while the tour
+plays**: the close-up drifts and breathes through the dwell, so the board draws every frame
+until the tour is paused or ends. Paused, after the end pull-back, and under reduced motion it
+draws only on demand, as before.
+
+**Stills.** All 14 were rendered again by `generate:path-stills` at each step's close-up, at
+1440×900 ×1.5: 2040×833, 35.1–69.0 KB each.
+
 ## The solid board (v3)
 
 v3's board (ticket v3-world) replaced the printed cards with a board modelled in code: thick
