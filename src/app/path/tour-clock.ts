@@ -90,3 +90,40 @@ export function elapseClock(clock: StepClock, ms: number): StepClock {
   }
   return { phase: "done", remaining: 0, dwell: clock.dwell };
 }
+
+/** The tour's timing: the step it is timing and that step's clock, one
+ *  piece of state, so a clock is never paired with another step's. */
+export type Timing = { slug: PathStepSlug; clock: StepClock };
+
+export type TimingAction =
+  /** The step changed: a new clock, whatever selected it. */
+  | { type: "start"; slug: PathStepSlug; dwell: number }
+  /** The stage reported `slug` settled. */
+  | { type: "settle"; slug: PathStepSlug }
+  /** `ms` of running time went by on `from`, the clock the timer was set
+   *  for; a clock since replaced by a new step or a settle is left alone. */
+  | { type: "elapse"; from: StepClock; ms: number };
+
+/** Every change to the timing, as a reducer: React may replay its actions
+ *  over an earlier state — a step that a `replaceStep` from an effect
+ *  renders at once, ahead of a timer's update still queued — and each lands
+ *  the same way whatever order it is replayed in. Kept as separate states,
+ *  a replay once paired the new step with the last one's finished clock,
+ *  and the tour ran on to the end in one go. */
+export function timingReducer(state: Timing, action: TimingAction): Timing {
+  switch (action.type) {
+    case "start":
+      return state.slug === action.slug
+        ? state
+        : { slug: action.slug, clock: startClock(action.dwell) };
+    case "settle":
+      if (state.slug !== action.slug) return state;
+      return state.clock.phase === "waiting"
+        ? { ...state, clock: settleClock(state.clock) }
+        : state;
+    case "elapse":
+      return state.clock === action.from
+        ? { ...state, clock: elapseClock(state.clock, action.ms) }
+        : state;
+  }
+}

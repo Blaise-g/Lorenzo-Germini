@@ -7,6 +7,7 @@ import {
   useEffect,
   useLayoutEffect,
   useMemo,
+  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
@@ -23,14 +24,14 @@ import { TOUR_COPY } from "./copy";
 import { useStageStatus } from "./stage-status";
 import {
   dwellMs,
-  elapseClock,
   FIRST_STEP,
   LAST_STEP,
-  settleClock,
   startClock,
   stepAfter,
   stepBefore,
+  timingReducer,
   type StepClock,
+  type Timing,
 } from "./tour-clock";
 
 /* The tour on `/path`: the board plays itself, step by step, and the visitor
@@ -131,30 +132,30 @@ export function TourProvider({ children }: { children: ReactNode }) {
   });
   const [narrating, setNarrating] = useState<PathStepSlug | null>(null);
 
-  /* A new step starts a new clock, whatever selected it, and remembers the
-     stage's report as it stood then. */
-  const [clockStart, setClockStart] = useState({ slug: selected, stage });
-  const [clock, setClock] = useState<StepClock>(() =>
-    startClock(dwellFor(selected)),
+  /* Each step gets a new clock, whatever selected it (`timingReducer`). Until
+     the new step's clock has started, this render shows a fresh one and
+     nothing acts on it. */
+  const [timing, dispatch] = useReducer(
+    timingReducer,
+    selected,
+    (slug): Timing => ({ slug, clock: startClock(dwellFor(slug)) }),
   );
-  if (clockStart.slug !== selected) {
-    setClockStart({ slug: selected, stage });
-    setClock(startClock(dwellFor(selected)));
-  }
+  const timed = timing.slug === selected;
+  const clock = timed ? timing.clock : startClock(dwellFor(selected));
+  useLayoutEffect(() => {
+    dispatch({ type: "start", slug: selected, dwell: dwellFor(selected) });
+  }, [selected]);
+
   /* The stage settling this step starts its dwell; once dwelling, a later or
-     repeated report changes nothing. A report for another step is stale, and
-     so is one already standing when the clock started: back on a step that
-     settled before, the stage has to report it again, after it has rebuilt
-     it. Each report is a new object, so identity tells them apart. */
-  if (
-    clockStart.slug === selected &&
-    clock.phase === "waiting" &&
-    stage !== clockStart.stage &&
-    stage.slug === selected &&
-    stage.settled
-  ) {
-    setClock(settleClock(clock));
-  }
+     repeated report changes nothing. The stage reports on every change of
+     step, from what it shows then, so a report naming this step is this
+     visit's: back on a step built before, it reports it unsettled until it
+     has built it again. */
+  useEffect(() => {
+    if (stage.slug === selected && stage.settled) {
+      dispatch({ type: "settle", slug: selected });
+    }
+  }, [stage, selected, timing.slug]);
 
   const playing =
     (chosen ?? (motionAllowed ? "playing" : "paused")) === "playing";
@@ -187,30 +188,26 @@ export function TourProvider({ children }: { children: ReactNode }) {
      was. The identity checks leave alone a clock that a new step or a settle
      has already replaced. */
   useEffect(() => {
-    if (!running || clock.phase === "done") return;
+    if (!running || !timed || clock.phase === "done") return;
     const started = performance.now();
     const timer = window.setTimeout(() => {
-      setClock((current) =>
-        current === clock ? elapseClock(current, current.remaining) : current,
-      );
+      dispatch({ type: "elapse", from: clock, ms: clock.remaining });
     }, clock.remaining);
     return () => {
       window.clearTimeout(timer);
       const elapsed = performance.now() - started;
-      setClock((current) =>
-        current === clock ? elapseClock(current, elapsed) : current,
-      );
+      dispatch({ type: "elapse", from: clock, ms: elapsed });
     };
-  }, [running, clock]);
+  }, [running, timed, clock]);
 
   /* A finished step moves on, once the voice has finished reading it, and
      not while the visitor is reading the panel. */
   useEffect(() => {
-    if (!running || clock.phase !== "done") return;
+    if (!running || !timed || clock.phase !== "done") return;
     if (narrating === selected) return;
     const after = stepAfter(selected);
     if (after) replaceStep(after);
-  }, [clock.phase, running, narrating, selected]);
+  }, [clock.phase, running, timed, narrating, selected]);
 
   /* A hidden tab pauses the tour, and it stays paused when the tab returns:
      the visitor comes back to the step they left, not three steps on. */

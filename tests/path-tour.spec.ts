@@ -21,10 +21,27 @@ import {
   startClock,
   stepAfter,
   stepBefore,
+  timingReducer,
+  type Timing,
+  type TimingAction,
 } from "@/app/path/tour-clock";
 import { VOICE_STORAGE_KEY } from "@/app/path/voice-manifest";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
+
+/* The board draws on this machine's GPU, as `path-scene.spec.ts` explains;
+   the tests that only need the tour's timing show the stills instead
+   (`stillsStage`), where the stage settles every step at once. */
+test.use({
+  launchOptions: {
+    args: [
+      "--mute-audio",
+      "--use-angle=metal",
+      "--enable-gpu",
+      "--ignore-gpu-blocklist",
+    ],
+  },
+});
 
 const stepNamed = (slug: PathStepSlug) =>
   PATH_STEPS.find((step) => step.slug === slug)!;
@@ -32,25 +49,41 @@ const stepNamed = (slug: PathStepSlug) =>
 const tourPhase = (page: Page) =>
   page.locator("[data-path-tour]").getAttribute("data-path-tour-phase");
 
-/** Plays a step through when the stage never reports it settled, as on this
- *  branch: the whole wait, then the dwell. In two runs of the clock, because
- *  the dwell's timer is set when React commits the end of the wait, which
- *  fake time cannot do by itself; `short` stops that much before the end. */
+/** Plays a step through on a stage that has settled it: straight to the
+ *  dwell, then the dwell. `short` stops that much before its end. */
 async function playThrough(page: Page, slug: PathStepSlug, short = 0) {
-  await expect.poll(() => tourPhase(page)).toBe("waiting");
-  await page.clock.runFor(SETTLE_MAX_WAIT_MS);
   await expect.poll(() => tourPhase(page)).toBe("dwelling");
   await page.clock.runFor(dwellMs(stepNamed(slug)) - short);
 }
 
-/** Runs the clock past a whole step, waiting between the wait and the dwell
- *  as `playThrough` does, but asserting nothing: for a tour that should not
- *  move. */
+/** Plays a step through on a stage that never settles it: the whole wait,
+ *  then the dwell. In two runs of the clock, because the dwell's timer is
+ *  set when React commits the end of the wait, which fake time cannot do by
+ *  itself. */
+async function waitThenPlayThrough(page: Page, slug: PathStepSlug) {
+  await expect.poll(() => tourPhase(page)).toBe("waiting");
+  await page.clock.runFor(SETTLE_MAX_WAIT_MS);
+  await expect.poll(() => tourPhase(page)).toBe("dwelling");
+  await page.clock.runFor(dwellMs(stepNamed(slug)));
+}
+
+/** Runs the clock past a whole step, wait and dwell, pausing between them as
+ *  `waitThenPlayThrough` does, but asserting nothing: for a tour that should
+ *  not move. */
 async function runPastStep(page: Page, slug: PathStepSlug) {
   await page.clock.runFor(SETTLE_MAX_WAIT_MS + 100);
   await page.waitForTimeout(200);
   await page.clock.runFor(dwellMs(stepNamed(slug)) + 100);
   await page.waitForTimeout(200);
+}
+
+/** The stage shows its stills — WebGL refused — so it reports every step
+ *  settled as soon as it shows it, and the tour's timing is the dwell's
+ *  alone. */
+async function stillsStage(page: Page) {
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = () => null;
+  });
 }
 
 const tour = (page: Page) => page.locator("[data-path-tour]");
@@ -157,6 +190,40 @@ test.describe("the clock", () => {
     expect(elapseClock(done, 1000)).toBe(done);
   });
 
+  /* React can replay queued actions over an earlier state: a step that a
+     `replaceStep` from an effect renders at once, ahead of the last step's
+     timer update. Whatever the order, the new step gets a new clock, never
+     the last step's finished one. */
+  test("the timing pairs every step with its own clock, however its actions replay", () => {
+    const dwelling = settleClock(startClock(5000, 6000));
+    const home: Timing = { slug: "home", clock: dwelling };
+    const finished = timingReducer(home, {
+      type: "elapse",
+      from: dwelling,
+      ms: 5000,
+    });
+    expect(finished.clock.phase).toBe("done");
+
+    const late: TimingAction = { type: "elapse", from: dwelling, ms: 5000 };
+    const start: TimingAction = { type: "start", slug: "turin", dwell: 5935 };
+    const settle: TimingAction = { type: "settle", slug: "turin" };
+    for (const order of [
+      [late, start, settle],
+      [start, late, settle],
+      [start, settle, late],
+    ]) {
+      const timing = order.reduce(timingReducer, finished);
+      expect(timing).toEqual({
+        slug: "turin",
+        clock: { phase: "dwelling", remaining: 5935, dwell: 5935 },
+      });
+    }
+    /* A settle for another step, or a second start, changes nothing. */
+    const turin = timingReducer(finished, start);
+    expect(timingReducer(turin, { type: "settle", slug: "lille" })).toBe(turin);
+    expect(timingReducer(turin, start)).toBe(turin);
+  });
+
   test("the steps run in the data's order, home to ?, without wrapping", () => {
     const order: PathStepSlug[] = [];
     for (let slug: PathStepSlug | null = "home"; slug; slug = stepAfter(slug)) {
@@ -173,6 +240,7 @@ test.describe("with motion allowed", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
   test.beforeEach(async ({ page }) => {
+    await stillsStage(page);
     await pauseTime(page);
   });
 
@@ -424,9 +492,7 @@ test.describe("with motion allowed", () => {
     await hydrated(page);
     const progress = page.locator("[data-path-tour-progress]");
 
-    /* Waiting on the stage: nothing yet. */
-    await expect(progress).toHaveCount(0);
-    await page.clock.runFor(SETTLE_MAX_WAIT_MS);
+    /* The stills stage settles home at once, so the dwell runs. */
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
     await expect(
       page.locator(
@@ -531,7 +597,7 @@ test.describe("under reduced motion", () => {
     /* Asked, it plays on from the shown step, with no progress line. */
     await playTab(page).click();
     await expect(tour(page)).toHaveAttribute("data-path-tour", "playing");
-    await page.clock.runFor(SETTLE_MAX_WAIT_MS);
+    /* Reduced motion's board is built at once: the stage has settled. */
     await expect.poll(() => tourPhase(page)).toBe("dwelling");
     await expect(page.locator("[data-path-tour-progress]")).toHaveCount(0);
     await page.clock.runFor(dwellMs(stepNamed("now")));
@@ -618,4 +684,63 @@ test("the step list marks the pawn's step, a seen step and an unseen one", async
   await expect(mark("home")).toHaveAttribute("data-path-mark", "unseen");
   await expect(stepLink(page, "lille")).toContainText("seen");
   await expect(stepLink(page, "home")).not.toContainText("seen");
+});
+
+/* The seam with the stage (`stage-status.tsx`), on the real board. */
+test.describe("with the board drawing", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test.beforeEach(async ({ page }) => {
+    await pauseTime(page);
+  });
+
+  test("the dwell starts when the tile has built, not when the wait runs out", async ({
+    page,
+  }) => {
+    await page.goto("/path#turin");
+    await hydrated(page);
+    const stage = page.locator("[data-path-stage]");
+    await expect(stage).toHaveAttribute("data-scene-mode", "webgl");
+    await expect.poll(() => tourPhase(page)).toBe("waiting");
+
+    /* The board loads its cards in real time; fake time then runs its
+       frames, a little at a time, until the hop and the build are done. */
+    let elapsed = 0;
+    while (elapsed < SETTLE_MAX_WAIT_MS) {
+      if ((await stage.getAttribute("data-stage-settled")) !== null) break;
+      await page.clock.runFor(100);
+      elapsed += 100;
+    }
+    expect(elapsed).toBeLessThan(SETTLE_MAX_WAIT_MS);
+    await expect(stage).toHaveAttribute("data-build-state", "built");
+    await expect.poll(() => tourPhase(page)).toBe("dwelling");
+
+    await page.clock.runFor(dwellMs(stepNamed("turin")));
+    await expectShown(page, "switzerland");
+  });
+
+  test("a stage that never settles holds each step for the whole wait, then dwells", async ({
+    page,
+  }) => {
+    /* Cards that never arrive: the tile stays loading, and never settles. */
+    await page.route("**/path/cards/**", () => {});
+    await page.goto("/path#turin");
+    await hydrated(page);
+    const stage = page.locator("[data-path-stage]");
+    await expect(stage).toHaveAttribute("data-build-state", "loading");
+
+    await page.clock.runFor(SETTLE_MAX_WAIT_MS - 500);
+    expect(await tourPhase(page)).toBe("waiting");
+    await expect(page.locator("[data-path-tour-progress]")).toHaveCount(0);
+    await expect(stage).not.toHaveAttribute("data-stage-settled", /.*/);
+
+    await page.clock.runFor(500);
+    await expect.poll(() => tourPhase(page)).toBe("dwelling");
+    await expect(page.locator("[data-path-tour-progress]")).toHaveCount(1);
+    await page.clock.runFor(dwellMs(stepNamed("turin")));
+    await expectShown(page, "switzerland");
+
+    await waitThenPlayThrough(page, "switzerland");
+    await expectShown(page, "cuneo-2022");
+  });
 });
