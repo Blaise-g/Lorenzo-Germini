@@ -12,47 +12,61 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 
 v3's camera rig (ticket v3-camera, `docs/path-camera.md`) flies the tour in close-ups, and the
 stage is taller on a phone: `clamp(20rem, 48svh, 34rem)`, against `clamp(16rem, 80vw, 26rem)`.
+The rig also fits the lit board's sun shadow and tilt-shift to each shot.
 
-Measured 2026-10-29 on a production build of the v3-camera tree (`next build`, then
-`next start -p 3285`), as for v3's board below: muted Chromium on the machine's GPU (ANGLE
-Metal, Apple M5), the cache disabled, the same units.
+Measured 2026-10-29 on a production build of the v3-camera tree at `b89df3b`, with v3-light and
+the generated landmarks merged in (`next build`, then `next start -p 3285`). As for the lit
+board below: muted Chromium on the machine's GPU (ANGLE Metal, Apple M5), the cache disabled,
+the same units, and the canvas counted at 8 bytes a pixel.
 
-| Budget                   | Budget | Measured                                                          | Within |
-| ------------------------ | ------ | ----------------------------------------------------------------- | ------ |
-| Transfer per scene, cold | 1.5 MB | 687.9 KB                                                          | Yes    |
-| GPU memory, estimated    | 64 MB  | 32.9–57.9 MB (31.4–55.2 MiB); 53.3 MB at 1440×900 ×2              | Yes    |
-| Each still               | 150 KB | Largest 69.0 KB (`lille-light.webp`)                              | Yes    |
-| Frame time, with motion  | 33 ms  | Median 8.3 ms, 95th percentile 9.7–10.0 ms, at every size sampled | Yes    |
+| Budget                   | Budget | Measured                                                        | Within                   |
+| ------------------------ | ------ | --------------------------------------------------------------- | ------------------------ |
+| Transfer per scene, cold | 1.5 MB | 3,098.8 KB, of which the landmark models are 2,246.3 KB         | **No**, by the landmarks |
+| GPU memory, live         | 360 MB | 125.6–380.4 MB; 348.0 MB at 1440×900 ×2                         | **No** at 2560×1440 ×2   |
+| Each still               | 150 KB | 28.6–70.1 KB; the largest `lille-light.webp`                    | Yes                      |
+| Frame time, with motion  | 33 ms  | Median 8.3 ms, 95th percentile 8.9–9.3 ms, at every size tested | Yes                      |
 
-**Transfer.** `#next`, cold at 1440×900 ×2, the larger of `#home` and `#next` by 1 KB. The
-JavaScript is 351.8 KB, 3.5 KB more than v3's board below. The step's still, `grain.webp` and
-`landmarks.json` come to 50.9 KB, against 48.0 KB there.
+**The camera adds nothing measurable; the landmarks are over both budgets.** The same build,
+with `landmarks.json` answered with an empty index so every piece stands in, gives the lit
+board's own figures below to 0.1 MB of textures at every size (266.5 MB at 1440×900 ×2,
+against 266.6). The seven landmark models add 49 MB of textures and 2.2 MB of transfer. That
+takes 2560×1440 ×2 to 380.4 MB, 20 MB past the 360 MB budget, which left about 26 MB for a
+landmark's textures. Neither is the rig's to fix: they are the landmarks ticket's, and are
+listed for it below.
 
-**GPU memory**, counted as below, once Lille has built under reduced motion:
+**Transfer.** `#next`, cold at 1440×900 ×2, the larger of `#home` and `#next` by 1.4 KB:
 
-| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
-| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
-| 375×812, ×3                    | 375×390        | 1125×1170          | 10.4     | 6.0     | 0.8           | 15.8           | 32.9 (31.4)     |
-| 1280×720, ×2                   | 1200×375       | 2400×750           | 10.4     | 6.0     | 0.8           | 21.6           | 38.7 (36.9)     |
-| 1440×900, ×1                   | 1360×555       | 2720×1110          | 10.4     | 6.0     | 0.8           | 36.2           | 53.3 (50.9)     |
-| 1440×900, ×2                   | 1360×555       | 2720×1110          | 10.4     | 6.0     | 0.8           | 36.2           | 53.3 (50.9)     |
-| 1920×1080, ×1                  | 1840×735       | 2917×1165          | 10.4     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
-| 2560×1440, ×2                  | 2480×1095      | 2774×1225          | 10.4     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
+- JavaScript 512.8 KB, which carries v3-light's post chain;
+- fonts 255.7 KB;
+- the landmark models 2,246.3 KB;
+- the still, `grain.webp` and `landmarks.json` 54.6 KB.
 
-The pawn's contact shadow adds a 64² alpha texture; the textures round to 10.4 MB, against
-10.3. The phone's taller stage costs 3.6 MB of drawing buffer, and the largest stages are
-unchanged: the headroom for a model's textures is still about 6 MB there.
+**GPU memory**, counted as below, once Lille has built under reduced motion. "Stand-ins" is
+the same build with an empty landmark index.
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) | Stand-ins, MB |
+| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- | ------------- |
+| 375×812, ×3                    | 375×390        | 750×780            | 115.7    | 3.9     | 1.4           | 4.7            | 125.6 (119.8)   | 91.6          |
+| 1280×720, ×2                   | 1200×375       | 2400×750           | 222.4    | 4.6     | 2.6           | 14.4           | 244.0 (232.7)   | 196.4         |
+| 1440×900, ×1                   | 1360×555       | 1360×555           | 142.6    | 4.6     | 1.5           | 6.0            | 154.8 (147.6)   | 107.2         |
+| 1440×900, ×2                   | 1360×555       | 2720×1110          | 315.5    | 4.6     | 3.8           | 24.2           | 348.0 (331.9)   | 300.5         |
+| 1920×1080, ×1                  | 1840×735       | 1840×735           | 188.2    | 4.6     | 2.1           | 10.8           | 205.8 (196.2)   | 158.2         |
+| 2560×1440, ×2                  | 2480×1095      | 2774×1225          | 344.4    | 4.6     | 4.2           | 27.2           | 380.4 (362.7)   | 332.8         |
+
+The phone row was taken without touch emulation, so the page did not take the phone's quality
+rung: its canvas is at ratio 2, not 1.5, and it keeps AO.
 
 **Frame time.** From `requestAnimationFrame` gaps at 375×812 ×3, 1440×900 ×2 and 2560×1440 ×2,
 over 2.5 s of Lille's close-up drifting while the tour plays, 2.5 s of a Replay of its build,
 and 1.5 s of the skip flight to Turin: a median of 8.3 ms (the display's 120 Hz) in every
-sample, and a 95th percentile of 9.7–10.0 ms. **Rendering is no longer idle while the tour
+sample, and a 95th percentile of 8.9–9.3 ms. **Rendering is no longer idle while the tour
 plays**: the close-up drifts and breathes through the dwell, so the board draws every frame
 until the tour is paused or ends. Paused, after the end pull-back, and under reduced motion it
 draws only on demand, as before.
 
-**Stills.** All 14 were rendered again by `generate:path-stills` at each step's close-up, at
-1440×900 ×1.5: 2040×833, 35.1–69.0 KB each.
+**Stills.** All 14 were rendered again by `generate:path-stills` at each step's close-up,
+through the post chain and with the landmarks, at 1440×900 ×1.5: 2040×833, 28.6–70.1 KB each.
+
 ## The lit board (v3-light)
 
 v3-light put the solid board through a post chain and made dark mode night (ADR-0011):
@@ -494,6 +508,10 @@ From #149's asset log (`docs/path-assets.md`), which has the full record:
   frames at any rate near 33 ms, so a slow device is judged during its first build. Under
   reduced motion nothing animates and the sample never fills, so there is no frame-rate fallback
   there, and none is needed.
+- **The generated landmarks are over two budgets** (measured in [The camera (v3)](#the-camera-v3)).
+  Cold transfer is 3.1 MB against 1.5 MB, of which 2.2 MB is the full-detail models. Live GPU
+  memory at 2560×1440 ×2 is 380.4 MB against 360 MB, since the models' textures add 49 MB.
+  The `.lod.glb` files (0.8 MB together) are not what the board loads.
 - GPU memory is an estimate from uploads and canvas size, not a reading of what the GPU holds.
 - **The board is drawn below ratio 2 on very large stages.** The cap that keeps GPU memory under
   64 MB draws a 2560×1440 ×2 stage at ratio 1.19. Screens up to about 1440×900 ×2 draw at their
