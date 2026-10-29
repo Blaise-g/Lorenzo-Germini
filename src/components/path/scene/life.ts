@@ -189,9 +189,15 @@ export function createLife(options: {
   }
 
   return {
-    /** Registers a tile's pieces, replacing any it had. */
+    /** Registers a tile's pieces, replacing any it had. A beat playing on
+     *  a piece replaced, as a model swaps in, plays on in its place. */
     setTile(slug: PathStepSlug, list: LifePiece[]) {
       pieces.set(slug, list);
+      for (const entry of playing) {
+        if (entry.target.slug !== slug) continue;
+        const next = list.find((each) => each.piece === entry.target.piece);
+        if (next) entry.target = next;
+      }
     },
 
     /** Starts the beat a cue about `prop` plays, if it has one and its
@@ -262,6 +268,17 @@ export function createLife(options: {
           base: { y: object.position.y, z: object.rotation.z },
         });
       }
+    },
+
+    /** `object` hops once, as a prop beside the path does: a piece whose
+     *  model arrived after it stood, so the swap reads as a hop. */
+    hop(object: Object3D) {
+      if (hops.some((hop) => hop.object === object)) return;
+      hops.push({
+        object,
+        ms: 0,
+        base: { y: object.position.y, z: object.rotation.z },
+      });
     },
 
     /** The pawn landed at `at` (the board's frame), `scale` a hero tile's. */

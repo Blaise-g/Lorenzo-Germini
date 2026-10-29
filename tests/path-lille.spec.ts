@@ -20,8 +20,13 @@ import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
 import {
   assetsForStep,
   LANDMARK_INDEX,
+  PROP_INDEX,
+  PROP_MODELS,
+  propFile,
+  propModelsOf,
   SCENE_ASSETS,
 } from "@/components/path/scene/scene-assets";
+import { MARKER } from "@/components/path/scene/world";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -94,16 +99,26 @@ async function landmarksSettled(page: Page) {
   );
 }
 
-/** Every file the board can fetch on a desktop: the grain, the index and
- *  every landmark it lists. */
+/** The toy props and markers shipped: the ids the prop index lists. */
+async function listedToys(): Promise<string[]> {
+  return Object.keys(
+    JSON.parse(await readFile(publicFile(PROP_INDEX), "utf8")),
+  );
+}
+
+/** Every file the board can fetch on a desktop: the grain, both indexes,
+ *  every landmark and every toy prop and marker they list. */
 async function worldFiles(): Promise<string[]> {
   const listed = await listedIds();
+  const toys = await listedToys();
   return [
     GRAIN_FILE,
     LANDMARK_INDEX,
     ...SCENE_ASSETS.filter((asset) => listed.includes(asset.id)).map(
       (asset) => asset.file,
     ),
+    PROP_INDEX,
+    ...PROP_MODELS.filter((id) => toys.includes(id)).map(propFile),
   ];
 }
 
@@ -256,6 +271,16 @@ test.describe("on /path", () => {
       expect([...firstPaint].sort()).toEqual(
         (await firstPaintFiles("lille")).map(href).sort(),
       );
+      /* No prop or marker is any of it, so none can hold the first paint
+         up: the duo and Lille's own props are asked for once the build has
+         started, and ahead of any other step's landmark. */
+      const toys = [
+        PROP_INDEX,
+        ...[MARKER.figure, MARKER.buddy, ...propModelsOf("lille")].map(
+          propFile,
+        ),
+      ].map(href);
+      expect(firstPaint.filter((file) => toys.includes(file))).toEqual([]);
       const started = Date.now();
       await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
         timeout: 5000,
@@ -268,6 +293,21 @@ test.describe("on /path", () => {
         propsThrough("lille"),
       );
       await expect(stage(page)).toHaveAttribute("data-scene-lit", "0 1 2");
+      const listed = await listedIds();
+      const otherLandmarks = SCENE_ASSETS.filter(
+        (asset) => asset.step !== "lille" && listed.includes(asset.id),
+      ).map((asset) => href(asset.file));
+      await expect
+        .poll(() => toys.filter((file) => !files.includes(file)))
+        .toEqual([]);
+      const firstOther = files.findIndex((file) =>
+        otherLandmarks.includes(file),
+      );
+      for (const file of toys) {
+        if (firstOther >= 0) {
+          expect(files.indexOf(file), file).toBeLessThan(firstOther);
+        }
+      }
       /* Then the rest of the board, once each, however many times the
          stage asked to show Lille, and no landmark the index does not list. */
       await landmarksSettled(page);

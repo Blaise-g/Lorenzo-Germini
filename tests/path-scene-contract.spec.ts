@@ -74,8 +74,10 @@ import {
 } from "@/components/path/scene/post";
 import { buildPiece } from "@/components/path/scene/props";
 import {
+  LANDMARK_INDEX,
   loadOrder,
   modelFile,
+  PROP_INDEX,
   SCENE_ASSETS,
 } from "@/components/path/scene/scene-assets";
 import {
@@ -254,29 +256,34 @@ test.describe("the drawing buffer", () => {
    *  a third more for mipmaps. All seven are loaded once the page is idle;
    *  this is the worst case, before a phone or a low rung takes the LODs. */
   let landmarkTextures = 0;
+  /** The same for every toy prop and the duo (`props.json`). */
+  let toyTextures = 0;
   let FIXED = 0;
   test.beforeAll(async () => {
     await MeshoptDecoder.ready;
     const io = new NodeIO()
       .registerExtensions(ALL_EXTENSIONS)
       .registerDependencies({ "meshopt.decoder": MeshoptDecoder });
-    const index = JSON.parse(
-      await readFile(
-        path.join(process.cwd(), "public/path/models/landmarks.json"),
-        "utf8",
-      ),
-    ) as Record<string, { file: string }>;
     /* Summed afresh: a worker can run this hook more than once. */
-    let bytes = 0;
-    for (const { file } of Object.values(index)) {
-      const document = await io.read(path.join(process.cwd(), "public", file));
-      for (const texture of document.getRoot().listTextures()) {
-        const [width, height] = texture.getSize()!;
-        bytes += (width * height * 4 * 4) / 3;
+    const texturesOf = async (index: string) => {
+      const listed = JSON.parse(
+        await readFile(path.join(process.cwd(), "public", index), "utf8"),
+      ) as Record<string, { file: string }>;
+      let bytes = 0;
+      for (const { file } of Object.values(listed)) {
+        const document = await io.read(
+          path.join(process.cwd(), "public", file),
+        );
+        for (const texture of document.getRoot().listTextures()) {
+          const [width, height] = texture.getSize()!;
+          bytes += (width * height * 4 * 4) / 3;
+        }
       }
-    }
-    landmarkTextures = bytes;
-    FIXED = BOARD_FIXED + landmarkTextures;
+      return bytes;
+    };
+    landmarkTextures = await texturesOf(LANDMARK_INDEX);
+    toyTextures = await texturesOf(PROP_INDEX);
+    FIXED = BOARD_FIXED + landmarkTextures + toyTextures;
   });
   const PER_PIXEL = DRAWING_BYTES_PER_PIXEL + POST_BYTES_PER_PIXEL;
   const gpuBytes = (
@@ -292,12 +299,12 @@ test.describe("the drawing buffer", () => {
   };
 
   /* The stage's CSS size at 1440×900, 1280×720, 1920×1080, 2560×1440 and
-     375×812, measured. */
+     375×812, measured (v3-toys). */
   const STAGES = [
-    [1360, 555],
-    [1200, 375],
-    [1840, 735],
-    [2480, 1095],
+    [1360, 528],
+    [1200, 348],
+    [1840, 708],
+    [2480, 1068],
     [375, 390],
   ] as const;
 
@@ -308,12 +315,19 @@ test.describe("the drawing buffer", () => {
     expect(landmarkTextures).toBeLessThan(55 * MB);
   });
 
-  /* Measured totals, every landmark loaded: 348.0 MB at 1440×900×2 and
-     380.4 MB at 2560×1440×2. The model has to come out at or above them,
-     or the budget checks nothing. */
+  /* Thirteen props at 512² and 256², the duo at 1024² and 512²: 36.7 MB at
+     full size, counted from the GLBs (docs/path-measurements.md). */
+  test("the toys' textures are counted, about 37 MB", () => {
+    expect(toyTextures).toBeGreaterThanOrEqual(36 * MB);
+    expect(toyTextures).toBeLessThan(40 * MB);
+  });
+
+  /* Measured totals, every landmark, toy prop and marker loaded: 372.0 MB
+     at 1440×900×2 and 417.0 MB at 2560×1440×2. The model has to come out
+     at or above them, or the budget checks nothing. */
   test("the per-pixel model covers the measured totals", () => {
-    expect(gpuBytes(1360, 555, 2)).toBeGreaterThanOrEqual(348.0 * MB);
-    expect(gpuBytes(2480, 1095, 2)).toBeGreaterThanOrEqual(380.4 * MB);
+    expect(gpuBytes(1360, 528, 2)).toBeGreaterThanOrEqual(372.0 * MB);
+    expect(gpuBytes(2480, 1068, 2)).toBeGreaterThanOrEqual(417.0 * MB);
   });
 
   test("every measured stage stays under the GPU budget, at ×1, ×2 and ×3", () => {

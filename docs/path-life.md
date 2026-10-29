@@ -63,6 +63,14 @@ A model swapped in for a piece names its parts these to keep its own beat and cl
 (several), `plume` (scales on y). The marker's handles are `marker-lorenzo` and
 `marker-robot` (`MARKER` in `world.ts`); a model goes inside its handle.
 
+The toy props (v3-toys, `toys.ts`) were generated as static bodies, so their moving parts are
+added in code at the model's spots, named as above: the coils' rotor (the coils themselves
+are cut out of the fused mesh by angle as it loads), the dial's needle, the window's glass
+and two shutters, the clock's hand, the desk's screen and the plinth's five slots. The
+parts stand in the model's frame and are never squashed with it. The window's shutters are
+built shut over the glass and stand open flat beside it, so its last cue swings them shut.
+Every beat was watched at 0.25× on the board on 2026-10-29.
+
 ## Arrival
 
 - The landing dips the tile 0.07 units in 55 ms and springs back
@@ -73,7 +81,13 @@ A model swapped in for a piece names its parts these to keep its own beat and cl
 
 ## The duo
 
-The figure (the pawn, standing in) and its buddy (a small robot drawn in code, standing in).
+The figure (`marker-lorenzo`, 1.45 units) and its buddy (`marker-robot`, 0.58 of his
+height), toy models since v3-toys; until each arrives the code pawn and robot stand in, so
+the duo is never absent. Every gesture moves the handle, so each plays on the model as it did
+on the stand-in. A model that arrives while the duo is seen swaps at the top of a hop: the
+stand-in rises on a soft spring, the model takes its place stretched at 90 ms, and lands with
+a squash at 280 ms, the spring's zero crossing, with no sideways travel. Unseen, or under
+reduced motion, it swaps at once.
 The buddy follows 130 ms behind on the same path, its hop 0.82 of the figure's height for
 its size, stretching 10% in the air, standing 1.05 units to the figure's left. When it lands
 they high-five: both lean in, the buddy hops.
@@ -100,12 +114,13 @@ single tile, since the cookie is board-wide.
 
 ## Ink grade
 
-Generated landmarks (textured materials only) are pulled toward a ramp from slate through
-terracotta to the stock by lightness, and their black point lifted toward the stock:
-amount 0.35 and lift 0.10 by day, 0.38 and 0.20 by night. Checked close up on the school,
-the Mole, the jetty, the schoolroom, the belfry, the Bourse and the office in both modes on
-2026-10-29: they sit with the toy pieces by day; by night they read a little grey beside the
-paper tiles but no longer black.
+Generated models (textured materials only: the landmarks, and since v3-toys the toy props
+and the duo) are pulled toward a ramp from slate through terracotta to the stock by
+lightness, and their black point lifted toward the stock: amount 0.08 and lift 0.03 by day,
+0.10 and 0.08 by night. It was 0.35 and 0.10 by day, 0.38 and 0.20 by night, for the
+photo-textured landmarks; on the toys, already painted in the board's colours, that greyed
+them by night. Checked close up on every model in both modes on 2026-10-29: they keep their
+colours, the Bourse's brick and the figure's shirt included, by night.
 
 ## Sound
 

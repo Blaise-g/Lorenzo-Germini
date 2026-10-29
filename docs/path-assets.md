@@ -404,8 +404,9 @@ Every generated piece, regenerated in one style, a chunky toy board-game piece: 
 landmarks under their ids, thirteen props and the two markers that walk the path. All are
 Hunyuan3D-2.1. The landmarks are in `public/path/models/` with `landmarks.json`, as before.
 The props and markers are beside them with `props.json`, kept apart because the scene takes
-every id in `landmarks.json` for a landmark. Nothing under `src/` reads `props.json` yet: the
-scene still builds its props and pawn in code until they are wired in. The props are static
+every id in `landmarks.json` for a landmark. The scene reads `props.json` since v3-toys
+(`PROP_PLACEMENTS` and `SIDE_MODELS` in `scene-assets.ts`, `toys.ts`); a prop or marker the
+index does not list, or whose file fails, keeps its code stand-in. The props are static
 bodies only. The moving
 parts stay in code: the coils' rotor, the dial's needle, the window's shutters and the
 clock's hands. Side-by-sides (reference, the old piece, the toy at full detail, clay and

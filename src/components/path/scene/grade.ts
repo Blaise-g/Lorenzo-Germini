@@ -2,15 +2,14 @@ import { Color } from "three";
 
 import type { Palette } from "./palette";
 
-/* The landmarks' ink grade (v3; the benchmark's §4(b) item 3). The
-   generated landmarks are photo-textured: beside the board's toy props they
-   read dark and out of place, most of all by night. In the shader, after
-   their texture is read, each texel's albedo is pulled about a third of the
-   way toward the path palette, along a ramp from slate through terracotta
-   to the stock by its lightness, and its black point lifted toward the
-   stock, as ink printed on cream card has no black. Light and dark are
-   graded apart, from the same palette, by the one night value the light
-   mixes by. */
+/* The generated models' ink grade (v3; the benchmark's §4(b) item 3),
+   for the landmarks and, since v3-toys, the toy props and the duo. In the
+   shader, after a model's texture is read, each texel's albedo is pulled a
+   little toward the path palette, along a ramp from slate through
+   terracotta to the stock by its lightness, and its black point lifted
+   toward the stock, as ink printed on cream card has no black. Light and
+   dark are graded apart, from the same palette, by the one night value the
+   light mixes by. */
 
 export type InkGrade = {
   /** The ramp the albedo is pulled toward, dark to light. */
@@ -23,12 +22,13 @@ export type InkGrade = {
   lift: number;
 };
 
-/** The grade by day (`night` 0) and by night (1), mixed between. Tuned by
- *  eye on the seven landmarks, close up, in both modes
- *  (`docs/path-life.md`). */
+/** The grade by day (`night` 0) and by night (1), mixed between. Light:
+ *  the models are painted toys now (v3-toys), already in the board's
+ *  colours, and a third of the way to the ramp greyed them by night. Tuned
+ *  by eye on every model, close up, in both modes (`docs/path-life.md`). */
 export const INK_GRADE = {
-  day: { amount: 0.35, lift: 0.1 },
-  night: { amount: 0.38, lift: 0.2 },
+  day: { amount: 0.08, lift: 0.03 },
+  night: { amount: 0.1, lift: 0.08 },
 } as const;
 
 export function inkGrade(palette: Palette, night: number): InkGrade {

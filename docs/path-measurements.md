@@ -8,6 +8,60 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The toys (v3-toys)
+
+v3-toys puts the toy props and the duo on the board (`props.json`): thirteen props, the two
+side props and the two markers. None is part of the first paint. The duo and the landing's
+own props are asked for as soon as its tile starts to build, ahead of every other step's
+files; the rest follow with the idle loads, a step's props after its landmarks. Until a
+model arrives its code piece stands in. A phone, and the governor's rungs from ×0.75 down,
+take each model's `.lod.glb`.
+
+Measured 2026-10-29 on a production build of `path-v3-toys` (`next build`, then
+`next start -p 3271`), with muted Chromium on the machine's GPU (ANGLE Metal, Apple M5), a
+fresh context and the cache disabled for each load, the same units as below, and the canvas
+counted at 8 bytes a pixel. The stage is a little shorter than in v3-harden's run (1360×528
+at 1440×900, against 1360×555): the overlay's, not this ticket's.
+
+| Budget                        | Budget     | Measured                                                               | Within |
+| ----------------------------- | ---------- | ---------------------------------------------------------------------- | ------ |
+| Transfer to first paint, cold | 1.5 MB     | 865.3–1,330.3 KB; the largest `#lille`; on a phone 865.3–1,066.4 KB    | Yes    |
+| Transfer once settled, cold   | none       | 3,459.4–3,488.3 KB; on a phone, on the LODs, 1,938.5–1,967.4 KB        | —      |
+| GPU memory, live, every model | **440 MB** | 157.0–417.0 MB; 372.0 MB at 1440×900 ×2; a phone, on the LODs, 78.3 MB | Yes    |
+| Frame time, with motion       | 33 ms      | Median 8.3 ms, 95th percentile 9.9–10.1 ms                             | Yes    |
+
+**Transfer to first paint** is what the page had fetched when the board started to build,
+from the Resource Timing entries' `transferSize`, with motion on (under reduced motion the
+build never enters `building`). It carries no prop or marker bytes, which
+`path-lille.spec.ts` checks along with the order. The toys add 1,179.8 KB once settled on a
+desktop and 526.8 KB on a phone's LODs. v3-harden's 1,486.5 KB for `#lille` was taken under
+reduced motion and so included the step's still, which a landing with motion does not fetch
+before it builds; the two rows are not the same load.
+
+**The GPU budget is raised from 400 MB to 440 MB**, with the Coordinator's approval before
+the change: the toys' textures are 36.7 MB at full size (thirteen props at 512² and 256², the
+two markers at 1024² and 512²), counted from the GLBs in `path-scene-contract.spec.ts`, which
+adds them to the model it checks the budget with. The worst case, 2560×1440 ×2 with every
+landmark, prop and marker loaded at full size, measured 417.0 MB; 440 MB is that with about
+5% to spare. Desktop keeps the full textures; a phone and the lower rungs take the LODs (9.2
+MB for the toys). Counted as v3-harden's, once Lille has built under reduced motion and every
+model has settled:
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | -------------- | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
+| 375×812, ×3, touch             | 375×390        | 562×585            | 72.8     | 2.0     | 0.8           | 2.6            | 78.3 (74.6)     |
+| 375×812, ×3                    | 375×390        | 750×780            | 147.2    | 3.8     | 1.4           | 4.7            | 157.0 (149.7)   |
+| 1280×720, ×2                   | 1200×348       | 2400×696           | 249.3    | 4.3     | 2.5           | 13.4           | 269.4 (257.0)   |
+| 1440×900, ×1                   | 1360×528       | 1360×528           | 176.6    | 4.3     | 1.5           | 5.7            | 188.2 (179.5)   |
+| 1440×900, ×2                   | 1360×528       | 2720×1056          | 341.0    | 4.3     | 3.7           | 23.0           | 372.0 (354.8)   |
+| 1920×1080, ×1                  | 1840×708       | 1840×708           | 221.2    | 4.3     | 2.1           | 10.4           | 238.1 (227.0)   |
+| 2560×1440, ×2                  | 2480×1068      | 2809×1210          | 381.2    | 4.3     | 4.2           | 27.2           | 417.0 (397.6)   |
+
+**Frame time.** From `requestAnimationFrame` gaps over 2.5 s of the tour playing Lille,
+every model loaded, at 375×812 ×3 with touch, 1440×900 ×2 and 2560×1440 ×2: a median of
+8.3 ms (the display's 120 Hz) in each, a 95th percentile of 9.9, 10.1 and 10.0 ms. The trees
+stay instanced, one draw call a cluster, from the tree models' own mesh.
+
 ## Lazy landmarks (v3-harden)
 
 v3-harden loads the landmarks lazily. A landing fetches its own step's models before the first

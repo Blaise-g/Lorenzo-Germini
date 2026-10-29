@@ -29,6 +29,7 @@ import type { PathStep, PathStepSlug } from "@/data/path.types";
 import {
   fitModel,
   loadGrain,
+  loadIndex,
   loadLandmarkIndex,
   loadModel,
   type ModelResult,
@@ -38,10 +39,12 @@ import {
   BOARD,
   HOP_HEIGHT,
   LOOP,
+  PAWN_HEIGHT,
   piecesOf,
   TILE,
   tileCentre,
   tileScale,
+  type Piece,
 } from "./board";
 import {
   buildPlan,
@@ -98,8 +101,17 @@ import {
   loadOrder,
   LOD_FROM_RUNG,
   modelFile,
+  placementOf,
+  PROP_INDEX,
+  PROP_MODELS,
+  propFile,
+  propModelsOf,
   SCENE_ASSETS,
+  SIDE_MODELS,
+  type PropPlacement,
 } from "./scene-assets";
+import { BEAT_NODE } from "./piece-beats";
+import { prepareModel, toyMarker, toyPiece, toySide } from "./toys";
 import {
   type BuddyParts,
   makeBoard,
@@ -112,7 +124,7 @@ import {
   type PawnParts,
 } from "./world";
 import { createMoments, type MomentName, type MomentStage } from "./moments";
-import { createPlay, type Reactor } from "./play";
+import { createPlay, SOFT, type Reactor } from "./play";
 
 /* The 3D path's board (GH-148; v3, a solid tabletop board): vanilla
    three.js, imported dynamically by the host on `/path` only, after the
@@ -249,7 +261,19 @@ export type SceneRuntime = {
   /** Where a piece of the shown step's tile, or the marker's `figure` or
    *  `buddy`, is on the canvas, in CSS pixels; null if it is not shown. */
   locate(piece: string): { x: number; y: number } | null;
+  /** What stands on each tile made so far, in the duo and beside the path:
+   *  for the suite and the clips. */
+  pieces(): PieceReport[];
   dispose(): void;
+};
+
+/** One piece as it stands: from which file, or built in code, and the
+ *  beat parts (`BEAT_NODE`) found under it. */
+export type PieceReport = {
+  step: PathStepSlug | "marker" | "side";
+  piece: string;
+  file: string | null;
+  nodes: string[];
 };
 
 /** One piece on a tile, rising from its foot. */
@@ -273,6 +297,10 @@ type Tile = {
   props: Map<string, Riser[]>;
   /** Where its ground grows out from, and how far it has (`paint.ts`). */
   grow: IUniform<Vector3>;
+  /** Each piece's beater, by its id: what a hop moves. */
+  beaters: Map<string, Group>;
+  /** The file each piece was made from, by its id; null for code. */
+  files: Map<string, string | null>;
 };
 
 function stepNamed(slug: PathStepSlug) {
@@ -392,13 +420,26 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       step.props.map((prop) => [prop.id, []]),
     );
     const firstProp = step.props[0].id;
+    const beaters = new Map<string, Group>();
+    const files = new Map<string, string | null>();
     piecesOf(slug).forEach((piece, index) => {
       const asset = landmarks.find((each) => each.piece === piece.id);
       const model = asset && models.get(asset.id);
-      const built: Built =
-        asset && model?.status === "loaded"
-          ? loadedPiece(fitModel(model.scene, asset, piece), piece.id)
-          : buildPiece(paintBox, slug, piece, index + stepIndex(slug) * 7);
+      const placement = placementOf(slug, piece.id);
+      const toy = placement && toys.get(placement.model);
+      const seed = index + stepIndex(slug) * 7;
+      let built: Built;
+      let file: string | null = null;
+      if (asset && model?.status === "loaded") {
+        built = loadedPiece(fitModel(model.scene, asset, piece), piece.id);
+        file = model.file;
+      } else if (placement && toy?.status === "loaded") {
+        built = toyBuilt(toy.scene, placement, piece, seed);
+        file = toy.file;
+      } else {
+        built = buildPiece(paintBox, slug, piece, seed);
+      }
+      files.set(piece.id, file);
       /* Measured before it is parented, so in its own frame: how tall it
          stands once up, for the camera's close-up (`pieceHeight`). */
       heights.set(
@@ -422,6 +463,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         root: beater,
       } satisfies Reactor;
       beater.add(handle);
+      beaters.set(piece.id, beater);
       sinker.add(beater);
       riser.add(sinker);
       riser.position.set(piece.x, TILE.thickness + (piece.y ?? 0), piece.z);
@@ -450,7 +492,19 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     group.scale.setScalar(tileScale(slug));
     group.userData.slug = slug;
     life.setTile(slug, lifePieces);
-    return { slug, group, props, grow };
+    return { slug, group, props, grow, beaters, files };
+  }
+
+  /** A toy prop as a built piece (`toys.ts`), graded as a landmark is. */
+  function toyBuilt(
+    scene: Object3D,
+    placement: PropPlacement,
+    piece: Piece,
+    seed: number,
+  ): Built {
+    const built = toyPiece(paintBox, scene, placement, piece, seed);
+    gradeLandmark(built.object);
+    return built;
   }
 
   /** A generated landmark as a built piece: graded into the board's
@@ -513,6 +567,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const buddy = makeBuddy(paintBox);
   const buddyParts = buddy.userData.buddy as BuddyParts;
   const buddyHandle = buddyParts.body.getObjectByName(MARKER.buddy) as Group;
+  /** The handle's scale at rest, read before any squash moves it: a model
+   *  inside it is drawn this much larger. */
+  const BUDDY_DRAWN = buddyHandle.scale.y;
   buddyHandle.userData.reactor = {
     piece: "buddy",
     handle: buddyHandle,
@@ -520,6 +577,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   } satisfies Reactor;
   buddy.visible = false;
   board.add(buddy);
+  /** The buddy stands this share of the figure's height: the approved
+   *  pair's ratio, its head at about his hip (`docs/path-assets.md`). */
+  const BUDDY_SHARE = 0.58;
+  /** A seen marker swap's hop (`swapMarker`): its kick, and when, after
+   *  it, a SOFT spring reaches its top and comes back down. */
+  const SWAP_HOP = 3.2;
+  const SWAP_PEAK_MS = 90;
+  const SWAP_LAND_MS = 280;
   /** The buddy follows the figure this far behind, in ms of its move. */
   const BUDDY_LAG_MS = 130;
   /** Where the buddy stands beside the figure, in the board's frame, before
@@ -637,12 +702,175 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     idsOf(slug).some((id) => models.get(id)?.status === "failed");
 
   /** Marks the canvas `data-path-landmarks`: "settled" once every landmark
-   *  the index lists has arrived or failed, "loading" until then. */
+   *  the index lists, and every toy prop and marker, has arrived, failed or
+   *  is known absent; "loading" until then. */
   function markLandmarks() {
-    const pending = [...listed.keys()].some(
-      (id) => !models.has(id) || loading.has(id),
-    );
+    const pending =
+      [...listed.keys()].some((id) => !models.has(id) || loading.has(id)) ||
+      PROP_MODELS.some((id) => !toys.has(id)) ||
+      toyLoading.size > 0;
     canvas.dataset.pathLandmarks = pending ? "loading" : "settled";
+  }
+
+  /* ─── The toys (v3-toys) ─── */
+
+  /** Each toy prop's and marker's outcome, by its model id. One that does
+   *  not arrive leaves its code stand-in standing: never a failure. */
+  const toys = new Map<string, ModelResult>();
+  const toyLoading = new Map<string, Promise<void>>();
+  /** The prop index, read once the first tile has started to build: no
+   *  prop or marker is any part of the first paint. */
+  let toyIndex: Promise<ReadonlyMap<string, LandmarkEntry>> | undefined;
+  /** The first landing's own props and the duo, which every later load
+   *  waits behind. */
+  let firstToys: Promise<void> = Promise.resolve();
+  let toysStarted = false;
+
+  /** Asks for the duo and `slug`'s own props, once, as the first tile to
+   *  build starts: the opening's drop and the build's order give them time
+   *  to swap in unseen, and each other step waits behind them. */
+  function startToys(slug: PathStepSlug) {
+    if (toysStarted) return;
+    toysStarted = true;
+    firstToys = loadToys([MARKER.figure, MARKER.buddy, ...propModelsOf(slug)]);
+  }
+
+  /** Fetches the toy models of `ids` not yet asked for: the LOD on a phone
+   *  or a stepped-down board. One the index does not list is never asked
+   *  for. Each that arrives takes its stand-ins' places (`placeToy`). */
+  async function loadToys(ids: readonly string[]) {
+    const index = await (toyIndex ??= loadIndex(PROP_INDEX));
+    if (disposed) return;
+    const lod = phone || governor.rung >= LOD_FROM_RUNG;
+    await Promise.all(
+      ids.map((id) => {
+        if (toys.has(id)) return undefined;
+        const entry = index.get(id);
+        if (!entry) {
+          toys.set(id, { status: "absent" });
+          markLandmarks();
+          return undefined;
+        }
+        let load = toyLoading.get(id);
+        if (!load) {
+          const file = modelFile({ file: propFile(id) }, entry, lod);
+          load = loadModel(file).then((result) => {
+            toyLoading.delete(id);
+            if (disposed) return;
+            let outcome = result;
+            if (result.status === "loaded") {
+              try {
+                prepareModel(id, result.scene);
+              } catch (error) {
+                console.error(error);
+                outcome = { status: "failed", reason: "scene-failed" };
+              }
+            }
+            toys.set(id, outcome);
+            if (outcome.status === "loaded") {
+              /* A swap that throws leaves its stand-ins standing, and the
+                 loads queued behind this one going. */
+              try {
+                placeToy(id, outcome.scene);
+              } catch (error) {
+                console.error(error);
+              }
+            }
+            markLandmarks();
+          });
+          toyLoading.set(id, load);
+          markLandmarks();
+        }
+        return load;
+      }),
+    );
+  }
+
+  /** A toy model has arrived: it takes the place of every stand-in it is
+   *  for, on the tiles made so far, beside the path, or in the duo. */
+  function placeToy(id: string, scene: Object3D) {
+    for (const slug of LOOP) {
+      if (propModelsOf(slug).includes(id)) swapTile(slug, id);
+    }
+    for (const [name, side] of Object.entries(SIDE_MODELS)) {
+      if (side.model === id) swapSide(name, scene, side);
+    }
+    if (id === MARKER.figure) swapMarker(figure, toyMarker(scene, PAWN_HEIGHT));
+    if (id === MARKER.buddy) {
+      swapMarker(
+        buddyHandle,
+        toyMarker(scene, (PAWN_HEIGHT * BUDDY_SHARE) / BUDDY_DRAWN),
+      );
+    }
+  }
+
+  /** Whether a swap now would be seen moving: the board is showing, with
+   *  motion. */
+  const swapSeen = () => canvas.style.opacity !== "0" && !reducedMotion;
+
+  /** Puts `model` in `holder` in place of what it held. */
+  function replaceChildren(holder: Object3D, model: Object3D) {
+    for (const child of [...holder.children]) {
+      holder.remove(child);
+      retire(child);
+    }
+    holder.add(model);
+  }
+
+  /** A side prop's model takes its holder's stand-in's place. */
+  function swapSide(
+    name: string,
+    scene: Object3D,
+    box: (typeof SIDE_MODELS)[keyof typeof SIDE_MODELS],
+  ) {
+    const holder = board.getObjectByName(name);
+    if (!holder) return;
+    const model = toySide(scene, box);
+    gradeLandmark(model);
+    replaceChildren(holder, model);
+    if (swapSeen()) {
+      life.hop(holder);
+      requestFrame();
+    } else render();
+  }
+
+  /** A marker's model takes its stand-in's place inside its handle, which
+   *  keeps its own pose: every gesture moves the handle, so each plays on
+   *  the model as it did on the stand-in. Unseen, it swaps at once; seen,
+   *  the stand-in hops, the model takes its place at the top of the hop,
+   *  stretched, and lands with a squash, so the change reads as a gesture
+   *  rather than a cut. */
+  function swapMarker(handle: Group, model: Object3D) {
+    gradeLandmark(model);
+    if (!pawn.visible || !swapSeen()) {
+      replaceChildren(handle, model);
+      render();
+      return;
+    }
+    /* On the board's clock, so a pause holds the hop and the swap
+       together; settled at once (`setReducedMotion`), it lands then. */
+    pendingMarkers.set(handle, model);
+    gestures.kick(handle, "y", SWAP_HOP, SOFT);
+    gestures.after(SWAP_PEAK_MS, () => {
+      if (!placePendingMarker(handle)) return;
+      gestures.kick(handle, "squash", 1.2);
+      gestures.after(SWAP_LAND_MS - SWAP_PEAK_MS, () =>
+        gestures.kick(handle, "squash", -1.6),
+      );
+    });
+    requestFrame();
+  }
+
+  /** A marker model waiting on its hop's top, by its handle. */
+  const pendingMarkers = new Map<Group, Object3D>();
+
+  /** Puts a marker's waiting model in; whether there was one. */
+  function placePendingMarker(handle: Group) {
+    const model = pendingMarkers.get(handle);
+    if (!model) return false;
+    pendingMarkers.delete(handle);
+    replaceChildren(handle, model);
+    return true;
   }
 
   /** Fetches the landmarks of `ids` not yet loaded or known absent: the
@@ -696,21 +924,29 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     prepared = true;
   }
 
-  /** The pawn is headed for `slug`: its landmarks and the next step's are
-   *  fetched now, so the tour's next landing finds its own in. */
+  /** The pawn is headed for `slug`: its landmarks and props and the next
+   *  step's are fetched now, so the tour's next landing finds its own in. */
   function approach(slug: PathStepSlug) {
-    void loadModels([...idsOf(slug), ...idsOf(wrap(stepIndex(slug) + 1))]);
+    const next = wrap(stepIndex(slug) + 1);
+    void loadModels([...idsOf(slug), ...idsOf(next)]);
+    void firstToys.then(() =>
+      loadToys([...propModelsOf(slug), ...propModelsOf(next)]),
+    );
   }
 
   /** Once the first tile is up, the rest arrive when the page is idle, one
-   *  step at a time, nearest first. */
+   *  step at a time, nearest first, after the side props: behind the first
+   *  landing's own props and the duo. */
   function loadRest(from: PathStepSlug) {
     if (loadingRest) return;
     loadingRest = true;
     whenIdle(async () => {
+      await firstToys;
+      await loadToys(Object.values(SIDE_MODELS).map((side) => side.model));
       for (const slug of loadOrder(LOOP, from)) {
         if (disposed) return;
         await loadModels(idsOf(slug));
+        await loadToys(propModelsOf(slug));
       }
     });
   }
@@ -731,12 +967,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return frustum.intersectsBox(tileBox.setFromObject(tile.group));
   }
 
-  /** Frees what a replaced tile alone held: its pieces' geometry. Its
-   *  materials are the paint box's, and a loaded model's geometry is the
-   *  model's, kept for the tile that replaces it. */
-  function retire(group: Group) {
+  /** Frees what a replaced tile, holder or marker alone held: its pieces'
+   *  geometry. Its materials are the paint box's, and a loaded landmark's or
+   *  toy's geometry is the model's, kept for whatever replaces it. */
+  function retire(group: Object3D) {
     const kept = new Set<BufferGeometry>();
-    for (const result of models.values()) {
+    for (const result of [...models.values(), ...toys.values()]) {
       if (result.status !== "loaded") continue;
       result.scene.traverse((node) => {
         if (node instanceof Mesh) kept.add(node.geometry);
@@ -752,8 +988,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Remakes `slug`'s tile, if it is made, with the landmarks that have
    *  arrived since: each takes its stand-in's place, posed as the tile
-   *  stood. On screen, the tile arrives (`arriveTile`). */
-  function swapTile(slug: PathStepSlug) {
+   *  stood. On screen, the tile arrives (`arriveTile`); for a toy prop,
+   *  `toy`, only its pieces already standing hop, and one not yet risen
+   *  swaps unseen. */
+  function swapTile(slug: PathStepSlug, toy?: string) {
     const old = tiles.get(slug);
     if (!old) return;
     let tile: Tile;
@@ -771,7 +1009,27 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     pose();
     /* Its first draw compiles and uploads: not a measure of the board. */
     unmeasured = true;
-    if (onScreen(tile)) arriveTile(slug);
+    if (!onScreen(tile)) return;
+    if (toy === undefined) {
+      arriveTile(slug);
+      return;
+    }
+    let hopped = false;
+    for (const piece of piecesOf(slug)) {
+      if (placementOf(slug, piece.id)?.model !== toy) continue;
+      const beater = tile.beaters.get(piece.id);
+      const standing = [...tile.props.values()]
+        .flat()
+        .some(
+          (each) => each.riser.visible && each.sinker.children[0] === beater,
+        );
+      if (beater && standing && !reducedMotion) {
+        life.hop(beater);
+        hopped = true;
+      }
+    }
+    if (hopped) requestFrame();
+    else render();
   }
 
   /** Makes every tile not yet made; a tile whose landmark failed, or whose
@@ -1682,6 +1940,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
          still on its way takes its stand-in's place when it lands. Only one
          that failed is waited on, fetched again. */
       if (prepared && !failedIn(step.slug)) {
+        /* A first landing overtaken before its own landmarks came never
+           asked for the duo: this one does. */
+        startToys(step.slug);
         approach(step.slug);
         buildOrFail(step, options);
         /* A first landing overtaken before its own landmarks came: the
@@ -1719,6 +1980,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
             failedTiles.delete(step.slug);
             frame();
             buildOrFail(step, options);
+            startToys(step.slug);
             /* The next step's are the first of the rest: after the first
                paint, not competing with it. */
             loadRest(step.slug);
@@ -1794,6 +2056,52 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         y: ((1 - centre.y) / 2) * canvas.clientHeight,
       };
     },
+    pieces() {
+      const named = new Set<string>(Object.values(BEAT_NODE));
+      const nodesOf = (root: Object3D) => {
+        const found = new Set<string>();
+        root.traverse((node) => {
+          if (named.has(node.name)) found.add(node.name);
+        });
+        return [...found].sort();
+      };
+      const fileOf = (id: string) => {
+        const result = toys.get(id);
+        return result?.status === "loaded" ? result.file : null;
+      };
+      const report: PieceReport[] = [];
+      for (const tile of tiles.values()) {
+        for (const [piece, beater] of tile.beaters) {
+          report.push({
+            step: tile.slug,
+            piece,
+            file: tile.files.get(piece) ?? null,
+            nodes: nodesOf(beater),
+          });
+        }
+      }
+      for (const [piece, handle] of [
+        ["figure", figure],
+        ["buddy", buddyHandle],
+      ] as const) {
+        const id = MARKER[piece];
+        report.push({
+          step: "marker",
+          piece: id,
+          file: fileOf(id),
+          nodes: nodesOf(handle),
+        });
+      }
+      for (const [piece, side] of Object.entries(SIDE_MODELS)) {
+        report.push({
+          step: "side",
+          piece,
+          file: fileOf(side.model),
+          nodes: [],
+        });
+      }
+      return report;
+    },
     replay() {
       const step = current && stepNamed(current);
       if (step && plan && !stills) buildOrFail(step);
@@ -1853,6 +2161,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (reduced) {
         reactions.settle();
         gestures.settle();
+        for (const handle of [...pendingMarkers.keys()]) {
+          placePendingMarker(handle);
+        }
         moments.finish();
       }
       /* Turned off on a resting board, its life starts again. */

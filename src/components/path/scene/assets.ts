@@ -50,15 +50,21 @@ export async function loadGrain(): Promise<Texture> {
 
 /** The landmarks the index lists, by id. An index that cannot be read lists
  *  none: the board stands every stand-in, which is a whole board. */
-export async function loadLandmarkIndex(): Promise<
-  ReadonlyMap<string, LandmarkEntry>
-> {
+export function loadLandmarkIndex() {
+  return loadIndex(LANDMARK_INDEX);
+}
+
+/** The models an index (`LANDMARK_INDEX`, `PROP_INDEX`) lists, by id, and
+ *  each one's LOD; none when it cannot be read. */
+export async function loadIndex(
+  url: string,
+): Promise<ReadonlyMap<string, LandmarkEntry>> {
   try {
-    const response = await fetch(LANDMARK_INDEX);
-    if (!response.ok) throw new Error(`${LANDMARK_INDEX}: ${response.status}`);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`${url}: ${response.status}`);
     const index: unknown = await response.json();
     if (typeof index !== "object" || index === null || Array.isArray(index)) {
-      throw new Error(`${LANDMARK_INDEX} is not an object`);
+      throw new Error(`${url} is not an object`);
     }
     return new Map(
       Object.entries(index as Record<string, unknown>).map(([id, entry]) => {
@@ -75,7 +81,7 @@ export async function loadLandmarkIndex(): Promise<
 /** A model's outcome: its scene, absent (stand in for it), or failed and
  *  why. */
 export type ModelResult =
-  | { status: "loaded"; scene: Object3D }
+  | { status: "loaded"; scene: Object3D; file: string }
   | { status: "absent" }
   | { status: "failed"; reason: SceneFallbackReason };
 
@@ -96,7 +102,7 @@ export async function loadModel(file: string): Promise<ModelResult> {
   try {
     loader ??= new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
     const gltf = await loader.parseAsync(buffer, "");
-    return { status: "loaded", scene: gltf.scene };
+    return { status: "loaded", scene: gltf.scene, file };
   } catch (error) {
     console.error(error);
     return { status: "failed", reason: "scene-failed" };
@@ -119,24 +125,60 @@ const IDLE_TIMEOUT_MS = 2000;
 /** Where there is no idle callback, how long after the first paint. */
 const IDLE_FALLBACK_MS = 200;
 
+/** The box a model is fitted into: a piece's, or a side prop's. */
+export type FitBox = Readonly<{ w: number; d: number; h: number }>;
+
+/** The scale that fits a model `size` into `box`: uniform, as far as its
+ *  proportions allow, times `scale`; or, `squash`ed, its width and height
+ *  as far as they allow and its depth squeezed into the box's. */
+export function fitScale(
+  size: Readonly<{ x: number; y: number; z: number }>,
+  box: FitBox,
+  scale = 1,
+  squash = false,
+): Vector3 {
+  const across = Math.min(box.w / (size.x || 1), box.h / (size.y || 1));
+  const deep = box.d / (size.z || 1);
+  const fit = Math.min(across, deep) * scale;
+  return squash
+    ? new Vector3(
+        across * scale,
+        across * scale,
+        Math.min(across, deep) * scale,
+      )
+    : new Vector3(fit, fit, fit);
+}
+
 /** A loaded landmark fitted into its piece's box: scaled to fill it as far
  *  as its proportions allow, times the asset's own `scale`, its foot centred
  *  on the origin, turned by `rotationY`. */
 export function fitModel(scene: Object3D, asset: SceneAsset, piece: Piece) {
+  return fitInto(scene, piece, asset.scale, false, asset.rotationY);
+}
+
+/** A loaded model fitted into `box` (`fitScale`), its foot centred on the
+ *  origin, turned by `rotationY`; a clone, sharing the model's geometry
+ *  and materials. */
+export function fitInto(
+  scene: Object3D,
+  box: FitBox,
+  scale = 1,
+  squash = false,
+  rotationY = 0,
+) {
   const model = scene.clone(true);
-  model.rotation.y = asset.rotationY;
+  model.rotation.y = rotationY;
   model.updateMatrixWorld(true);
-  const box = new Box3().setFromObject(model);
-  const size = box.getSize(new Vector3());
-  const fit =
-    Math.min(
-      piece.w / (size.x || 1),
-      piece.h / (size.y || 1),
-      piece.d / (size.z || 1),
-    ) * asset.scale;
-  const centre = box.getCenter(new Vector3());
-  model.position.set(-centre.x * fit, -box.min.y * fit, -centre.z * fit);
-  model.scale.multiplyScalar(fit);
+  const bounds = new Box3().setFromObject(model);
+  const size = bounds.getSize(new Vector3());
+  const fit = fitScale(size, box, scale, squash);
+  const centre = bounds.getCenter(new Vector3());
+  model.position.set(
+    -centre.x * fit.x,
+    -bounds.min.y * fit.y,
+    -centre.z * fit.z,
+  );
+  model.scale.multiply(fit);
   model.traverse((node) => {
     if (node instanceof Mesh) {
       node.castShadow = true;

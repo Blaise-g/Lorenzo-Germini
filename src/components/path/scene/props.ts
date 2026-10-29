@@ -47,13 +47,13 @@ export type Built = {
 type Builder = (paint: Paint, piece: Piece) => Built;
 
 /** `object`, named as a beat finds it (`piece-beats.ts`). */
-function named<T extends Object3D>(name: string, object: T): T {
+export function named<T extends Object3D>(name: string, object: T): T {
   object.name = name;
   return object;
 }
 
 /** A mesh that casts and takes shadows. */
-function solid(
+export function solid(
   geometry: BufferGeometry,
   material: Material,
   at: readonly [number, number, number] = [0, 0, 0],
@@ -66,7 +66,7 @@ function solid(
 }
 
 /** A rounded block standing on `y`, centred on `x` and `z`. */
-function block(
+export function block(
   material: Material,
   size: readonly [number, number, number],
   at: readonly [number, number, number] = [0, 0, 0],
@@ -167,14 +167,20 @@ function windows(
 
 /* ─── Trees and grass ─── */
 
-/** A tree cluster, instanced: round crowns of a few icospheres on short
- *  trunks, scattered across the piece's box. */
-export function treeCluster(paint: Paint, piece: Piece, seed = 1): Built {
+/** A repeatable sequence in [0, 1) from `seed`: a cluster scatters the
+ *  same way every time it is built. */
+export function seededRandom(seed: number) {
   let state = seed * 9301 + 49297;
-  const random = () => {
+  return () => {
     state = (state * 9301 + 49297) % 233280;
     return state / 233280;
   };
+}
+
+/** A tree cluster, instanced: round crowns of a few icospheres on short
+ *  trunks, scattered across the piece's box. */
+export function treeCluster(paint: Paint, piece: Piece, seed = 1): Built {
+  const random = seededRandom(seed);
   const count = 3;
   const crownsPerTree = 3;
   const trunks = new InstancedMesh(

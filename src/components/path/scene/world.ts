@@ -36,6 +36,7 @@ import {
 } from "./board";
 import type { MaterialOptions, Paint, ToneName } from "./paint";
 import { pathSpline } from "./path-spline";
+import { MARKER, SIDE_MODELS } from "./scene-assets";
 import {
   grassField,
   HOME_RIVERS,
@@ -214,15 +215,20 @@ export function makeBoard(paint: Paint, grassShare = 1): Group {
   );
 
   const side = [
-    [quadrell(paint), SIDE_PROPS.quadrell],
-    [oracolo(paint), SIDE_PROPS.oracolo],
+    [quadrell(paint), SIDE_PROPS.quadrell, SIDE_MODELS.quadrell.model],
+    [oracolo(paint), SIDE_PROPS.oracolo, SIDE_MODELS.oracolo.model],
   ] as const;
-  for (const [object, spot] of side) {
-    object.position.set(spot.x, 0, spot.z);
-    object.rotation.y = spot.x < 0 ? 0.35 : -0.35;
+  for (const [object, spot, name] of side) {
+    /* Its holder, named for its model, which takes the model's place once
+       it arrives (`toys.ts`). */
+    const holder = new Group();
+    holder.name = name;
+    holder.add(object);
+    holder.position.set(spot.x, 0, spot.z);
+    holder.rotation.y = spot.x < 0 ? 0.35 : -0.35;
     /* Beside the path: it hops as the pawn passes (`beats.ts`). */
-    object.userData.hopper = true;
-    group.add(object);
+    holder.userData.hopper = true;
+    group.add(holder);
   }
   return group;
 }
@@ -445,13 +451,7 @@ export function makePawn(paint: Paint): Object3D {
   return group;
 }
 
-/** The marker's two handles, by the names their generated models take
- *  (`marker-lorenzo`, `marker-robot`): a model swapped in goes inside its
- *  handle, and everything that moves the marker moves the handle. */
-export const MARKER = {
-  figure: "marker-lorenzo",
-  buddy: "marker-robot",
-} as const;
+export { MARKER };
 
 /** The buddy's height, against the figure's `PAWN_HEIGHT`. */
 export const BUDDY_HEIGHT = 0.62;

@@ -650,10 +650,13 @@ export function createPaint(palette: Palette) {
     /** A tile's own grass, grown out from `grow` (x, z in the tile's
      *  frame, radius). */
     tileGrass: makeGrass,
-    /** Grades a generated landmark's material (`grade.ts`) and gives its
-     *  clouds, once however many copies stand; returns how lit it is, for
-     *  its beat to set. */
-    landmark(made: MeshStandardMaterial): IUniform<number> {
+    /** Grades a generated model's material (`grade.ts`) and gives its
+     *  clouds, and its sway if it is an instanced tree's, once however many
+     *  copies stand; returns how lit it is, for its beat to set. */
+    landmark(
+      made: MeshStandardMaterial,
+      options: { sway?: boolean } = {},
+    ): IUniform<number> {
       let lit = graded.get(made);
       if (lit) return lit;
       const uniform: IUniform<number> = { value: 0 };
@@ -662,6 +665,7 @@ export function createPaint(palette: Palette) {
       made.userData.inkLit = uniform;
       patchMaterial(made, [
         clouds,
+        ...(options.sway ? [sway] : []),
         {
           key: "ink-grade",
           apply(shader) {

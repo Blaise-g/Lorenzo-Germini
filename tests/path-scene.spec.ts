@@ -22,7 +22,10 @@ import {
 } from "@/components/path/scene/fallback";
 
 import { MAX_DRAWING_PIXELS } from "@/components/path/scene/drawing-buffer";
-import { LANDMARK_INDEX } from "@/components/path/scene/scene-assets";
+import {
+  LANDMARK_INDEX,
+  PROP_INDEX,
+} from "@/components/path/scene/scene-assets";
 
 import { setTheme, themeToggle } from "./support/theme";
 
@@ -716,7 +719,9 @@ test.describe("landmarks loaded later", () => {
       hasTouch: true,
     });
 
-    test("fetches each landmark's LOD, and no full model", async ({ page }) => {
+    test("fetches each landmark's and each toy's LOD, and no full model", async ({
+      page,
+    }) => {
       const models: string[] = [];
       page.on("request", (request) => {
         if (/\/path\/models\/.+\.glb$/.test(request.url())) {
@@ -726,16 +731,17 @@ test.describe("landmarks loaded later", () => {
       await page.goto("/path#lille");
       await expect(stage(page)).toHaveAttribute("data-build-state", "built");
       await landmarksSettled(page);
-      const index = JSON.parse(
-        await readFile(
-          path.join(process.cwd(), "public", LANDMARK_INDEX),
-          "utf8",
-        ),
-      ) as Record<string, { lodFile: string }>;
+      const lodFiles = async (index: string) =>
+        Object.values(
+          JSON.parse(
+            await readFile(path.join(process.cwd(), "public", index), "utf8"),
+          ) as Record<string, { lodFile: string }>,
+        ).map((entry) => entry.lodFile);
       expect(models.sort()).toEqual(
-        Object.values(index)
-          .map((entry) => entry.lodFile)
-          .sort(),
+        [
+          ...(await lodFiles(LANDMARK_INDEX)),
+          ...(await lodFiles(PROP_INDEX)),
+        ].sort(),
       );
     });
   });

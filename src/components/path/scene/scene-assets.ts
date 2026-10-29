@@ -37,10 +37,10 @@ export type LandmarkEntry = Readonly<{ lodFile?: string }>;
  *  the LODs from the start. */
 export const LOD_FROM_RUNG = 2;
 
-/** The file to fetch for `asset`: its LOD when `lod` asks for one and the
- *  index lists one, otherwise the full model. */
+/** The file to fetch for `asset`, a landmark or a prop: its LOD when
+ *  `lod` asks for one and the index lists one, otherwise the full model. */
 export function modelFile(
-  asset: SceneAsset,
+  asset: Readonly<{ file: string }>,
   entry: LandmarkEntry | undefined,
   lod: boolean,
 ): string {
@@ -111,6 +111,110 @@ export const SCENE_ASSETS: readonly SceneAsset[] = [
   landmark("lille", "courtyard", "bourse"),
   landmark("now", "office", "office"),
 ];
+
+/* ─── Toy props and the duo (v3-toys) ─── */
+
+/** The index of the toy props and the two markers shipped: an object keyed
+ *  by model id, as `LANDMARK_INDEX` is, kept apart from it because the
+ *  board takes every id there for a landmark. */
+export const PROP_INDEX = "/path/models/props.json";
+
+/** A generated prop standing in a tile's piece. Unlike a landmark, a prop
+ *  that does not arrive is never its tile's failure: its code stand-in
+ *  keeps standing. */
+export type PropPlacement = Readonly<{
+  /** The model's id in `PROP_INDEX`: one model may stand in several
+   *  pieces, as the trees do. */
+  model: string;
+  step: PathStepSlug;
+  /** The piece in the tile's layout (`board.ts`) whose box it fills. */
+  piece: string;
+  /** Fits its width and height to the box and squashes its depth into it,
+   *  rather than shrinking whole to the box's shallowest side: for a
+   *  backdrop, or a piece whose base runs deeper than its box. */
+  squash?: boolean;
+}>;
+
+const placed = (
+  model: string,
+  step: PathStepSlug,
+  piece: string,
+  squash?: boolean,
+): PropPlacement => ({ model, step, piece, squash });
+
+/** Every piece a toy prop stands in, in the loop's order. The plateau, the
+ *  lake and the pipe loop have no model and stay in code; so does every
+ *  part a beat moves (`toys.ts`). */
+export const PROP_PLACEMENTS: readonly PropPlacement[] = [
+  placed("bisalta", "home", "bisalta", true),
+  placed("tree-round", "home", "trees"),
+  placed("ferraris-coils", "turin", "coils"),
+  placed("tree-conifer", "turin", "trees"),
+  placed("tree-round", "turin", "trees-back"),
+  placed("chablais", "switzerland", "chablais", true),
+  placed("sailboat", "switzerland", "sailboat"),
+  placed("roche-dial", "switzerland", "roche-dial"),
+  placed("mvp-window", "cuneo-2022", "mvp-window", true),
+  placed("tree-conifer", "cuneo-2022", "trees"),
+  placed("clock-face", "lille", "clock-face"),
+  placed("startup-desk", "now", "startup-desk"),
+  placed("tree-round", "now", "trees"),
+  placed("next-plinth", "next", "blank"),
+];
+
+/** The two side props' models, by the side prop they stand in for
+ *  (`SIDE_PROPS` in `board.ts`), and the box each fills there, as a piece
+ *  does on a tile. */
+export const SIDE_MODELS = {
+  quadrell: { model: "quadrell", w: 0.95, d: 0.95, h: 0.62 },
+  oracolo: { model: "oracolo", w: 0.8, d: 0.42, h: 1.2 },
+} as const;
+
+/** The marker's two handles, by the names their generated models take
+ *  (`marker-lorenzo`, `marker-robot`): a model swapped in goes inside its
+ *  handle (`world.ts`), and everything that moves the marker moves the
+ *  handle. */
+export const MARKER = {
+  figure: "marker-lorenzo",
+  buddy: "marker-robot",
+} as const;
+
+/** Every model id `PROP_INDEX` may list: the tiles' props, the side props
+ *  and the two markers. */
+export const PROP_MODELS: readonly string[] = [
+  ...new Set([
+    ...PROP_PLACEMENTS.map((placement) => placement.model),
+    ...Object.values(SIDE_MODELS).map((side) => side.model),
+    MARKER.figure,
+    MARKER.buddy,
+  ]),
+];
+
+/** A prop model's file, as served. */
+export function propFile(model: string): `/path/models/${string}.glb` {
+  return `/path/models/${model}.glb`;
+}
+
+/** The prop models `step`'s tile stands. */
+export function propModelsOf(step: PathStepSlug): string[] {
+  return [
+    ...new Set(
+      PROP_PLACEMENTS.filter((placement) => placement.step === step).map(
+        (placement) => placement.model,
+      ),
+    ),
+  ];
+}
+
+/** The placement standing in `piece` on `step`'s tile, if any. */
+export function placementOf(
+  step: PathStepSlug,
+  piece: string,
+): PropPlacement | undefined {
+  return PROP_PLACEMENTS.find(
+    (placement) => placement.step === step && placement.piece === piece,
+  );
+}
 
 /** A tile's generated landmarks. */
 export function assetsForStep(step: PathStepSlug): readonly SceneAsset[] {

@@ -220,10 +220,12 @@ test.describe("the ink grade", () => {
     fog: new Color(0.8, 0.8, 0.8),
   };
 
-  /* Pulled about 35% toward the ramp by day: with no lift, the distance to
-     the ramp's colour shrinks by exactly the amount. */
-  test("pulls a landmark's albedo about 35% toward the path palette", () => {
-    expect(INK_GRADE.day.amount).toBeCloseTo(0.35, 2);
+  /* Pulled a little toward the ramp by day, 8%, so the toys keep their own
+     colours: with no lift, the distance to the ramp's colour shrinks by
+     exactly the amount. */
+  test("pulls a model's albedo a little toward the path palette", () => {
+    expect(INK_GRADE.day.amount).toBeCloseTo(0.08, 2);
+    expect(INK_GRADE.night.amount).toBeLessThan(0.15);
     const grade = { ...inkGrade(palette, 0), lift: 0 };
     const albedo = new Color(0.6, 0.3, 0.2);
     const ramp = gradeAlbedo(albedo, { ...grade, amount: 1 });
@@ -246,7 +248,7 @@ test.describe("the ink grade", () => {
     const lum = (c: Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
     const day = gradeAlbedo(black, inkGrade(palette, 0));
     const night = gradeAlbedo(black, inkGrade(palette, 1));
-    expect(lum(day)).toBeGreaterThan(0.05);
+    expect(lum(day)).toBeGreaterThan(0.01);
     expect(INK_GRADE.night.lift).toBeGreaterThan(INK_GRADE.day.lift);
     /* A white stays near the stock. */
     const white = gradeAlbedo(new Color(1, 1, 1), inkGrade(palette, 0));
