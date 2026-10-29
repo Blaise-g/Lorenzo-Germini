@@ -383,6 +383,52 @@ test.describe("reduced motion", () => {
   });
 });
 
+/* Once a build settles, nothing is drawn until something moves: the frame
+   sample does not keep an idle scene rendering (decision 8). */
+test.describe("rendering on demand", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const counts = { draws: 0 };
+      (window as unknown as { __draws: typeof counts }).__draws = counts;
+      const proto = WebGL2RenderingContext.prototype;
+      for (const name of [
+        "drawElements",
+        "drawArrays",
+        "drawElementsInstanced",
+        "drawArraysInstanced",
+      ] as const) {
+        const original = proto[name] as (...args: unknown[]) => void;
+        (proto as unknown as Record<string, unknown>)[name] = function (
+          this: WebGL2RenderingContext,
+          ...args: unknown[]
+        ) {
+          counts.draws += 1;
+          return original.apply(this, args);
+        };
+      }
+    });
+  });
+
+  const draws = (page: Page) =>
+    page.evaluate(
+      () => (window as unknown as { __draws: { draws: number } }).__draws.draws,
+    );
+
+  test("a settled scene draws nothing until it is turned", async ({ page }) => {
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect.poll(() => draws(page)).toBeGreaterThan(0);
+    /* Let a frame already requested finish. */
+    await page.waitForTimeout(200);
+    const settled = await draws(page);
+    await page.waitForTimeout(1000);
+    expect(await draws(page)).toBe(settled);
+
+    await page.getByRole("button", { name: "Turn the scene left" }).click();
+    await expect.poll(() => draws(page)).toBeGreaterThan(settled);
+  });
+});
+
 test.describe("a step whose scene is not built yet", () => {
   test("shows its text and says so, with no controls", async ({ page }) => {
     await page.goto("/path#turin");

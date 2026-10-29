@@ -525,12 +525,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let fellBack = false;
   const frameTimes: number[] = [];
 
+  /* Frames are drawn on demand: a build, a turn or a theme change. The
+     frame sample fills only from those, so a settled scene draws nothing
+     while it waits for a verdict. */
   function moving() {
     return (
       buildState === "building" ||
       turnElapsed < TURN_MS ||
-      themeElapsed < THEME_MS ||
-      frameTimes.length < FRAME_SAMPLE_SIZE
+      themeElapsed < THEME_MS
     );
   }
 
@@ -553,7 +555,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     lastTime = time;
 
     /* The first `FRAME_SAMPLE_SIZE` frame times decide the fallback; a frame
-       that spans a pause is not a frame time. */
+       that spans a pause, or the first after an idle stretch, is not a frame
+       time. */
     if (delta > 0 && delta < 1000 && frameTimes.length < FRAME_SAMPLE_SIZE) {
       frameTimes.push(delta);
       if (frameTimes.length === FRAME_SAMPLE_SIZE) {
