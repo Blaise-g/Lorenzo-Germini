@@ -71,9 +71,14 @@ Notes:
 - **Recoloured to the palette.** The models carry no texture, normals or colour. The runtime
   shades them flat in a palette role (`prop`) and outlines them like any coded solid, so they
   follow the light/dark mix like the rest of the scene.
-- **The stills' plaque is blank.** The live scene sets the figure on the plaque from the step's
-  line ("10,000 m³ a year — projected saving"). The paintings leave the plaque blank, so no
-  generated text can drop "projected". The figure is in the text panel either way.
+- **The stills' plaque is blank, and smaller.** The live scene sets the figure on the plaque from
+  the step's line ("10,000 m³ a year — projected saving"). The paintings leave the plaque blank,
+  so no generated text can drop "projected", and they stay blank: the figure is in the text panel
+  either way. After the branch review the live plaque was enlarged so the figure reads at 1440×900
+  (2.3 × 0.66 instead of 1.55 × 0.44, text lines 0.26 tall instead of 0.15, moved left of the
+  post to clear the courtyard's right range). Its lines are about 11–12 CSS px there, checked in
+  light and dark screenshots at pixel ratios 1 and 2; before, they were about 6. The paintings
+  were not redone over the new grey box, so they show the old, smaller blank plaque.
 - **The stills are not quantised to the tokens.** Research §9 asks that of generated textures.
   Quantising a painted still would posterise it. Both paintings were prompted with the path
   tokens' values for their mode.

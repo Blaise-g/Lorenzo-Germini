@@ -61,6 +61,14 @@ export function handAngle(progress: number): number {
 }
 
 const DIAL_RADIUS = 0.48;
+/** The figure's plaque under the dial, in the clock's own space. */
+const PLAQUE = {
+  width: 2.3,
+  height: 0.66,
+  x: -0.35,
+  y: 0.47,
+  lineHeight: 0.26,
+};
 const DIAL_HEIGHT = 1.3;
 
 /** A Vieille Bourse side range: a long block of houses under one roof, with
@@ -254,17 +262,19 @@ export const LILLE_SCENE: SceneDefinition = {
       blade.translate(0, (DIAL_RADIUS * 0.78) / 2 - 0.06, 0);
       const hand = at(kit.solid(blade, "accent"), 0, DIAL_HEIGHT, 0.09);
       hand.name = HAND;
+      /* Sized to read at 1440 wide: its lines are about 12 CSS px there.
+         Set left of the post, so it clears the courtyard's right range. */
       const plaque = at(
-        kit.solid(new BoxGeometry(1.55, 0.44, 0.06), "ground"),
-        0,
-        0.45,
-        0,
+        kit.solid(new BoxGeometry(PLAQUE.width, PLAQUE.height, 0.06), "ground"),
+        PLAQUE.x,
+        PLAQUE.y,
+        0.1,
       );
       const figure = at(
-        kit.text(LILLE_FIGURE_LINES, "accent", 0.15),
-        0,
-        0.45,
-        0.035,
+        kit.text(LILLE_FIGURE_LINES, "accent", PLAQUE.lineHeight),
+        PLAQUE.x,
+        PLAQUE.y,
+        0.135,
       );
       return at(
         group(post, dial, ...ticks, mark, hand, plaque, figure),
