@@ -63,8 +63,8 @@ export const CAMERA_MS = {
   /** One hop of the pawn's travel, per tile. */
   hop: 560,
   push: 1200,
-  /** The pawn's landing beat: its squash, then the build. */
-  landing: 350,
+  /** The pawn's drop onto its tile at the end of the opening. */
+  drop: 350,
   skipHold: 300,
   skipFlight: 1100,
   end: 2000,
@@ -121,12 +121,7 @@ export type TransitKind = "opening" | "travel" | "skip";
 
 /** What the camera is doing: one of the moves, holding a step's close-up,
  *  pulling back after the last step, or holding the whole board. */
-export type CameraShot =
-  | TransitKind
-  | "close-up"
-  | "end"
-  | "overview"
-  | "idle";
+export type CameraShot = TransitKind | "close-up" | "end" | "overview" | "idle";
 
 /** One move to a step's close-up, in ms from its start: when the pawn
  *  leaves and lands (it builds the tile on landing), when the camera starts
@@ -134,7 +129,6 @@ export type CameraShot =
  *  settled. */
 export type Transit = Readonly<{
   kind: TransitKind;
-  tiles: number;
   hopStartMs: number;
   landMs: number;
   pushStartMs: number;
@@ -162,8 +156,7 @@ export function transitTimeline(
     const landMs = endMs - 300;
     return {
       kind,
-      tiles: 0,
-      hopStartMs: landMs - CAMERA_MS.landing,
+      hopStartMs: landMs - CAMERA_MS.drop,
       landMs,
       pushStartMs: 0,
       endMs,
@@ -173,7 +166,6 @@ export function transitTimeline(
     const endMs = CAMERA_MS.skipHold + CAMERA_MS.skipFlight;
     return {
       kind,
-      tiles: count,
       hopStartMs: CAMERA_MS.skipHold + 150,
       landMs: endMs - 200,
       pushStartMs: CAMERA_MS.skipHold,
@@ -185,7 +177,6 @@ export function transitTimeline(
   const pushStartMs = landMs - CAMERA_MS.hop;
   return {
     kind,
-    tiles: count,
     hopStartMs,
     landMs,
     pushStartMs,
@@ -302,8 +293,9 @@ export type CameraRig = {
   /** Lands a move in progress on its close-up at once. */
   finish(): void;
   /** Moves the rig on `ms` and places the camera. `playing` is whether the
-   *  tour runs, which the close-up's drift follows. */
-  tick(ms: number, playing: boolean): void;
+   *  tour runs, which the close-up's drift follows; `followMs`, when the
+   *  follow runs on while the rig is frozen (a turn during a pause). */
+  tick(ms: number, playing: boolean, followMs?: number): void;
   /** Places the camera where the rig is, without moving it on: after a
    *  resize, a turn or a new frame. */
   place(): void;
@@ -679,7 +671,6 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
   return {
     open(slug, transit) {
       const from = copyShot(overview());
-      from.fov = LENS.wide;
       phase = { kind: "transit", slug, transit, from, elapsed: 0 };
       placed = false;
       apply(Infinity);
@@ -719,7 +710,7 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       landTransit();
       apply(Infinity);
     },
-    tick(ms, playing) {
+    tick(ms, playing, followMs = ms) {
       if (phase.kind === "transit") {
         phase.elapsed += ms;
         if (phase.elapsed >= phase.transit.endMs) landTransit();
@@ -729,7 +720,7 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       } else if (phase.kind === "dwell" && playing && !reducedMotion) {
         phase.elapsed += ms;
       }
-      apply(ms);
+      apply(followMs);
     },
     place() {
       apply(0);

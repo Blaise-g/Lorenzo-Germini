@@ -225,6 +225,9 @@ test.describe("on /path", () => {
     async function drawnLille() {
       await expect(stage(page)).toHaveAttribute("data-scene-props", /belfry/);
       await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+      /* A screenshot is what is on screen over the canvas: the last step's
+         frame, crossfading out over 150 ms, has to have gone. */
+      await expect(page.locator("[data-path-crossfade]")).toHaveCount(0);
       await page.evaluate(
         () =>
           new Promise((resolve) =>

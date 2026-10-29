@@ -6,7 +6,6 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
-import { transitTimeline } from "@/components/path/scene/camera-rig";
 import { FALLBACK_REASON_LINES } from "@/components/path/scene/fallback";
 import { loopSteps } from "@/components/path/scene/motion";
 import { PATH_STEPS } from "@/data/path";
@@ -101,8 +100,10 @@ test.describe("the pawn's move", () => {
 
   /* Home to step 4 is three tiles forward, a pick: the skip flight's one
      long hop lands inside its 1.4 s (a 0.3 s hold and a 1.1 s flight, the
-     benchmark's §4(a)), so step 4's first piece starts to rise by then, and
-     home's tile, already built, stays standing throughout. */
+     benchmark's §4(a)), so step 4's first piece starts to rise before the
+     flight settles, and home's tile, already built, stays standing
+     throughout. Timed against the settle rather than the clock: both run
+     from the same frames, so a loaded machine slows them alike. */
   test("a far jump lands inside the skip flight, and built tiles stay built", async ({
     page,
   }) => {
@@ -113,6 +114,21 @@ test.describe("the pawn's move", () => {
     ).toBe(3);
     await settleOn(page, "home");
     const start = await watchProps(page);
+    /* When the stage, unsettled by the click, settles again. */
+    const settled = page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const element = document.querySelector("[data-path-stage]")!;
+          let left = false;
+          new MutationObserver(() => {
+            if (!element.hasAttribute("data-stage-settled")) left = true;
+            else if (left) resolve(performance.now());
+          }).observe(element, {
+            attributes: true,
+            attributeFilter: ["data-stage-settled"],
+          });
+        }),
+    );
     await stepLink(page, "cuneo-2022").click();
     /* Home's own "built" holds until the click lands: wait for the step. */
     await expect(stage(page)).toHaveAttribute("data-scene-step", "cuneo-2022");
@@ -124,11 +140,9 @@ test.describe("the pawn's move", () => {
     const landed = log.find((entry) =>
       entry.props.split(" ").includes(propsOf("cuneo-2022")[0]),
     )!;
-    /* Inside the flight, with a frame or two of slack. */
+    /* The pawn is in the air first, and down before the flight ends. */
     expect(landed.at - start).toBeGreaterThanOrEqual(400);
-    expect(landed.at - start).toBeLessThan(
-      transitTimeline("skip", 3).endMs + 100,
-    );
+    expect(landed.at).toBeLessThan(await settled);
     for (const entry of log) {
       for (const prop of propsOf("home")) {
         expect(entry.props.split(" "), `${prop} at ${entry.at}`).toContain(

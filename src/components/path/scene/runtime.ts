@@ -424,10 +424,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return out;
   }
 
-  function pawnBase(slug: PathStepSlug) {
-    return TILE.thickness * tileScale(slug) + liftOf(slug);
-  }
-
   /** How far each tile has risen, 0 on the board to 1 lifted: the selected
    *  one rises, the rest settle. */
   const lifts = new Map<PathStepSlug, number>();
@@ -762,17 +758,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /* Frames are drawn on demand: a move, a build, a turn, a theme change,
      or the camera moving, which includes its close-up breathing while the
      tour plays. The frame sample fills only from those, so a settled board
-     draws nothing while it waits for a verdict. A paused tour freezes
-     everything but a theme change. */
+     draws nothing while it waits for a verdict. A paused tour freezes the
+     tour's own motion; a theme change or a turn, the visitor's, plays on. */
   function moving() {
-    if (themeElapsed < THEME_MS) return true;
+    if (themeElapsed < THEME_MS || turnElapsed < TURN_MS) return true;
     if (frozen) return false;
     return (
       buildState === "building" ||
       catchingUp.size > 0 ||
       landingElapsed < LANDING_MS ||
       lifting() ||
-      turnElapsed < TURN_MS ||
       rig.moving(tourState === "playing")
     );
   }
@@ -806,7 +801,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       }
     }
 
-    const step = frozen ? 0 : Math.min(delta, MAX_STEP_MS);
+    /* The visitor's own changes run on while the tour is paused. */
+    const free = Math.min(delta, MAX_STEP_MS);
+    const step = frozen ? 0 : free;
     let posed = false;
     for (const [slug, elapsed] of catchingUp) {
       if (elapsed + step >= PROP_DROP_MS) {
@@ -837,17 +834,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
     if (liftTiles(step)) posed = true;
     if (posed) pose();
-    if (turnElapsed < TURN_MS) {
-      turnElapsed = Math.min(turnElapsed + step, TURN_MS);
+    const turning = turnElapsed < TURN_MS;
+    if (turning) {
+      turnElapsed = Math.min(turnElapsed + free, TURN_MS);
       const t = easeInOut(turnElapsed / TURN_MS);
       board.rotation.y = (turnFrom + (turnStep - turnFrom) * t) * TURN_RADIANS;
     }
-    rig.tick(step, tourState === "playing");
+    rig.tick(step, tourState === "playing", turning ? free : step);
+    /* A turn ended during a pause: no frame follows to close the follow's
+       last gap, so close it now. */
+    if (turning && frozen && turnElapsed >= TURN_MS) rig.place();
     if (isSettled() !== settled || rig.shot() !== shot) emit();
     /* The water and the grass move on with every frame drawn. */
     paintBox.flow(step / 1000);
     if (themeElapsed < THEME_MS) {
-      themeElapsed = Math.min(themeElapsed + step, THEME_MS);
+      themeElapsed = Math.min(themeElapsed + free, THEME_MS);
       const t = easeInOut(themeElapsed / THEME_MS);
       themeMix.value = themeFrom + (themeTarget - themeFrom) * t;
       paint();
@@ -1026,7 +1027,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (kind === "travel") {
         const moving = move!;
         rig.travel(slug, transit, (ms, out) => pawnFoot(moving, ms, out));
-      } else if (rig.settledOn() !== slug || steps !== 0) {
+      } else if (
+        rig.settledOn() !== slug ||
+        rig.shot() !== "close-up" ||
+        steps !== 0
+      ) {
         rig.skip(slug, transit);
       }
     }

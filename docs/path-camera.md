@@ -13,23 +13,24 @@ two shots on an authored curve. A critically damped follow with a 0.12 s half-li
 so a selection that cuts a curve short still moves smoothly. Distance blends geometrically, so a
 pull-back reads as even.
 
-| Phase              | Duration                                                               | Easing                                                    |
-| ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------- |
-| Opening            | 2.4 s, or 1.2 s when the visit enters at a fragment                    | `easeInOutCubic`, FOV 30° → 24°                           |
-| Close-up (dwell)   | The narration plus 0.8 s, at least 5 s                                 | Linear 6° orbit; 1% breathing dolly, sine at 0.15 Hz      |
-| Pull back          | 0.9 s, to 2.2× the close-up's distance (×1.3 more on a portrait phone) | `easeInOutCubic`                                          |
-| Travel             | 0.56 s a tile, the camera 0.25 s behind the pawn                       | Follow damping, half-life 0.12 s                          |
-| Push in            | 1.2 s; the stage reports `settled` at its end                          | `easeOutQuart`                                            |
-| Landing beat       | 0.35 s                                                                 | Spring, bounce 0.2 (a 20% squash)                         |
-| Skip               | 0.3 s hold, then a 1.1 s flight in an arc over the board               | `easeInOut`, the site's `cubic-bezier(0.77, 0, 0.175, 1)` |
-| End (after `next`) | 2.0 s, back to the whole board, then held                              | `easeInOutCubic`                                          |
-| Reduced motion     | A cut, the old frame crossfading out over 150 ms                       | None: no drift, no breathing, no autoplay                 |
+| Phase              | Duration                                                               | Easing                                                          |
+| ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Opening            | 2.4 s, or 1.2 s when the visit enters at a step other than home        | `easeInOutCubic`, FOV 30° → 24° (a portrait phone stays at 30°) |
+| Close-up (dwell)   | The narration plus 0.8 s, at least 5 s                                 | Linear 6° orbit; 1% breathing dolly, sine at 0.15 Hz            |
+| Pull back          | 0.9 s, to 2.2× the close-up's distance (×1.3 more on a portrait phone) | `easeInOutCubic`                                                |
+| Travel             | 0.56 s a tile, the camera 0.25 s behind the pawn                       | Follow damping, half-life 0.12 s                                |
+| Push in            | 1.2 s; the stage reports `settled` at its end                          | `easeOutQuart`                                                  |
+| Landing beat       | 0.35 s                                                                 | Spring, bounce 0.2 (a 20% squash)                               |
+| Skip               | 0.3 s hold, then a 1.1 s flight in an arc over the board               | `easeInOut`, the site's `cubic-bezier(0.77, 0, 0.175, 1)`       |
+| End (after `next`) | 2.0 s, back to the whole board, then held                              | `easeInOutCubic`                                                |
+| Reduced motion     | A cut, the old frame crossfading out over 150 ms                       | None: no drift, no breathing, no autoplay                       |
 
 The tour's own advance travels. A pick from the list or a tile, Back, Next and a hash typed by
 hand all take the skip flight. `scene-stage.tsx` tells the two apart by whether the hash changed
 inside the tour's replace (`isReplacingStep()`). A pause freezes the camera, the pawn and the
 build where they are, mid-curve. A pick made while paused plays its flight, then holds still:
-the close-up drifts and breathes only while the tour plays.
+the close-up drifts and breathes only while the tour plays. A theme change or a turn made while
+paused still plays out. Replay after the end pull-back flies back to `next`'s close-up.
 
 ## What was tuned, and why
 
@@ -60,9 +61,11 @@ rounds. The clips are kept in `/tmp/orch-path-v2/camera/`.
 
 ## For the lighting
 
-`rig.focus()` returns the current shot's focus in world space: `{ target, radius }`, where the
-target is the point the camera looks at and the radius is the half-width it frames there. The
-sun's shadow frustum can be fitted to it.
+`rig.focus()` returns the current shot's focus in world space: `{ target, radius }`. The target
+is the point the camera looks at. The radius is the larger half-extent of the frame at the
+target's depth: the half-width on a landscape stage, the half-height on a portrait one. The sun's
+shadow frustum can be fitted to it, padded: the camera looks down at 28° to 70°, so the ground it
+sees behind the target reaches farther than the radius.
 
 ## Open
 

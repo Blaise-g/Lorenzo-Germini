@@ -763,9 +763,7 @@ test.describe("the motion", () => {
         expect(movePose("travel", steps, i / 100).lift).toBeLessThanOrEqual(1);
       }
       /* Each tile on the way is touched down on, the last one included. */
-      expect(landings("travel", steps), `${steps} tiles`).toBe(
-        Math.abs(steps),
-      );
+      expect(landings("travel", steps), `${steps} tiles`).toBe(Math.abs(steps));
     }
   });
 

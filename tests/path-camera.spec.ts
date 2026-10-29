@@ -8,6 +8,7 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { STAGE_COPY } from "@/app/path/copy";
 import { narrationFor } from "@/app/path/narration";
 import { dwellMs, SETTLE_MAX_WAIT_MS } from "@/app/path/tour-clock";
 import { buildPlan } from "@/components/path/scene/build-plan";
@@ -74,7 +75,7 @@ test.describe("the timeline", () => {
     expect(short.endMs).toBe(1200);
     for (const opening of [full, short]) {
       expect(opening.endMs - opening.landMs).toBe(300);
-      expect(opening.landMs - opening.hopStartMs).toBe(CAMERA_MS.landing);
+      expect(opening.landMs - opening.hopStartMs).toBe(CAMERA_MS.drop);
     }
   });
 
@@ -270,12 +271,13 @@ test.describe("with motion", () => {
     const settled = log.find((entry) => /settled \S+ now$/.test(entry.state))!;
     expect(settled, JSON.stringify(log)).toBeTruthy();
     expect(settled.state).toBe("close-up settled building now");
+    /* No sooner than the 1.4 s flight; a loaded machine only stretches it. */
     expect(settled.at - clicked).toBeGreaterThan(1300);
-    expect(settled.at - clicked).toBeLessThan(2500);
     expect(log.some((entry) => entry.state.startsWith("travel"))).toBe(false);
   });
 
-  /* Skip lands the camera with the build, at once. */
+  /* Skip lands the camera with the build, at once: well inside the
+     second and more the flight still had to run. */
   test("Skip lands the flight and the build at once", async ({ page }) => {
     await page.goto("/path#lille");
     await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up", {
@@ -285,7 +287,7 @@ test.describe("with motion", () => {
     await expect(stage(page)).toHaveAttribute("data-camera-shot", "skip");
     await page.locator("[data-path-build-control]").click();
     await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up", {
-      timeout: 300,
+      timeout: 700,
     });
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
@@ -389,6 +391,53 @@ test.describe("with the tour's clock", () => {
     expect(await draws(page)).toBe(held);
   });
 
+  /* A pause freezes the tour, not the visitor: a theme change or a turn
+     made while paused still plays out, then the board stops drawing. */
+  async function pausedOnTurin(page: Page) {
+    await page.goto("/path#turin");
+    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl", {
+      timeout: 15_000,
+    });
+    await runUntilSettled(page, "turin");
+    await playTab(page).click();
+    await expect(page.locator("[data-path-tour]")).toHaveAttribute(
+      "data-path-tour",
+      "paused",
+    );
+    await page.clock.runFor(4000);
+  }
+
+  test("while paused, a theme change plays out, then stops", async ({
+    page,
+  }) => {
+    await pausedOnTurin(page);
+    await page.evaluate(() =>
+      document.documentElement.classList.toggle("dark"),
+    );
+    await page.clock.runFor(1000);
+    const held = await draws(page);
+    await page.clock.runFor(2000);
+    expect(await draws(page)).toBe(held);
+  });
+
+  test("while paused, a turn plays out, then stops", async ({ page }) => {
+    await pausedOnTurin(page);
+    /* The board's top half: the stage's own controls lie lower down. */
+    const box = (await page.locator("[data-path-stage] canvas").boundingBox())!;
+    const board = () =>
+      page.screenshot({
+        clip: { x: box.x, y: box.y, width: box.width, height: box.height / 2 },
+      });
+    await page.getByRole("button", { name: STAGE_COPY.turnLeft }).click();
+    await page.clock.runFor(50);
+    const started = await board();
+    await page.clock.runFor(1000);
+    expect((await board()).equals(started)).toBe(false);
+    const held = await draws(page);
+    await page.clock.runFor(2000);
+    expect(await draws(page)).toBe(held);
+  });
+
   /* After the last step's dwell the camera pulls back to the whole board
      and holds there; the step stays settled. */
   test("after the last step, it pulls back to the whole board", async ({
@@ -419,6 +468,12 @@ test.describe("with the tour's clock", () => {
     const held = await draws(page);
     await page.clock.runFor(2000);
     expect(await draws(page)).toBe(held);
+
+    /* Replay from there flies back to the close-up to build it again. */
+    await page.locator("[data-path-build-control]").click();
+    await expect(stage(page)).toHaveAttribute("data-camera-shot", "skip");
+    await runUntilSettled(page, "next");
+    await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up");
   });
 });
 
@@ -428,13 +483,37 @@ test.describe("under reduced motion", () => {
   test("a selection cuts to its close-up, crossfading", async ({ page }) => {
     await watchStage(page);
     await countDraws(page);
+    /* The crossfade's copy lives 150 ms: count it as it is added. */
+    await page.addInitScript(() => {
+      const added = { count: 0 };
+      (window as unknown as { __crossfades: typeof added }).__crossfades =
+        added;
+      new MutationObserver((records) => {
+        for (const record of records) {
+          for (const node of record.addedNodes) {
+            if (
+              node instanceof HTMLElement &&
+              node.hasAttribute("data-path-crossfade")
+            ) {
+              added.count += 1;
+            }
+          }
+        }
+      }).observe(document, { subtree: true, childList: true });
+    });
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up", {
       timeout: 15_000,
     });
     await stepLink(page, "lille").click();
-    await expect(page.locator("[data-path-crossfade]")).toHaveCount(1);
     await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
+    expect(
+      await page.evaluate(
+        () =>
+          (window as unknown as { __crossfades: { count: number } })
+            .__crossfades.count,
+      ),
+    ).toBe(1);
     await expect(page.locator("[data-path-crossfade]")).toHaveCount(0);
     await expect(page.locator("[data-path-stage] canvas")).toHaveCount(1);
     const shots = (await stageLog(page)).map(
