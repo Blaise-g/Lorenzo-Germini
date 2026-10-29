@@ -86,6 +86,21 @@ test.describe("Cache Components prerender baseline", () => {
     });
   }
 
+  /* On a phone `/path` stacks the board, the strip and the bar, and the
+     strip scrolls its current step into the middle on hydration. */
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+    for (const route of ["/path", "/path#lille"]) {
+      test(`${route} settles without visible layout shift`, async ({
+        page,
+      }) => {
+        const shift = await measureCumulativeLayoutShift(page, route);
+        expect(shift).toBeLessThanOrEqual(MAX_CUMULATIVE_LAYOUT_SHIFT);
+      });
+    }
+  });
+
   /* #26 removed the homepage's only runtime read — the `?variant=` knob — so
      the route has no Suspense boundary left to stick on and prerenders whole.
      Asserting a section per step is what would catch a reintroduced boundary

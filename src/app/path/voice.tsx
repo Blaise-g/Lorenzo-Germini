@@ -262,7 +262,7 @@ export function NarrationBar({
       data-path-cue-running={cue?.running ? "" : undefined}
       data-path-captions={captionsOn ? "on" : "off"}
       className={cn(
-        "path-card flex flex-col gap-y-3 px-5 py-4 md:px-6 xl:flex-row xl:items-center xl:gap-x-6",
+        "path-card flex flex-col gap-y-3 px-4 py-3 md:px-6 md:py-4 xl:flex-row xl:items-center xl:gap-x-6",
         className,
       )}
     >
@@ -324,7 +324,7 @@ export function NarrationBar({
           data-voice-state={state}
           className="flex shrink-0 flex-col xl:w-56"
         >
-          <div className="flex items-center gap-x-6">
+          <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6">
             <Switch
               checked={voiceOn}
               onChange={setVoiceOn}

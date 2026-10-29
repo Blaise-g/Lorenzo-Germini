@@ -398,6 +398,12 @@ html {
     .path-step-row > li {
       scroll-snap-align: center;
     }
+
+    /* Under a board that takes half a phone's screen, the strip packs
+       close, its links shorter below the date. */
+    .path-step-link {
+      padding-bottom: 0.625rem;
+    }
   }
 
   /* The steps' full text is for paper, and for a page without JavaScript:

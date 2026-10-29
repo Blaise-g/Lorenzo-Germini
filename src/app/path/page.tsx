@@ -160,11 +160,12 @@ export default function PathPage() {
                 (`drawing-buffer.ts`).
 
                 On a phone: the board first, full width; then the steps, the
-                same strip three at a time; then the bar. Print shows none of
-                these, only the selected step's text. */}
+                same strip three at a time; then the bar, packed close so its
+                switches are on the first screen. Print shows none of these,
+                only the selected step's text. */}
             <div
               data-path-world
-              className="mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-y-4 print:mt-6 print:block"
+              className="mt-4 flex flex-1 flex-col gap-y-3 md:gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-y-4 print:mt-6 print:block"
             >
               {/* The tour's keys work with focus anywhere in here, or on the
                   tour's tabs. */}

@@ -404,7 +404,7 @@ export function TourTransport({ className }: { className?: string }) {
           <span className="path-tab-face">{TOUR_COPY.next}</span>
         </button>
       </div>
-      <p className="text-faint font-label mt-3 hidden text-[0.6875rem] tracking-[0.12em] uppercase [@media(hover:hover)_and_(pointer:fine)]:block">
+      <p className="text-faint font-label mt-3 hidden w-0 min-w-full text-[0.6875rem] tracking-[0.12em] uppercase [@media(hover:hover)_and_(pointer:fine)]:block">
         {TOUR_COPY.keys}
       </p>
       <p aria-live="polite" data-path-tour-announcement className="sr-only">

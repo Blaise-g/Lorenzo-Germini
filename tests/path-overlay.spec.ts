@@ -313,6 +313,32 @@ test.describe("on a touch screen", () => {
     await expect(page).toHaveURL(/\/path#switzerland$/);
     await expectSelected(page, "switzerland");
   });
+
+  /* The switches were at the screen's bottom edge (v3-harden), and a third,
+     Sound, is to join them in the same row. */
+  test("the Voice and Captions switches are whole in the first screen, with room for a third beside them", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    const voice = page.locator("[data-path-voice-switch]");
+    const captions = page.locator("[data-path-captions-switch]");
+    await expect(voice).toBeInViewport({ ratio: 1 });
+    await expect(captions).toBeInViewport({ ratio: 1 });
+    /* A third switch, labelled as Sound will be, laid in the row: it has
+       to stay in the row and in the screen. */
+    const third = await voice.evaluate((button) => {
+      const probe = button.cloneNode(true) as HTMLElement;
+      probe.lastChild!.textContent = "Sound";
+      button.parentElement!.append(probe);
+      const at = probe.getBoundingClientRect();
+      const first = button.getBoundingClientRect();
+      probe.remove();
+      return { top: at.top, firstTop: first.top, bottom: at.bottom };
+    });
+    expect(third.top).toBe(third.firstTop);
+    expect(third.bottom).toBeLessThanOrEqual(812);
+  });
 });
 
 test("a load of /path#lille selects Lille, and a reload keeps it", async ({
@@ -456,6 +482,18 @@ test.describe("on a phone", () => {
     await expect(page.locator("[data-path-tour-play]")).toBeInViewport();
     await expectLongestCueFits(page);
   });
+
+  /* Under a finger the keys' line is hidden; with a mouse on a narrow
+     window it wraps under the tabs rather than running off the screen. */
+  test("the keys' line stays inside the screen", async ({ page }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    const keys = page.getByText(/J back/);
+    await expect(keys).toBeVisible();
+    const box = (await keys.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(375);
+  });
 });
 
 test("Read this step goes to the step's section on the flat site", async ({
@@ -592,6 +630,30 @@ test.describe("the strip on a phone", () => {
       expect(cut).toBe(0);
     });
   }
+
+  test("a step tapped at the strip's edge comes to its middle", async ({
+    page,
+  }) => {
+    await page.goto("/path#lille");
+    await hydrated(page);
+    const strip = page.locator(".path-step-strip");
+    const offCentre = (slug: PathStepSlug) =>
+      strip.evaluate((el, current) => {
+        const box = el.getBoundingClientRect();
+        const row = el
+          .querySelector(`[data-path-step-link="${current}"]`)!
+          .closest("li")!
+          .getBoundingClientRect();
+        return Math.abs(row.left + row.width / 2 - (box.left + box.width / 2));
+      }, slug);
+    await expect.poll(() => offCentre("lille")).toBeLessThanOrEqual(2);
+    /* Lille's right-hand neighbour, at the strip's edge until it is chosen. */
+    const next = PATH_STEPS[PATH_STEPS.findIndex((s) => s.slug === "lille") + 1]
+      .slug as PathStepSlug;
+    expect(await offCentre(next)).toBeGreaterThan(50);
+    await stepLink(page, next).tap();
+    await expect.poll(() => offCentre(next)).toBeLessThanOrEqual(2);
+  });
 
   test("the keys' line is not shown to a finger", async ({ page }) => {
     await page.goto("/path");

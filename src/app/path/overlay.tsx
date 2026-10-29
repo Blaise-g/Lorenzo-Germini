@@ -232,21 +232,39 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
   }, [fromFragment]);
 
   /* Where the strip scrolls, the selected step is brought to its middle,
-     the strip alone scrolling, never the page. */
+     the strip alone scrolling, never the page: on each change of step, and
+     again, at once, whenever the strip itself changes size — the fonts
+     landing, a turned phone — which would leave it off-centre. */
   useEffect(() => {
     const strip = stripRef.current;
-    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
-    const row = strip.querySelector<HTMLElement>(
-      `li:has([data-path-step-link="${selected}"])`,
-    );
-    if (!row) return;
-    const box = strip.getBoundingClientRect();
-    const at = row.getBoundingClientRect();
+    if (!strip) return;
+    function centre(behavior: ScrollBehavior) {
+      if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+      const row = strip.querySelector<HTMLElement>(
+        `li:has([data-path-step-link="${selected}"])`,
+      );
+      if (!row) return;
+      const box = strip.getBoundingClientRect();
+      const at = row.getBoundingClientRect();
+      strip.scrollTo({
+        left:
+          strip.scrollLeft + at.left - box.left - (box.width - at.width) / 2,
+        behavior,
+      });
+    }
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    strip.scrollTo({
-      left: strip.scrollLeft + at.left - box.left - (box.width - at.width) / 2,
-      behavior: reduce.matches ? "instant" : "smooth",
+    centre(reduce.matches ? "instant" : "smooth");
+    /* Each box's first call is its observation, not a change. */
+    const observed = new Set<Element>();
+    const resized = new ResizeObserver((entries) => {
+      if (entries.some((entry) => observed.has(entry.target))) {
+        centre("instant");
+      }
+      for (const entry of entries) observed.add(entry.target);
     });
+    resized.observe(strip);
+    if (strip.firstElementChild) resized.observe(strip.firstElementChild);
+    return () => resized.disconnect();
   }, [selected]);
 
   function onStepKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
@@ -351,7 +369,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
       {/* In the server HTML and of fixed size either way, so the control
           arriving moves nothing. A button: it changes storage and goes
           nowhere. */}
-      <div className="border-border flex h-11 shrink-0 items-center justify-end border-t border-dashed px-3 lg:h-auto lg:w-28 lg:justify-center lg:border-t-0 lg:border-l lg:px-2 print:hidden">
+      <div className="border-border flex h-9 shrink-0 items-center justify-end border-t border-dashed px-3 lg:h-auto lg:w-28 lg:justify-center lg:border-t-0 lg:border-l lg:px-2 print:hidden">
         {seen.size > 0 ? (
           <button
             type="button"
