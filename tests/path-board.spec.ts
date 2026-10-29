@@ -174,22 +174,26 @@ test.describe("the pawn's move", () => {
   });
 });
 
-/* The tour's cue (`stage-status.tsx`): settled once the pawn has landed and
-   the tile is built, and at once for reduced motion. */
+/* The tour's cue (`stage-status.tsx`): settled once the camera has landed
+   on the close-up, its push-in done, with the tile's build rising on into
+   the dwell (v3); at once for reduced motion. */
 test.describe("the settled cue", () => {
   test.describe("with motion", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    test("waits for the landing and the build", async ({ page }) => {
+    test("waits for the camera to land on the close-up", async ({ page }) => {
       await settleOn(page, "lille");
       await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
       await stepLink(page, "now").click();
       await expect(stage(page)).toHaveAttribute("data-build-state", "building");
       await expect(stage(page)).not.toHaveAttribute("data-stage-settled", /.*/);
+      await expect(stage(page)).toHaveAttribute("data-stage-settled", "", {
+        timeout: 6000,
+      });
+      await expect(stage(page)).toHaveAttribute("data-camera-shot", "close-up");
       await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
         timeout: 6000,
       });
-      await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
     });
   });
 

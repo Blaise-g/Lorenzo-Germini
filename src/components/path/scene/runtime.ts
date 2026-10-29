@@ -56,6 +56,7 @@ import {
   driftMs,
   LENS,
   transitTimeline,
+  type CameraShot,
   type Transit,
 } from "./camera-rig";
 import { crossfade } from "./crossfade";
@@ -138,6 +139,8 @@ export type SceneSnapshot = {
    *  its tile: the tour's cue to start the step's dwell. The build may still
    *  be rising (`buildState`). */
   settled: boolean;
+  /** What the camera is doing (`camera-rig.ts`). */
+  shot: CameraShot;
   /** Set when the shown step's tile shows its stills instead, and why; the
    *  board keeps running for the other steps. It names its step, so the host
    *  never pairs it with a step selected since. */
@@ -570,8 +573,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return Boolean(current) && !move && rig.settledOn() === current;
   }
 
+  /** The camera's shot as last reported. */
+  let shot: CameraShot = "idle";
+
   function emit() {
     settled = isSettled();
+    shot = rig.shot();
     onChange({
       buildState,
       lit,
@@ -579,6 +586,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       turn: turnStep,
       step: current,
       settled,
+      shot,
       stills,
     });
   }
@@ -835,7 +843,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       board.rotation.y = (turnFrom + (turnStep - turnFrom) * t) * TURN_RADIANS;
     }
     rig.tick(step, tourState === "playing");
-    if (isSettled() !== settled) emit();
+    if (isSettled() !== settled || rig.shot() !== shot) emit();
     /* The water and the grass move on with every frame drawn. */
     paintBox.flow(step / 1000);
     if (themeElapsed < THEME_MS) {

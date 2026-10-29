@@ -119,6 +119,15 @@ export function breathing(elapsed: number): number {
 
 export type TransitKind = "opening" | "travel" | "skip";
 
+/** What the camera is doing: one of the moves, holding a step's close-up,
+ *  pulling back after the last step, or holding the whole board. */
+export type CameraShot =
+  | TransitKind
+  | "close-up"
+  | "end"
+  | "overview"
+  | "idle";
+
 /** One move to a step's close-up, in ms from its start: when the pawn
  *  leaves and lands (it builds the tile on landing), when the camera starts
  *  pushing in, and `end`, when the close-up has landed and the step is
@@ -309,6 +318,8 @@ export type CameraRig = {
    *  to one. Pulling back to the whole board after the last step keeps it:
    *  the tour has finished with that step, not left it. */
   settledOn(): PathStepSlug | null;
+  /** What the camera is doing now. */
+  shot(): CameraShot;
   /** The current shot's focus, for the light's shadow frustum (v3-light):
    *  where the camera looks, in world space, and the radius about it that
    *  the frame holds. */
@@ -750,6 +761,11 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       return phase.kind === "idle" || phase.kind === "transit"
         ? null
         : phase.slug;
+    },
+    shot() {
+      if (phase.kind === "transit") return phase.transit.kind;
+      if (phase.kind === "dwell") return "close-up";
+      return phase.kind;
     },
     focus() {
       const radius =

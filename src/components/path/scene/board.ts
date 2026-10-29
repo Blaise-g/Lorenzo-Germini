@@ -262,7 +262,7 @@ export function pieceOf(slug: PathStepSlug, id: string): Piece {
 }
 
 /** The pawn: a turned game piece, its foot's radius and its height. */
-export const PAWN_RADIUS = 0.46;
+export const PAWN_RADIUS = 0.45;
 export const PAWN_HEIGHT = 1.45;
 /** How high its foot rises at the top of a hop. */
 export const HOP_HEIGHT = 1.2;

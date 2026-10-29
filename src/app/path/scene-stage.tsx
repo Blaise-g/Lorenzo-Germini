@@ -85,6 +85,7 @@ const IDLE: SceneSnapshot = {
   shown: [],
   turn: 0,
   settled: false,
+  shot: "idle",
 };
 
 function stepNamed(slug: string) {
@@ -340,6 +341,7 @@ export function SceneStage({
         data-scene-props={shown.length > 0 ? shown.join(" ") : undefined}
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
+        data-camera-shot={mode === "webgl" ? snapshot.shot : undefined}
         data-fallback-reason={reason ?? sceneStills}
         className="relative h-[clamp(20rem,56svh,34rem)] w-full overflow-hidden lg:h-full"
       >

@@ -59,9 +59,8 @@ import {
   type ClipRect,
 } from "@/components/path/scene/frame";
 import {
+  hopEase,
   loopSteps,
-  MAX_MOVE_MS,
-  moveDuration,
   movePose,
   RISE_FROM,
   risePose,
@@ -743,30 +742,48 @@ test.describe("the motion", () => {
     expect(loopSteps(4, 4, 7)).toBe(0);
   });
 
-  test("a move lasts under 1.2 s however far, and longer the farther", () => {
-    expect(moveDuration(0)).toBe(0);
-    const durations = [1, 2, 3].map(moveDuration);
-    expect(durations).toEqual([...durations].sort((a, b) => a - b));
-    for (const steps of [1, 2, 3, -3]) {
-      expect(moveDuration(steps)).toBeLessThanOrEqual(MAX_MOVE_MS);
+  /** How many times a move of `steps` touches down before its end. */
+  function landings(kind: "travel" | "skip", steps: number) {
+    let count = 0;
+    let last = 0;
+    for (let i = 1; i < 2000; i++) {
+      const { along, lift } = movePose(kind, steps, i / 2000);
+      expect(Math.sign(along) * Math.sign(steps)).toBeGreaterThanOrEqual(0);
+      expect(Math.abs(along)).toBeLessThanOrEqual(Math.abs(steps) + 1e-9);
+      if (lift < 0.05 && last >= 0.05) count += 1;
+      last = lift;
     }
-    expect(MAX_MOVE_MS).toBeLessThanOrEqual(1200);
-  });
+    return count;
+  }
 
-  test("the pawn hops once per tile and lands on the last", () => {
+  test("a travel hops once per tile and lands on the last", () => {
     for (const steps of [1, 3, -3]) {
-      expect(movePose(steps, 1)).toEqual({ along: steps, lift: 0 });
-      let landings = 0;
-      let last = 0;
-      for (let i = 1; i < 2000; i++) {
-        const { along, lift } = movePose(steps, i / 2000);
-        expect(Math.sign(along) * Math.sign(steps)).toBeGreaterThanOrEqual(0);
-        expect(lift).toBeLessThanOrEqual(1);
-        if (lift < 0.05 && last >= 0.05) landings += 1;
-        last = lift;
+      expect(movePose("travel", steps, 1)).toEqual({ along: steps, lift: 0 });
+      for (let i = 1; i < 100; i++) {
+        expect(movePose("travel", steps, i / 100).lift).toBeLessThanOrEqual(1);
       }
       /* Each tile on the way is touched down on, the last one included. */
-      expect(landings, `${steps} tiles`).toBe(Math.abs(steps));
+      expect(landings("travel", steps), `${steps} tiles`).toBe(
+        Math.abs(steps),
+      );
     }
+  });
+
+  test("a skip is one long hop, higher the farther, landing on its tile", () => {
+    for (const steps of [1, 3, -3]) {
+      expect(movePose("skip", steps, 1)).toEqual({ along: steps, lift: 0 });
+      expect(landings("skip", steps), `${steps} tiles`).toBe(1);
+    }
+    expect(movePose("skip", 3, 0.5).lift).toBeGreaterThan(
+      movePose("skip", 1, 0.5).lift,
+    );
+  });
+
+  /* Still at take-off and touch-down, so a hop never skids. */
+  test("a hop leaves and lands with no sideways speed", () => {
+    expect(hopEase(0)).toBe(0);
+    expect(hopEase(1)).toBeCloseTo(1, 12);
+    expect(hopEase(0.001) / 0.001).toBeLessThan(0.01);
+    expect((1 - hopEase(0.999)) / 0.001).toBeLessThan(0.01);
   });
 });
