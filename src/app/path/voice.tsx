@@ -173,9 +173,12 @@ export function VoiceControls({
         <button
           type="button"
           data-path-voice-primary
-          disabled={!hasClip || shown === "loading"}
+          disabled={!hasClip}
           className={CONTROL_CLASS_NAME}
           onClick={() => {
+            /* Not disabled while loading: a focused control that turns
+               disabled drops keyboard focus to the page. */
+            if (shown === "loading") return;
             if (playing) audioRef.current?.pause();
             else play(selected);
           }}
@@ -185,10 +188,9 @@ export function VoiceControls({
         <button
           type="button"
           data-path-voice-stop
-          disabled={
-            shown !== "loading" && shown !== "playing" && shown !== "paused"
-          }
           className={CONTROL_CLASS_NAME}
+          /* Always available (storyboard §7.6), and never disabled, so focus
+             stays on it after a press; with nothing loaded it does nothing. */
           onClick={stop}
         >
           {VOICE_COPY.stop}

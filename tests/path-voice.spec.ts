@@ -151,7 +151,6 @@ test.describe("/path's voice", () => {
     const requested = audioRequests(page);
     await page.goto("/path#lille");
     await hydrated(page);
-    await expect(stopButton(page)).toBeDisabled();
 
     await primary(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
@@ -172,6 +171,7 @@ test.describe("/path's voice", () => {
     await stopButton(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
     await expect(primary(page)).toHaveText("Listen");
+    await expect(stopButton(page)).toBeFocused();
     const stopped = await audioState(page);
     expect(stopped.paused).toBe(true);
     expect(stopped.currentTime).toBe(0);
@@ -297,6 +297,7 @@ test.describe("/path's voice", () => {
 
     await primary(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "loading");
+    await expect(primary(page)).toBeFocused();
     await expect(stopButton(page)).toBeEnabled();
     await stopButton(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "idle");
