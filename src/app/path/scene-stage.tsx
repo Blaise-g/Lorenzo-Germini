@@ -141,10 +141,12 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const sceneStills = mode === "webgl" ? snapshot.stills : undefined;
   const live = mode === "webgl" && withScene && !sceneStills;
 
-  /* Esc in the scene skips the build; once there is nothing to skip, it
-     returns focus to the selected step in the list (storyboard §7.7). Only
-     while a scene is on the stage, so Esc elsewhere on the route, or with
-     no scene, leaves focus where it is. */
+  /* Esc skips a running build from anywhere, and moves no focus. Once there
+     is nothing to skip, Esc in the scene returns focus to the selected step
+     in the list (storyboard §7.7): only from the stage or from no focus at
+     all, so Esc on the voice controls or anywhere else leaves focus there.
+     Only while a scene is on the stage. */
+  const stageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!live) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -153,6 +155,12 @@ export function SceneStage({ children }: { children: ReactNode }) {
         return;
       }
       if (runtimeRef.current?.skip()) return;
+      const focused = document.activeElement;
+      const inScene =
+        !focused ||
+        focused === document.body ||
+        stageRef.current?.contains(focused);
+      if (!inScene) return;
       document
         .querySelector<HTMLElement>(`[data-path-step-link="${selected}"]`)
         ?.focus();
@@ -171,7 +179,7 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const loading = buildState === "loading";
 
   return (
-    <div className="print:hidden">
+    <div ref={stageRef} className="print:hidden">
       <div
         data-path-stage
         data-scene-mode={mode}

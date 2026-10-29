@@ -295,6 +295,33 @@ test.describe("the build", () => {
     ).toBeEnabled();
   });
 
+  test("Esc on the voice controls skips the build and leaves focus there", async ({
+    page,
+  }) => {
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "building");
+    const stop = page.locator("[data-path-voice-stop]");
+    await stop.focus();
+    await page.keyboard.press("Escape");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 500,
+    });
+    await expect(stop).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(stop).toBeFocused();
+  });
+
+  test("Esc from the stage's controls returns focus to the step list", async ({
+    page,
+  }) => {
+    await page.goto("/path#home");
+    await buildControl(page).click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(buildControl(page)).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(stepLink(page, "home")).toBeFocused();
+  });
+
   test("the two 45° buttons turn the scene once each way", async ({ page }) => {
     await page.goto("/path#home");
     const left = page.getByRole("button", { name: "Turn the scene left" });
