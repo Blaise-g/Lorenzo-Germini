@@ -141,7 +141,7 @@ No generated asset. Recorded so the log is complete:
 - **The stills, rendered again (round 2).** All 14 by `generate:path-stills` from the board
   settled on each step, at 1440×900 ×1.5, after the stage became the board's own column (no cards
   laid over it but its tabs) and home's school card moved left to give the pawn room: 1380×1017,
-  60.5–65.1 KB each (budget 150 KB), about 0.5 s a still, no revisions.
+  60.5–65.1 KB each (budget 150 KB), not timed, no revisions.
 
 ## The board's cards (v2, comp B)
 
