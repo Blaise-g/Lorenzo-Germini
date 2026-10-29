@@ -79,6 +79,14 @@ try {
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
           ),
       );
+      /* An element's screenshot is what is on screen over it, and on a wide
+         screen the step list, the panel and the board's tabs lie over the
+         canvas. Hidden, not removed, so the board stays framed for them, as
+         the still will be shown under them. */
+      await page.addStyleTag({
+        content:
+          "[data-path-cover], nextjs-portal { visibility: hidden !important; }",
+      });
       const png = await page.locator("[data-path-stage] canvas").screenshot();
       const webp = await sharp(png).webp({ quality: 78 }).toBuffer();
       if (webp.length > MAX_BYTES) {

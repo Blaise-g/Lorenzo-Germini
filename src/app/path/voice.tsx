@@ -218,8 +218,11 @@ export function VoiceControls({
           type="button"
           data-path-voice-stop
           className={CONTROL_CLASS_NAME}
-          /* Always available (storyboard §7.6), and never disabled, so focus
-             stays on it after a press; with nothing loaded it does nothing. */
+          /* Always pressable (storyboard §7.6), and never disabled, so focus
+             stays on it after a press. With nothing loaded it does nothing,
+             so it says so, and is printed faint rather than as live as
+             Listen. */
+          aria-disabled={shown === "idle" ? true : undefined}
           onClick={stop}
         >
           {VOICE_COPY.stop}
