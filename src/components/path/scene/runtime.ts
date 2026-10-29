@@ -4,6 +4,7 @@ import {
   Group,
   InstancedMesh,
   Mesh,
+  MeshStandardMaterial,
   PerspectiveCamera,
   PlaneGeometry,
   Raycaster,
@@ -12,12 +13,14 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
+  type IUniform,
   type Material,
   type Object3D,
   type Texture,
 } from "three";
 
 import { PATH_STEPS } from "@/data/path";
+import { PATH_NARRATION } from "@/data/path-narration";
 import type { PathStep, PathStepSlug } from "@/data/path.types";
 
 import {
@@ -63,19 +66,27 @@ import {
   type FallbackReason,
   type SceneFallbackReason,
 } from "./fallback";
+
+import { cueTurn } from "./beats";
+import { createLife, type LifePiece, type SceneEvent } from "./life";
 import {
   easeInOut,
+  easeOutQuart,
+  idleSquash,
+  landingDip,
   landingSquash,
+  landmarkSink,
   LANDING_MS,
   loopSteps,
   movePose,
+  REVEAL_MS,
   risePose,
 } from "./motion";
 import { createLighting } from "./lighting";
 import { createPaint } from "./paint";
 import { isDarkMode, readPalette, type Palette } from "./palette";
 import { createGovernor, createPost, isPhone, startRung } from "./post";
-import { buildPiece } from "./props";
+import { buildPiece, jetPlume, type Built } from "./props";
 import { pawnPathPoint } from "./path-spline";
 import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
 import {
@@ -83,6 +94,7 @@ import {
   makePath,
   makePawn,
   makeTileBase,
+  PHONE_GRASS_SHARE,
   type PawnParts,
 } from "./world";
 
@@ -119,6 +131,12 @@ const MAX_PIECE_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, rises from part-way: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REBUILD_FROM = 0.42;
+/** The landing's thump: how far the tile dips under the pawn, in its own
+ *  units (§4(d)'s "about 2 cm", judged by eye against the pawn). */
+const LANDING_DIP = 0.07;
+/** How far the ground grows out from a landmark's foot, in a tile's units:
+ *  past its corners. */
+const REVEAL_RADIUS = 3.6;
 
 export type SceneSnapshot = {
   buildState: BuildState;
@@ -134,6 +152,9 @@ export type SceneSnapshot = {
   settled: boolean;
   /** What the camera is doing (`camera-rig.ts`). */
   shot: CameraShot;
+  /** The narration's last beat on the board, `<step>:<prop>:<nth>`, as
+   *  the stage carries it (`data-scene-beat`); absent before any. */
+  beat?: string;
   /** Set when the shown step's tile shows its stills instead, and why; the
    *  board keeps running for the other steps. It names its step, so the host
    *  never pairs it with a step selected since. */
@@ -146,6 +167,16 @@ export type SceneRuntimeOptions = {
   reducedMotion: boolean;
   onChange(snapshot: SceneSnapshot): void;
   onFallback(reason: FallbackReason): void;
+  /** Something the board did that makes a sound, for the Sound switch. */
+  onEvent?(event: SceneEvent): void;
+};
+
+/** A cue of the narration (`stage-status.tsx`), as the board plays it. */
+export type BoardCue = {
+  slug: PathStepSlug;
+  prop: string | null;
+  /** The cue's index in its step's narration. */
+  index: number;
 };
 
 /** How the tour stands, as the board follows it: playing (the close-up
@@ -171,6 +202,11 @@ export type SceneRuntime = {
   skip(): boolean;
   /** Builds the shown step's tile again. */
   replay(): void;
+  /** Plays the beat a narration cue's prop has (`beats.ts`). */
+  cue(cue: BoardCue): void;
+  /** Plays a tile's arrival again on the pieces it has now: for a landmark
+   *  swapped in after its tile was built. */
+  arriveTile(slug: PathStepSlug): void;
   turn(direction: -1 | 1): void;
   setReducedMotion(reduced: boolean): void;
   /** The part of the stage the page leaves the board, in CSS pixels; the
@@ -191,6 +227,9 @@ type Riser = {
   /** Its delay after its prop starts to rise. */
   delay: number;
   motion?: (progress: number) => void;
+  /** A landmark comes up out of the tile rather than unfolding, this tall
+   *  as built; undefined for any other piece. */
+  landmark?: number;
 };
 
 type Tile = {
@@ -198,6 +237,8 @@ type Tile = {
   group: Group;
   /** Its pieces by the prop they rise with, in the data's order. */
   props: Map<string, Riser[]>;
+  /** Where its ground grows out from, and how far it has (`paint.ts`). */
+  grow: IUniform<Vector3>;
 };
 
 function stepNamed(slug: PathStepSlug) {
@@ -308,19 +349,28 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function makeTile(slug: PathStepSlug): Tile {
-    const group = makeTileBase(paintBox, slug);
+    const landmarks = assetsForStep(slug);
+    /* The ground grows out from the tile's first landmark, or its middle. */
+    const foot = landmarks[0]?.anchor ?? { x: 0, z: 0 };
+    const grow: IUniform<Vector3> = { value: new Vector3(foot.x, foot.z, 0) };
+    const group = makeTileBase(
+      paintBox,
+      slug,
+      grow,
+      phone ? PHONE_GRASS_SHARE : 1,
+    );
     const step = stepNamed(slug);
+    const lifePieces: LifePiece[] = [];
     const props = new Map<string, Riser[]>(
       step.props.map((prop) => [prop.id, []]),
     );
     const firstProp = step.props[0].id;
-    const landmarks = assetsForStep(slug);
     piecesOf(slug).forEach((piece, index) => {
       const asset = landmarks.find((each) => each.piece === piece.id);
       const model = asset && models.get(asset.file);
-      const built =
+      const built: Built =
         asset && model?.status === "loaded"
-          ? { object: fitModel(model.scene, asset, piece) }
+          ? loadedPiece(fitModel(model.scene, asset, piece), piece.id)
           : buildPiece(paintBox, slug, piece, index + stepIndex(slug) * 7);
       /* Measured before it is parented, so in its own frame: how tall it
          stands once up, for the camera's close-up (`pieceHeight`). */
@@ -330,9 +380,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       );
       /* The riser scales about the piece's foot; the sinker inside it
          lowers the piece as it starts, leaving the piece's own pose alone. */
+      /* The beater inside the sinker is the narration's: beats and hops
+         move it, and the rise never does. */
       const riser = new Group();
       const sinker = new Group();
-      sinker.add(built.object);
+      const beater = new Group();
+      beater.add(built.object);
+      sinker.add(beater);
       riser.add(sinker);
       riser.position.set(piece.x, TILE.thickness + (piece.y ?? 0), piece.z);
       group.add(riser);
@@ -345,13 +399,64 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         sinker,
         delay: risers.length * PIECE_STAGGER_MS,
         motion: built.motion,
+        landmark: asset ? heights.get(`${slug}:${piece.id}`) : undefined,
+      });
+      lifePieces.push({
+        slug,
+        piece: piece.id,
+        beater,
+        lit: () => litOf(beater),
+        shown: () => riser.visible,
       });
     });
     const [x, z] = tileCentre(slug);
     group.position.set(x, 0, z);
     group.scale.setScalar(tileScale(slug));
     group.userData.slug = slug;
-    return { slug, group, props };
+    life.setTile(slug, lifePieces);
+    return { slug, group, props, grow };
+  }
+
+  /** A generated landmark as a built piece: graded into the board's
+   *  palette, and the Jet d'Eau's jetty given its plume, which the
+   *  generated jetty does not have. */
+  function loadedPiece(object: Object3D, piece: string): Built {
+    gradeLandmark(object);
+    if (piece !== "jet-d-eau") return { object };
+    const jet = jetPlume(paintBox);
+    /* Off the jetty's far end, as the stand-in stands it. */
+    jet.position.set(0.18, 0.02, 0.1);
+    const group = new Group();
+    group.add(object, jet);
+    return { object: group };
+  }
+
+  /** Grades every textured material of a generated landmark
+   *  (`grade.ts`). The board's own materials carry no texture map, so a
+   *  stand-in is never graded. */
+  function gradeLandmark(object: Object3D) {
+    object.traverse((node) => {
+      if (!(node instanceof Mesh)) return;
+      for (const made of [node.material].flat()) {
+        if (made instanceof MeshStandardMaterial && made.map) {
+          paintBox.landmark(made);
+        }
+      }
+    });
+  }
+
+  /** How lit each graded material of `object` is, for its `light` beat. */
+  function litOf(object: Object3D) {
+    const lit: IUniform<number>[] = [];
+    object.traverse((node) => {
+      if (!(node instanceof Mesh)) return;
+      for (const made of [node.material].flat()) {
+        if (made instanceof MeshStandardMaterial && made.userData.inkLit) {
+          lit.push(made.userData.inkLit);
+        }
+      }
+    });
+    return lit;
   }
 
   /* ─── The pawn ─── */
@@ -411,9 +516,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  one rises, the rest settle. */
   const lifts = new Map<PathStepSlug, number>();
   const liftTarget = (slug: PathStepSlug) => (slug === current ? 1 : 0);
-  /** How high `slug`'s tile stands off the board now, in scene units. */
+  /** How high `slug`'s tile stands off the board now, in scene units: as
+   *  far as it has risen, less the landing's thump under the pawn. */
   const liftOf = (slug: PathStepSlug) =>
-    easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT * tileScale(slug);
+    (easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT -
+      (slug === pawnAt && !move
+        ? landingDip(landingElapsed) * LANDING_DIP
+        : 0)) *
+    tileScale(slug);
 
   /** Moves every tile's rise `step` ms toward where it is headed, or all
    *  the way at once; whether any moved. */
@@ -566,6 +676,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       step: current,
       settled,
       shot,
+      beat: lastBeat,
       stills,
     });
   }
@@ -583,12 +694,24 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         const progress = again
           ? REBUILD_FROM + (1 - REBUILD_FROM) * Math.max(local, 0)
           : local;
-        const pose = risePose(progress, PROP_DROP_MS - delay);
-        piece.riser.visible = pose.visible;
-        piece.riser.scale.set(pose.width, pose.height, pose.width);
-        /* The sinker sits inside the riser's scale: undo its height, so the
-           sink is in the tile's units. */
-        piece.sinker.position.y = pose.visible ? -pose.sink / pose.height : 0;
+        const window = PROP_DROP_MS - delay;
+        if (piece.landmark !== undefined) {
+          /* A landmark comes up out of its tile on a spring: igloo's
+             materialise, not a fold (§4(d)). */
+          const arriving = arrivals.get(tile.slug);
+          const at =
+            arriving === undefined ? progress : arriving / PROP_DROP_MS;
+          piece.riser.visible = at > 0;
+          piece.riser.scale.set(1, 1, 1);
+          piece.sinker.position.y = -landmarkSink(at, window) * piece.landmark;
+        } else {
+          const pose = risePose(progress, window);
+          piece.riser.visible = pose.visible;
+          piece.riser.scale.set(pose.width, pose.height, pose.width);
+          /* The sinker sits inside the riser's scale: undo its height, so
+             the sink is in the tile's units. */
+          piece.sinker.position.y = pose.visible ? -pose.sink / pose.height : 0;
+        }
         piece.motion?.(Math.min(Math.max(local, 0), 1));
       }
     }
@@ -616,6 +739,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       } else {
         poseTile(tile, () => -1);
       }
+      tile.grow.value.z = groundOf(slug);
     }
     posePawn();
 
@@ -662,7 +786,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       pawn.visible = true;
       pawnPathPoint(stepIndex(pawnAt), 0, foot).y += liftOf(pawnAt);
       body.rotation.set(0, 0, 0);
-      const squash = landingSquash(landingElapsed);
+      const squash = landingSquash(landingElapsed) * idleSquash(restMs);
       body.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
     }
     pawn.position.copy(foot);
@@ -762,7 +886,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       catchingUp.size > 0 ||
       landingElapsed < LANDING_MS ||
       lifting() ||
-      rig.moving(tourState === "playing")
+      rig.moving(tourState === "playing") ||
+      life.active() ||
+      arrivals.size > 0 ||
+      alive()
     );
   }
 
@@ -814,11 +941,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
     if (buildState === "building" && plan) {
       if (move) {
+        const before = takeOffs(move, move.elapsed);
         move.elapsed += step;
+        sound(takeOffs(move, move.elapsed) - before);
         if (move.elapsed >= move.transit.landMs) {
           move = undefined;
           pawnAt = current;
           landingElapsed = 0;
+          landed();
         }
       } else {
         buildElapsed += step;
@@ -833,6 +963,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       posed = true;
     }
     if (liftTiles(step)) posed = true;
+    if (arrive(step)) posed = true;
     if (posed) pose();
     const turning = turnElapsed < TURN_MS;
     if (turning) {
@@ -845,8 +976,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
        last gap, so close it now. */
     if (turning && frozen && turnElapsed >= TURN_MS) rig.place();
     if (isSettled() !== settled || rig.shot() !== shot) emit();
-    /* The water and the grass move on with every frame drawn. */
-    paintBox.flow(step / 1000);
+    stepLife(step);
     if (themeElapsed < THEME_MS) {
       themeElapsed = Math.min(themeElapsed + free, THEME_MS);
       const t = easeInOut(themeElapsed / THEME_MS);
@@ -1033,6 +1163,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
     rebuild = built.has(slug);
     built.delete(slug);
+    /* Its pieces stand as built, before any beat; its landmarks announce
+       their rise again. */
+    life.restTile(slug);
+    life.startMove();
+    arrivals.delete(slug);
+    risen.clear();
     current = slug;
     buildElapsed = 0;
     lit = [];
@@ -1061,6 +1197,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         steps !== 0
       ) {
         rig.skip(slug, transit);
+        if (steps !== 0) event("skip");
       }
     }
     buildState = "building";
@@ -1085,7 +1222,144 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
   }
 
-  board.add(makeBoard(paintBox), makePath(paintBox));
+  board.add(
+    makeBoard(paintBox, phone ? PHONE_GRASS_SHARE : 1),
+    makePath(paintBox),
+  );
+
+  /* ─── Life: ambient motion, the narration's beats, the arrival ─── */
+
+  const life = createLife({
+    board,
+    camera,
+    paint: paintBox,
+    emit: (name) => event(name),
+  });
+
+  function event(name: SceneEvent) {
+    options.onEvent?.(name);
+  }
+
+  /** The beat last played, for the snapshot. */
+  let lastBeat: string | undefined;
+  /** How long the pawn has stood at rest, while the board lives: its idle
+   *  squash keeps time by it. */
+  let restMs = 0;
+  /** Tiles whose landmark is arriving again, out of turn (`arriveTile`),
+   *  by elapsed ms. */
+  const arrivals = new Map<PathStepSlug, number>();
+  /** The current build's landmarks that have started to rise, so each
+   *  rise sounds once. */
+  const risen = new Set<Riser>();
+
+  /** Whether the board lives: the water, the grass, the trees and the
+   *  clouds move and the pawn breathes. Only while the tour plays, and
+   *  through the end's pull-back, then at rest (WCAG 2.2.2: a pause stops
+   *  it); never under reduced motion. */
+  function alive() {
+    if (reducedMotion || frozen || !prepared || !pawnAt) return false;
+    return (
+      tourState === "playing" || (tourState === "ended" && rig.moving(false))
+    );
+  }
+
+  /** How far `slug`'s ground has grown out from its landmark's foot, in
+   *  the tile's units: none before it is built, all once it stands. */
+  function groundOf(slug: PathStepSlug) {
+    const grown = (ms: number) =>
+      ms >= REVEAL_MS ? 1e3 : REVEAL_RADIUS * easeOutQuart(ms / REVEAL_MS);
+    const arriving = arrivals.get(slug);
+    if (arriving !== undefined) return grown(arriving);
+    if (slug === current && buildState === "building") {
+      if (rebuild) return 1e3;
+      return move ? 0 : grown(buildElapsed);
+    }
+    const catching = catchingUp.get(slug);
+    if (catching !== undefined)
+      return grown(catching * (REVEAL_MS / PROP_DROP_MS));
+    return built.has(slug) ? 1e3 : 0;
+  }
+
+  /** Moves the out-of-turn arrivals on; whether any moved. */
+  function arrive(step: number) {
+    if (arrivals.size === 0) return false;
+    const end = Math.max(PROP_DROP_MS, REVEAL_MS);
+    for (const [slug, elapsed] of arrivals) {
+      if (elapsed + step >= end) arrivals.delete(slug);
+      else arrivals.set(slug, elapsed + step);
+    }
+    return true;
+  }
+
+  /** How many times the pawn has left a tile `ms` into `m`: once per tile
+   *  on a walk, once on a skip's one long hop. */
+  function takeOffs(m: Move, ms: number) {
+    if (m.transit.kind === "opening" || ms < m.transit.hopStartMs) return 0;
+    if (m.transit.kind === "skip") return 1;
+    const tiles = Math.abs(m.steps);
+    return Math.min(Math.floor(hopProgress(m, ms) * tiles) + 1, tiles);
+  }
+
+  function sound(hops: number) {
+    for (let i = 0; i < hops; i++) event("hop");
+  }
+
+  /** The pawn has landed: the tile thumps, and dust puffs off it. */
+  function landed() {
+    if (!current) return;
+    restMs = 0;
+    const at = pawnPathPoint(stepIndex(current), 0, new Vector3());
+    at.y += liftOf(current);
+    life.landed(at, tileScale(current));
+    event("land");
+  }
+
+  const footWorld = new Vector3();
+
+  /** The board's life, `step` ms on: its ambient motion, its beats, the
+   *  hops beside the pawn's path and its landmarks' rise. */
+  function stepLife(step: number) {
+    const living = alive() ? step : 0;
+    paintBox.flow(living / 1000);
+    if (living > 0 && pawnAt && !move) {
+      restMs += living;
+      posePawn();
+    }
+    if (move) life.passing(pawn.getWorldPosition(footWorld));
+    life.tick(step);
+    for (const tile of tiles.values()) {
+      for (const risers of tile.props.values()) {
+        for (const piece of risers) {
+          if (
+            piece.landmark !== undefined &&
+            tile.slug === current &&
+            piece.riser.visible &&
+            !risen.has(piece)
+          ) {
+            risen.add(piece);
+            if (buildState === "building" && !rebuild) event("rise");
+          }
+        }
+      }
+    }
+  }
+
+  /** Plays `slug`'s arrival again on the pieces it has now: its landmark
+   *  rises out of the tile and its ground grows back out from its foot.
+   *  For a landmark swapped in once its file arrives (v3-harden's
+   *  `swapTile`); it grades a newly loaded model first. */
+  function arriveTile(slug: PathStepSlug) {
+    const tile = tiles.get(slug);
+    if (!tile) return;
+    gradeLandmark(tile.group);
+    if (!reducedMotion && built.has(slug)) {
+      arrivals.set(slug, 0);
+      event("rise");
+      requestFrame();
+    }
+    pose();
+    render();
+  }
 
   return {
     show(step, options) {
@@ -1120,6 +1394,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     skip() {
       if (buildState !== "building") return false;
       rig.finish();
+      life.finish();
       finish();
       return true;
     },
@@ -1129,12 +1404,25 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       frozen = state === "paused";
       if (frozen) return;
       lastTime = undefined;
-      /* The tour has played its last step: back to the whole board. */
-      if (state === "ended" && !reducedMotion && current === LOOP.at(-1)) {
-        rig.end();
+      /* The tour has played its last step: back to the whole board, on its
+         closing chord. */
+      if (state === "ended" && current === LOOP.at(-1)) {
+        event("end");
+        if (!reducedMotion) rig.end();
       }
       requestFrame();
     },
+    cue({ slug, prop, index }) {
+      if (slug !== current || stills) return;
+      const turn = cueTurn(PATH_NARRATION[slug], index);
+      const played = life.cue(slug, prop, turn, reducedMotion);
+      if (!played) return;
+      lastBeat = `${slug}:${prop}:${turn.nth}`;
+      emit();
+      if (reducedMotion) render();
+      else requestFrame();
+    },
+    arriveTile,
     replay() {
       const step = current && stepNamed(current);
       if (step && plan && !stills) buildOrFail(step);
@@ -1192,6 +1480,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       reducedMotion = reduced;
       rig.setReducedMotion(reduced);
       if (!reduced || !plan) return;
+      life.finish();
+      arrivals.clear();
       /* Reduced motion's designed state is the whole board built. */
       for (const tile of tiles.keys()) built.add(tile);
       catchingUp.clear();
@@ -1232,6 +1522,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         }
         material.dispose();
       }
+      life.dispose();
       paintBox.dispose();
       lighting.dispose();
       post.dispose();

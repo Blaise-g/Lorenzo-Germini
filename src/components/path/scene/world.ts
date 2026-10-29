@@ -15,6 +15,7 @@ import {
   Shape,
   Vector2,
   Vector3,
+  type IUniform,
   type Object3D,
 } from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
@@ -146,7 +147,18 @@ const BAND = { from: 0.4, to: 0.1, inset: 0.12, height: 0.05 } as const;
 /** The board: a thick slab under everything, its top at y = 0, with a
  *  raised frame round its edge, grass across its middle and the two side
  *  props. */
-export function makeBoard(paint: Paint): Group {
+/** A phone draws half the grass (§4(f)); the clouds' shadows stay. */
+export const PHONE_GRASS_SHARE = 0.5;
+
+/** How many tufts a field of `count` plants on a device drawing `share` of
+ *  them. */
+export function grassCount(count: number, share: number): number {
+  return Math.round(count * share);
+}
+
+/** The board's own grass, its side props, its frame and felt; `grassShare`
+ *  of the grass a desktop plants. */
+export function makeBoard(paint: Paint, grassShare = 1): Group {
   const group = new Group();
   const top = solid(
     slab(
@@ -188,14 +200,14 @@ export function makeBoard(paint: Paint): Group {
   const margin = BOARD.frameWidth + 0.25;
   group.add(
     grassField(
-      paint,
+      paint.grass,
       [
         -BOARD.halfWidth + margin,
         -BOARD.halfDepth + margin,
         BOARD.halfWidth - margin,
         BOARD.halfDepth - margin,
       ],
-      200,
+      grassCount(200, grassShare),
       keepOut,
       3,
     ),
@@ -208,6 +220,8 @@ export function makeBoard(paint: Paint): Group {
   for (const [object, spot] of side) {
     object.position.set(spot.x, 0, spot.z);
     object.rotation.y = spot.x < 0 ? 0.35 : -0.35;
+    /* Beside the path: it hops as the pawn passes (`beats.ts`). */
+    object.userData.hopper = true;
     group.add(object);
   }
   return group;
@@ -215,7 +229,14 @@ export function makeBoard(paint: Paint): Group {
 
 /** A tile's slab and colour band, and the grass on its free ground, in the
  *  tile's own frame. */
-export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
+/** A tile's slab, band and grass; the grass grows out from `grow` (x, z in
+ *  the tile's frame, and its radius) as the tile's landmark rises. */
+export function makeTileBase(
+  paint: Paint,
+  slug: PathStepSlug,
+  grow: IUniform<Vector3>,
+  grassShare = 1,
+): Group {
   const group = new Group();
   group.add(
     solid(slab(tileShape(), TILE.thickness, TILE.bevel), paint, "paper", {
@@ -271,9 +292,9 @@ export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
         Math.abs(z - piece.z) < piece.d / 2 + 0.06,
     );
   const field = grassField(
-    paint,
+    paint.tileGrass(grow),
     [-TILE.width / 2, -TILE.depth / 2, TILE.width / 2, TILE.depth / 2],
-    46,
+    grassCount(46, grassShare),
     keepOut,
     LOOP.indexOf(slug) + 11,
   );
@@ -429,7 +450,7 @@ export type PawnParts = {
 
 /** A disc's alpha, opaque at its centre and gone at its rim: a contact
  *  shadow's softness, with no light to bake it. */
-function softDisc() {
+export function softDisc() {
   const size = 64;
   const data = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {

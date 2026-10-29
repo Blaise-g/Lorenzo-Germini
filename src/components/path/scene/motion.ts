@@ -151,3 +151,85 @@ export function easeOutQuart(t: number): number {
   const x = Math.min(Math.max(t, 0), 1);
   return 1 - (1 - x) ** 4;
 }
+
+/* ─── Life (v3; the benchmark's §4(d)) ─── */
+
+/** The landing's thump: the tile under the pawn dips and springs back, as a
+ *  board does under a piece set down hard. How far down it is `t` ms after
+ *  touch-down, 0 to 1 of the dip, a little past 0 as it springs back. */
+export function landingDip(t: number): number {
+  if (t <= 0 || t >= LANDING_MS) return 0;
+  const DOWN_MS = 55;
+  if (t < DOWN_MS) return Math.sin(((t / DOWN_MS) * Math.PI) / 2);
+  return 1 - spring(t - DOWN_MS, 280, 0.3);
+}
+
+/** The pawn at rest breathes: a slight squash, every `IDLE_EVERY_MS`, as a
+ *  piece waiting for its turn. Its height at `t` ms of rest, 1 standing. */
+export const IDLE_EVERY_MS = 3000;
+export const IDLE_SQUASH = 0.016;
+const IDLE_SQUASH_MS = 420;
+
+export function idleSquash(t: number): number {
+  if (t <= 0) return 1;
+  const within = t % IDLE_EVERY_MS;
+  /* The first squash waits a whole period after landing. */
+  if (t < IDLE_EVERY_MS || within >= IDLE_SQUASH_MS) return 1;
+  return 1 - IDLE_SQUASH * Math.sin((within / IDLE_SQUASH_MS) * Math.PI);
+}
+
+/** A beat's swell: up quickly, then easing back to rest by `duration`. 0 at
+ *  both ends, about 1 at its height. */
+export function bump(t: number, duration: number): number {
+  if (t <= 0 || t >= duration) return 0;
+  const u = t / duration;
+  /* sin(πu)·e^(−2u) peaks near u = 0.36 at about 0.44; normalised to 1. */
+  return (Math.sin(Math.PI * u) * Math.exp(-2 * u)) / 0.4436;
+}
+
+/** A light coming on for a beat: fast up, held, then back down by
+ *  `duration`. 0 to 1. */
+export function glowEnvelope(t: number, duration: number): number {
+  if (t <= 0 || t >= duration) return 0;
+  const attack = Math.min(t / 220, 1);
+  const release = Math.min((duration - t) / (duration * 0.4), 1);
+  return easeInOut(attack) * easeInOut(release);
+}
+
+/** A prop's hop as the pawn passes (the owner's clip): up and down once
+ *  over `HOP_BEAT_MS`, with a squash as it leaves and as it lands. */
+export const HOP_BEAT_MS = 600;
+
+export function hopBeat(t: number): {
+  lift: number;
+  squash: number;
+  tilt: number;
+} {
+  if (t <= 0 || t >= HOP_BEAT_MS) return { lift: 0, squash: 1, tilt: 0 };
+  const u = t / HOP_BEAT_MS;
+  /* The leap takes the middle of the beat; a crouch before and a squash
+     after. */
+  const air = Math.min(Math.max((u - 0.12) / 0.66, 0), 1);
+  const crouch = u < 0.12 ? Math.sin((u / 0.12) * Math.PI) : 0;
+  const land = u > 0.78 ? Math.sin(((u - 0.78) / 0.22) * Math.PI) : 0;
+  return {
+    lift: 4 * air * (1 - air),
+    squash: 1 - 0.12 * crouch - 0.1 * land,
+    /* A quarter-flip's lean, back to upright as it lands. */
+    tilt: Math.sin(air * Math.PI * 2) * 0.22,
+  };
+}
+
+/** A landmark rising out of its tile (igloo's materialise; §4(d)): it comes
+ *  up from below the tile's top on a spring, about 0.6 s to look settled,
+ *  rather than unfolding in place. How far below its place it still is, as
+ *  a share of its own height, `progress` of the way through its rise window
+ *  of `windowMs`; a small dip past 0 is its overshoot. */
+export function landmarkSink(progress: number, windowMs: number): number {
+  if (progress <= 0) return 1;
+  if (progress >= 1) return 0;
+  return 1 - spring(progress * windowMs, 600, 0.18);
+}
+
+/** How long the tile's ground takes to grow out from a landmark's foot. */
+export const REVEAL_MS = 1200;

@@ -26,6 +26,7 @@ import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeom
 
 import type { Piece } from "./board";
 import { handAngle } from "./lille";
+import { BEAT_NODE } from "./piece-beats";
 import { easeInOut } from "./motion";
 import type { Paint } from "./paint";
 
@@ -44,6 +45,12 @@ export type Built = {
 };
 
 type Builder = (paint: Paint, piece: Piece) => Built;
+
+/** `object`, named as a beat finds it (`piece-beats.ts`). */
+function named<T extends Object3D>(name: string, object: T): T {
+  object.name = name;
+  return object;
+}
 
 /** A mesh that casts and takes shadows. */
 function solid(
@@ -177,12 +184,12 @@ export function treeCluster(paint: Paint, piece: Piece, seed = 1): Built {
   );
   const crowns = new InstancedMesh(
     new IcosahedronGeometry(1, 0),
-    paint.shared("leaf", { flat: true }),
+    paint.shared("leaf", { flat: true, sway: true }),
     count * crownsPerTree,
   );
   const darker = new InstancedMesh(
     new IcosahedronGeometry(1, 0),
-    paint.shared("leafDark", { flat: true }),
+    paint.shared("leafDark", { flat: true, sway: true }),
     count,
   );
   const matrix = new Matrix4();
@@ -259,7 +266,7 @@ function tuftGeometry(): BufferGeometry {
  *  z1]`), keeping out of `keepOut` boxes; instanced, swaying in the vertex
  *  shader, and casting no shadow. */
 export function grassField(
-  paint: Paint,
+  material: Material,
   area: readonly [number, number, number, number],
   count: number,
   keepOut: (x: number, z: number) => boolean,
@@ -270,7 +277,7 @@ export function grassField(
     state = (state * 16807) % 2147483647;
     return state / 2147483647;
   };
-  const mesh = new InstancedMesh(tuftGeometry(), paint.grass, count);
+  const mesh = new InstancedMesh(tuftGeometry(), material, count);
   const matrix = new Matrix4();
   const rotation = new Quaternion();
   const up = new Vector3(0, 1, 0);
@@ -566,6 +573,7 @@ const turin: Record<string, Builder> = {
       ),
     );
     const copper = paint.shared("warm", { roughness: 0.55 });
+    const coils: Group[] = [];
     for (let i = 0; i < 3; i++) {
       const angle = (i / 3) * Math.PI * 2;
       const coil = new Group();
@@ -579,6 +587,8 @@ const turin: Record<string, Builder> = {
       }
       coil.position.set(Math.cos(angle) * 0.32, 0.36, Math.sin(angle) * 0.32);
       coil.lookAt(0, 0.36, 0);
+      coil.name = BEAT_NODE.coil;
+      coils.push(coil);
       group.add(coil);
     }
     const rotor = new Group();
@@ -590,6 +600,7 @@ const turin: Record<string, Builder> = {
       ),
       block(paint.shared("coolLight"), [0.3, 0.05, 0.06], [0, 0.42, 0], 0.02),
     );
+    rotor.name = BEAT_NODE.rotor;
     group.add(rotor);
     return {
       object: group,
@@ -599,6 +610,32 @@ const turin: Record<string, Builder> = {
     };
   },
 };
+
+/** The Jet d'Eau's plume: a column of water, thickest at its foot and
+ *  widening a little where it breaks at the top. Its foot at the origin.
+ *  The generated jetty has none, so the board stands this one off it. */
+export function jetPlume(paint: Paint): Mesh {
+  const plume = [
+    new Vector2(0.001, 0),
+    new Vector2(0.07, 0.02),
+    new Vector2(0.045, 0.6),
+    new Vector2(0.03, 1.6),
+    new Vector2(0.05, 2.05),
+    new Vector2(0.08, 2.2),
+    new Vector2(0.06, 2.3),
+    new Vector2(0.001, 2.34),
+  ];
+  const jet = solid(
+    new LatheGeometry(plume, 14),
+    paint.material(
+      { base: "paper", toward: "ink-cool", amount: 0.08 },
+      { roughness: 0.35 },
+    ),
+  );
+  jet.rotation.z = -0.04;
+  jet.name = BEAT_NODE.plume;
+  return jet;
+}
 
 const switzerland: Record<string, Builder> = {
   /* The lake from above Lausanne: still water most of the tile wide. */
@@ -684,30 +721,8 @@ const switzerland: Record<string, Builder> = {
         -piece.d / 2 + 0.15,
       ]),
     );
-    /* The plume: a column of water, thickest at its foot and widening a
-       little where it breaks at the top. */
-    const plume = [
-      new Vector2(0.001, 0),
-      new Vector2(0.07, 0.02),
-      new Vector2(0.045, 0.6),
-      new Vector2(0.03, 1.6),
-      new Vector2(0.05, 2.05),
-      new Vector2(0.08, 2.2),
-      new Vector2(0.06, 2.3),
-      new Vector2(0.001, 2.34),
-    ];
-    const jet = solid(
-      new LatheGeometry(plume, 14),
-      paint.material(
-        { base: "paper", toward: "ink-cool", amount: 0.08 },
-        {
-          roughness: 0.35,
-        },
-      ),
-      [0.18, 0.02, 0.1],
-    );
-    jet.castShadow = true;
-    jet.rotation.z = -0.04;
+    const jet = jetPlume(paint);
+    jet.position.set(0.18, 0.02, 0.1);
     group.add(jet);
     return { object: group };
   },
@@ -751,6 +766,7 @@ const switzerland: Record<string, Builder> = {
       face.add(tick);
     }
     const needle = new Group();
+    needle.name = BEAT_NODE.needle;
     needle.position.z = 0.04;
     needle.add(
       block(paint.shared("warmDeep"), [0.02, 0.2, 0.012], [0, 0, 0], 0.005),
@@ -865,18 +881,15 @@ const cuneo2022: Record<string, Builder> = {
       block(frame, [0.05, fh, 0.08], [fw / 2, y0, 0.05], 0.015),
       block(frame, [0.025, fh, 0.05], [0, y0, 0.05], 0.01),
     );
-    group.add(
-      block(
-        paint.material(
-          { base: "ink-cool", toward: "paper", amount: 0.2, shade: 0.7 },
-          { roughness: 0.2, glow: 0.05 },
-        ),
-        [fw, fh, 0.02],
-        [0, y0, 0.03],
-        0.005,
-      ),
+    const glass = paint.material(
+      { base: "ink-cool", toward: "paper", amount: 0.2, shade: 0.7 },
+      { roughness: 0.2, glow: 0.05 },
     );
+    const pane = block(glass, [fw, fh, 0.02], [0, y0, 0.03], 0.005);
+    pane.name = BEAT_NODE.glass;
+    group.add(pane);
     const shutter = paint.shared("coolLight");
+    const OPEN = 1.95;
     for (const side of [-1, 1]) {
       const hinge = new Group();
       hinge.position.set(side * (fw / 2 + 0.03), y0, 0.09);
@@ -897,7 +910,8 @@ const cuneo2022: Record<string, Builder> = {
         );
       }
       hinge.add(leaf);
-      hinge.rotation.y = side * 1.95;
+      hinge.rotation.y = side * OPEN;
+      hinge.name = BEAT_NODE.shutter;
       group.add(hinge);
     }
     return { object: group };
@@ -1089,9 +1103,12 @@ const lille: Record<string, Builder> = {
       true,
       "centripetal",
     );
-    group.add(
-      solid(new TubeGeometry(path, 96, 0.055, 12, true), paint.pipeFlow),
+    const tube = solid(
+      new TubeGeometry(path, 96, 0.055, 12, true),
+      paint.pipeFlow,
     );
+    tube.name = BEAT_NODE.pipe;
+    group.add(tube);
     const flange = paint.shared("warmDeep", { roughness: 0.55 });
     const support = paint.shared("cool");
     for (let i = 0; i < 8; i++) {
@@ -1170,6 +1187,7 @@ const lille: Record<string, Builder> = {
       face.add(tick);
     }
     const hand = new Group();
+    hand.name = BEAT_NODE.hand;
     hand.position.z = 0.045;
     hand.add(
       block(
@@ -1291,7 +1309,10 @@ const now: Record<string, Builder> = {
         [0.05, top + 0.18, -0.13],
         0.015,
       ),
-      block(screen, [0.56, 0.32, 0.01], [0.05, top + 0.21, -0.105], 0.004),
+      named(
+        BEAT_NODE.screen,
+        block(screen, [0.56, 0.32, 0.01], [0.05, top + 0.21, -0.105], 0.004),
+      ),
     );
     /* The lamp: a foot, two arms and a shade. */
     const lamp = paint.shared("warm", { roughness: 0.6 });
@@ -1365,8 +1386,12 @@ const next: Record<string, Builder> = {
     const pitch = (w - 0.5) / 4;
     for (let i = 0; i < 5; i++) {
       const x = -(w - 0.5) / 2 + i * pitch;
-      group.add(block(rim, [0.36, 0.035, 0.36], [x, 0.62, 0], 0.012));
-      group.add(block(slot, [0.28, 0.03, 0.28], [x, 0.635, 0], 0.01));
+      const each = new Group();
+      each.name = BEAT_NODE.slot;
+      each.position.set(x, 0, 0);
+      each.add(block(rim, [0.36, 0.035, 0.36], [0, 0.62, 0], 0.012));
+      each.add(block(slot, [0.28, 0.03, 0.28], [0, 0.635, 0], 0.01));
+      group.add(each);
     }
     return { object: group };
   },

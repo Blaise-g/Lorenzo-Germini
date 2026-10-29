@@ -30,7 +30,8 @@ import { cn } from "@/lib/utils";
 import { STAGE_COPY } from "./copy";
 import { narrationFor } from "./narration";
 import { useSetLitLines } from "./overlay";
-import { useSetStageStatus } from "./stage-status";
+import { playSound } from "./sound";
+import { useNarrationCue, useSetStageStatus } from "./stage-status";
 import { useTourStatus } from "./tour";
 
 /* The board's stage on `/path` (GH-148): page interface around the 3D board,
@@ -162,6 +163,26 @@ export function SceneStage({
     runtimeRef.current?.setTourState(tourStatus);
   }, [tourStatus]);
 
+  /* The narration's beats (v3): as each cue starts playing, the prop it
+     is about moves, with the voice on or off, since both follow the same
+     clock. Once a cue: a pause and resume does not play it again. */
+  const cue = useNarrationCue();
+  const cuedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!cue) {
+      cuedRef.current = null;
+      return;
+    }
+    const key = `${cue.slug}:${cue.index}`;
+    if (!cue.running || cuedRef.current === key) return;
+    cuedRef.current = key;
+    runtimeRef.current?.cue({
+      slug: cue.slug,
+      prop: cue.prop,
+      index: cue.index,
+    });
+  }, [cue]);
+
   /* Capabilities first, so a browser that gets the stills fetches no 3D
      code; then the runtime, in its own chunk. A new runtime shows the
      selected step at once, so one made again (Fast Refresh) is never blank. */
@@ -193,6 +214,7 @@ export function SceneStage({
             setLitLines({ slug: shownSlugRef.current, lines: next.lit });
           },
           onFallback: fallBack,
+          onEvent: playSound,
         });
       } catch {
         return fallBack("context-failed");
@@ -342,6 +364,7 @@ export function SceneStage({
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-camera-shot={mode === "webgl" ? snapshot.shot : undefined}
+        data-scene-beat={mode === "webgl" ? snapshot.beat : undefined}
         data-fallback-reason={reason ?? sceneStills}
         className="relative h-[clamp(20rem,48svh,34rem)] w-full overflow-hidden lg:h-full"
       >

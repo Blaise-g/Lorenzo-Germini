@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { VOICE_COPY } from "./copy";
 import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
 import { useHydrated } from "./overlay";
+import { SoundSwitch } from "./sound";
 import { useNarrationCue } from "./stage-status";
 import { useNarrationPlayhead } from "./tour";
 import {
@@ -156,7 +157,7 @@ function usePressed(onPress: () => void): boolean {
   return pressed;
 }
 
-function Switch({
+export function Switch({
   checked,
   onChange,
   children,
@@ -339,6 +340,7 @@ export function NarrationBar({
             >
               {VOICE_COPY.captionsSwitch}
             </Switch>
+            <SoundSwitch />
           </div>
           <p data-path-voice-label className="text-faint text-xs">
             {VOICE_COPY.label(VOICE_PROVIDER_NAME)}
