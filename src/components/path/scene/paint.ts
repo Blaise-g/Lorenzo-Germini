@@ -120,6 +120,25 @@ export function inject(
   return source.replace(anchor, replace ? add : `${anchor}\n${add}`);
 }
 
+const warned = new Set<string>();
+
+/** `source` with `add` after `anchor`, as `inject` does, for a patch the
+ *  board can draw without: when the anchor is not there it leaves `source`
+ *  unpatched, and says so once in development. */
+export function injectOrWarn(
+  source: string,
+  anchor: string,
+  add: string,
+): string {
+  if (source.includes(anchor)) return inject(source, anchor, add);
+  const anchorName = anchor.trim().slice(0, 60);
+  if (process.env.NODE_ENV !== "production" && !warned.has(anchorName)) {
+    warned.add(anchorName);
+    console.warn(`Shader patch skipped: no ${anchorName}`);
+  }
+  return source;
+}
+
 /** Applies `patches` in order, and keys the program by them, so materials
  *  patched alike share one program. */
 export function patchMaterial(
@@ -499,28 +518,29 @@ export function createPaint(palette: Palette) {
       apply(shader) {
         shader.uniforms.uTime = waterTime;
         shader.uniforms.uFoam = foam;
-        shader.vertexShader = shader.vertexShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec2 vWaterUv;",
-          )
-          .replace(
-            "#include <uv_vertex>",
-            "#include <uv_vertex>\nvWaterUv = uv;",
-          );
-        shader.fragmentShader = shader.fragmentShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec2 vWaterUv;\nuniform float uTime;\nuniform vec3 uFoam;",
-          )
-          .replace(
-            "#include <color_fragment>",
-            /* glsl */ `#include <color_fragment>
-        float bank = min( min( vWaterUv.y, 1.0 - vWaterUv.y ), min( vWaterUv.x, 1.0 - vWaterUv.x ) * 3.0 );
+        shader.vertexShader = injectOrWarn(
+          shader.vertexShader,
+          "#include <common>",
+          "varying vec2 vWaterUv;",
+        );
+        shader.vertexShader = injectOrWarn(
+          shader.vertexShader,
+          "#include <uv_vertex>",
+          "vWaterUv = uv;",
+        );
+        shader.fragmentShader = injectOrWarn(
+          shader.fragmentShader,
+          "#include <common>",
+          "varying vec2 vWaterUv;\nuniform float uTime;\nuniform vec3 uFoam;",
+        );
+        shader.fragmentShader = injectOrWarn(
+          shader.fragmentShader,
+          "#include <color_fragment>",
+          /* glsl */ `        float bank = min( min( vWaterUv.y, 1.0 - vWaterUv.y ), min( vWaterUv.x, 1.0 - vWaterUv.x ) * 3.0 );
         float ripple = 0.5 + 0.5 * sin( vWaterUv.x * 40.0 + uTime * 1.6 + sin( vWaterUv.y * 9.0 ) * 2.0 );
         float foamLine = 1.0 - smoothstep( 0.04, 0.12 + 0.05 * ripple, bank );
         diffuseColor.rgb = mix( diffuseColor.rgb, uFoam, foamLine * 0.75 );`,
-          );
+        );
       },
     },
   ]);
@@ -538,15 +558,15 @@ export function createPaint(palette: Palette) {
         apply(shader) {
           shader.uniforms.uTime = time;
           shader.uniforms.uGrow = grow;
-          shader.vertexShader = shader.vertexShader
-            .replace(
-              "#include <common>",
-              "#include <common>\nuniform float uTime;",
-            )
-            .replace(
-              "#include <begin_vertex>",
-              /* glsl */ `#include <begin_vertex>
-        #ifdef USE_INSTANCING
+          shader.vertexShader = injectOrWarn(
+            shader.vertexShader,
+            "#include <common>",
+            "uniform float uTime;",
+          );
+          shader.vertexShader = injectOrWarn(
+            shader.vertexShader,
+            "#include <begin_vertex>",
+            /* glsl */ `        #ifdef USE_INSTANCING
           vec2 rooted = instanceMatrix[3].xz;
         #else
           vec2 rooted = vec2( 0.0 );
@@ -558,11 +578,12 @@ export function createPaint(palette: Palette) {
         float growEdge = uGrow.z - distance( rooted, uGrow.xy )
           + 0.22 * sin( rooted.x * 5.3 ) * cos( rooted.y * 4.1 );
         transformed *= smoothstep( 0.0, 0.55, growEdge );`,
-            )
-            .replace(
-              "#include <common>",
-              "#include <common>\nuniform vec3 uGrow;",
-            );
+          );
+          shader.vertexShader = injectOrWarn(
+            shader.vertexShader,
+            "#include <common>",
+            "uniform vec3 uGrow;",
+          );
         },
       },
     ]);
@@ -582,30 +603,31 @@ export function createPaint(palette: Palette) {
         shader.uniforms.uTime = time;
         shader.uniforms.uPipeBeat = pipeBeat;
         shader.uniforms.uLamp = lampColour;
-        shader.vertexShader = shader.vertexShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec2 vFlowUv;",
-          )
-          .replace(
-            "#include <uv_vertex>",
-            "#include <uv_vertex>\nvFlowUv = uv;",
-          );
-        shader.fragmentShader = shader.fragmentShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec2 vFlowUv;\nuniform float uTime;\nuniform float uPipeBeat;\nuniform vec3 uLamp;",
-          )
-          .replace(
-            "#include <emissivemap_fragment>",
-            /* glsl */ `#include <emissivemap_fragment>
-        float pulse = pow( 0.5 + 0.5 * sin( ( vFlowUv.x * 5.0 - uTime * 0.35 ) * 6.2831853 ), 6.0 );
+        shader.vertexShader = injectOrWarn(
+          shader.vertexShader,
+          "#include <common>",
+          "varying vec2 vFlowUv;",
+        );
+        shader.vertexShader = injectOrWarn(
+          shader.vertexShader,
+          "#include <uv_vertex>",
+          "vFlowUv = uv;",
+        );
+        shader.fragmentShader = injectOrWarn(
+          shader.fragmentShader,
+          "#include <common>",
+          "varying vec2 vFlowUv;\nuniform float uTime;\nuniform float uPipeBeat;\nuniform vec3 uLamp;",
+        );
+        shader.fragmentShader = injectOrWarn(
+          shader.fragmentShader,
+          "#include <emissivemap_fragment>",
+          /* glsl */ `        float pulse = pow( 0.5 + 0.5 * sin( ( vFlowUv.x * 5.0 - uTime * 0.35 ) * 6.2831853 ), 6.0 );
         totalEmissiveRadiance *= 0.15 + 0.85 * pulse;
         if ( uPipeBeat >= 0.0 ) {
           float slug = vFlowUv.x - uPipeBeat;
           totalEmissiveRadiance += uLamp * 2.4 * exp( -slug * slug * 160.0 );
         }`,
-          );
+        );
       },
     },
   ]);
@@ -629,6 +651,15 @@ export function createPaint(palette: Palette) {
       CLOUD_SHADE.day + (CLOUD_SHADE.night - CLOUD_SHADE.day) * night;
   }
   gradeUniforms();
+
+  /** Whether `made` is one every tile shares, which no tile's going
+   *  frees. */
+  function isShared(made: MeshStandardMaterial) {
+    return (
+      [water, grass, pipeFlow, lit, unlit].includes(made) ||
+      [...cache.values()].includes(made)
+    );
+  }
 
   return {
     material,
@@ -707,6 +738,20 @@ export function createPaint(palette: Palette) {
       if (amount === 0) boosts.delete(made);
       else boosts.set(made, amount);
       glowOf(made);
+    },
+    /** Forgets and frees `made`, one a replaced tile alone held: not a
+     *  shared one, nor the water, grass, pipe or panes the board keeps. */
+    release(made: MeshStandardMaterial) {
+      if (!painted.has(made) || isShared(made)) return;
+      painted.delete(made);
+      glowing.delete(made);
+      grained.delete(made);
+      boosts.delete(made);
+      made.dispose();
+    },
+    /** The glow lent to `made` (`boost`), 0 for none. */
+    boostOf(made: MeshStandardMaterial) {
+      return boosts.get(made) ?? 0;
     },
     /** Runs the water fast (`surge`) or stills it (`calm`), 0 to 1 each. */
     setWater(surge: number, calm: number) {

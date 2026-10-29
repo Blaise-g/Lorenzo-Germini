@@ -310,9 +310,9 @@ test.describe("the build", () => {
   });
 
   /* While a tile's landmarks load, Replay and the turns are shown
-     unavailable and do nothing; the one with focus keeps it. The board asks
-     for the rest of its landmarks once home is up, so Lille's are refused
-     then, and held on their retry. */
+     unavailable and do nothing; the one with focus keeps it. Only a tile
+     that never stood waits on its landmarks: Lille's are refused on the
+     landing, so it shows its stills, and held on their retry. */
   test("while a scene loads, its controls are unavailable and keep focus", async ({
     page,
   }) => {
@@ -325,10 +325,14 @@ test.describe("the build", () => {
       await held;
       await route.continue();
     });
-    await page.goto("/path#home");
+    await page.goto("/path#lille");
+    await expect(stage(page)).toHaveAttribute(
+      "data-fallback-reason",
+      "assets-failed",
+    );
+    await stepLink(page, "home").click();
     await buildControl(page).click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
-    await landmarksSettled(page);
     await buildControl(page).focus();
     refuse = false;
 
@@ -820,6 +824,56 @@ test.describe("a tile whose landmarks fail to load", () => {
     await stepLink(page, "lille").click();
     await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
+  });
+});
+
+/* A tile standing on its stand-ins is never taken off the board: a
+   landmark whose background fetch failed, or one that has not come in time
+   for the first landing, stands in until it arrives (v3-harden). */
+test.describe("a tile whose landmarks are late or failed", () => {
+  test("keeps its stand-ins after a failed prefetch, and builds at once", async ({
+    page,
+  }) => {
+    await listLandmarks(page, ["lille-belfry"]);
+    await page.route("**/path/models/lille-belfry.glb", (route) =>
+      route.fulfill({ status: 500 }),
+    );
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute(
+      "data-build-state",
+      /building|built/,
+    );
+    await landmarksSettled(page);
+    await stepLink(page, "lille").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
+    await expect(stage(page)).toHaveAttribute(
+      "data-build-state",
+      /building|built/,
+    );
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
+    const belfry = await page.evaluate(() =>
+      window.__pathScene
+        ?.pieces()
+        .find((each) => each.step === "lille" && each.piece === "belfry"),
+    );
+    expect(belfry?.file).toBeNull();
+  });
+
+  test("a first landing whose landmark hangs builds on its stand-in", async ({
+    page,
+  }) => {
+    await listLandmarks(page, ["lille-belfry"]);
+    /* Never answered. */
+    await page.route("**/path/models/lille-belfry.glb", () => undefined);
+    await page.goto("/path#lille");
+    await expect(stage(page)).toHaveAttribute(
+      "data-build-state",
+      /building|built/,
+      { timeout: 6000 },
+    );
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
     await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
   });
 });

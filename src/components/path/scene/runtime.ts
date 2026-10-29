@@ -50,6 +50,7 @@ import {
   buildPlan,
   litLines,
   PROP_DROP_MS,
+  stepNamed,
   TURN_LIMIT,
   type BuildPlan,
   type BuildState,
@@ -140,8 +141,7 @@ import { createPlay, SOFT, type Reactor } from "./play";
    holds every step as a tile on a loop, every piece on it modelled solid
    (`world.ts`, `props.ts`) or loaded (`scene-assets.ts`), and nothing on it
    is text. Selecting a step hops the pawn there along the loop and raises
-   that tile's pieces in the data's order, lighting the caption lines as they
-   settle. The camera rig (`camera-rig.ts`) holds each step close and travels
+   that tile's pieces in the data's order. The camera rig (`camera-rig.ts`) holds each step close and travels
    with the pawn between them; the board draws while the rig moves or the
    tour plays, and stops when both are still. Tiles already built stay
    built. */
@@ -149,10 +149,14 @@ import { createPlay, SOFT, type Reactor } from "./play";
 const TURN_RADIANS = 0.3;
 const TURN_MS = 450;
 const THEME_MS = 350;
+/** How long a step's first showing waits on its own landmarks before it
+ *  builds on their stand-ins: inside the tour's wait for a settled stage
+ *  (`SETTLE_MAX_WAIT_MS`), with a build's span to spare. */
+const FIRST_LOAD_MS = 3000;
 /** How long a lost context may take to come back before the stills. */
 const CONTEXT_RESTORE_MS = 3000;
-/** Frames longer than this count as a pause (a hidden tab, a debugger), and
- *  the build's clock does not jump across them. */
+/** The most a frame moves the clocks on: one longer than this (a hidden
+ *  tab, a debugger) is a pause, and the build goes on from where it was. */
 const MAX_STEP_MS = 100;
 /** Each piece after the first in a prop rises this much later. */
 const PIECE_STAGGER_MS = 110;
@@ -295,6 +299,9 @@ export type PieceReport = {
   piece: string;
   file: string | null;
   nodes: string[];
+  /** How high its top stands above the table, in world units; for a piece
+   *  on a tile. */
+  top?: number;
 };
 
 /** One piece on a tile, rising from its foot. */
@@ -328,10 +335,6 @@ type Tile = {
   /** The "?" step's lid (`makeVeil`), over its piece until it wakes. */
   veil?: Group;
 };
-
-function stepNamed(slug: PathStepSlug) {
-  return PATH_STEPS.find((step) => step.slug === slug)!;
-}
 
 export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const { canvas, signals, onChange, onFallback } = options;
@@ -987,9 +990,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return frustum.intersectsBox(tileBox.setFromObject(tile.group));
   }
 
-  /** Frees what a replaced tile, holder or marker alone held: its pieces'
-   *  geometry. Its materials are the paint box's, and a loaded landmark's or
-   *  toy's geometry is the model's, kept for whatever replaces it. */
+  /** Frees what a replaced tile, holder or marker alone held, once its
+   *  replacement stands: its pieces' geometry, and the materials the paint
+   *  box made for it alone. A loaded landmark's or toy's geometry is the
+   *  model's, kept for whatever replaces it, and a material still drawn
+   *  anywhere on the board stays. */
   function retire(group: Object3D) {
     const kept = new Set<BufferGeometry>();
     for (const result of [...models.values(), ...toys.values()]) {
@@ -998,10 +1003,19 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         if (node instanceof Mesh) kept.add(node.geometry);
       });
     }
+    const drawn = new Set<Material>();
+    scene.traverse((node) => {
+      if (node instanceof Mesh)
+        for (const each of materialsOf(node)) drawn.add(each);
+    });
     group.traverse((node) => {
+      if (!(node instanceof Mesh)) return;
       if (node instanceof InstancedMesh) node.dispose();
-      if (node instanceof Mesh && !kept.has(node.geometry)) {
-        node.geometry.dispose();
+      if (!kept.has(node.geometry)) node.geometry.dispose();
+      for (const each of materialsOf(node)) {
+        if (!drawn.has(each) && each instanceof MeshStandardMaterial) {
+          paintBox.release(each);
+        }
       }
     });
   }
@@ -1025,6 +1039,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     board.remove(old.group);
     board.add(tile.group);
     tiles.set(slug, tile);
+    /* What had risen of the old tile has risen of the new: no second
+       "rise". */
+    for (const [id, risers] of old.props) {
+      const next = tile.props.get(id);
+      risers.forEach((riser, index) => {
+        if (risen.delete(riser) && next?.[index]) risen.add(next[index]);
+      });
+    }
     retire(old.group);
     pose();
     /* Its first draw compiles and uploads: not a measure of the board. */
@@ -1094,6 +1116,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let planStarts = new Map<string, number>();
   /** Whether the current tile stood before this build began. */
   let rebuild = false;
+  /** Whether this build goes on with a wake cut short, from where it had
+   *  got (`abandon`), rather than from dormant. */
+  let resumed = false;
   let pawnAt: PathStepSlug | undefined;
   let move: Move | undefined;
   let buildElapsed = 0;
@@ -1201,7 +1226,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const slug = tile.slug;
       tile.group.position.y = liftOf(slug);
       if (slug === current && plan && buildState === "building") {
-        const rising = move ? -1 : buildElapsed;
+        const rising = move && !resumed ? -1 : buildElapsed;
         poseTile(tile, (prop) =>
           rebuild && move ? "up" : rising - (planStarts.get(prop) ?? 0),
         );
@@ -1309,6 +1334,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (plan) buildElapsed = plan.building.at(-1)?.landsAt ?? 0;
     if (current) built.add(current);
     rebuild = false;
+    resumed = false;
     pose();
     /* Emitted even when already built: under reduced motion one step's end
        state cuts to another's, and the host has to hear the new step. */
@@ -1380,6 +1406,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let restoreTimer: ReturnType<typeof setTimeout> | undefined;
   let fellBack = false;
   const frameTimes: number[] = [];
+  /** Whether the last tick drew: its gap to the next is a frame time. */
+  let drewLast = false;
 
   /* Frames are drawn on demand: a move, a build, a turn, a theme change,
      or the camera moving, which includes its close-up breathing while the
@@ -1427,9 +1455,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     lastTime = time;
 
     /* The first `FRAME_SAMPLE_SIZE` frame times decide the fallback; a frame
-       that spans a pause, or the first after an idle stretch, is not a frame
-       time. */
-    if (delta > 0 && delta < 1000 && frameTimes.length < FRAME_SAMPLE_SIZE) {
+       that spans a pause, the first after an idle stretch, or one that
+       follows a tick drawing nothing off screen, is not a frame time. */
+    const timed = drewLast && !offscreen;
+    drewLast = !offscreen;
+    if (
+      timed &&
+      delta > 0 &&
+      delta < 1000 &&
+      frameTimes.length < FRAME_SAMPLE_SIZE
+    ) {
       frameTimes.push(delta);
       if (frameTimes.length === FRAME_SAMPLE_SIZE) {
         const reason = decideFallback(signals, frameTimes);
@@ -1520,7 +1555,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       frame();
       requestFrame();
     }
-    canvas.dataset.pathSceneRendered = "true";
     if (moving()) requestFrame();
     else lastTime = undefined;
   }
@@ -1565,7 +1599,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (!frameRequest && !paused && !offscreen && !contextLost && !fellBack) {
       draw(0);
       unmeasured = false;
-      canvas.dataset.pathSceneRendered = "true";
     }
   }
 
@@ -1669,6 +1702,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       catchingUp.set(current, buildElapsed);
     }
     rebuild = false;
+    resumed = false;
     if (move) {
       const { along } = moveAt(move, move.elapsed);
       pawnAt = loopAt(stepIndex(move.from) + Math.round(along));
@@ -1731,12 +1765,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         catchingUp.set(other, 0);
       }
     }
-    /* A tile reselected while its cut-short wake runs on is built again
-       from there, as a standing tile is. */
-    if (catchingUp.delete(slug)) {
-      wakeStarts.delete(slug);
-      built.add(slug);
-    }
+    /* A tile reselected while its cut-short wake runs on wakes on from
+       where it is: it holds there while the pawn comes, then rises on. */
+    const waking = catchingUp.get(slug);
+    catchingUp.delete(slug);
+    wakeStarts.delete(slug);
+    resumed = waking !== undefined;
     rebuild = built.has(slug);
     built.delete(slug);
     /* Its pieces stand as built, before any beat; its landmarks announce
@@ -1748,7 +1782,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     arrivals.delete(slug);
     risen.clear();
     current = slug;
-    buildElapsed = 0;
+    buildElapsed = waking ?? 0;
+    /* What has risen of a wake resumed has sounded already. */
+    if (resumed) {
+      for (const risers of tiles.get(slug)?.props.values() ?? []) {
+        for (const piece of risers) if (piece.shown) risen.add(piece);
+      }
+    }
     lit = [];
     /* A selection plays its move even when paused: the visitor asked for
        it. */
@@ -1889,6 +1929,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return null;
   }
 
+  /** The narration of the step last shown, which a replay's drift spans. */
+  let narrationShownMs = 0;
   /** The beat last played, for the snapshot. */
   let lastBeat: string | undefined;
   /** How long the pawn has stood at rest, while the board lives: its idle
@@ -1921,6 +1963,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (arriving !== undefined) return grown(arriving);
     if (slug === current && buildState === "building") {
       if (rebuild) return 1e3;
+      if (resumed) return grown(buildElapsed * (REVEAL_MS / PROP_DROP_MS));
       return move ? 0 : grown(buildElapsed);
     }
     const catching = catchingUp.get(slug);
@@ -2062,10 +2105,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   return {
     show(step, options) {
       const request = ++showing;
+      narrationShownMs = options?.narrationMs ?? 0;
       /* Once the board is up, a step builds at once: a landmark of its own
          still on its way takes its stand-in's place when it lands. Only one
-         that failed is waited on, fetched again. */
-      if (prepared && !failedIn(step.slug)) {
+         that failed before its tile was made is waited on, fetched again; a
+         tile already standing keeps its stand-ins while it is (`approach`). */
+      if (prepared && (tiles.has(step.slug) || !failedIn(step.slug))) {
         /* A first landing overtaken before its own landmarks came never
            asked for the duo: this one does. */
         startToys(step.slug);
@@ -2088,21 +2133,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       buildState = "loading";
       emit();
       (preparing ??= prepare())
-        .then(() => loadModels(idsOf(step.slug)))
+        /* A landmark that has not come in time stands in until it does. */
+        .then(() =>
+          Promise.race([
+            loadModels(idsOf(step.slug)),
+            new Promise((resolve) => setTimeout(resolve, FIRST_LOAD_MS)),
+          ]),
+        )
         .then(
           () => {
             if (disposed || request !== showing) return;
-            /* A landmark of its own that did not arrive takes its tile off
-               the board, stand-in and all, so the step shows its stills,
-               as a tile made without it would. */
-            const tile = tiles.get(step.slug);
-            if (tile && failedIn(step.slug)) {
-              board.remove(tile.group);
-              tiles.delete(step.slug);
-              built.delete(step.slug);
-              catchingUp.delete(step.slug);
-              retire(tile.group);
-            }
             failedTiles.delete(step.slug);
             frame();
             buildOrFail(step, options);
@@ -2212,6 +2252,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
             piece,
             file: tile.files.get(piece) ?? null,
             nodes: nodesOf(beater),
+            top: new Box3().setFromObject(beater).max.y,
           });
         }
       }
@@ -2239,7 +2280,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     replay() {
       const step = current && stepNamed(current);
-      if (step && plan && !stills) buildOrFail(step);
+      /* The drift spans the step's narration again, not the bare minimum. */
+      if (step && plan && !stills) {
+        buildOrFail(step, { advance: false, narrationMs: narrationShownMs });
+      }
     },
     turn(direction) {
       if (!plan) return;

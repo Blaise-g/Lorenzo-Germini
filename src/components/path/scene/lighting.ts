@@ -29,9 +29,10 @@ import type { Palette } from "./palette";
 /** What the sun's shadow has to cover: a shot's focus, as a sphere. */
 export type ShotFocus = Readonly<{ target: Vector3; radius: number }>;
 
-/** The tallest anything stands on the board: the Mole's spire and the
- *  Bisalta's peaks, with the pawn's hop above a lifted tile. */
-const TALLEST = 3.4;
+/** The tallest anything stands on the board, with a margin: the belfry,
+ *  about 4.55 at a hero tile's scale, and the Mole, about 3.72, above the
+ *  pawn's hop over a lifted tile. */
+export const TALLEST = 4.8;
 
 /** The box the sun's shadow covers until a camera rig names its shot: the
  *  whole board, from the table under it to its tallest piece, at any yaw

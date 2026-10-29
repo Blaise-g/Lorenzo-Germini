@@ -1,5 +1,5 @@
 import { PATH_STEPS } from "@/data/path";
-import type { PathSceneId, PathStep } from "@/data/path.types";
+import type { PathSceneId, PathStep, PathStepSlug } from "@/data/path.types";
 
 /* The board runtime's contract that needs no three.js (GH-148): which steps
    have art, what selecting a step builds and in what order, which caption
@@ -21,6 +21,12 @@ export const SCENES_WITH_ART: readonly PathSceneId[] = [
   "open",
 ];
 
+const STEPS_BY_SLUG = new Map(PATH_STEPS.map((step) => [step.slug, step]));
+
+export function stepNamed(slug: PathStepSlug): PathStep {
+  return STEPS_BY_SLUG.get(slug)!;
+}
+
 export function hasScene(step: PathStep): boolean {
   return SCENES_WITH_ART.includes(step.sceneId);
 }
@@ -38,7 +44,8 @@ export const TURN_LIMIT = 1;
 
 export type PlannedProp = {
   id: string;
-  /** The step's line this prop captions, lit in the text panel as it lands. */
+  /** The step's line this prop captions, counted lit as it lands (the
+   *  stage's `data-scene-lit`, the build's progress). */
   captionLine: number;
   /** When it starts to rise and when it settles, in ms from the build's
    *  start. */
@@ -79,7 +86,8 @@ export function buildPlan(step: PathStep): BuildPlan {
   return { step: step.slug, standing, building };
 }
 
-/** The caption lines lit `elapsed` ms into a build: one per landed prop. */
+/** The caption lines counted lit `elapsed` ms into a build: one per landed
+ *  prop. */
 export function litLines(plan: BuildPlan, elapsed: number): number[] {
   const lit = plan.building
     .filter((prop) => prop.landsAt <= elapsed)

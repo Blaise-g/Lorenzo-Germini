@@ -112,6 +112,31 @@ test.describe("the switch", () => {
     ).toBeNull();
   });
 
+  /* A bed that fails to render leaves the effects on, says so, and throws
+     nothing unhandled. */
+  test("a bed that fails to render is reported, not left unhandled", async ({
+    page,
+  }) => {
+    test.slow();
+    await page.addInitScript(() => {
+      OfflineAudioContext.prototype.startRendering = () =>
+        Promise.reject(new Error("no render"));
+    });
+    const unhandled: string[] = [];
+    page.on("pageerror", (error) => unhandled.push(error.message));
+    const logged: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") logged.push(message.text());
+    });
+    await page.goto("/path#home");
+    await soundSwitch(page).click();
+    await expect(soundSwitch(page)).toHaveAttribute("aria-checked", "true");
+    await expect
+      .poll(() => logged.some((line) => line.includes("sound bed")))
+      .toBe(true);
+    expect(unhandled).toEqual([]);
+  });
+
   /* The bed ducks under anything the voice's element speaks, and comes
      back when it stops. A second silent element stands in for the voice:
      its clip is a second of silence, in a muted browser. */

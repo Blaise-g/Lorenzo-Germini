@@ -53,8 +53,10 @@ export const GPU_BUDGET_MB = 440;
 export const MAX_DRAWING_PIXELS = 3_400_000;
 
 /** The pixel ratio to draw a `width` × `height` (CSS px) canvas at: the
- *  device's, at least `MIN_PIXEL_RATIO` and at most `cap`, and lower on a
- *  stage so large that it would hold more than `MAX_DRAWING_PIXELS`. */
+ *  device's, raised to `MIN_PIXEL_RATIO` and held to `cap`; then, on a
+ *  stage so large that it would hold more than `MAX_DRAWING_PIXELS`, lower,
+ *  below `MIN_PIXEL_RATIO` too on a stage past that many CSS pixels: the
+ *  budget outranks the floor. */
 export function drawingPixelRatio(
   width: number,
   height: number,

@@ -8,8 +8,10 @@ import { narrationFor } from "./narration";
    it directly; the hook that drives it is in `tour.tsx`. */
 
 /** The pause after a step's narration ends, before the pawn moves on: long
- *  enough to see the last prop settle, short enough not to read as a stall. */
-export const NARRATION_BEAT_MS = 1200;
+ *  enough to see the last prop settle, short enough not to read as a stall.
+ *  The benchmark's §4(a) tail, which the close-up's drift also runs to
+ *  (`DRIFT.tailMs`). */
+export const NARRATION_BEAT_MS = 800;
 /** How long the tour waits for the stage to report a step settled before it
  *  starts the dwell anyway: no runtime, a stuck load, a stage that never
  *  reports. A build takes about two to three seconds. */

@@ -9,7 +9,14 @@ import {
 } from "three";
 
 import { squashScale } from "./motion";
-import { BEAT_NODE, glint, glow, parts, restOf } from "./piece-beats";
+import {
+  BEAT_NODE,
+  glint,
+  glow,
+  materialsOf,
+  parts,
+  restOf,
+} from "./piece-beats";
 import type { Paint } from "./paint";
 import { softDisc } from "./world";
 
@@ -19,9 +26,11 @@ import { softDisc } from "./world";
    it, and a quick second click adds to the first: a piece shaken twice
    shakes a little harder (Emil Kowalski's design engineering; Bruno
    Simon's portfolio). Each spring drives one channel of one node — its
-   height, squash, a lean or a turn, or a glow — as an offset from the pose
-   the node was built in, so a generated model swapped into a handle keeps
-   its own rest pose. Nothing here is text. */
+   height, squash, a lean or a turn, or a glow — as an offset from where the
+   node stood when the spring began: a beat's held end state, or its built
+   pose. Springs on the same channel, a click's and a gesture's, add up
+   there (`compose`), and a beat that moves the node under them moves where
+   they settle. Nothing here is text. */
 
 /** What a spring moves on its node. */
 type Channel =
@@ -61,6 +70,113 @@ type Spring = {
   v: number;
   target: number;
 };
+
+/* ─── One writer per node and channel ─── */
+
+/** What a channel writes on its node: lean and dial both turn it on z. */
+const PROPERTY: Record<Channel, string> = {
+  y: "y",
+  x: "x",
+  squash: "scale",
+  lean: "z-turn",
+  dial: "z-turn",
+  pitch: "x-turn",
+  turn: "y-turn",
+  glow: "glow",
+  glint: "glint",
+};
+
+/** A node's property as springs hold it: the value under them, as the
+ *  node last had it without them, and each spring's offset. */
+type Composed = {
+  under: number[];
+  /** What the springs last wrote, read back: anything else found there
+   *  was written by something else (a beat), and is the new `under`. */
+  written: number[];
+  offsets: Map<Spring, number>;
+};
+
+/** Shared by every Play, so a click's spring and a gesture's on the same
+ *  node compose rather than overwrite each other. */
+const composed = new WeakMap<Object3D, Map<string, Composed>>();
+
+function lightOf(paint: Paint, node: Object3D, boosted: boolean): number {
+  const [made] = materialsOf(node);
+  if (!made) return 0;
+  const lit = made.userData.inkLit as { value: number } | undefined;
+  if (lit) return lit.value;
+  return boosted ? paint.boostOf(made) : 0;
+}
+
+function read(paint: Paint, node: Object3D, property: string): number[] {
+  switch (property) {
+    case "y":
+      return [node.position.y];
+    case "x":
+      return [node.position.x];
+    case "scale":
+      return node.scale.toArray();
+    case "z-turn":
+      return [node.rotation.z];
+    case "x-turn":
+      return [node.rotation.x];
+    case "y-turn":
+      return [node.rotation.y];
+    case "glow":
+      return [lightOf(paint, node, true)];
+    default:
+      return [lightOf(paint, node, false)];
+  }
+}
+
+function write(
+  paint: Paint,
+  node: Object3D,
+  property: string,
+  value: number[],
+) {
+  const [v] = value;
+  switch (property) {
+    case "y":
+      node.position.y = v;
+      break;
+    case "x":
+      node.position.x = v;
+      break;
+    case "scale":
+      node.scale.fromArray(value);
+      break;
+    case "z-turn":
+      node.rotation.z = v;
+      break;
+    case "x-turn":
+      node.rotation.x = v;
+      break;
+    case "y-turn":
+      node.rotation.y = v;
+      break;
+    case "glow":
+      glow(paint, [node], v);
+      break;
+    default:
+      glint(node, v);
+  }
+}
+
+/** `under` with every spring's offset: added, or multiplied for a squash,
+ *  which keeps the volume; a light is lent only, never taken. */
+function compose(property: string, under: number[], offsets: number[]) {
+  if (property === "scale") {
+    const squash = offsets.reduce((all, x) => all * (1 + x), 1);
+    const [x, y, z] = under;
+    return squashScale(Math.max(squash, 0.4), { x, y, z });
+  }
+  const light = property === "glow" || property === "glint";
+  const sum = offsets.reduce((all, x) => all + (light ? Math.max(x, 0) : x), 0);
+  return [under[0] + sum];
+}
+
+const same = (a: number[], b: number[]) => a.every((v, i) => v === b[i]);
 
 const SUBSTEP_MS = 8;
 /** At rest when this near its target and this slow. */
@@ -107,38 +223,32 @@ export function createPlay(options: { paint: Paint; board: Group }) {
     spring(node, channel, feel).target += by;
   }
 
-  function apply(each: Spring) {
-    const { node, channel, x } = each;
-    const rest = restOf(node);
-    switch (channel) {
-      case "y":
-        node.position.y = rest.position.y + x;
-        break;
-      case "x":
-        node.position.x = rest.position.x + x;
-        break;
-      case "squash":
-        node.scale.set(...squashScale(Math.max(1 + x, 0.4), rest.scale));
-        break;
-      case "lean":
-        node.rotation.z = rest.rotation.z + x;
-        break;
-      case "pitch":
-        node.rotation.x = rest.rotation.x + x;
-        break;
-      case "turn":
-        node.rotation.y = rest.rotation.y + x;
-        break;
-      case "dial":
-        node.rotation.z = rest.rotation.z + x;
-        break;
-      case "glow":
-        glow(paint, [node], Math.max(x, 0));
-        break;
-      case "glint":
-        glint(node, Math.max(x, 0));
-        break;
-    }
+  /** Writes `each`'s offset onto its node with every other spring's on the
+   *  same property; at rest, takes it off, and the last off leaves the
+   *  node as it stands without them. */
+  function apply(each: Spring, resting = false) {
+    const { node } = each;
+    const property = PROPERTY[each.channel];
+    let onNode = composed.get(node);
+    if (!onNode) composed.set(node, (onNode = new Map()));
+    const now = read(paint, node, property);
+    let entry = onNode.get(property);
+    if (!entry) {
+      entry = { under: now, written: now, offsets: new Map() };
+      onNode.set(property, entry);
+    } else if (!same(now, entry.written)) entry.under = now;
+    if (resting) entry.offsets.delete(each);
+    else entry.offsets.set(each, each.x);
+    write(
+      paint,
+      node,
+      property,
+      entry.offsets.size > 0
+        ? compose(property, entry.under, [...entry.offsets.values()])
+        : entry.under,
+    );
+    entry.written = read(paint, node, property);
+    if (entry.offsets.size === 0) onNode.delete(property);
   }
 
   /* ─── The halo: hover, and reduced motion's answer to a click ─── */
@@ -380,10 +490,7 @@ export function createPlay(options: { paint: Paint; board: Group }) {
         Math.abs(each.v) < REST.v
       ) {
         /* At rest: a whole number of turns is no turn. */
-        each.x = 0;
-        each.target = 0;
-        each.v = 0;
-        apply(each);
+        apply(each, true);
         springs.delete(k);
       } else apply(each);
     }
@@ -419,15 +526,11 @@ export function createPlay(options: { paint: Paint; board: Group }) {
         springs.size > 0 || later.length > 0 || haloLevel.x !== haloLevel.target
       );
     },
-    /** Puts everything where it rests, at once. */
+    /** Puts everything where it rests, at once: where it stood without
+     *  this Play's springs, a beat's end state included. */
     settle() {
       later.length = 0;
-      for (const each of springs.values()) {
-        each.x = 0;
-        each.v = 0;
-        each.target = 0;
-        apply(each);
-      }
+      for (const each of springs.values()) apply(each, true);
       springs.clear();
     },
   };

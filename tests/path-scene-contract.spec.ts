@@ -58,7 +58,9 @@ import {
   lightPreset,
   shadowBounds,
 } from "@/components/path/scene/lighting";
-import { createPaint } from "@/components/path/scene/paint";
+import { NARRATION_BEAT_MS } from "@/app/path/tour-clock";
+import { DRIFT } from "@/components/path/scene/camera-rig";
+import { createPaint, TONES } from "@/components/path/scene/paint";
 import { PALETTE_ROLES, type Palette } from "@/components/path/scene/palette";
 import { pathSpline, tileAnchors } from "@/components/path/scene/path-spline";
 import {
@@ -390,6 +392,14 @@ test.describe("the drawing buffer", () => {
 
 /* Decision 3: home's step 4 shows the dimmed "MVP — killed after customer
    discovery" window. The words come from the step's own line. */
+/* §4(a): the dwell's tail after the narration is 0.8 s, and the close-up's
+   drift runs to the same moment, so the orbit does not stop before the
+   pawn moves on. */
+test("the dwell's tail and the drift's are one 0.8 s", () => {
+  expect(NARRATION_BEAT_MS).toBe(800);
+  expect(DRIFT.tailMs).toBe(NARRATION_BEAT_MS);
+});
+
 test.describe("the MVP window", () => {
   const cuneo = PATH_STEPS.find((step) => step.slug === "cuneo-2022")!;
   const prop = cuneo.props.find((p) => p.id === "mvp-window")!;
@@ -603,6 +613,30 @@ test.describe("the pieces", () => {
     PALETTE_ROLES.map((role, i) => [role, new Color(0.2 * i, 0.5, 0.4)]),
   ) as Palette;
   const paint = createPaint(palette);
+
+  /* A tile remade as a model arrives frees what its stand-ins alone held;
+     what every tile shares stays. */
+  test("a released material is freed and forgotten; a shared one stays", () => {
+    const own = paint.material(TONES.pane, { lamp: 1 });
+    const shared = paint.shared("stone");
+    const freed: unknown[] = [];
+    for (const made of [own, shared, paint.water]) {
+      made.addEventListener("dispose", () => freed.push(made));
+    }
+    paint.release(own);
+    paint.release(shared);
+    paint.release(paint.water);
+    expect(freed).toEqual([own]);
+    /* Forgotten: a repaint no longer colours it. */
+    const before = own.color.clone();
+    paint.repaint(
+      Object.fromEntries(
+        PALETTE_ROLES.map((role) => [role, new Color(1, 0, 0)]),
+      ) as Palette,
+    );
+    expect(own.color.equals(before)).toBe(true);
+    paint.repaint(palette);
+  });
 
   test("every piece builds, and stays inside its box", () => {
     for (const slug of LOOP) {

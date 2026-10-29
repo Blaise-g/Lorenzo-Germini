@@ -30,6 +30,8 @@ import { LOOP, piecesOf } from "@/components/path/scene/board";
 import { createPaint } from "@/components/path/scene/paint";
 import { PALETTE_ROLES, type Palette } from "@/components/path/scene/palette";
 import { BEAT_NODE, hasOwnParts } from "@/components/path/scene/piece-beats";
+import { TALLEST } from "@/components/path/scene/lighting";
+import { buildPiece } from "@/components/path/scene/props";
 import {
   PROP_INDEX,
   PROP_MODELS,
@@ -282,6 +284,33 @@ test.describe("the toy props", () => {
     expect(shut.max.x).toBeGreaterThanOrEqual(glass.max.x - 0.01);
     expect(shut.min.z).toBeGreaterThan(glass.max.z);
   });
+
+  /* The stand-in that shows until the toy arrives, or when it fails, has
+     to close the same way under the same beat. */
+  test("the stand-in window's shutters also close over its glass", () => {
+    const piece = piecesOf("cuneo-2022").find(
+      (each) => each.id === "mvp-window",
+    )!;
+    const built = buildPiece(paint, "cuneo-2022", piece, 0);
+    const glass = boundsOf(built.object.getObjectByName(BEAT_NODE.glass)!);
+    const shutters: Object3D[] = [];
+    built.object.traverse((node) => {
+      if (node.name === BEAT_NODE.shutter) shutters.push(node);
+    });
+    expect(shutters).toHaveLength(2);
+    for (const shutter of shutters) {
+      const open = boundsOf(shutter);
+      expect(
+        open.max.x <= glass.min.x + 0.01 || open.min.x >= glass.max.x - 0.01,
+      ).toBe(true);
+    }
+    for (const shutter of shutters) shutter.rotation.y = 0;
+    const shut = new Box3();
+    for (const shutter of shutters) shut.union(boundsOf(shutter));
+    expect(shut.min.x).toBeLessThanOrEqual(glass.min.x + 0.01);
+    expect(shut.max.x).toBeGreaterThanOrEqual(glass.max.x - 0.01);
+    expect(shut.min.z).toBeGreaterThan(glass.max.z);
+  });
 });
 
 test.describe("the duo and the side props", () => {
@@ -313,6 +342,7 @@ test.describe("on /path", () => {
     piece: string;
     file: string | null;
     nodes: string[];
+    top?: number;
   };
   const pieces = (page: Page) =>
     page.evaluate(() =>
@@ -326,6 +356,24 @@ test.describe("on /path", () => {
       "settled",
       { timeout: 0 },
     );
+
+  /* The sun's shadow box, before a shot names its focus, reaches the top
+     of the tallest thing standing: the belfry and the Mole, on their hero
+     tiles, keep their shadows to the top. */
+  test("every landmark and prop stands under the shadow box's top", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/path#lille");
+    await settled(page);
+    const tops = (await pieces(page)).flatMap((each) =>
+      each.top === undefined ? [] : [{ id: each.piece, top: each.top }],
+    );
+    expect(tops.length).toBeGreaterThan(10);
+    for (const { id, top } of tops) {
+      expect(top, id).toBeLessThanOrEqual(TALLEST);
+    }
+  });
 
   test("once settled, every prop and both markers stand as their models", async ({
     page,

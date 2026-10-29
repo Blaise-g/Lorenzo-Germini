@@ -898,29 +898,34 @@ const cuneo2022: Record<string, Builder> = {
       block(frame, [0.05, fh, 0.08], [fw / 2, y0, 0.05], 0.015),
       block(frame, [0.025, fh, 0.05], [0, y0, 0.05], 0.01),
     );
-    const glass = paint.material(
-      { base: "ink-cool", toward: "paper", amount: 0.2, shade: 0.7 },
-      { roughness: 0.2, glow: 0.05 },
+    const pane = block(
+      glassMaterial(paint),
+      [fw, fh, 0.02],
+      [0, y0, 0.03],
+      0.005,
     );
-    const pane = block(glass, [fw, fh, 0.02], [0, y0, 0.03], 0.005);
     pane.name = BEAT_NODE.glass;
     group.add(pane);
+    /* Hinged at the frame's sides, built shut across the glass and stood
+       open beside it, as the toy's are (`toys.ts`): the beat's swing back
+       to the built pose closes them. */
     const shutter = paint.shared("coolLight");
-    const OPEN = 1.95;
+    const OPEN = Math.PI - 0.2;
+    const leafWidth = fw / 2 + 0.03;
     for (const side of [-1, 1]) {
       const hinge = new Group();
       hinge.position.set(side * (fw / 2 + 0.03), y0, 0.09);
       const leaf = block(
         shutter,
-        [fw / 2, fh, 0.03],
-        [side * (fw / 4), 0, 0],
+        [leafWidth, fh, 0.03],
+        [-side * (leafWidth / 2), 0, 0],
         0.012,
       );
       for (let slat = 0; slat < 5; slat++) {
         leaf.add(
           block(
             paint.shared("cool"),
-            [fw / 2 - 0.04, 0.015, 0.015],
+            [leafWidth - 0.04, 0.015, 0.015],
             [0, -fh / 2 + 0.08 + slat * 0.1, 0.02],
             0.004,
           ),
@@ -934,6 +939,15 @@ const cuneo2022: Record<string, Builder> = {
     return { object: group };
   },
 };
+
+/** The MVP window's glass, which its beat lights: one per window, the code
+ *  piece's and the toy's alike. */
+export function glassMaterial(paint: Paint) {
+  return paint.material(
+    { base: "ink-cool", toward: "paper", amount: 0.2, shade: 0.7 },
+    { roughness: 0.2, glow: 0.05 },
+  );
+}
 
 const lille: Record<string, Builder> = {
   /* The Chamber of Commerce belfry, standing in: a slender square brick

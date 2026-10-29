@@ -87,8 +87,8 @@ export type ModelResult =
 
 let loader: GLTFLoader | undefined;
 
-/** Fetches and parses one landmark's `file`. Never throws: a failure is a
- *  result. */
+/** Fetches and parses one model's `file`: a landmark's, a prop's or a
+ *  marker's. Never throws: a failure is a result. */
 export async function loadModel(file: string): Promise<ModelResult> {
   let buffer: ArrayBuffer;
   try {

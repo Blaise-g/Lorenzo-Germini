@@ -65,8 +65,10 @@ import {
 } from "@/components/path/scene/moments";
 import type { Paint } from "@/components/path/scene/paint";
 import type { Palette } from "@/components/path/scene/palette";
+import { BEAT_NODE, restOf } from "@/components/path/scene/piece-beats";
 import {
   createPlay,
+  SOFT,
   type Play,
   type Reactor,
 } from "@/components/path/scene/play";
@@ -588,9 +590,12 @@ test.describe("with motion", () => {
 test.describe("play", () => {
   /* A stand-in for the board's paint: play reads its lamp colour and lends
      glow through it. */
+  const boosts = new Map<MeshStandardMaterial, number>();
   const paint = {
     lampColour: { value: new Color(1, 0.8, 0.5) },
-    boost() {},
+    boost: (made: MeshStandardMaterial, amount: number) =>
+      boosts.set(made, amount),
+    boostOf: (made: MeshStandardMaterial) => boosts.get(made) ?? 0,
     material: () => new MeshStandardMaterial(),
   } as unknown as Paint;
 
@@ -720,6 +725,82 @@ test.describe("play", () => {
     expect(mole.handle.position.y).toBe(0);
     expect(mole.handle.scale.y).toBe(1);
     expect(mole.handle.rotation.z).toBe(0);
+  });
+
+  /* A beat holds its end state (the killed window's shutters shut, its
+     glass dark); a click's answer plays from there and comes back to it,
+     not to the pose the prop was built in. */
+  test("a click on a prop rests where its beat left it, not as built", () => {
+    const play = createPlay({ paint, board: new Group() });
+    const mvp = reactor("mvp-window");
+    const shutter = new Group();
+    shutter.name = BEAT_NODE.shutter;
+    shutter.rotation.y = 1.2;
+    const glass = new Mesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshStandardMaterial(),
+    );
+    glass.name = BEAT_NODE.glass;
+    mvp.handle.add(shutter, glass);
+    /* Built open, then closed and dimmed by the last cue. */
+    restOf(shutter);
+    shutter.rotation.y = 0;
+    paint.boost(glass.material, 0);
+    expect(play.react(mvp, false)).toBe("flap");
+    const swings = run(play, 2500, () => shutter.rotation.y);
+    expect(Math.max(...swings.map(Math.abs))).toBeGreaterThan(0.05);
+    expect(play.active()).toBe(false);
+    expect(shutter.rotation.y).toBe(0);
+    expect(paint.boostOf(glass.material)).toBe(0);
+
+    /* Lit by its first cue: the click's glow comes back down to that. */
+    paint.boost(glass.material, 2.2);
+    play.react(mvp, false);
+    run(play, 2500, () => 0);
+    expect(paint.boostOf(glass.material)).toBe(2.2);
+  });
+
+  test("reduced motion's settle puts a prop back where its beat left it", () => {
+    const play = createPlay({ paint, board: new Group() });
+    const dial = reactor("roche-dial");
+    const needle = new Group();
+    needle.name = BEAT_NODE.needle;
+    dial.handle.add(needle);
+    restOf(needle);
+    needle.rotation.z = 0.7;
+    play.react(dial, false);
+    run(play, 48, () => 0);
+    expect(needle.rotation.z).not.toBe(0.7);
+    play.settle();
+    expect(needle.rotation.z).toBe(0.7);
+  });
+
+  /* The runtime's click answers and the duo's gestures are two Plays on
+     one figure: a lean from each adds up, and the one that rests first
+     takes only its own away. */
+  test("a click and a gesture on one figure compose, and neither snaps the other", () => {
+    const reactions = createPlay({ paint, board: new Group() });
+    const gestures = createPlay({ paint, board: new Group() });
+    const figure = new Group();
+    gestures.kick(figure, "lean", 2, SOFT);
+    gestures.tick(48);
+    const leaning = figure.rotation.z;
+    expect(leaning).toBeGreaterThan(0.02);
+    reactions.kick(figure, "lean", 3);
+    reactions.tick(16);
+    /* The click adds to the gesture's lean rather than replacing it. */
+    expect(figure.rotation.z).toBeGreaterThan(leaning);
+    let previous = figure.rotation.z;
+    let jump = 0;
+    for (let t = 0; t < 3000; t += 16) {
+      reactions.tick(16);
+      gestures.tick(16);
+      jump = Math.max(jump, Math.abs(figure.rotation.z - previous));
+      previous = figure.rotation.z;
+    }
+    expect(jump).toBeLessThan(0.1);
+    expect(reactions.active() || gestures.active()).toBe(false);
+    expect(figure.rotation.z).toBe(0);
   });
 
   test("moments come every 20 to 40 s, never the same twice running", () => {

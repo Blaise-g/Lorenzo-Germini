@@ -44,23 +44,6 @@ export function toClip(
   };
 }
 
-/** `rect` shrunk about its centre to `fill` of its size each way. */
-export function filled(
-  rect: ClipRect,
-  fill: { x: number; y: number },
-): ClipRect {
-  const cx = (rect.x0 + rect.x1) / 2;
-  const cy = (rect.y0 + rect.y1) / 2;
-  const hx = ((rect.x1 - rect.x0) / 2) * fill.x;
-  const hy = ((rect.y1 - rect.y0) / 2) * fill.y;
-  return { x0: cx - hx, x1: cx + hx, y0: cy - hy, y1: cy + hy };
-}
-
-/** The middle of an outline's corners. */
-export function centreOf(rect: ClipRect): ClipPoint {
-  return [(rect.x0 + rect.x1) / 2, (rect.y0 + rect.y1) / 2];
-}
-
 export function inRect(rect: ClipRect, [x, y]: ClipPoint): boolean {
   return x >= rect.x0 && x <= rect.x1 && y >= rect.y0 && y <= rect.y1;
 }

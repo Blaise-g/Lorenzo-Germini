@@ -18,7 +18,14 @@ import { handAngle } from "./lille";
 import { easeInOut } from "./motion";
 import type { Paint } from "./paint";
 import { BEAT_NODE } from "./piece-beats";
-import { block, named, seededRandom, solid, type Built } from "./props";
+import {
+  block,
+  glassMaterial,
+  named,
+  seededRandom,
+  solid,
+  type Built,
+} from "./props";
 import type { PropPlacement } from "./scene-assets";
 
 /* The toy pieces (v3-toys): the generated props, side props and markers
@@ -88,14 +95,6 @@ type Accent = {
   parts: Object3D[];
   motion?: (progress: number) => void;
 };
-
-/** The window's glass, lit by its beat, as the code-built window's is. */
-function glassMaterial(paint: Paint) {
-  return paint.material(
-    { base: "ink-cool", toward: "paper", amount: 0.2, shade: 0.7 },
-    { roughness: 0.2, glow: 0.05 },
-  );
-}
 
 const ACCENTS: Readonly<Record<string, (paint: Paint) => Accent>> = {
   /* The rotor, which the model was made without, on the base's middle:
@@ -340,7 +339,8 @@ export function splitCoils(scene: Object3D) {
   if (!index || !mesh.parent) return;
   geometry.computeBoundingBox();
   const { min, max } = geometry.boundingBox!;
-  /* Above the base's top, a fifth of the way up, and off its middle. */
+  /* Above the base's top, a third of the way up (`COIL_FLOOR`), and off its
+     middle. */
   const above = min.y + (max.y - min.y) * COIL_FLOOR;
   const centre = new Vector3();
   geometry.boundingBox!.getCenter(centre);

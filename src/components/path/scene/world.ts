@@ -176,9 +176,6 @@ const BANDS: Readonly<Record<PathStepSlug, ToneName>> = {
 /** How deep a tile's band runs in from its front edge, and its inset. */
 const BAND = { from: 0.4, to: 0.1, inset: 0.12, height: 0.05 } as const;
 
-/** The board: a thick slab under everything, its top at y = 0, with a
- *  raised frame round its edge, grass across its middle and the two side
- *  props. */
 /** A phone draws half the grass (§4(f)); the clouds' shadows stay. */
 export const PHONE_GRASS_SHARE = 0.5;
 
@@ -251,7 +248,7 @@ export function makeBoard(paint: Paint, grassShare = 1): Group {
   ] as const;
   for (const [object, spot, name] of side) {
     /* Its holder, named for its model, which takes the model's place once
-       it arrives (`toys.ts`). */
+       it arrives (the runtime's `swapSide`). */
     const holder = new Group();
     holder.name = name;
     holder.add(object);
@@ -264,9 +261,7 @@ export function makeBoard(paint: Paint, grassShare = 1): Group {
   return group;
 }
 
-/** A tile's slab and colour band, and the grass on its free ground, in the
- *  tile's own frame. */
-/** A tile's slab, band and grass; the grass grows out from `grow` (x, z in
+/** A tile's slab, band and grass, in the tile's own frame; the grass grows out from `grow` (x, z in
  *  the tile's frame, and its radius) as the tile's landmark rises. */
 export function makeTileBase(
   paint: Paint,
@@ -487,7 +482,7 @@ export { MARKER };
 /** The buddy's height, against the figure's `PAWN_HEIGHT`. */
 export const BUDDY_HEIGHT = 0.62;
 
-/** The figure's buddy, standing in until its model exists: a small robot
+/** The figure's buddy, standing in until its model arrives: a small robot
  *  of rounded blocks, a head with two eyes and an antenna, travelling
  *  beside the pawn. Its foot at the origin; `body` hops, and the handle
  *  inside it reacts. */

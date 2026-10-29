@@ -307,7 +307,13 @@ export function createSoundEngine(Context: typeof AudioContext = AudioContext) {
   let ducked = false;
   let disposed = false;
 
-  void renderBed().then((buffer) => {
+  void renderBed().then(
+    (buffer) => startBed(buffer),
+    /* The effects play on without a bed. */
+    (error: unknown) => console.error("The sound bed did not render", error),
+  );
+
+  function startBed(buffer: AudioBuffer) {
     if (disposed) return;
     bedSource = context.createBufferSource();
     bedSource.buffer = buffer;
@@ -317,7 +323,7 @@ export function createSoundEngine(Context: typeof AudioContext = AudioContext) {
     const level = BED_LEVEL * (ducked ? dbToGain(DUCK_DB) : 1);
     bedGain.gain.setValueAtTime(0, context.currentTime);
     bedGain.gain.linearRampToValueAtTime(level, context.currentTime + 1.5);
-  });
+  }
 
   return {
     context,

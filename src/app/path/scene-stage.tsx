@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import {
   hasScene,
+  stepNamed,
   TURN_LIMIT,
   type BuildState,
 } from "@/components/path/scene/build-plan";
@@ -21,7 +22,6 @@ import type {
   SceneRuntime,
   SceneSnapshot,
 } from "@/components/path/scene/runtime";
-import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { isReplacingStep, pushStep } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
@@ -49,10 +49,6 @@ import { useTourStatus } from "./tour";
 
 type Mode = "pending" | "webgl" | "fallback";
 
-/** The voice's text controls, printed in the accent like a link. */
-export const CONTROL_CLASS_NAME =
-  "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline aria-disabled:text-faint aria-disabled:no-underline aria-disabled:cursor-default";
-
 /** The board's own controls are tabs cut from the same card as the tour's. */
 const TAB_CLASS_NAME = "path-tab press transition-refined";
 
@@ -61,8 +57,7 @@ const FRAME_GAP_PX = 12;
 
 /** The cards laid over the stage, `data-path-cover`, as the board must keep
  *  clear of them: no tile goes under one, nor the pawn's hop. Only the
- *  board's own tabs lie on it; the step list and the panel stand beside
- *  it. */
+ *  board's own tabs lie on it. */
 function measureFrame(stage: HTMLElement): StageFrame {
   const box = stage.getBoundingClientRect();
   const frame = {
@@ -93,10 +88,6 @@ const IDLE: SceneSnapshot = {
   settled: false,
   shot: "idle",
 };
-
-function stepNamed(slug: string) {
-  return PATH_STEPS.find((step) => step.slug === slug)!;
-}
 
 export function SceneStage({
   className,
@@ -164,6 +155,11 @@ export function SceneStage({
      clock. Once a cue: a pause and resume does not play it again. */
   const cue = useNarrationCue();
   const cuedRef = useRef<string | null>(null);
+  /* A step shown again rebuilds its pieces at rest, so its cues play again:
+     first, before this render's cue is played. */
+  useEffect(() => {
+    cuedRef.current = null;
+  }, [selected]);
   useEffect(() => {
     if (!cue) {
       cuedRef.current = null;
@@ -273,11 +269,6 @@ export function SceneStage({
     setStageStatus({ slug: selected, settled });
   }, [selected, settled, setStageStatus]);
 
-  /* Esc skips a running build from anywhere, and moves no focus. Once there
-     is nothing to skip, Esc in the scene returns focus to the selected step
-     in the list (storyboard §7.7): only from the stage or from no focus at
-     all, so Esc on the voice controls or anywhere else leaves focus there.
-     Only while a scene is on the stage. */
   const stageRef = useRef<HTMLDivElement>(null);
 
   /* The board is framed again as the stage changes size. */
@@ -310,10 +301,7 @@ export function SceneStage({
     };
   }, []);
 
-  /* A click on a tile, or on a card standing on it, selects its step, as
-     its row in the list does; the list is the keyboard's way to it. A click
-     on the tile being built, or off the tiles, skips the build. */
-  /* What a fine pointer is over: another step's tile, or a piece that
+  /* What a fine pointer is over: another step's tile, or a prop that
      answers a click. */
   const [pointing, setPointing] = useState<"step" | "piece" | null>(null);
   const pointFrame = useRef(0);
@@ -324,6 +312,11 @@ export function SceneStage({
     );
   }
 
+  /* Esc skips a running build from anywhere, and moves no focus. Once there
+     is nothing to skip, Esc in the scene returns focus to the selected step
+     in the list (storyboard §7.7): only from the stage or from no focus at
+     all, so Esc on the voice controls or anywhere else leaves focus there.
+     Only while a scene is on the stage. */
   useEffect(() => {
     if (!live) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -383,10 +376,12 @@ export function SceneStage({
         className="relative h-[clamp(20rem,48svh,34rem)] w-full overflow-hidden lg:h-full"
       >
         {children}
-        {/* The scene is an illustration of the text beside it, which carries
-            every word, so it is hidden from the accessibility tree. A click
-            on a tile selects its step; elsewhere it skips the build, as Skip
-            and Esc do from the keyboard. */}
+        {/* The scene is an illustration of the narration, whose caption
+            and the flat site carry every word, so it is hidden from the
+            accessibility tree. A click on a tile selects its step, as its
+            row in the list does; the list is the keyboard's way to it. On
+            the tile shown, a prop that answers a click answers; elsewhere
+            the click skips the build, as Skip and Esc do from the keyboard. */}
         <canvas
           ref={canvasRef}
           aria-hidden
@@ -524,11 +519,6 @@ export function SceneStage({
           {reasonLine}
         </p>
       ) : null}
-
-      {/* One polite announcement per scene shown (storyboard §7.4). */}
-      <p aria-live="polite" className="sr-only">
-        {mode !== "pending" && withScene ? STAGE_COPY.showing(step.place) : ""}
-      </p>
     </div>
   );
 }
