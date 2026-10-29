@@ -41,11 +41,14 @@ const run = promisify(execFile);
 const TARGET_BYTES = 60 * 1024;
 
 const SAY_VOICE = "Samantha";
-/* Mono AAC at 24 kbps, about 3 KB a second: the lowest rate at which
-   `afconvert` keeps the voice's 22.05 kHz; below it, it resamples to 16 kHz
-   or less and the sibilants go. A step with five sentences still runs past
-   the target, so those clips are reported rather than squeezed. */
-const SAY_BITRATE = 24000;
+/* Mono HE-AAC at 16 kbps, about 2 KB a second. Plain AAC below 24 kbps
+   resamples the voice to 12 kHz or less and the sibilants go; HE-AAC codes
+   the lower band at 11.025 kHz and rebuilds the top from it, so the voice
+   keeps its 22.05 kHz. A step that reads for more than about half a minute
+   still runs past the target, so its clip is reported rather than squeezed
+   further. Safari, Chromium and Firefox all decode HE-AAC in MP4. */
+const SAY_CODEC = "aach";
+const SAY_BITRATE = 16000;
 
 /* ElevenLabs' stock "Rachel" voice; `ELEVENLABS_VOICE_ID` picks another. */
 const ELEVENLABS_VOICE =
@@ -87,7 +90,7 @@ async function synthesise(
       "-f",
       "m4af",
       "-d",
-      "aac",
+      SAY_CODEC,
       "-b",
       String(SAY_BITRATE),
       "-c",

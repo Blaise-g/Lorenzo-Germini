@@ -16,8 +16,8 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 | Transfer per scene: Lille, arriving cold | 1.5 MB | 766 KB (183 KB on top of home)            | Yes    |
 | GPU memory, estimated                    | 64 MB  | 13.6–56.6 MB (56.6 MB on a 2560×2 screen) | Yes    |
 | Each still                               | 150 KB | Largest 29.7 KB (`lille-light.webp`)      | Yes    |
-| Everything opened                        | 8 MB   | About 1.07 MB, runtime and decoders in    | Yes    |
-| Each voice clip (#150's target)          | ~60 KB | `lille` 82.1 KB and `now` 130.2 KB: over  | **No** |
+| Everything opened                        | 8 MB   | About 1.01 MB, runtime and decoders in    | Yes    |
+| Each voice clip (#150's target)          | ~60 KB | `lille` 63.0 KB and `now` 97.2 KB: over   | **No** |
 
 GPU memory was over budget on a 2560-wide screen at pixel ratio 2 (74.3 MB) until the runtime capped
 the drawing buffer's pixel count; see [GPU memory](#gpu-memory). Two voice clips are over #150's ~60 KB target for a clip, which is
@@ -115,9 +115,34 @@ File sizes on disk. Each is also checked against the budget by `generate:path-st
 ## Everything opened
 
 Home cold (592.1 KB), then Lille (183.4 KB), then every other still in both modes (55.7 KB, file sizes), then
-every voice clip played (`home` 10.0, `cuneo-2022` 45.8, `lille` 82.1, `now` 130.2: 268.1 KB, file
-sizes) comes to about **1,099 KB, 1.07 MB**, against 8 MB. The three.js runtime and the decoders
+every voice clip played (`home` 9.4, `cuneo-2022` 33.7, `lille` 63.0, `now` 97.2: 203.3 KB, file
+sizes) comes to about **1,035 KB, 1.01 MB**, against 8 MB. The three.js runtime and the decoders
 are in it, as above. The voice manifest (1.8 KB) is in the route's data.
+
+## Voice clips
+
+The clips were re-encoded from 24 kbps AAC to mono HE-AAC at 16 kbps (`afconvert -d aach -b 16000
+-c 1`, in `generate:path-voice`). Plain AAC at 16 kbps or less resamples the voice to 12 kHz or
+less; HE-AAC codes the lower band at 11.025 kHz and rebuilds the top from it, so the decoded voice
+stays at 22.05 kHz. Safari, Chromium and Firefox decode HE-AAC in MP4.
+
+| Clip         | Speech | Before (24 kbps AAC) | After (16 kbps HE-AAC) | Target | Within      |
+| ------------ | ------ | -------------------- | ---------------------- | ------ | ----------- |
+| `home`       | 1.9 s  | 10.0 KB              | 9.4 KB                 | ~60 KB | Yes         |
+| `cuneo-2022` | 13.8 s | 45.8 KB              | 33.7 KB                | ~60 KB | Yes         |
+| `lille`      | 26.3 s | 82.1 KB              | 63.0 KB                | ~60 KB | **No**, 5%  |
+| `now`        | 41.0 s | 130.2 KB             | 97.2 KB                | ~60 KB | **No**, 62% |
+
+How they were checked, without playing them aloud: each clip's duration (`afinfo`) is the same as
+before to the millisecond, a decode to 16-bit WAV (`afconvert -f WAVE -d LEI16`) gives 22,050 Hz
+mono of the same length with a speech-level signal throughout (RMS 5,068–5,479 of 32,767), and
+`tests/path-voice.spec.ts` loads and plays each in a muted Chromium.
+
+Over the target: `now` reads five sentences, 41 s of speech, and even HE-AAC's 12 kbps setting
+makes 74 KB of it, still over. Nobody has listened to the clips at 12 kbps, so the clip is left
+over the target at 16 kbps rather than squeezed further unheard. `lille`, at 26 s, is 3 KB
+over at the same rate. The target is #150's, not one of #141's budgets, and both count in the
+8 MB total above.
 
 ## Production and revision time per asset
 
@@ -147,4 +172,5 @@ From #149's asset log (`docs/path-assets.md`), which has the full record:
   phone has been timed. Left for the owner.
 - GPU memory is an estimate from uploads and canvas size in SwiftShader, not a reading on a real
   GPU.
-- The `lille` and `now` voice clips are over #150's ~60 KB target.
+- The `now` voice clip is over #150's ~60 KB target, and `lille` is just over it. See
+  [Voice clips](#voice-clips).
