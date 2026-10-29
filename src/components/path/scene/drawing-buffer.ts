@@ -2,7 +2,8 @@
    `docs/path-measurements.md`). No three.js here: a spec checks the
    arithmetic directly. */
 
-/** The fewest device pixels a CSS pixel is drawn with. The post chain's
+/** The fewest device pixels a CSS pixel is drawn with, short of the pixel
+ *  cap: a stage past `MAX_DRAWING_PIXELS` goes below it. The post chain's
  *  SMAA smooths the edges (`post.ts`), so a screen is drawn at its own
  *  ratio: v2's floor of 2, a supersample for want of antialiasing
  *  (ADR-0009), would cost every post pass four times over on a ratio-1

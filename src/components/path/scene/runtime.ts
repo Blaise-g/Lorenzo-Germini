@@ -141,17 +141,18 @@ import { createPlay, SOFT, type Reactor } from "./play";
    holds every step as a tile on a loop, every piece on it modelled solid
    (`world.ts`, `props.ts`) or loaded (`scene-assets.ts`), and nothing on it
    is text. Selecting a step hops the pawn there along the loop and raises
-   that tile's pieces in the data's order. The camera rig (`camera-rig.ts`) holds each step close and travels
-   with the pawn between them; the board draws while the rig moves or the
-   tour plays, and stops when both are still. Tiles already built stay
-   built. */
+   that tile's pieces in the data's order. The camera rig (`camera-rig.ts`)
+   holds each step close and travels with the pawn between them; the board
+   draws while the rig moves or the tour plays, and stops when both are
+   still. Tiles already built stay built. */
 
 const TURN_RADIANS = 0.3;
 const TURN_MS = 450;
 const THEME_MS = 350;
-/** How long a step's first showing waits on its own landmarks before it
- *  builds on their stand-ins: inside the tour's wait for a settled stage
- *  (`SETTLE_MAX_WAIT_MS`), with a build's span to spare. */
+/** How long a step's first showing waits, from the showing, on the board
+ *  and its own landmarks before it builds on their stand-ins: inside the
+ *  tour's wait for a settled stage (`SETTLE_MAX_WAIT_MS`), with a build's
+ *  span to spare. */
 const FIRST_LOAD_MS = 3000;
 /** How long a lost context may take to come back before the stills. */
 const CONTEXT_RESTORE_MS = 3000;
@@ -833,11 +834,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Puts `model` in `holder` in place of what it held. */
   function replaceChildren(holder: Object3D, model: Object3D) {
-    for (const child of [...holder.children]) {
-      holder.remove(child);
-      retire(child);
-    }
+    const old = [...holder.children];
+    holder.remove(...old);
     holder.add(model);
+    retire(...old);
   }
 
   /** A side prop's model takes its holder's stand-in's place. */
@@ -994,30 +994,33 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  replacement stands: its pieces' geometry, and the materials the paint
    *  box made for it alone. A loaded landmark's or toy's geometry is the
    *  model's, kept for whatever replaces it, and a material still drawn
-   *  anywhere on the board stays. */
-  function retire(group: Object3D) {
+   *  anywhere on the board, or held by a loaded model, stays. */
+  function retire(...groups: Object3D[]) {
     const kept = new Set<BufferGeometry>();
+    const drawn = new Set<Material>();
+    const keep = (node: Object3D) => {
+      if (node instanceof Mesh)
+        for (const each of materialsOf(node)) drawn.add(each);
+    };
     for (const result of [...models.values(), ...toys.values()]) {
       if (result.status !== "loaded") continue;
       result.scene.traverse((node) => {
         if (node instanceof Mesh) kept.add(node.geometry);
+        keep(node);
       });
     }
-    const drawn = new Set<Material>();
-    scene.traverse((node) => {
-      if (node instanceof Mesh)
-        for (const each of materialsOf(node)) drawn.add(each);
-    });
-    group.traverse((node) => {
-      if (!(node instanceof Mesh)) return;
-      if (node instanceof InstancedMesh) node.dispose();
-      if (!kept.has(node.geometry)) node.geometry.dispose();
-      for (const each of materialsOf(node)) {
-        if (!drawn.has(each) && each instanceof MeshStandardMaterial) {
-          paintBox.release(each);
+    scene.traverse(keep);
+    for (const group of groups)
+      group.traverse((node) => {
+        if (!(node instanceof Mesh)) return;
+        if (node instanceof InstancedMesh) node.dispose();
+        if (!kept.has(node.geometry)) node.geometry.dispose();
+        for (const each of materialsOf(node)) {
+          if (!drawn.has(each) && each instanceof MeshStandardMaterial) {
+            paintBox.release(each);
+          }
         }
-      }
-    });
+      });
   }
 
   /** Remakes `slug`'s tile, if it is made, with the landmarks that have
@@ -1042,10 +1045,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* What had risen of the old tile has risen of the new: no second
        "rise". */
     for (const [id, risers] of old.props) {
-      const next = tile.props.get(id);
-      risers.forEach((riser, index) => {
-        if (risen.delete(riser) && next?.[index]) risen.add(next[index]);
-      });
+      const rose = risers.filter((riser) => risen.delete(riser)).length > 0;
+      /* A model can hold more pieces than its stand-in: they all rose. */
+      if (rose) for (const riser of tile.props.get(id) ?? []) risen.add(riser);
     }
     retire(old.group);
     pose();
@@ -1413,8 +1415,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
      or the camera moving, which includes its close-up breathing while the
      tour plays, and the board's life while it lives (`alive()`). The frame
      sample fills only from those, so a settled board — paused, ended or
-     under reduced motion — draws nothing while it waits for a verdict. A paused tour freezes the
-     tour's own motion; a theme change or a turn, the visitor's, plays on. */
+     under reduced motion — draws nothing while it waits for a verdict. A
+     paused tour freezes the tour's own motion; a theme change or a turn,
+     the visitor's, plays on. */
   function moving() {
     if (themeElapsed < THEME_MS || turnElapsed < TURN_MS) return true;
     if (reactions.active()) return true;
@@ -1689,13 +1692,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function abandon() {
     if (buildState === "building" && rebuild && current) built.add(current);
     /* A tile cut short in its wake rises on from where it is, as the tiles
-       the pawn passed do, rather than sinking back to dormant. */
+       the pawn passed do, rather than sinking back to dormant — a resumed
+       one too, cut again while the pawn was still coming to it. */
     if (
       buildState === "building" &&
       !rebuild &&
       current &&
       plan &&
-      !move &&
+      (!move || resumed) &&
       buildElapsed > 0
     ) {
       wakeStarts.set(current, planStarts);
@@ -1768,9 +1772,17 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* A tile reselected while its cut-short wake runs on wakes on from
        where it is: it holds there while the pawn comes, then rises on. */
     const waking = catchingUp.get(slug);
+    const wakingStarts = wakeStarts.get(slug);
     catchingUp.delete(slug);
     wakeStarts.delete(slug);
     resumed = waking !== undefined;
+    /* It rises on the clock it was rising on: a cut wake's own starts, or
+       a passed tile's, every piece at once. */
+    if (resumed) {
+      planStarts =
+        wakingStarts ??
+        new Map(plan.building.map((planned) => [planned.id, 0]));
+    }
     rebuild = built.has(slug);
     built.delete(slug);
     /* Its pieces stand as built, before any beat; its landmarks announce
@@ -2132,14 +2144,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       shown = [];
       buildState = "loading";
       emit();
+      /* Counted from the showing, not from the board being ready: a slow
+         board leaves its landmarks no extra wait. */
+      const late = new Promise((resolve) => setTimeout(resolve, FIRST_LOAD_MS));
       (preparing ??= prepare())
         /* A landmark that has not come in time stands in until it does. */
-        .then(() =>
-          Promise.race([
-            loadModels(idsOf(step.slug)),
-            new Promise((resolve) => setTimeout(resolve, FIRST_LOAD_MS)),
-          ]),
-        )
+        .then(() => Promise.race([loadModels(idsOf(step.slug)), late]))
         .then(
           () => {
             if (disposed || request !== showing) return;

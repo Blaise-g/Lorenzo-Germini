@@ -54,7 +54,12 @@ import {
   flakeSize,
 } from "@/components/path/scene/confetti";
 import { createLife, type LifePiece } from "@/components/path/scene/life";
-import { inject, SUN_ANCHOR, VIEW_ANCHOR } from "@/components/path/scene/paint";
+import {
+  inject,
+  injectAllOrWarn,
+  SUN_ANCHOR,
+  VIEW_ANCHOR,
+} from "@/components/path/scene/paint";
 import {
   createMoments,
   type MomentName,
@@ -336,6 +341,29 @@ test.describe("the ink grade", () => {
     expect(ShaderChunk.lights_fragment_begin).toContain(SUN_ANCHOR);
     expect(ShaderChunk.project_vertex).toContain(VIEW_ANCHOR);
     expect(() => inject("void main() {}", SUN_ANCHOR, "x")).toThrow();
+  });
+
+  /* A patch the board can draw without goes in whole or not at all: half
+     of one leaves the fragment reading a varying the vertex never wrote,
+     and the program fails to link. */
+  test("a patch missing one anchor leaves both stages as they were", () => {
+    const shader = {
+      vertexShader: "#include <common>\nvoid main() {}",
+      fragmentShader: "#include <common>\nvoid main() {}",
+    };
+    const before = { ...shader };
+    injectAllOrWarn(shader, [
+      ["vertexShader", "#include <common>", "varying vec2 vUv;"],
+      ["vertexShader", "#include <uv_vertex>", "vUv = uv;"],
+      ["fragmentShader", "#include <common>", "varying vec2 vUv;"],
+    ]);
+    expect(shader).toEqual(before);
+    injectAllOrWarn(shader, [
+      ["vertexShader", "#include <common>", "varying vec2 vUv;"],
+      ["fragmentShader", "#include <common>", "varying vec2 vUv;"],
+    ]);
+    expect(shader.vertexShader).toContain("varying vec2 vUv;");
+    expect(shader.fragmentShader).toContain("varying vec2 vUv;");
   });
 });
 

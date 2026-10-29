@@ -403,8 +403,6 @@ test.describe("the drawing buffer", () => {
   });
 });
 
-/* Decision 3: home's step 4 shows the dimmed "MVP — killed after customer
-   discovery" window. The words come from the step's own line. */
 /* §4(a): the dwell's tail after the narration is 0.8 s, and the close-up's
    drift runs to the same moment, so the orbit does not stop before the
    pawn moves on. */
@@ -413,6 +411,8 @@ test("the dwell's tail and the drift's are one 0.8 s", () => {
   expect(DRIFT.tailMs).toBe(NARRATION_BEAT_MS);
 });
 
+/* Decision 3: home's step 4 shows the dimmed "MVP — killed after customer
+   discovery" window. The words come from the step's own line. */
 test.describe("the MVP window", () => {
   const cuneo = PATH_STEPS.find((step) => step.slug === "cuneo-2022")!;
   const prop = cuneo.props.find((p) => p.id === "mvp-window")!;

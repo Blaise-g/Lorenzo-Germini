@@ -336,8 +336,9 @@ const PLAY_NAME: Record<TourStatus, string> = {
   ended: TOUR_COPY.restartName,
 };
 
-/** Previous, play or pause, and next, as die-cut card tabs. Previous and Next stay focusable at the ends, marked
- *  unavailable rather than `disabled`, so focus is not dropped to the page. */
+/** Previous, play or pause, and next, as die-cut card tabs. Previous and
+ *  Next stay focusable at the ends, marked unavailable rather than
+ *  `disabled`, so focus is not dropped to the page. */
 export function TourTransport({ className }: { className?: string }) {
   const { status, clock, previous, next, togglePlay } = useTour();
   const { selected } = useSelectedStep();
