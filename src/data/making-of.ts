@@ -33,6 +33,26 @@ const SCENE_SOURCES: Partial<Record<PathSceneId, MakingOfScene["sources"]>> = {
       href: "https://it.wikipedia.org/wiki/Cuneo",
     },
   ],
+  turin: [
+    {
+      label: "Mole Antonelliana, Wikipedia",
+      href: "https://it.wikipedia.org/wiki/Mole_Antonelliana",
+    },
+    {
+      label: "Campo magnetico rotante, Wikipedia",
+      href: "https://it.wikipedia.org/wiki/Campo_magnetico_rotante",
+    },
+  ],
+  switzerland: [
+    {
+      label: "Léman, Wikipédia",
+      href: "https://fr.wikipedia.org/wiki/L%C3%A9man",
+    },
+    {
+      label: "Jet d'eau de Genève, Wikipédia",
+      href: "https://fr.wikipedia.org/wiki/Jet_d%27eau_de_Gen%C3%A8ve",
+    },
+  ],
   lille: [
     {
       label: "Chambre de commerce de Lille, Wikipédia",
@@ -45,6 +65,12 @@ const SCENE_SOURCES: Partial<Record<PathSceneId, MakingOfScene["sources"]>> = {
     {
       label: "La Vieille Bourse, Cityzeum",
       href: "https://www.cityzeum.com/vieille-bourse",
+    },
+  ],
+  open: [
+    {
+      label: "L'eredità, Wikipedia",
+      href: "https://it.wikipedia.org/wiki/L%27eredit%C3%A0_(programma_televisivo)",
     },
   ],
 };
