@@ -184,6 +184,235 @@ html {
     min-height: 44px;
     translate: -50% -50%;
   }
+
+  /* ─── /path's overlay, printed on card stock ───
+     The step list, the text panel, "Flat site" and the tour's tabs are cut
+     from the same card as the board (comp B), in the page's two inks: ink
+     and accent. A die-cut bevel where the browser can draw one, a round
+     corner where it cannot. The card's thickness is a hairline step under
+     it; in light mode a soft contact shadow sits under that. Dark mode has
+     no colour darker than its ground to cast with, so the card stands on its
+     edge alone. In `components`, so `print:` utilities still win. */
+  .path-card {
+    background-color: var(--color-ground);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    corner-shape: bevel;
+    box-shadow:
+      0 2px 0 -1px var(--color-border),
+      0 14px 24px -20px var(--color-ink);
+  }
+
+  .dark .path-card {
+    box-shadow: 0 2px 0 -1px var(--color-border);
+  }
+
+  /* The tour's tabs: a pointed tag for Back and Next, pointing the way they
+     go, and a solid bevelled tab printed in the accent for play and pause.
+     The shape is two clipped layers behind the label — the cut edge in the
+     border's ink, the face in the card's — so the focus ring and the label
+     are never clipped. */
+  .path-tab {
+    --tab-cut: polygon(
+      0.5rem 0,
+      calc(100% - 0.5rem) 0,
+      100% 0.5rem,
+      100% calc(100% - 0.5rem),
+      calc(100% - 0.5rem) 100%,
+      0.5rem 100%,
+      0 calc(100% - 0.5rem),
+      0 0.5rem
+    );
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    height: 2.75rem;
+    min-width: 5.25rem;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 1.125rem;
+    color: var(--color-ink);
+    font-family: var(--font-label);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    filter: drop-shadow(0 2px 0 var(--color-border));
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .path-tab::before,
+  .path-tab::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    clip-path: var(--tab-cut);
+    transition: background-color 160ms var(--ease-out);
+  }
+
+  .path-tab::before {
+    inset: 0;
+    background-color: var(--color-border);
+  }
+
+  .path-tab::after {
+    inset: 1px;
+    background-color: var(--color-ground);
+  }
+
+  .path-tab[data-shape="back"] {
+    --tab-cut: polygon(0.875rem 0, 100% 0, 100% 100%, 0.875rem 100%, 0 50%);
+    padding-inline: 1.5rem 1.125rem;
+  }
+
+  .path-tab[data-shape="on"] {
+    --tab-cut: polygon(
+      0 0,
+      calc(100% - 0.875rem) 0,
+      100% 50%,
+      calc(100% - 0.875rem) 100%,
+      0 100%
+    );
+    padding-inline: 1.125rem 1.5rem;
+  }
+
+  .path-tab[data-shape="primary"] {
+    min-width: 6.5rem;
+    color: var(--color-accent-foreground);
+  }
+
+  .path-tab[data-shape="primary"]::before,
+  .path-tab[data-shape="primary"]::after {
+    background-color: var(--color-accent);
+  }
+
+  .path-tab[aria-disabled="true"] {
+    color: var(--color-faint);
+    cursor: default;
+    filter: none;
+  }
+
+  .path-tab[aria-disabled="true"]:active {
+    transform: none;
+  }
+
+  .path-tab[aria-disabled="true"]::after {
+    inset: 1px;
+  }
+
+  .path-tab-face {
+    position: relative;
+  }
+
+  /* Hover sharpens the cut edge to the accent; only a real pointer hovers. */
+  @media (hover: hover) and (pointer: fine) {
+    .path-tab:not([aria-disabled="true"]):hover {
+      color: var(--color-accent);
+    }
+
+    .path-tab:not([aria-disabled="true"]):hover::before {
+      background-color: var(--color-accent);
+    }
+
+    .path-tab[data-shape="primary"]:hover {
+      color: var(--color-accent-foreground);
+    }
+
+    .path-step-link:hover > span:first-child {
+      color: var(--color-accent);
+    }
+  }
+
+  /* The step link fills its row, so the whole row is the target. */
+  .path-step-link {
+    height: 100%;
+  }
+
+  /* The pawn rides the step list's drawn line. On-screen movement, so
+     ease-in-out; a key's change and reduced motion cut it there. */
+  .path-pawn {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 1.125rem;
+    height: 1.5rem;
+    offset-rotate: 0deg;
+    offset-anchor: 50% 80%;
+    pointer-events: none;
+    transition: offset-distance 360ms var(--ease-in-out);
+  }
+
+  /* The dwell running out under the current row: a printed hairline in the
+     accent, drawn from the left over a dashed track as `tour.tsx` animates
+     it, so it reads as a measure and not as a link's underline. */
+  .path-tour-progress {
+    position: absolute;
+    right: 0;
+    bottom: 0.25rem;
+    left: 0;
+    border-top: 1px dashed var(--color-border);
+    pointer-events: none;
+  }
+
+  .path-tour-progress-line {
+    position: absolute;
+    inset: -1px 0 auto;
+    height: 1px;
+    background-color: var(--color-accent);
+    transform-origin: left center;
+  }
+
+  /* A step's panel arrives with a short fade, and its lines follow in turn
+     (the stagger is generated per line in `first-paint.ts`). Not a
+     crossfade — the last panel has already gone — so no blur. */
+  [data-path-text-panel] [data-path-panel] {
+    transition: opacity 200ms var(--ease-out);
+  }
+
+  [data-path-text-panel] [data-path-line] {
+    transition:
+      color 240ms var(--ease-out),
+      opacity 220ms var(--ease-out),
+      translate 220ms var(--ease-out);
+  }
+
+  @starting-style {
+    [data-path-text-panel] [data-path-panel] {
+      opacity: 0;
+    }
+
+    [data-path-text-panel] [data-path-line] {
+      opacity: 0;
+      translate: 0 0.25rem;
+    }
+  }
+
+  /* A change made from the keyboard cuts: no fade, no stagger, no glide. */
+  [data-path-overlay][data-path-input="keyboard"]
+    :is([data-path-panel], [data-path-line], .path-pawn) {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .path-pawn {
+      transition: none;
+    }
+
+    [data-path-text-panel] [data-path-line] {
+      transition:
+        color 240ms var(--ease-out),
+        opacity 220ms var(--ease-out);
+    }
+  }
+
+  @media print {
+    .path-card,
+    .dark .path-card {
+      border: 0;
+      box-shadow: none;
+    }
+  }
 }
 
 @layer utilities {

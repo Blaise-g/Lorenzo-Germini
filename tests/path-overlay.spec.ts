@@ -425,11 +425,14 @@ test.describe("on a phone", () => {
   test.describe("with motion allowed", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
+    /* With motion allowed the tour has already put a bare `/path` on home,
+       so the pick is another step. */
     test("the text glides into view", async ({ page }) => {
       await page.goto("/path");
-      await stepLink(page, "home").click();
+      await hydrated(page);
+      await stepLink(page, "lille").click();
       await expect.poll(() => panelInView(page)).toBe(true);
-      await expect(stepLink(page, "home")).toBeFocused();
+      await expect(stepLink(page, "lille")).toBeFocused();
     });
   });
 });
