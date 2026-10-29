@@ -28,9 +28,7 @@ const TOP = BASE_TOP + PLATEAU_DEPTH + PLATEAU_BEVEL * 2;
 
 /** The MVP window's label as it is set over the window, in two lines, as
  *  Lille's figure is: decision 3's words, from the step's own line. */
-export const MVP_WINDOW_LINES = MVP_WINDOW_LABEL.replace(" — ", " —\n").split(
-  "\n",
-);
+export const MVP_WINDOW_LINES = MVP_WINDOW_LABEL.split(/(?<= —) /);
 /** Dimmed, like the window it names. In the accent, as Lille's figure is:
  *  the outline's near-black does not read over dark mode's peaks. */
 export const MVP_WINDOW_LABEL_OPACITY = 0.6;

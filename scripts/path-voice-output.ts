@@ -1,10 +1,10 @@
-/* Where `generate-path-voice.ts` puts what it makes (#150): every clip and
-   the manifest land together or not at all. Clips are written to a staging
-   directory beside the clips' own, on the same volume so a rename moves
-   them, and only once every clip has been made are they renamed into
-   place, the clips no manifest lists removed, and the manifest renamed in
-   last. A failure part-way leaves the shipped clips and manifest as they
-   were. Its own module so a spec can drive it with a fake synthesiser. */
+/* Where `generate-path-voice.ts` puts what it makes (#150). Clips are
+   written to a staging directory beside the clips' own, on the same volume
+   so a rename moves them, and only once every clip has been made are they
+   renamed into place, the clips no manifest lists removed, and the manifest
+   renamed in last. So a failed synthesis, the long and fallible part,
+   leaves the shipped clips and manifest as they were; only a filesystem
+   error in the few renames that follow could leave them apart. Its own module so a spec can drive it with a fake synthesiser. */
 
 import {
   mkdir,

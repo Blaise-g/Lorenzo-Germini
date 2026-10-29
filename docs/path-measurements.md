@@ -14,7 +14,7 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 | ---------------------------------------- | ------ | ----------------------------------------- | ------ |
 | Transfer per scene: home, arriving cold  | 1.5 MB | 592 KB                                    | Yes    |
 | Transfer per scene: Lille, arriving cold | 1.5 MB | 766 KB (183 KB on top of home)            | Yes    |
-| GPU memory, estimated                    | 64 MB  | 13.6–56.6 MB (56.6 MB on a 2560×2 screen) | Yes    |
+| GPU memory, estimated                    | 64 MB  | 13.6–56.7 MB (56.7 MB on a 2560×2 screen) | Yes    |
 | Each still                               | 150 KB | Largest 29.7 KB (`lille-light.webp`)      | Yes    |
 | Everything opened                        | 8 MB   | About 1.01 MB, runtime and decoders in    | Yes    |
 | Each voice clip (#150's target)          | ~60 KB | `lille` 63.0 KB and `now` 97.2 KB: over   | **No** |
@@ -83,13 +83,13 @@ third more for mipmaps). Those are cumulative uploads, so an upper bound on what
 | 390, ×3 (phone)                                                            | 513×672            | 11.8 MB        | 13.6 MB      | Yes          |
 | 1440, ×2 (the measured run; the other rows are computed from their canvas) | 1464×567           | 28.5 MB        | 30.3 MB      | Yes          |
 | 3840, ×1                                                                   | 3376×448           | 51.9 MB        | 53.7 MB      | Yes          |
-| 2560, ×2 (pixel ratio capped at 1.305 by the pixel count)                  | 2735×584           | 54.8 MB        | 56.6 MB      | Yes          |
+| 2560, ×2 (pixel ratio capped at 1.3054 by the pixel count)                 | 2736×584           | 54.9 MB        | 56.7 MB      | Yes          |
 
 MB here is 1,024² bytes. Before the pixel cap, the 2560×2 stage was drawn at the full 1.5 ratio:
 3144×672 device pixels, 72.5 MB of drawing buffer and 74.3 MB in all, over budget. The cap's
 figures are computed, not re-measured: the stage is 2096×448 CSS px at that size, the ratio is
-√(1,600,000 ÷ (2096 × 448)) ≈ 1.305, three.js floors each side to 2735×584 device pixels, and
-2735 × 584 × 36 bytes is 54.8 MB, plus the 1.8 MB of uploads. `tests/path-scene.spec.ts` checks
+√(1,600,000 ÷ (2096 × 448)) ≈ 1.3054, three.js floors each side to 2736×584 device pixels, and
+2736 × 584 × 36 bytes is 54.9 MB, plus the 1.8 MB of uploads. `tests/path-scene.spec.ts` checks
 the canvas at a 2560×1440 viewport with a device pixel ratio of 2, and
 `tests/path-scene-contract.spec.ts` checks the arithmetic. The other three rows are under the cap,
 so they are unchanged. This is measured in SwiftShader, not on a real GPU, and the browser's own
@@ -172,7 +172,11 @@ From #149's asset log (`docs/path-assets.md`), which has the full record:
 
 - **Real-phone frame rate is not measured.** It is not one of #141's acceptance figures. The
   runtime falls back to the stills when the first 60 frames' median is over 33 ms, but no real
-  phone has been timed. Left for the owner.
+  phone has been timed. Left for the owner. The scene draws only while something moves (a build,
+  a turn, a theme change), and only those frames are timed. A 2–3 s build gives more than 60
+  frames at any rate near 33 ms, so a slow device is judged during its first build. Under
+  reduced motion nothing animates and the sample never fills, so there is no frame-rate fallback
+  there, and none is needed.
 - GPU memory is an estimate from uploads and canvas size in SwiftShader, not a reading on a real
   GPU.
 - The `now` voice clip is over #150's ~60 KB target, and `lille` is just over it. See

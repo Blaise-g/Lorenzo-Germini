@@ -80,9 +80,10 @@ export type SceneSnapshot = {
   /** The props in view, landed or dropping, in the scene's own order. */
   shown: readonly string[];
   turn: number;
-  /** Set when the shown scene shows its stills instead, and why; the stage
-   *  keeps running for the other scenes. */
-  stills?: SceneFallbackReason;
+  /** Set when the shown step's scene shows its stills instead, and why; the
+   *  stage keeps running for the other scenes. It names its step, so the
+   *  host never pairs it with a step selected since. */
+  stills?: { reason: SceneFallbackReason; slug: PathStep["slug"] };
 };
 
 export type SceneRuntimeOptions = {
@@ -398,7 +399,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let turnStep = 0;
   let turnFrom = 0;
   let turnElapsed = TURN_MS;
-  let stills: SceneFallbackReason | undefined;
+  let stills: SceneSnapshot["stills"];
 
   function emit() {
     onChange({ buildState, lit, shown, turn: turnStep, stills });
@@ -496,10 +497,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function frame() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
-    renderer.setPixelRatio(
+    /* One allocation at the new size; the canvas's CSS size is the page's. */
+    renderer.setDrawingBufferSize(
+      width,
+      height,
       drawingPixelRatio(width, height, window.devicePixelRatio),
     );
-    renderer.setSize(width, height, false);
     camera.aspect = width / height;
     if (!definition) return camera.updateProjectionMatrix();
     const vertical = (CAMERA_FOV * Math.PI) / 180;
@@ -685,10 +688,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* This scene shows its stills: the canvas is see-through over them and
      holds nothing, and the next step with a scene builds as usual. */
-  function failScene(reason: SceneFallbackReason) {
+  function failScene(step: PathStep, reason: SceneFallbackReason) {
     loadScene(undefined);
     canvas.style.opacity = "0";
-    stills = reason;
+    stills = { reason, slug: step.slug };
     clearStage("idle");
   }
 
@@ -699,7 +702,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       build(step, next);
     } catch (error) {
       console.error(error);
-      failScene("scene-failed");
+      failScene(step, "scene-failed");
     }
   }
 
@@ -719,7 +722,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           if (!disposed && request === showing) buildOrFail(step, next);
         },
         () => {
-          if (!disposed && request === showing) failScene("assets-failed");
+          if (!disposed && request === showing)
+            failScene(step, "assets-failed");
         },
       );
     },

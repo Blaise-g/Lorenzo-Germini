@@ -103,9 +103,8 @@ export function RevealSelectedText() {
       frame = requestAnimationFrame(() => {
         const panel = document.querySelector("[data-path-text-panel]");
         if (!panel) return;
-        if (panel.getBoundingClientRect().top < window.innerHeight * 0.85) {
-          return;
-        }
+        const { top, bottom } = panel.getBoundingClientRect();
+        if (top < window.innerHeight * 0.85 && bottom > 0) return;
         panel.scrollIntoView({ block: "nearest" });
       });
     }

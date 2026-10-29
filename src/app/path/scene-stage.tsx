@@ -138,7 +138,10 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const withScene = hasScene(step);
   /* A scene that could not load or build shows its stills; the stage keeps
      running for the next one. */
-  const sceneStills = mode === "webgl" ? snapshot.stills : undefined;
+  const sceneStills =
+    mode === "webgl" && snapshot.stills?.slug === selected
+      ? snapshot.stills.reason
+      : undefined;
   const live = mode === "webgl" && withScene && !sceneStills;
 
   /* Esc skips a running build from anywhere, and moves no focus. Once there
