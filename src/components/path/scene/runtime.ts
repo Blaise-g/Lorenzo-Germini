@@ -282,6 +282,9 @@ export type SceneRuntime = {
   /** What stands on each tile made so far, in the duo and beside the path:
    *  for the suite and the clips. */
   pieces(): PieceReport[];
+  /** How far the shown tile's lid has lifted, 0 shut to 1 gone; null on a
+   *  tile without one. For the suite. */
+  lid(): number | null;
   dispose(): void;
 };
 
@@ -517,7 +520,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     group.userData.slug = slug;
     life.setTile(slug, lifePieces);
     const veiled = slug === VEILED ? piecesOf(slug)[0] : undefined;
-    const veil = veiled && makeVeil(paintBox, { ...veiled, h: veiled.h });
+    const veil = veiled && makeVeil(paintBox, veiled);
     if (veil) group.add(veil);
     return { slug, group, props, grow, beaters, files, veil };
   }
@@ -1087,6 +1090,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     Math.max(0, ...(wakeStarts.get(slug)?.values() ?? [])) + PROP_DROP_MS;
   let current: PathStepSlug | undefined;
   let plan: BuildPlan | undefined;
+  /** When each of the plan's props starts to rise, by id. */
+  let planStarts = new Map<string, number>();
   /** Whether the current tile stood before this build began. */
   let rebuild = false;
   let pawnAt: PathStepSlug | undefined;
@@ -1133,7 +1138,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* A tile built again never vanishes: it sinks part-way and springs up
        from there. */
     const again = rebuild && tile.slug === current;
-    let woken = again;
+    /* The lid lifts from the first piece's wake, on its own clock; over a
+       tile built again it is already gone. */
+    let lifted = again ? VEIL_MS : 0;
     for (const [prop, risers] of tile.props) {
       const elapsed = at(prop);
       for (const piece of risers) {
@@ -1145,7 +1152,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           : local;
         const window = PROP_DROP_MS - delay;
         piece.shown = again || local > 0;
-        woken ||= local > 0;
+        lifted = Math.max(lifted, elapsed === "up" ? VEIL_MS : elapsed - delay);
         if (piece.landmark !== undefined) {
           /* A landmark comes up out of its tile on a spring: igloo's
              materialise, not a fold (§4(d)); from where it stood dormant,
@@ -1174,17 +1181,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         piece.motion?.(Math.min(Math.max(local, 0), 1));
       }
     }
-    if (tile.veil) poseVeil(tile.veil, woken ? veilClock(tile) : 0);
-  }
-
-  /** How long `tile`'s lid has been lifting, in ms. */
-  function veilClock(tile: Tile) {
-    const first = [...tile.props.values()][0]?.[0];
-    if (!first || built.has(tile.slug) || reducedMotion) return VEIL_MS;
-    if (tile.slug === current && buildState === "building" && plan) {
-      return move ? 0 : buildElapsed;
-    }
-    return catchingUp.get(tile.slug) ?? VEIL_MS;
+    if (tile.veil) poseVeil(tile.veil, lifted);
   }
 
   /** Lifts the lid off, `ms` in: up and away on a quick ease-out, shrinking
@@ -1203,12 +1200,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const slug = tile.slug;
       tile.group.position.y = liftOf(slug);
       if (slug === current && plan && buildState === "building") {
-        const starts = new Map(
-          plan.building.map((planned) => [planned.id, planned.startsAt]),
-        );
         const rising = move ? -1 : buildElapsed;
         poseTile(tile, (prop) =>
-          rebuild && move ? "up" : rising - (starts.get(prop) ?? 0),
+          rebuild && move ? "up" : rising - (planStarts.get(prop) ?? 0),
         );
       } else if (catchingUp.has(slug)) {
         const elapsed = catchingUp.get(slug)!;
@@ -1298,8 +1292,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     buddy.position.copy(buddyFoot);
     const { body, contact } = buddyParts;
     body.position.y = lift * HOP_HEIGHT * BUDDY_HOP;
-    const stretch = 1 + 0.1 * Math.min(lift, 1);
-    body.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
+    body.scale.set(...squashScale(1 + 0.1 * Math.min(lift, 1)));
     const away = Math.min(lift / 2, 1);
     contact.material.opacity = contact.userData.opacity * (1 - 0.7 * away);
   }
@@ -1374,7 +1367,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  in, a rung's changed chain — so its time is not the governor's. */
   let unmeasured = false;
   let paused = document.visibilityState === "hidden";
-  /** The canvas scrolled out of view, or not laid out: nothing to draw. */
+  /** The canvas scrolled out of view, or not laid out: nothing to draw.
+   *  The clocks the tour waits on still run, undrawn, until the step is
+   *  built and settled; then the board stops. */
   let offscreen = false;
   /** The tour as last reported, and whether its pause has frozen the
    *  board: set by a pause, cleared by play or by the next selection. */
@@ -1412,7 +1407,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function requestFrame() {
-    if (frameRequest || paused || offscreen || contextLost || fellBack) return;
+    if (frameRequest || paused || contextLost || fellBack) return;
+    if (offscreen && isSettled() && buildState !== "building") return;
     frameRequest = requestAnimationFrame(tick);
   }
 
@@ -1511,9 +1507,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* Draws that run long shed AO, then pixels. Timed around the draw
        itself, not the gap between frames, which carries vsync and every
        stall of the page's own. */
-    const drawn = draw(step / 1000);
+    const drawn = offscreen ? 0 : draw(step / 1000);
     /* Nor the first draw after an idle stretch, which may compile. */
-    const measured = delta > 0 && !unmeasured;
+    const measured = delta > 0 && !unmeasured && !offscreen;
     unmeasured = false;
     const shed = measured ? governor.sample(drawn) : null;
     if (shed) {
@@ -1565,7 +1561,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function render() {
-    if (!frameRequest && !paused && !contextLost && !fellBack) {
+    if (!frameRequest && !paused && !offscreen && !contextLost && !fellBack) {
       draw(0);
       unmeasured = false;
       canvas.dataset.pathSceneRendered = "true";
@@ -1632,8 +1628,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (prepared) render();
   });
   resizeObserver.observe(canvas);
-  /* Out of view, the board stops drawing as a hidden tab does, and picks
-     up where it stopped when it comes back. */
+  /* Out of view, the board stops drawing, and picks up where it is when
+     it comes back. */
   const viewObserver = new IntersectionObserver(([entry]) => {
     offscreen = !entry.isIntersecting;
     if (offscreen) {
@@ -1668,10 +1664,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       !move &&
       buildElapsed > 0
     ) {
-      wakeStarts.set(
-        current,
-        new Map(plan.building.map((planned) => [planned.id, planned.startsAt])),
-      );
+      wakeStarts.set(current, planStarts);
       catchingUp.set(current, buildElapsed);
     }
     rebuild = false;
@@ -1706,6 +1699,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const slug = step.slug;
     const first = !pawnAt;
     plan = buildPlan(step);
+    planStarts = new Map(
+      plan.building.map((planned) => [planned.id, planned.startsAt]),
+    );
     const passed = new Set(LOOP.slice(0, stepIndex(slug)));
     rig.setDriftSpan(driftMs(options?.narrationMs ?? 0));
 
@@ -1746,6 +1742,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
        their rise again. */
     life.restTile(slug);
     life.startMove();
+    /* A lean on the duo belongs to the step it was on. */
+    duoHeldMs = undefined;
     arrivals.delete(slug);
     risen.clear();
     current = slug;
@@ -2186,6 +2184,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         x: ((centre.x + 1) / 2) * canvas.clientWidth,
         y: ((1 - centre.y) / 2) * canvas.clientHeight,
       };
+    },
+    lid() {
+      const veil = current && tiles.get(current)?.veil;
+      if (!veil) return null;
+      return veil.visible ? (veil.position.y - TILE.thickness) / VEIL_LIFT : 1;
     },
     pieces() {
       const named = new Set<string>(Object.values(BEAT_NODE));

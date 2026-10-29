@@ -553,6 +553,72 @@ test.describe("with motion", () => {
     await page.evaluate(() => window.scrollTo(0, 0));
     await expect.poll(() => draws(page)).toBeGreaterThan(away);
   });
+
+  /* Out of view, the step the tour waits on still builds and settles,
+     undrawn, so the tour does not stall on it; then the board stops. */
+  test("a step started out of view still builds, without drawing", async ({
+    page,
+  }) => {
+    await countDraws(page);
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "home");
+    await page.evaluate(() => {
+      document.body.style.paddingBottom = "4000px";
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    await page.waitForTimeout(300);
+    const away = await draws(page);
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 15_000,
+    });
+    await expect(stage(page)).toHaveAttribute("data-stage-settled", "");
+    expect(await draws(page)).toBe(away);
+  });
+
+  /* The "?" tile's lid lifts over a few frames as its piece wakes, not in
+     one; and a tile built again keeps it off. */
+  test("the lid lifts over frames, and stays off when the tile is built again", async ({
+    page,
+  }) => {
+    await page.goto("/path#next");
+    await page.evaluate(() => {
+      const seen: (number | null)[] = [];
+      (window as unknown as { lids: typeof seen }).lids = seen;
+      const sample = () => {
+        seen.push(window.__pathScene?.lid() ?? null);
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
+    const lids = () =>
+      page.evaluate(
+        () => (window as unknown as { lids: (number | null)[] }).lids,
+      );
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 20_000,
+    });
+    const first = (await lids()).filter((lid) => lid !== null);
+    expect(first).toContain(0);
+    expect(first.at(-1)).toBe(1);
+    const lifting = first.filter((lid) => lid > 0.02 && lid < 0.98);
+    expect(lifting.length).toBeGreaterThanOrEqual(3);
+
+    await page.evaluate(() => {
+      window.location.hash = "home";
+    });
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "home");
+    await page.evaluate(() => {
+      (window as unknown as { lids: unknown[] }).lids.length = 0;
+      window.location.hash = "next";
+    });
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "next");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 20_000,
+    });
+    const again = (await lids()).filter((lid) => lid !== null);
+    expect(again.length).toBeGreaterThan(0);
+    expect(Math.min(...again)).toBe(1);
+  });
 });
 
 /* ─── Play: a click's answer, the duo's gestures, the moments ─── */

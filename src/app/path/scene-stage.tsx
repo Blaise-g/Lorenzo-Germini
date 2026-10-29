@@ -34,7 +34,7 @@ import { useNarrationCue, useSetStageStatus } from "./stage-status";
 
 declare global {
   interface Window {
-    __pathScene?: Pick<SceneRuntime, "locate" | "moment" | "pieces">;
+    __pathScene?: Pick<SceneRuntime, "locate" | "moment" | "pieces" | "lid">;
   }
 }
 import { useTourStatus } from "./tour";
@@ -223,6 +223,7 @@ export function SceneStage({
           locate: (piece) => runtime.locate(piece),
           moment: (name) => runtime.moment(name),
           pieces: () => runtime.pieces(),
+          lid: () => runtime.lid(),
         };
       }
       runtimeRef.current.setTourState(tourStatusRef.current);

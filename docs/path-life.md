@@ -18,6 +18,10 @@ sound. Spec: §4(d) and §4(e) of `docs/research/path-v3-benchmark.md`. Code liv
 The pause rule is WCAG 2.2.2's. The suite runs under reduced motion by default, which is
 why "a settled scene draws nothing" holds there; with motion the board draws while it lives.
 
+Scrolled out of view, the board draws nothing. The step the tour waits on still builds and
+settles on its clocks, undrawn, so the tour does not stall behind a board nobody sees; once it
+has settled, the board stops until it is back in view.
+
 ## Ambient
 
 - Grass and tree crowns sway (about 1°, crowns breathe 0.5%) in a vertex patch.
@@ -83,7 +87,8 @@ passed tile's catch-up, from where it was. `data-scene-props` and a piece's `sho
 and risen, so a dormant piece is in neither.
 
 The "?" tile keeps its surprise under a toy-box lid in the warm ink, tied with two sun-ink
-ribbons (`makeVeil` in `world.ts`). The lid lifts off on arrival, in 280 ms on `easeOutQuart`.
+ribbons (`makeVeil` in `world.ts`). The lid lifts off as the first piece under it wakes, in 280 ms on `easeOutQuart`, and
+stays off when the tile is built again.
 Under reduced motion and in the stills every tile stands fully built, with no dormant look and
 no lid.
 
