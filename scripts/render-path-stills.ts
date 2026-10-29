@@ -8,7 +8,7 @@
    directory, so a running one is reused. Start it first with `bun run dev`
    (same `PLAYWRIGHT_PORT`), then `bun run generate:path-stills`. */
 
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
@@ -40,6 +40,10 @@ const everyProp = PATH_STEPS.flatMap((step) =>
   step.props.map((prop) => prop.id),
 ).join(" ");
 
+/* Every still is captured before any is published, so a failure part-way
+   cannot leave light and dark, or neighbouring steps, showing different
+   boards. */
+const captured = new Map<string, Buffer>();
 const browser = await chromium.launch({ args: ["--mute-audio"] });
 try {
   for (const theme of ["light", "dark"] as const) {
@@ -96,12 +100,7 @@ try {
       });
       const png = await page.locator("[data-path-stage] canvas").screenshot();
       const webp = await sharp(png).webp({ quality: 78 }).toBuffer();
-      if (webp.length > MAX_BYTES) {
-        throw new Error(`${target} is ${webp.length} bytes, over ${MAX_BYTES}`);
-      }
-      const file = path.join(process.cwd(), "public", target);
-      await mkdir(path.dirname(file), { recursive: true });
-      await writeFile(file, webp);
+      captured.set(target, webp);
       console.log(`${target}  ${(webp.length / 1024).toFixed(1)} KB`);
     }
     await context.close();
@@ -109,3 +108,20 @@ try {
 } finally {
   await browser.close();
 }
+
+const over = [...captured].filter(([, webp]) => webp.length > MAX_BYTES);
+if (over.length > 0) {
+  console.error(
+    `Over ${MAX_BYTES} bytes, nothing published: ${over.map(([target]) => target).join(", ")}`,
+  );
+  process.exit(1);
+}
+/* Each written beside its target first, so a rename moves it in whole. */
+const staged: [string, string][] = [];
+for (const [target, webp] of captured) {
+  const file = path.join(process.cwd(), "public", target);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(`${file}.partial`, webp);
+  staged.push([`${file}.partial`, file]);
+}
+for (const [from, to] of staged) await rename(from, to);
