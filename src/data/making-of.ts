@@ -82,7 +82,7 @@ export const MAKING_OF = {
   budgets: {
     title: "Budgets and fallbacks",
     lines: [
-      "Each scene has a budget for what it downloads, for the graphics memory it holds and for each still, and the whole walk has one with everything opened, the 3D runtime and its decoders counted. Each scene stays under its download and graphics-memory budgets, and every still under its own: on a very wide, high-density screen the scene is drawn a little softer to stay within its memory. The measurements are in the report in the repository.",
+      "The board is one scene, with a budget for what it downloads before its first frame, one for the graphics memory it holds and one for each still, and the whole walk has one with everything opened, the 3D runtime and its decoders counted. The board stays under each of them, and every still under its own: on a very wide, high-density screen it is drawn a little softer to stay within its memory. The measurements are in the report in the repository.",
       "A browser without the WebGL it needs, one that reports WebGL would run slowly, one that asks to save data, or one whose first frames come in too slow gets still images of each scene instead, with a line saying why. Nothing on this page loads 3D code.",
     ],
   },
@@ -102,9 +102,9 @@ export const MAKING_OF = {
   assets: {
     title: "What was generated, and with what",
     lines: [
-      "The board is code: three.js, every tile, path and piece modelled from simple solids and coloured in the site's palette. Nothing on it is generated, and its stills are renders of the code.",
-      "Earlier versions were generated. Lille's belfry and Vieille Bourse began as reference images from OpenAI's gpt-image, through Codex, which Hunyuan3D turned into meshes, and a later board stood up die-cut cards that gpt-image drew. Both were retired for the board modelled in code.",
-      "Those generated images carried C2PA metadata naming gpt-image, without a version. Converting them to WebP strips it, so this page says so instead.",
+      "The board is code: three.js, its tiles, path, water, trees and grass modelled from simple solids and coloured in the site's palette, and so are the parts of its props that move.",
+      "The landmarks, the props and the two figures that walk the path are generated: toy-style models that Hunyuan3D made from reference images drawn by OpenAI's gpt-image, through Codex. The stills are renders of the scene.",
+      "Images from gpt-image through Codex carry C2PA metadata naming gpt-image, without a version. Making models from them strips it, and the reference images do not ship with the site, so this page says so instead.",
     ],
   },
   voice: {
