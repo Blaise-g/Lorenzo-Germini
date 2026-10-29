@@ -23,7 +23,6 @@ export const STAGE_COPY = {
   replay: "Replay",
   turnLeft: "Turn the scene left",
   turnRight: "Turn the scene right",
-  showing: (place: string) => `Showing: ${place}`,
 };
 
 /* The tour's transport on `/path`: the tabs' printed words, their accessible
@@ -46,7 +45,6 @@ export const TOUR_COPY = {
   nextTitle: "Next step (L)",
   playTitle: "Play or pause the tour (K)",
   keys: "Keys, from the list or the tabs: J back · K play or pause · L next",
-  nowPlaying: (place: string) => `Now playing: ${place}`,
   ended: "The tour has ended. Pick a step, or play it again.",
 };
 

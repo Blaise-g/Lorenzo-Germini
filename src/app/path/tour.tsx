@@ -96,9 +96,6 @@ export function useNarrationPlayhead(): () => number {
   return useTour().playhead;
 }
 
-const stepsBySlug = new Map(PATH_STEPS.map((step) => [step.slug, step]));
-const stepNamed = (slug: PathStepSlug) => stepsBySlug.get(slug)!;
-
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
 function subscribeToMotion(onChange: () => void) {
@@ -339,22 +336,13 @@ const PLAY_NAME: Record<TourStatus, string> = {
   ended: TOUR_COPY.restartName,
 };
 
-/** Previous, play or pause, and next, as die-cut card tabs, with the tour's
- *  announcement. Previous and Next stay focusable at the ends, marked
+/** Previous, play or pause, and next, as die-cut card tabs. Previous and Next stay focusable at the ends, marked
  *  unavailable rather than `disabled`, so focus is not dropped to the page. */
 export function TourTransport({ className }: { className?: string }) {
   const { status, clock, previous, next, togglePlay } = useTour();
   const { selected } = useSelectedStep();
   const atStart = selected === FIRST_STEP;
   const atEnd = selected === LAST_STEP;
-
-  /* One polite line per step played, distinct from the stage's "Showing". */
-  const announcement =
-    status === "playing"
-      ? TOUR_COPY.nowPlaying(stepNamed(selected).place)
-      : status === "ended"
-        ? TOUR_COPY.ended
-        : "";
 
   return (
     <div
@@ -406,9 +394,6 @@ export function TourTransport({ className }: { className?: string }) {
       </div>
       <p className="text-faint font-label mt-3 hidden text-[0.6875rem] tracking-[0.12em] uppercase [@media(hover:hover)_and_(pointer:fine)]:block">
         {TOUR_COPY.keys}
-      </p>
-      <p aria-live="polite" data-path-tour-announcement className="sr-only">
-        {announcement}
       </p>
     </div>
   );

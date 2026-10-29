@@ -45,6 +45,9 @@ test.beforeEach(async ({ page }) => {
 
 const voice = (page: Page) => page.locator("[data-path-voice]");
 const caption = (page: Page) => page.locator("[data-path-caption]");
+/** The polite live regions besides the voice switch's own message line. */
+const announcers = (page: Page) =>
+  page.locator("[aria-live=polite]:not([data-path-voice-message])");
 const message = (page: Page) => page.locator("[data-path-voice-message]");
 const voiceSwitch = (page: Page) => page.getByRole("switch", { name: "Voice" });
 const captionsSwitch = (page: Page) =>
@@ -127,7 +130,7 @@ test.describe("the clips", () => {
       const file = path.join(process.cwd(), "public", clip.src);
       expect(existsSync(file), clip.src).toBe(true);
       expect(statSync(file).size, clip.src).toBe(clip.bytes);
-      /* About 15–30 s a step (v3). */
+      /* About 14–30 s a step (v3). */
       expect(clip.durationMs, step.slug).toBeGreaterThan(14_000);
       expect(clip.durationMs, step.slug).toBeLessThan(31_000);
       /* What the page plays is this clip, timed by it. */
@@ -154,10 +157,24 @@ test.describe("/path's voice", () => {
     /* Under reduced motion the tour waits, and the caption shows the step's
        first cue. */
     await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
-    /* With no voice, a screen reader hears the caption: a polite live
-       region carrying the whole cue. */
-    await expect(caption(page)).toHaveAttribute("aria-live", "polite");
-    await expect(caption(page)).toHaveAttribute("aria-atomic", "true");
+    /* With no voice, a screen reader hears the cue: the page's one polite
+       live region carries the whole of it, and nothing else does. */
+    await expect(announcers(page)).toHaveCount(1);
+    await expect(
+      page.locator("[data-path-announcement][aria-live=polite]"),
+    ).toHaveText(narrationFor("lille").cues[0].text);
+    await expect(page.locator("[data-path-announcement]")).toHaveAttribute(
+      "aria-atomic",
+      "true",
+    );
+    await expect(caption(page)).not.toHaveAttribute("aria-live", /./);
+
+    /* Captions off, the cue is still said. */
+    await captionsSwitch(page).click();
+    await expect(caption(page)).toBeEmpty();
+    await expect(page.locator("[data-path-announcement]")).toHaveText(
+      narrationFor("lille").cues[0].text,
+    );
   });
 
   /* #141's testing decision for fragments: goto, Back, Forward and reload
@@ -235,7 +252,7 @@ test.describe("with the tour playing", () => {
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(caption(page)).toBeEmpty();
     /* And the voice is what a screen reader hears, not the line too. */
-    await expect(caption(page)).toHaveAttribute("aria-live", "off");
+    await expect(page.locator("[data-path-announcement]")).toBeEmpty();
   });
 
   test("a first press held down on Pause starts no voice before it lands", async ({
@@ -429,6 +446,6 @@ test.describe("the captions", () => {
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
     /* Shown with the voice on, the line is not said over it. */
-    await expect(caption(page)).toHaveAttribute("aria-live", "off");
+    await expect(page.locator("[data-path-announcement]")).toBeEmpty();
   });
 });

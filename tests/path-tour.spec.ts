@@ -228,8 +228,9 @@ test.describe("with motion allowed", () => {
     await expectShown(page, "home");
     await page.clock.runFor(1000);
     await expectShown(page, "turin");
-    await expect(page.locator("[data-path-tour-announcement]")).toHaveText(
-      "Now playing: Turin",
+    /* One polite line: the cue, which the voice is not saying. */
+    await expect(page.locator("[data-path-announcement]")).toHaveText(
+      narrationFor("turin").cues[0].text,
     );
     await playThrough(page, "turin");
     await expectShown(page, "switzerland");
@@ -257,7 +258,7 @@ test.describe("with motion allowed", () => {
     await playThrough(page, "next");
     await expect(tour(page)).toHaveAttribute("data-path-tour", "ended");
     await expect(playTab(page)).toHaveAccessibleName(/^Again/);
-    await expect(page.locator("[data-path-tour-announcement]")).toContainText(
+    await expect(page.locator("[data-path-announcement]")).toContainText(
       "ended",
     );
 

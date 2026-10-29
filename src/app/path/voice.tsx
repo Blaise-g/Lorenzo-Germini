@@ -9,11 +9,11 @@ import { useHydrated } from "@/lib/use-hydrated";
 import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
-import { VOICE_COPY } from "./copy";
+import { TOUR_COPY, VOICE_COPY } from "./copy";
 import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
 import { SoundSwitch } from "./sound";
 import { useNarrationCue } from "./stage-status";
-import { useNarrationPlayhead } from "./tour";
+import { useNarrationPlayhead, useTourStatus } from "./tour";
 import {
   CAPTIONS_CHANGE_EVENT,
   CAPTIONS_STORAGE_KEY,
@@ -251,10 +251,14 @@ export function NarrationBar({
       : state === "blocked"
         ? VOICE_COPY.blocked
         : "";
-  const caption =
-    hydrated && captionsOn && cue
-      ? narrationFor(cue.slug).cues[cue.index].text
-      : "";
+  const cueText =
+    hydrated && cue ? narrationFor(cue.slug).cues[cue.index].text : "";
+  const caption = captionsOn ? cueText : "";
+  /* The page's one polite line as the tour plays: the cue, while the voice
+     cannot say it, captions on or off, and the tour's end. */
+  const tourStatus = useTourStatus();
+  const announcement =
+    tourStatus === "ended" ? TOUR_COPY.ended : audible ? "" : cueText;
 
   return (
     /* The cue, as attributes too: what the board reads from
@@ -290,17 +294,23 @@ export function NarrationBar({
         }}
       />
       <div className="min-w-0 flex-1">
-        {/* Two lines held open, so a longer cue does not move the board.
-            A polite live region while the voice cannot be heard, so a
-            screen reader says each cue as the tour reaches it; silent
-            while the voice says it, so nothing is said twice. */}
+        {/* Two lines held open, so a longer cue does not move the board. */}
         <p
           data-path-caption
-          aria-live={audible ? "off" : "polite"}
-          aria-atomic
           className="path-caption font-display text-ink text-base leading-snug text-pretty lg:text-lg"
         >
           {caption}
+        </p>
+        {/* A screen reader hears each cue as the tour reaches it while the
+            voice cannot be heard, and nothing while the voice says it, so
+            nothing is said twice. */}
+        <p
+          aria-live="polite"
+          aria-atomic
+          data-path-announcement
+          className="sr-only"
+        >
+          {announcement}
         </p>
         {/* The step's full text, on the flat site. Printed only once
             hydrated, when the selected step is known: the server cannot see
