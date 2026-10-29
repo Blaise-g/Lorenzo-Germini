@@ -310,7 +310,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
           className="path-step-track"
           style={{ "--path-steps": steps.length } as CSSProperties}
         >
-          <div className="relative">
+          <div className="path-pawn-rail">
             <span aria-hidden className="path-step-line" />
             {/* The pawn walks the drawn line from step to step. It mounts in
                 place, so a load of `/path#lille` does not travel there. */}

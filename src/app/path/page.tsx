@@ -62,16 +62,27 @@ function stepNode(step: PathStep): PathStepNode {
   return step.sceneId === "open" ? "open" : "place";
 }
 
+/** A still is a wide close-up, the step's tile a little right of centre
+ *  (`camera-rig.ts`). A wide stage shows it whole; a phone's or a tablet's
+ *  taller stage is filled with it, cropped about that tile, rather than
+ *  letterboxed. */
+const STILL_CLASS_NAME =
+  "size-full object-cover object-[56%_50%] lg:object-contain lg:object-center";
+
 /* What the stage shows before the scene renders, and as the fallback: the
    step's still, one per mode. Server HTML for every step, shown by the same
    CSS as the panels, so a load of `/path#lille` paints Lille's before any
    JavaScript. Lazy, so only the shown step's still in the current mode
-   downloads: Chromium does not fetch a lazy image that is `display: none`.
-   Contained, so a phone's narrower stage shows the whole board. */
+   downloads: Chromium does not fetch a lazy image that is `display: none`. */
 function StageBackdrop({ step }: { step: PathStep }) {
   const stills = stillsFor(step);
   return (
-    <div data-path-backdrop={step.slug} className="absolute inset-0">
+    /* Showing stills, the backdrop stops short of the stage's foot, so the
+       line saying why sits on bare paper under the art, not over it. */
+    <div
+      data-path-backdrop={step.slug}
+      className="absolute inset-0 [[data-fallback-reason]_&]:bottom-8"
+    >
       {stills ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element -- a fixed-size
@@ -82,7 +93,7 @@ function StageBackdrop({ step }: { step: PathStep }) {
             alt=""
             data-path-still="light"
             loading="lazy"
-            className="size-full object-contain dark:hidden"
+            className={cn(STILL_CLASS_NAME, "dark:hidden")}
           />
           {/* eslint-disable-next-line @next/next/no-img-element -- as above. */}
           <img
@@ -90,7 +101,7 @@ function StageBackdrop({ step }: { step: PathStep }) {
             alt=""
             data-path-still="dark"
             loading="lazy"
-            className="hidden size-full object-contain dark:block"
+            className={cn(STILL_CLASS_NAME, "hidden dark:block")}
           />
         </>
       ) : null}
@@ -123,7 +134,7 @@ export default function PathPage() {
               "flex min-h-dvh flex-col pb-12 lg:pb-6",
             )}
           >
-            <header className="border-ink flex items-center justify-between gap-6 border-b-2 py-3 lg:py-4">
+            <header className="border-ink flex items-center justify-between gap-6 border-b-2 py-2 md:py-3 lg:py-4">
               <div className="flex items-baseline gap-x-4">
                 <h1 className="font-display text-lg font-semibold tracking-tight">
                   {RESUME_DATA.name}
@@ -161,11 +172,12 @@ export default function PathPage() {
 
                 On a phone: the board first, full width; then the steps, the
                 same strip three at a time; then the bar, packed close so its
-                switches are on the first screen. Print shows none of these,
+                switches and the voice's label are on the first screen of a
+                375×812 phone. Print shows none of these,
                 only the selected step's text. */}
             <div
               data-path-world
-              className="mt-4 flex flex-1 flex-col gap-y-3 md:gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-y-4 print:mt-6 print:block"
+              className="mt-2 flex flex-1 flex-col gap-y-2 md:mt-4 md:gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:gap-y-4 print:mt-6 print:block"
             >
               {/* The tour's keys work with focus anywhere in here, or on the
                   tour's tabs. */}

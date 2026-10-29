@@ -433,6 +433,14 @@ html {
      reduced motion cut it there. It rides a rail as wide as the row, moved
      by `translate` (a share of the rail's own width) rather than `left`,
      so the walk is composited and never lays the strip out again. */
+  /* The rail runs past the row by as far as the pawn has walked, so the
+     row clips it sideways, or the page would widen with it; the pawn's head
+     still rises over the row's top. */
+  .path-pawn-rail {
+    position: relative;
+    overflow-x: clip;
+  }
+
   .path-pawn {
     position: absolute;
     top: calc(1.125rem - 1.2rem);
