@@ -212,6 +212,7 @@ export function SceneStage({ children }: { children: ReactNode }) {
         data-build-state={buildState}
         data-scene-props={shown.length > 0 ? shown.join(" ") : undefined}
         data-scene-step={snapshot.step}
+        data-stage-settled={settled ? "" : undefined}
         data-fallback-reason={reason ?? sceneStills}
         className="relative h-[clamp(18rem,58vh,40rem)] w-full overflow-hidden"
       >

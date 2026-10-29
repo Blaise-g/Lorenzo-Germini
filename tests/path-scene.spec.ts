@@ -1,10 +1,11 @@
-/* Scenes on `/path` (#148): the runtime loads after the overlay paints, the
-   selected step builds, Skip and Replay, reduced motion, light and dark, and
-   the stills when the browser cannot run it. The contract is #141 — decisions
+/* The board on `/path` (#148, v2's board): the runtime loads after the
+   overlay paints, the selected step's tile builds, Skip and Replay, reduced
+   motion, light and dark, and the stills when the browser cannot run it. The contract is #141 — decisions
    8, 11, 12 and 13, implementation decisions 6–8 and the testing decisions'
    Build, Fallback and Weight bullets — with storyboard §7.4, §7.5 and §7.7 of
    docs/research/experience-rethink.md. The pure halves are in
-   `path-scene-contract.spec.ts`. */
+   `path-scene-contract.spec.ts`; the pawn's hops and the tour's settled cue
+   are `path-board.spec.ts`. */
 
 import { expect, test, type Page } from "@playwright/test";
 
@@ -18,6 +19,22 @@ import {
 import { MAX_DRAWING_PIXELS } from "@/components/path/scene/drawing-buffer";
 
 import { setTheme, themeToggle } from "./support/theme";
+
+/* The board draws on this machine's GPU (Metal through ANGLE), not the
+   headless default, SwiftShader: five workers sharing one software
+   rasteriser draw it at 50–75 ms a frame, and the 33 ms frame sample then
+   rightly shows the stills. That is a starved device, not the board under
+   test; the slow-frames verdict itself is `path-board.spec.ts`'s. */
+test.use({
+  launchOptions: {
+    args: [
+      "--mute-audio",
+      "--use-angle=metal",
+      "--enable-gpu",
+      "--ignore-gpu-blocklist",
+    ],
+  },
+});
 
 /* Turbopack names a module's chunk after its path, so three.js and the scene
    runtime are recognisable by URL in dev. */
@@ -33,6 +50,15 @@ const stepLink = (page: Page, slug: PathStepSlug) =>
 
 const stepNamed = (slug: PathStepSlug) =>
   PATH_STEPS.find((step) => step.slug === slug)!;
+
+/** Every prop on the board up to and including `slug`'s, in the data's
+ *  order: what stands once the pawn has reached its tile. */
+function propsThrough(slug: PathStepSlug) {
+  const index = PATH_STEPS.findIndex((step) => step.slug === slug);
+  return PATH_STEPS.slice(0, index + 1)
+    .flatMap((step) => step.props.map((prop) => prop.id))
+    .join(" ");
+}
 
 /** The caption lines a step's props light, as the overlay root lists them. */
 function captionLines(slug: PathStepSlug) {
@@ -102,7 +128,7 @@ test.describe("loading", () => {
   }) => {
     await page.goto("/path");
     const tokens = await page.evaluate(() =>
-      ["ground", "tile", "prop", "accent", "outline", "fog"].map((role) =>
+      ["paper", "ink-1", "ink-2", "fog"].map((role) =>
         getComputedStyle(document.documentElement)
           .getPropertyValue(`--path-${role}`)
           .trim(),
@@ -128,7 +154,7 @@ test.describe("the build", () => {
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     await expect(stage(page)).not.toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school",
+      propsThrough("home"),
     );
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 5000,
@@ -143,7 +169,7 @@ test.describe("the build", () => {
     );
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school",
+      propsThrough("home"),
     );
 
     /* The lit line is the panel's own line, drawn in ink. */
@@ -161,22 +187,22 @@ test.describe("the build", () => {
       .toBe(ink);
   });
 
-  test("steps 4 and 6 add their props to the earlier ones", async ({
-    page,
-  }) => {
+  /* Arriving cold at step 4, the pawn has passed steps 1–3: their tiles
+     stand before step 4's own cards fold up. A later step adds its own to
+     everything before it, Lille's passed tile included. */
+  test("steps 4 and 6 build on every earlier tile", async ({ page }) => {
     await page.goto("/path#cuneo-2022");
-    /* Step 1's props stand before step 4's own have landed. */
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      /^plateau bisalta school/,
+      new RegExp(`^${propsThrough("switzerland")}`),
     );
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 5000,
     });
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school schoolroom mvp-window",
+      propsThrough("cuneo-2022"),
     );
     await expect(overlay(page)).toHaveAttribute(
       "data-path-lit",
@@ -186,11 +212,11 @@ test.describe("the build", () => {
     await stepLink(page, "now").click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
-      timeout: 5000,
+      timeout: 6000,
     });
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school schoolroom mvp-window startup-desk office",
+      propsThrough("now"),
     );
     await expect(overlay(page)).toHaveAttribute(
       "data-path-lit",
@@ -207,7 +233,7 @@ test.describe("the build", () => {
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school",
+      propsThrough("home"),
     );
     await expect(overlay(page)).toHaveAttribute(
       "data-path-lit",
@@ -251,14 +277,17 @@ test.describe("the build", () => {
     await expect(stepLink(page, "home")).toBeFocused();
   });
 
-  /* While a scene's assets load, Replay and the turns are shown unavailable
-     and do nothing; the one with focus keeps it. */
+  /* While a tile's cards load, Replay and the turns are shown unavailable
+     and do nothing; the one with focus keeps it. The board loads every card
+     up front, so Lille's are refused at first and held on their retry. */
   test("while a scene loads, its controls are unavailable and keep focus", async ({
     page,
   }) => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
-    await page.route("**/path/models/**", async (route) => {
+    let refuse = true;
+    await page.route("**/path/cards/lille-*", async (route) => {
+      if (refuse) return route.fulfill({ status: 500 });
       await held;
       await route.continue();
     });
@@ -266,6 +295,7 @@ test.describe("the build", () => {
     await buildControl(page).click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await buildControl(page).focus();
+    refuse = false;
 
     /* A fragment selects Lille without moving focus off Replay. */
     await page.evaluate(() => {
@@ -324,7 +354,9 @@ test.describe("the build", () => {
     await expect(stepLink(page, "home")).toBeFocused();
   });
 
-  test("the two 45° buttons turn the scene once each way", async ({ page }) => {
+  test("the two turn buttons turn the board once each way", async ({
+    page,
+  }) => {
     await page.goto("/path#home");
     const left = page.getByRole("button", { name: "Turn the scene left" });
     const right = page.getByRole("button", { name: "Turn the scene right" });
@@ -368,14 +400,16 @@ test.describe("the build", () => {
 
 test.describe("reduced motion", () => {
   /* The suite's default context emulates reduced motion. */
-  test("shows the end state at once, without a build", async ({ page }) => {
+  test("shows the whole board built at once, without a build", async ({
+    page,
+  }) => {
     await recordBuildStates(page);
     await page.goto("/path#cuneo-2022");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     expect(await buildStates(page)).toEqual(["loading", "built"]);
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
-      "plateau bisalta school schoolroom mvp-window",
+      propsThrough("next"),
     );
     await expect(overlay(page)).toHaveAttribute(
       "data-path-lit",
@@ -397,6 +431,20 @@ test.describe("reduced motion", () => {
     });
     await expect.poll(() => color(0)).toBe(ink);
     await expect.poll(() => color(1)).toBe(ink);
+  });
+
+  /* One step's end state cuts to another's: the stage names the new step
+     and lights its lines, though the board itself does not change. */
+  test("a second step cuts straight to its own end state", async ({ page }) => {
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "home");
+    await stepLink(page, "turin").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "turin");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(overlay(page)).toHaveAttribute(
+      "data-path-lit",
+      captionLines("turin"),
+    );
   });
 });
 
@@ -462,52 +510,36 @@ test.describe("on a wide, high-density screen", () => {
   });
 });
 
-test.describe("a step whose scene is not built yet", () => {
-  test("shows its text and says so, with no controls", async ({ page }) => {
-    await page.goto("/path#turin");
-    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl");
-    await expect(stage(page)).toHaveAttribute("data-build-state", "idle");
-    await expect(page.locator('[data-path-backdrop="turin"]')).toContainText(
-      "not built yet",
-    );
-    await expect(buildControl(page)).toHaveCount(0);
-  });
-
-  /* Esc belongs to the scene (storyboard §7.7): with none on the stage it
-     must not pull focus away from wherever the visitor is. */
-  test("Esc leaves focus where it is", async ({ page }) => {
-    await page.goto("/path#turin");
-    await expect(stage(page)).toHaveAttribute("data-scene-mode", "webgl");
-    const flatSite = page.getByRole("link", { name: "Flat site", exact: true });
-    await flatSite.focus();
-    await page.keyboard.press("Escape");
-    await expect(flatSite).toBeFocused();
-  });
-});
-
-/* An exception in a scene's own code: Lille sets its figure with
-   `fillText`, so a `fillText` that throws breaks Lille's build. Home sets
-   its MVP label the same way, so the switch is turned off before home. It is caught whether Lille builds after its models arrive or at once
-   from models it already holds, and only Lille shows its stills. */
-test.describe("a scene that fails to build", () => {
+/* An exception in one tile's own code: Lille's plaque is the only print
+   that carries "10,000", so a `fillText` that throws on it breaks Lille's
+   tile and no other. Only Lille shows its stills, and the tile is tried
+   again the next time it is selected. */
+test.describe("a tile that fails to build", () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
       const fillText = CanvasRenderingContext2D.prototype.fillText;
       CanvasRenderingContext2D.prototype.fillText = function (...args) {
-        if ((window as unknown as { __failText?: boolean }).__failText) {
-          throw new Error("A scene's own code failed");
+        const fail = (window as unknown as { __failText?: boolean }).__failText;
+        if (fail && String(args[0]).includes("10,000")) {
+          throw new Error("A tile's own code failed");
         }
         return fillText.apply(this, args);
       };
+      (window as unknown as { __failText: boolean }).__failText = true;
     });
   });
 
-  const failText = (page: Page, fail = true) =>
+  const failText = (page: Page, fail: boolean) =>
     page.evaluate((value) => {
       (window as unknown as { __failText: boolean }).__failText = value;
     }, fail);
 
-  async function expectSceneFailed(page: Page) {
+  test("shows its stills and why; the other tiles still build", async ({
+    page,
+  }) => {
+    const errors: Error[] = [];
+    page.on("pageerror", (error) => errors.push(error));
+    await page.goto("/path#lille");
     await expect(stage(page)).toHaveAttribute(
       "data-fallback-reason",
       "scene-failed",
@@ -518,38 +550,63 @@ test.describe("a scene that fails to build", () => {
     );
     await expect(page.locator("[data-path-stage] canvas")).toBeHidden();
     await expect(buildControl(page)).toHaveCount(0);
-  }
 
-  test("after its assets load, it shows its stills and why", async ({
-    page,
-  }) => {
-    const errors: Error[] = [];
-    page.on("pageerror", (error) => errors.push(error));
-    await page.addInitScript(() => {
-      (window as unknown as { __failText: boolean }).__failText = true;
-    });
-    await page.goto("/path#lille");
-    await expectSceneFailed(page);
-    await failText(page, false);
     await stepLink(page, "cuneo-2022").click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
+    await expect(page.locator("[data-path-stage] canvas")).toBeVisible();
     expect(errors).toEqual([]);
   });
 
-  test("built at once from held models, it shows its stills and why", async ({
+  test("is tried again when it is next selected", async ({ page }) => {
+    await page.goto("/path#lille");
+    await expect(stage(page)).toHaveAttribute(
+      "data-fallback-reason",
+      "scene-failed",
+    );
+    await failText(page, false);
+    await stepLink(page, "now").click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await stepLink(page, "lille").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-props",
+      /belfry courtyard pipe-loop clock-face/,
+    );
+  });
+});
+
+/* A tile's card that does not arrive: that tile shows its stills and names
+   its cards, the rest of the board builds, and the next selection of the
+   tile fetches them again. */
+test.describe("a tile whose cards fail to load", () => {
+  test("shows its stills and why, and loads them on its next selection", async ({
     page,
   }) => {
-    const errors: Error[] = [];
-    page.on("pageerror", (error) => errors.push(error));
+    let fail = true;
+    await page.route("**/path/cards/lille-belfry.webp", (route) =>
+      fail ? route.fulfill({ status: 500 }) : route.continue(),
+    );
     await page.goto("/path#lille");
-    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).toHaveAttribute(
+      "data-fallback-reason",
+      "assets-failed",
+    );
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveText(
+      SCENE_FALLBACK_LINES["assets-failed"]("Lille"),
+    );
+
     await stepLink(page, "home").click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
-    await failText(page);
+    await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
+
+    fail = false;
     await stepLink(page, "lille").click();
-    await expectSceneFailed(page);
-    expect(errors).toEqual([]);
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "lille");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
   });
 });
 

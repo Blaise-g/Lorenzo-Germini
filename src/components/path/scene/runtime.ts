@@ -924,12 +924,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     pawn.position.copy(pawnPosition);
   }
 
-  function setBuildState(next: BuildState) {
-    if (next === buildState) return;
-    buildState = next;
-    emit();
-  }
-
   function finish() {
     move = undefined;
     if (current) pawnAt = current;
@@ -940,7 +934,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (current) built.add(current);
     refold = false;
     pose();
-    setBuildState("built");
+    /* Emitted even when already built: under reduced motion one step's end
+       state cuts to another's, and the host has to hear the new step. */
+    buildState = "built";
+    emit();
     requestFrame();
   }
 

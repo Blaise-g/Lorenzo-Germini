@@ -7,9 +7,10 @@ export const MAX_PIXEL_RATIO = 1.5;
 
 /** The most device pixels the drawing buffer holds. With `antialias: true`
  *  it keeps 4× multisampled colour and depth plus the resolved colour, about
- *  36 bytes a pixel: 1.6 million pixels is about 55 MiB (57.6 decimal MB), which leaves the
- *  scenes' buffers and textures room under the 64 MB budget. */
-export const MAX_DRAWING_PIXELS = 1_600_000;
+ *  36 bytes a pixel: 1.2 million pixels is about 41 MiB, which leaves the
+ *  board's textures and shadow map (about 20 MiB) room under the 64 MB
+ *  budget. */
+export const MAX_DRAWING_PIXELS = 1_200_000;
 
 /** Bytes a drawing-buffer pixel holds, as above. */
 export const DRAWING_BYTES_PER_PIXEL = 36;

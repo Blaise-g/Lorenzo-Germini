@@ -28,7 +28,7 @@ export const TILE = {
 } as const;
 
 /** The loop's half-widths across and in depth. */
-export const LOOP_RADII = { x: 8.8, z: 6.7 } as const;
+export const LOOP_RADII = { x: 9.2, z: 6.7 } as const;
 
 /** The step whose tile is front and centre. */
 const FRONT_STEP: PathStepSlug = "lille";
