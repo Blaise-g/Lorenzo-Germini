@@ -27,14 +27,15 @@ import { PATH_STEPS } from "@/data/path";
 import type { PathStep, PathStepSlug } from "@/data/path.types";
 
 import {
-  CARD_SOURCE,
   LOOP,
   MVP_INK_STRENGTH,
   MVP_WINDOW_LINES,
   pawnSpot,
   TILE,
   tileCentre,
-  tileHeight,
+  framePoints,
+  HOP_HEIGHT,
+  PAWN_HEIGHT,
   tileName,
   tileScale,
 } from "./board";
@@ -75,7 +76,6 @@ import {
   movePose,
 } from "./motion";
 import { isDarkMode, readPalette, type Palette } from "./palette";
-import { placeholderCard } from "./placeholder-cards";
 
 /* The 3D path's board (GH-148; comp B, "Risograph Pop-up"): vanilla three.js,
    imported dynamically by the host on `/path` only, after the overlay has
@@ -107,8 +107,6 @@ const CARD_STAGGER_MS = 110;
 /** A tile already built, built again, folds from part-way back: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REFOLD_FROM = 0.42;
-/** The pawn's hop, at its top, above the tiles. */
-const HOP_HEIGHT = 1.3;
 /** Printed text on the board, in pixels of texture per scene unit. */
 const PRINT_PX = 150;
 const TILE_PX = 84;
@@ -227,7 +225,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
      close to its token colours. */
   const sky = new HemisphereLight(0xffffff, 0xffffff, 2.3);
   const sun = new DirectionalLight(0xffffff, 1.25);
-  sun.position.set(-7, 16, 9);
+  sun.position.set(-11, 13, 4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   Object.assign(sun.shadow.camera, {
@@ -243,7 +241,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   scene.add(sky, sun);
 
   /* The table the board lies on is the page: only the shadows show on it. */
-  const tableMaterial = new ShadowMaterial({ opacity: 0.16 });
+  const tableMaterial = new ShadowMaterial({ opacity: 0.2 });
   const table = new Mesh(new PlaneGeometry(90, 90), tableMaterial);
   table.rotation.x = -Math.PI / 2;
   table.receiveShadow = true;
@@ -279,7 +277,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     background.copy(mix("fog"));
     scene.background = background;
     /* A shadow on dark stock reads with a little more weight. */
-    tableMaterial.opacity = 0.16 + 0.22 * themeMix.value;
+    tableMaterial.opacity = 0.2 + 0.2 * themeMix.value;
   }
   paint();
 
@@ -412,14 +410,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let plainTexture: Texture | undefined;
 
   function cardTexture(art: CardArt) {
-    if (CARD_SOURCE === "placeholder") {
-      let texture = cardTextures.get(art.id);
-      if (!texture) {
-        texture = placeholderCard(art);
-        cardTextures.set(art.id, texture);
-      }
-      return texture;
-    }
     const texture = cardTextures.get(art.file);
     if (!texture) throw new Error(`The card ${art.file} is not loaded`);
     return texture;
@@ -433,11 +423,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return drawnInk(width, height, (plates: InkPlates) => {
       chamferPath(plates.cut, width, height);
       plates.cut.fill();
-      /* A ruled border in the second ink, and the corners printed in the
-         tile's own: solid wedges at the front, a halftone at the back, as a
-         riso print lays its colour blocks. */
-      const ink = plates[band];
-      const tint = plates[other];
+      /* A ruled border in the second ink, and the corners printed solid:
+         the tile's own ink at the front, the other at the back, as a
+         board's colour bands are laid. */
       const corner = 0.95 * TILE_PX;
       const wedge = (
         context: CanvasRenderingContext2D,
@@ -446,34 +434,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         dx: number,
         dy: number,
       ) => {
+        context.save();
+        chamferPath(context, width, height);
+        context.clip();
         context.beginPath();
         context.moveTo(x, y);
         context.lineTo(x + dx * corner, y);
         context.lineTo(x, y + dy * corner);
         context.closePath();
         context.fill();
+        context.restore();
       };
-      ink.save();
-      chamferPath(ink, width, height);
-      ink.clip();
-      wedge(ink, 0, height, 1, -1);
-      wedge(ink, width, height, -1, -1);
-      ink.restore();
-      tint.save();
-      chamferPath(tint, width, height);
-      tint.clip();
-      const dot = 0.085 * TILE_PX;
-      for (let y = dot; y < corner * 1.1; y += dot * 1.6) {
-        for (let x = dot; x < width; x += dot * 1.6) {
-          const fromLeft = x + y < corner * 1.15;
-          const fromRight = width - x + y < corner * 1.15;
-          if (!fromLeft && !fromRight) continue;
-          tint.beginPath();
-          tint.arc(x, y, dot * 0.42, 0, Math.PI * 2);
-          tint.fill();
-        }
-      }
-      tint.restore();
+      wedge(plates[band], 0, height, 1, -1);
+      wedge(plates[band], width, height, -1, -1);
+      wedge(plates[other], 0, 0, 0.7, 0.7);
+      wedge(plates[other], width, 0, -0.7, 0.7);
       plates.ink2.lineWidth = 0.03 * TILE_PX;
       const inset = 0.16 * TILE_PX;
       plates.ink2.save();
@@ -482,8 +457,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       plates.ink2.stroke();
       plates.ink2.restore();
       /* The front strip carries the name, in the second ink. */
-      const strip = 0.62 * TILE_PX;
-      plates.ink2.font = displayFont(Math.round(0.42 * TILE_PX));
+      const strip = 0.58 * TILE_PX;
+      plates.ink2.font = displayFont(Math.round(0.56 * TILE_PX));
       plates.ink2.textAlign = "center";
       plates.ink2.textBaseline = "middle";
       plates.ink2.fillText(tileName(slug), width / 2, height - strip);
@@ -621,7 +596,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const tag = printed({
         lines: MVP_WINDOW_LINES,
         font: labelFont,
-        lineHeight: 0.21,
+        lineHeight: 0.3,
         ink: "ink2",
         plaque: true,
       });
@@ -650,7 +625,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const mark = printed({
         lines: ["?"],
         font: displayFont,
-        lineHeight: 0.6,
+        lineHeight: 0.55,
         ink: "ink2",
       });
       const { x, y, z } = blank.position;
@@ -659,7 +634,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           "blank",
           card(mark.texture, mark.size, { u: 0.5, v: 0 }, { seed: "?" }),
           x,
-          y + blank.height * 0.08,
+          y + blank.height * 0.2 - mark.size[1] / 2,
           z + 0.01,
         ),
       ];
@@ -734,16 +709,18 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   {
     const texture = drawnInk(64, 128, (plates) => {
       plates.cut.fillRect(0, 0, 64, 128);
-      plates.ink1.fillRect(0, 0, 64, 30);
-      plates.ink1.fillRect(0, 58, 64, 22);
-      plates.ink2.fillRect(30, 0, 3, 128);
+      /* Terracotta all over but a paper collar, and a slate fold line:
+         solid enough to read against any tile's print. */
+      plates.ink1.fillRect(0, 0, 64, 128);
+      plates.ink1.clearRect(0, 70, 64, 16);
+      plates.ink2.fillRect(30, 0, 4, 128);
     });
     const cone = new Mesh(
-      own(new ConeGeometry(0.42, 1.25, 7, 1)),
+      own(new ConeGeometry(0.55, PAWN_HEIGHT, 7, 1)),
       surface(texture, { seed: "pawn", size: [1.2, 1] }).material,
     );
     (cone.material as InkMaterial).flatShading = true;
-    cone.position.y = 0.625;
+    cone.position.y = PAWN_HEIGHT / 2;
     cone.castShadow = true;
     pawn.add(cone);
     pawn.visible = false;
@@ -775,9 +752,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function filesOf(slug: PathStepSlug) {
-    return CARD_SOURCE === "files"
-      ? [...new Set(cardsForStep(slug).map((art) => art.file))]
-      : [];
+    return [...new Set(cardsForStep(slug).map((art) => art.file))];
   }
 
   /* Everything the board needs before it can show: the faces its labels
@@ -971,27 +946,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The camera ─── */
 
-  const framePoints: Vector3[] = [];
-  function collectFramePoints() {
-    framePoints.length = 0;
-    for (const slug of LOOP) {
-      const [x, z] = tileCentre(slug);
-      const scale = tileScale(slug);
-      const w = (TILE.width / 2) * scale;
-      const d = (TILE.depth / 2) * scale;
-      const top = (TILE.thickness + tileHeight(slug)) * scale;
-      for (const [dx, dz] of [
-        [-w, -d],
-        [w, -d],
-        [-w, d],
-        [w, d],
-      ]) {
-        framePoints.push(new Vector3(x + dx, 0, z + dz));
-        framePoints.push(new Vector3(x + dx, top, z + dz));
-      }
-    }
-  }
-  collectFramePoints();
+  const framed = framePoints().map(([x, y, z]) => new Vector3(x, y, z));
 
   const BOARD_TARGET = new Vector3(0, 1, 0);
   const focus = new Vector3();
@@ -1012,7 +967,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  `distance` back. */
   function fits(distance: number) {
     placeCamera(distance);
-    for (const point of framePoints) {
+    for (const point of framed) {
       probe
         .copy(point)
         .applyMatrix4(board.matrixWorld)
@@ -1029,16 +984,25 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return true;
   }
 
-  /* The camera looks at the board's centre, leaning toward the selected
-     tile, from as close as keeps every tile and card in view: found by
-     bisection, since how much of the board fits only grows with distance. */
-  function aim() {
-    const t = easeInOut(focusElapsed / FOCUS_MS);
-    focus.lerpVectors(focusFrom, focusTo, t);
-    lookAt.copy(BOARD_TARGET).add(focus);
-    board.updateMatrixWorld();
-    camera.far = 1000;
-    camera.updateProjectionMatrix();
+  /** Where the board, seen from `distance` back, sits on the stage: the
+   *  centre of its projected bounds, in clip space. */
+  function boundsCentre(distance: number) {
+    placeCamera(distance);
+    let left = Infinity;
+    let right = -Infinity;
+    let bottom = Infinity;
+    let top = -Infinity;
+    for (const point of framed) {
+      probe.copy(point).applyMatrix4(board.matrixWorld).project(camera);
+      left = Math.min(left, probe.x);
+      right = Math.max(right, probe.x);
+      bottom = Math.min(bottom, probe.y);
+      top = Math.max(top, probe.y);
+    }
+    return { x: (left + right) / 2, y: (bottom + top) / 2 };
+  }
+
+  function fitDistance() {
     let near = 5;
     let far = 300;
     for (let i = 0; i < 24; i++) {
@@ -1046,8 +1010,40 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (fits(middle)) far = middle;
       else near = middle;
     }
-    placeCamera(far);
-    camera.far = far * 2.5;
+    return far;
+  }
+
+  const centring = new Vector3();
+  const right = new Vector3();
+  const up = new Vector3();
+
+  /* The camera looks at the board, leaning toward the selected tile, from
+     as close as keeps every tile and card in view: the distance found by
+     bisection, since how much fits only grows with it, and the aim moved
+     until the board's bounds sit centred on the stage, not its middle. */
+  function aim() {
+    const t = easeInOut(focusElapsed / FOCUS_MS);
+    focus.lerpVectors(focusFrom, focusTo, t);
+    board.updateMatrixWorld();
+    camera.far = 1000;
+    camera.updateProjectionMatrix();
+    centring.set(0, 0, 0);
+    let distance = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      lookAt.copy(BOARD_TARGET).add(centring).add(focus);
+      distance = fitDistance();
+      const off = boundsCentre(distance);
+      const halfHeight = distance * Math.tan((CAMERA_FOV * Math.PI) / 360);
+      right.setFromMatrixColumn(camera.matrixWorld, 0);
+      up.setFromMatrixColumn(camera.matrixWorld, 1);
+      centring
+        .addScaledVector(right, off.x * halfHeight * camera.aspect)
+        .addScaledVector(up, off.y * halfHeight);
+    }
+    lookAt.copy(BOARD_TARGET).add(centring).add(focus);
+    distance = fitDistance();
+    placeCamera(distance);
+    camera.far = distance * 2.5;
     camera.updateProjectionMatrix();
   }
 
