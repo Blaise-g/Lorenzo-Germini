@@ -4,7 +4,8 @@
    is synthesised at runtime, and the browser's `speechSynthesis` is rejected.
 
    Next to them goes `manifest.json`, which records the script each clip was
-   read from. The clip itself is opaque, so the manifest is what
+   read from. Clips and manifest are published together, only once every
+   clip is made (`path-voice-output.ts`). The clip itself is opaque, so the manifest is what
    `tests/path-voice.spec.ts` checks against the step's text: a reworded step
    fails there until its clip is generated again.
 
@@ -18,14 +19,7 @@
    the unmerged prototype; a shipped voice needs another provider. */
 
 import { execFile } from "node:child_process";
-import {
-  mkdir,
-  mkdtemp,
-  readdir,
-  readFile,
-  rm,
-  writeFile,
-} from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -38,6 +32,8 @@ import {
   type VoiceManifest,
   type VoiceProvider,
 } from "../src/app/path/voice-manifest";
+
+import { writeVoiceClips } from "./path-voice-output";
 
 const run = promisify(execFile);
 
@@ -134,53 +130,29 @@ const PROVIDER_NAMES: Record<VoiceProvider, string> = {
 const provider = providerFromArgs();
 const steps: PathStep[] = PATH_STEPS.filter(hasScene);
 const outDirectory = path.join(process.cwd(), "public", VOICE_DIRECTORY);
-await mkdir(outDirectory, { recursive: true });
 const scratch = await mkdtemp(path.join(tmpdir(), "path-voice-"));
 
-const manifest: VoiceManifest = {
-  provider,
-  providerName: PROVIDER_NAMES[provider],
-  voice: provider === "say" ? SAY_VOICE : ELEVENLABS_VOICE,
-  clips: {},
-};
-
+let manifest: VoiceManifest;
 try {
-  for (const step of steps) {
-    const { bytes, extension } = await synthesise(
+  manifest = await writeVoiceClips({
+    jobs: steps.map((step) => ({ slug: step.slug, script: step.voiceScript })),
+    synthesise: (script) => synthesise(provider, script, scratch),
+    outDirectory,
+    urlDirectory: VOICE_DIRECTORY,
+    manifest: {
       provider,
-      step.voiceScript,
-      scratch,
-    );
-    const file = `${step.slug}.${extension}`;
-    await writeFile(path.join(outDirectory, file), bytes);
-    manifest.clips[step.slug] = {
-      src: `/${VOICE_DIRECTORY}/${file}`,
-      script: step.voiceScript,
-      bytes: bytes.byteLength,
-    };
-    const note =
-      bytes.byteLength > TARGET_BYTES ? " (past the ~60 KB target)" : "";
-    console.log(`${file}: ${(bytes.byteLength / 1024).toFixed(1)} KB${note}`);
-  }
+      providerName: PROVIDER_NAMES[provider],
+      voice: provider === "say" ? SAY_VOICE : ELEVENLABS_VOICE,
+    },
+    onClip(file, bytes) {
+      const note = bytes > TARGET_BYTES ? " (past the ~60 KB target)" : "";
+      console.log(`${file}: ${(bytes / 1024).toFixed(1)} KB${note}`);
+    },
+  });
 } finally {
   await rm(scratch, { recursive: true, force: true });
 }
 
-/* A clip the manifest no longer lists — another provider's format, a step
-   that lost its scene — would ship with nothing pointing at it. */
-const kept = new Set(
-  Object.values(manifest.clips).map((clip) => path.basename(clip.src)),
-);
-for (const file of await readdir(outDirectory)) {
-  if (/\.(m4a|mp3)$/.test(file) && !kept.has(file)) {
-    await rm(path.join(outDirectory, file));
-  }
-}
-
-await writeFile(
-  path.join(outDirectory, "manifest.json"),
-  `${JSON.stringify(manifest, null, 2)}\n`,
-);
 console.log(
   `${steps.length} clips by ${manifest.providerName} (${manifest.voice}); target about ${TARGET_BYTES / 1024} KB each.`,
 );
