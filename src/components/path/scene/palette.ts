@@ -1,18 +1,23 @@
 import { Color } from "three";
 
-/* The scene's colours are the path tokens in `globals.css` (ADR-0008), read
-   from the page so the CSS stays their one source. */
+/* The board's colours are the path tokens in `globals.css` (ADR-0008), read
+   from the page so the CSS stays their one source. The board is printed in
+   two risograph inks on card stock (comp B), so its palette is the stock, the
+   two inks and the table it lies on; every card, tile and the pawn is coloured
+   from these in the ink shader, so one texture serves light and dark. */
 
-export const PALETTE_ROLES = [
-  "ground",
-  "tile",
-  "prop",
-  "accent",
-  "outline",
-  "fog",
-] as const;
+/** Each role's token, spelled out whole: Tailwind emits an `@theme`
+ *  variable only when its scanner finds the name used in a source file, and
+ *  a name built from a template is not found. */
+const PALETTE_TOKENS = {
+  paper: "--path-paper",
+  "ink-warm": "--path-ink-warm",
+  "ink-cool": "--path-ink-cool",
+  fog: "--path-fog",
+} as const;
 
-export type PaletteRole = (typeof PALETTE_ROLES)[number];
+export type PaletteRole = keyof typeof PALETTE_TOKENS;
+export const PALETTE_ROLES = Object.keys(PALETTE_TOKENS) as PaletteRole[];
 export type Palette = Record<PaletteRole, Color>;
 
 /** The tokens as they resolve on the root now, in whichever mode the site is
@@ -23,7 +28,7 @@ export function readPalette(): Palette {
   return Object.fromEntries(
     PALETTE_ROLES.map((role) => [
       role,
-      new Color(style.getPropertyValue(`--path-${role}`).trim()),
+      new Color(style.getPropertyValue(PALETTE_TOKENS[role]).trim()),
     ]),
   ) as Palette;
 }

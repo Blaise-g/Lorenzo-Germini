@@ -50,7 +50,7 @@ export const SCENE_FALLBACK_LINES: Record<
   SceneFallbackReason,
   (place: string) => string
 > = {
-  "assets-failed": (place) => `Showing stills: ${place}’s models did not load.`,
+  "assets-failed": (place) => `Showing stills: ${place}’s cards did not load.`,
   "scene-failed": () => "Showing stills: the scene failed to build.",
 };
 

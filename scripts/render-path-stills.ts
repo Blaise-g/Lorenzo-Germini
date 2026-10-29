@@ -1,30 +1,21 @@
-/* Renders the 3D path's fallback stills from the scene runtime itself (#148):
-   each step with a scene, at its end state, from its fixed camera, in light
-   and dark. A painted scene's still (#149, `PAINTED_SCENES`) is never
-   overwritten: its grey-box render goes to a scratch directory instead, as
-   the input the painting is made over (`docs/path-assets.md`), and the
-   painted stills are only checked against the budget.
+/* Renders the 3D path's fallback stills from the board runtime itself (#148):
+   for each step, the board settled on it — every tile built, as reduced
+   motion shows it, and the pawn on the step's tile — from its camera, in
+   light and dark.
 
    Runs against the dev server you already have, rather than booting its own
    as `generate:cv` does: Next's `.next/dev/lock` allows one per working
    directory, so a running one is reused. Start it first with `bun run dev`
    (same `PLAYWRIGHT_PORT`), then `bun run generate:path-stills`. */
 
-import { mkdir, mkdtemp, stat, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
 
-import {
-  buildPlan,
-  hasScene,
-  PAINTED_SCENES,
-  stillsFor,
-} from "../src/components/path/scene/build-plan";
+import { hasScene, stillsFor } from "../src/components/path/scene/build-plan";
 import { PATH_STEPS } from "../src/data/path";
-import type { PathStep } from "../src/data/path.types";
 import { devServerUrl } from "../tests/support/dev-server";
 
 /* The dev server's URL from the one place that reads `PLAYWRIGHT_PORT`, so
@@ -44,8 +35,10 @@ if (!reachable) {
   process.exit(1);
 }
 
-const isPainted = (step: PathStep) => PAINTED_SCENES.includes(step.sceneId);
-const greyBoxes = await mkdtemp(path.join(tmpdir(), "path-grey-boxes-"));
+/* Under reduced motion the whole board stands, whichever step is shown. */
+const everyProp = PATH_STEPS.flatMap((step) =>
+  step.props.map((prop) => prop.id),
+).join(" ");
 
 const browser = await chromium.launch({ args: ["--mute-audio"] });
 try {
@@ -66,26 +59,18 @@ try {
       const target = stillsFor(step)![theme];
       await page.goto(`${origin}/path#${step.slug}`);
       /* After the first, each goto only changes the fragment, so the page
-         still carries the last step's end state: wait for this step's props,
-         all of them, and for a frame rendered after they were posed. */
-      const plan = buildPlan(step);
-      const props = [
-        ...plan.standing,
-        ...plan.building.map((prop) => prop.id),
-      ].sort();
+         still carries the last step's end state: wait for the board to settle
+         on this step, every prop standing, and for a frame rendered after. */
       await page.waitForFunction(
-        (expected) => {
+        ({ slug, props }) => {
           const stage = document.querySelector("[data-path-stage]");
-          const shown = (stage?.getAttribute("data-scene-props") ?? "")
-            .split(" ")
-            .sort()
-            .join(" ");
           return (
             stage?.getAttribute("data-build-state") === "built" &&
-            shown === expected
+            stage.getAttribute("data-scene-step") === slug &&
+            stage.getAttribute("data-scene-props") === props
           );
         },
-        props.join(" "),
+        { slug: step.slug, props: everyProp },
         { timeout: 15_000 },
       );
       await page.evaluate(
@@ -95,12 +80,6 @@ try {
           ),
       );
       const png = await page.locator("[data-path-stage] canvas").screenshot();
-      if (isPainted(step)) {
-        const file = path.join(greyBoxes, path.basename(target, ".webp"));
-        await writeFile(`${file}.png`, png);
-        console.log(`${target}  painted; its grey box is ${file}.png`);
-        continue;
-      }
       const webp = await sharp(png).webp({ quality: 78 }).toBuffer();
       if (webp.length > MAX_BYTES) {
         throw new Error(`${target} is ${webp.length} bytes, over ${MAX_BYTES}`);
@@ -114,13 +93,4 @@ try {
   }
 } finally {
   await browser.close();
-}
-
-for (const step of PATH_STEPS.filter(hasScene).filter(isPainted)) {
-  for (const still of Object.values(stillsFor(step)!)) {
-    const { size } = await stat(path.join(process.cwd(), "public", still));
-    if (size > MAX_BYTES) {
-      throw new Error(`${still} is ${size} bytes, over ${MAX_BYTES}`);
-    }
-  }
 }

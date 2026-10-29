@@ -27,12 +27,15 @@ import { cn } from "@/lib/utils";
 
 import { STAGE_COPY } from "./copy";
 import { useSetLitLines } from "./overlay";
+import { useSetStageStatus } from "./stage-status";
 
-/* The scene stage on `/path` (GH-148): page interface around the scene, so it
-   keeps the seven colour roles (ADR-0008). Before any 3D it shows the
+/* The board's stage on `/path` (GH-148): page interface around the 3D board,
+   so it keeps the seven colour roles (ADR-0008). Before any 3D it shows the
    selected step's still, which is server HTML passed in as `children`; the
    runtime is imported after the overlay has painted, and only when the
-   browser can run it (storyboard §7.4). */
+   browser can run it (storyboard §7.4). It follows the selected step, and
+   tells the tour when that step has settled: the pawn landed and the tile
+   built, or at once when there is nothing to wait for. */
 
 type Mode = "pending" | "webgl" | "fallback";
 
@@ -58,6 +61,8 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<Mode>("pending");
   const [reason, setReason] = useState<FallbackReason | null>(null);
   const [snapshot, setSnapshot] = useState<SceneSnapshot>(IDLE);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const setStageStatus = useSetStageStatus();
   /* The step the runtime was last told to show, so its lit lines are
      attributed to it and not to whatever step the overlay shows next. */
   const shownSlugRef = useRef<PathStepSlug>(selected);
@@ -89,8 +94,11 @@ export function SceneStage({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onMotionChange = () =>
+    setReducedMotion(reducedMotion.matches);
+    const onMotionChange = () => {
+      setReducedMotion(reducedMotion.matches);
       runtimeRef.current?.setReducedMotion(reducedMotion.matches);
+    };
     reducedMotion.addEventListener("change", onMotionChange);
 
     async function start() {
@@ -129,8 +137,8 @@ export function SceneStage({ children }: { children: ReactNode }) {
     };
   }, [fallBack, setLitLines, show]);
 
-  /* Selecting a step cuts to its scene and builds it, and nothing else does:
-     the build never advances to another step on its own. */
+  /* Selecting a step moves the pawn to its tile and builds it. The stage
+     never advances to another step itself: the tour does that. */
   useEffect(() => {
     show(selected);
   }, [selected, show]);
@@ -143,6 +151,19 @@ export function SceneStage({ children }: { children: ReactNode }) {
       ? snapshot.stills.reason
       : undefined;
   const live = mode === "webgl" && withScene && !sceneStills;
+
+  /* The tour's cue (`stage-status.tsx`): settled once the pawn has landed
+     on the selected step and its tile is built, and at once when the stage
+     shows stills or the visitor asked for reduced motion. */
+  const settled =
+    mode === "fallback" ||
+    !withScene ||
+    Boolean(sceneStills) ||
+    reducedMotion ||
+    (live && snapshot.step === selected && snapshot.buildState === "built");
+  useEffect(() => {
+    setStageStatus({ slug: selected, settled });
+  }, [selected, settled, setStageStatus]);
 
   /* Esc skips a running build from anywhere, and moves no focus. Once there
      is nothing to skip, Esc in the scene returns focus to the selected step
@@ -188,8 +209,10 @@ export function SceneStage({ children }: { children: ReactNode }) {
         data-scene-mode={mode}
         data-build-state={buildState}
         data-scene-props={shown.length > 0 ? shown.join(" ") : undefined}
+        data-scene-step={snapshot.step}
+        data-stage-settled={settled ? "" : undefined}
         data-fallback-reason={reason ?? sceneStills}
-        className="relative h-[clamp(14rem,42vh,28rem)] w-full overflow-hidden"
+        className="relative h-[clamp(18rem,58vh,40rem)] w-full overflow-hidden"
       >
         {children}
         {/* The scene is an illustration of the text beside it, which carries
