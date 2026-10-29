@@ -60,7 +60,7 @@ export type NarrationCue = {
    *  for a cue about none. */
   prop: string | null;
   /** Whether the narration is moving: false while the step waits for the
-   *  stage, while the tour is paused or held, and after its narration. */
+   *  stage, while the tour is paused, and after its narration. */
   running: boolean;
   /** How far through the cue's speech the narration is, 0 to 1, read live.
    *  Call it each frame; a held value goes stale. */

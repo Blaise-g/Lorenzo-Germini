@@ -92,7 +92,6 @@ export function useNarrationPlayhead(): () => number {
 
 const stepsBySlug = new Map(PATH_STEPS.map((step) => [step.slug, step]));
 const stepNamed = (slug: PathStepSlug) => stepsBySlug.get(slug)!;
-const dwellFor = dwellMs;
 
 const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
 
@@ -136,12 +135,12 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const [timing, dispatch] = useReducer(
     timingReducer,
     selected,
-    (slug): Timing => ({ slug, clock: startClock(dwellFor(slug)) }),
+    (slug): Timing => ({ slug, clock: startClock(dwellMs(slug)) }),
   );
   const timed = timing.slug === selected;
-  const clock = timed ? timing.clock : startClock(dwellFor(selected));
+  const clock = timed ? timing.clock : startClock(dwellMs(selected));
   useLayoutEffect(() => {
-    dispatch({ type: "start", slug: selected, dwell: dwellFor(selected) });
+    dispatch({ type: "start", slug: selected, dwell: dwellMs(selected) });
   }, [selected]);
 
   /* The stage settling this step starts its dwell; once dwelling, a later or

@@ -213,6 +213,43 @@ test.describe("with the tour playing", () => {
     await expect(caption(page)).toBeEmpty();
   });
 
+  test("a first press held down on Pause starts no voice before it lands", async ({
+    page,
+  }) => {
+    await remember(page, VOICE_STORAGE_KEY, "on");
+    const requested = audioRequests(page);
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+
+    /* A finger or a mouse: the button goes down well before the click. */
+    const box = (await playTab(page).boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(300);
+    expect(requested).toEqual([]);
+    await page.mouse.up();
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "paused");
+    await page.waitForTimeout(300);
+    expect(requested).toEqual([]);
+  });
+
+  test("a modifier key or Escape alone, which the browser does not count, lets no voice in", async ({
+    page,
+  }) => {
+    await remember(page, VOICE_STORAGE_KEY, "on");
+    const requested = audioRequests(page);
+    await page.goto("/path#lille");
+    await hydrated(page);
+    await narrating(page);
+
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+    await expect(voice(page)).toHaveAttribute("data-voice-state", "waiting");
+    expect(requested).toEqual([]);
+  });
+
   test("pausing the tour pauses the voice, and playing resumes both together", async ({
     page,
   }) => {
@@ -305,7 +342,7 @@ test.describe("with the tour playing", () => {
     await expect(message(page)).not.toBeEmpty();
     await expect(caption(page)).not.toBeEmpty();
 
-    await page.keyboard.press("Shift");
+    await caption(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
     await expect(message(page)).toBeEmpty();
   });
@@ -327,7 +364,7 @@ test.describe("with the tour playing", () => {
     await expect(voice(page)).toHaveAttribute("data-voice-state", "blocked");
     await expect(caption(page)).not.toBeEmpty();
 
-    await page.keyboard.press("Shift");
+    await caption(page).click();
     await expect(voice(page)).toHaveAttribute("data-voice-state", "playing");
     expect(requests).toBeGreaterThan(1);
   });
@@ -361,7 +398,7 @@ test.describe("the captions", () => {
     await page.goto("/path#lille");
     await hydrated(page);
     /* The press that lets the voice be heard. */
-    await page.keyboard.press("Shift");
+    await caption(page).click();
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
   });

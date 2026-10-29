@@ -229,9 +229,9 @@ function StatusMark({ seen }: { seen: boolean }) {
 
 const subscribeToNothing = () => () => {};
 
-/** True once hydrated: the pawn and the current step are JavaScript's, so
- *  they stay out of the server HTML. */
-function useHydrated() {
+/** True once hydrated: the pawn, the current step and the narration's
+ *  caption are JavaScript's, so they stay out of the server HTML. */
+export function useHydrated() {
   return useSyncExternalStore(
     subscribeToNothing,
     () => true,

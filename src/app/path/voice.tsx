@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 import { VOICE_COPY } from "./copy";
 import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
+import { useHydrated } from "./overlay";
 import { useNarrationCue } from "./stage-status";
 import { useNarrationPlayhead } from "./tour";
 import {
@@ -101,12 +102,26 @@ function useCaptionsChoice(): [boolean | null, (on: boolean) => void] {
 /** Whether the visitor has clicked, tapped or typed on the page in this
  *  visit. Counted here rather than read from `navigator.userActivation`,
  *  which an automated navigation can already have set. Module state, so a
- *  client-side return to `/path` keeps it. Counted a task after the press,
- *  once the press's own handlers have run: React renders and runs effects
- *  for a press's capture phase before its button's `onClick`, so a first
- *  press on Pause would otherwise start the voice before pausing it. The
+ *  client-side return to `/path` keeps it.
+ *
+ *  Counted once a press is over — its click, or its key's release — and a
+ *  task after that, once the press's own handlers have run, so a first press
+ *  on Pause or on the Voice switch pauses the voice before it could start.
+ *  A key the browser does not count as activation (a modifier alone, or
+ *  Escape) does not count here either, or `play()` would be refused. The
  *  browser's activation outlasts the wait. */
 let pressedInVisit = false;
+
+const NOT_ACTIVATING_KEYS = new Set([
+  "Alt",
+  "AltGraph",
+  "CapsLock",
+  "Control",
+  "Escape",
+  "Fn",
+  "Meta",
+  "Shift",
+]);
 
 function usePressed(onPress: () => void): boolean {
   const [pressed, setPressed] = useState(pressedInVisit);
@@ -116,7 +131,13 @@ function usePressed(onPress: () => void): boolean {
   }, [onPress]);
   useEffect(() => {
     let timer = 0;
-    function press() {
+    function press(event: Event) {
+      if (
+        event instanceof KeyboardEvent &&
+        NOT_ACTIVATING_KEYS.has(event.key)
+      ) {
+        return;
+      }
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         pressedInVisit = true;
@@ -124,12 +145,12 @@ function usePressed(onPress: () => void): boolean {
         onPressRef.current();
       });
     }
-    window.addEventListener("pointerdown", press, true);
-    window.addEventListener("keydown", press, true);
+    window.addEventListener("click", press, true);
+    window.addEventListener("keyup", press, true);
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("pointerdown", press, true);
-      window.removeEventListener("keydown", press, true);
+      window.removeEventListener("click", press, true);
+      window.removeEventListener("keyup", press, true);
     };
   }, []);
   return pressed;
@@ -165,8 +186,6 @@ function Switch({
   );
 }
 
-const subscribeToNothing = () => () => {};
-
 /** The caption line, the tour's transport (`transport`), and the Voice and
  *  Captions switches, as one bar under the board. */
 export function NarrationBar({
@@ -185,11 +204,7 @@ export function NarrationBar({
      for the next press, and the captions stand in. */
   const [blocked, setBlocked] = useState(false);
   const pressed = usePressed(useCallback(() => setBlocked(false), []));
-  const hydrated = useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false,
-  );
+  const hydrated = useHydrated();
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -208,11 +223,9 @@ export function NarrationBar({
       audio.pause();
       return;
     }
+    /* A clip that failed is fetched again rather than replayed as failed. */
     if (audio.getAttribute("src") !== src) audio.src = src;
-    /* A clip that failed is fetched again rather than replayed as failed. */ else if (
-      audio.error
-    )
-      audio.load();
+    else if (audio.error) audio.load();
     audio.currentTime = playhead() / 1000;
     audio.play().catch((error: unknown) => {
       /* A newer source or a pause interrupted it: nothing to report. */
@@ -281,7 +294,6 @@ export function NarrationBar({
         {/* Two lines held open, so a longer cue does not move the board. */}
         <p
           data-path-caption
-          suppressHydrationWarning
           className="path-caption font-display text-ink text-base leading-snug text-pretty lg:text-lg"
         >
           {caption}

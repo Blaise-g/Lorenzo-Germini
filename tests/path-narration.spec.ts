@@ -66,6 +66,14 @@ test("the cue timings run forward, without overlap, inside the clip", () => {
   }
 });
 
+test("every step's narration runs about 15–30 s", () => {
+  for (const step of PATH_STEPS) {
+    const { durationMs } = narrationFor(step.slug);
+    expect(durationMs, step.slug).toBeGreaterThanOrEqual(15_000);
+    expect(durationMs, step.slug).toBeLessThanOrEqual(30_000);
+  }
+});
+
 test("a clip that says other words is not played, and the cues are timed without it", () => {
   const script = [{ text: "One cue here." }, { text: "And the next." }];
   const clip = {
