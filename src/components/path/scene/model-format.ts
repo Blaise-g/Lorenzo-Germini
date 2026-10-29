@@ -23,15 +23,21 @@ export type ModelMesh = {
 
 const pad4 = (bytes: number) => Math.ceil(bytes / 4) * 4;
 
-export function encodeModel(mesh: ModelMesh): ArrayBuffer {
-  const { positions, indices } = mesh;
-  const vertexCount = positions.length / 3;
+/** The smallest and largest value on each axis of `x, y, z` triples. */
+export function bounds(positions: ArrayLike<number>) {
   const min = [Infinity, Infinity, Infinity];
   const max = [-Infinity, -Infinity, -Infinity];
   for (let i = 0; i < positions.length; i++) {
     min[i % 3] = Math.min(min[i % 3], positions[i]);
     max[i % 3] = Math.max(max[i % 3], positions[i]);
   }
+  return { min, max };
+}
+
+export function encodeModel(mesh: ModelMesh): ArrayBuffer {
+  const { positions, indices } = mesh;
+  const vertexCount = positions.length / 3;
+  const { min, max } = bounds(positions);
   const extent = max.map((value, axis) => value - min[axis]);
 
   const wide = vertexCount > STEPS;
@@ -87,5 +93,9 @@ export function decodeModel(buffer: ArrayBuffer): ModelMesh {
   const indices = wide
     ? new Uint32Array(buffer.slice(indexStart))
     : new Uint16Array(buffer.slice(indexStart));
+  /* A corrupt file fails here, into the stills, rather than drawing noise. */
+  if (indices.some((index) => index >= vertexCount)) {
+    throw new Error("A path model with a triangle past its vertices");
+  }
   return { positions, indices };
 }

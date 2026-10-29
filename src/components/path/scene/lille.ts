@@ -39,12 +39,15 @@ if (!saving) {
   throw new Error("Lille's clock expects its line's projected water saving");
 }
 
-/** What the clock says, from the step's own line, never typed in: the
- *  water figure always says "projected" (GH-141, decision 10). */
-export const LILLE_FIGURE = `${saving} — projected saving`;
-/** The figure as it is set under the dial, in two lines that read back to
- *  `LILLE_FIGURE` with a space between them. */
+/** The figure as it is set under the dial, in two lines: the saving from
+ *  the step's own line, never typed in, and decision 3's caption for it. */
 export const LILLE_FIGURE_LINES = [`${saving} —`, "projected saving"] as const;
+/** What the clock says: the water figure always says "projected" (GH-141,
+ *  decision 10). */
+export const LILLE_FIGURE = LILLE_FIGURE_LINES.join(" ");
+
+/** The clock's hand, which its motion finds by name. */
+const HAND = "hand";
 
 /** Where the hand ends: a little short of a full turn, pointing at the mark
  *  that stands for the saving. Clockwise is negative about +z. */
@@ -250,7 +253,7 @@ export const LILLE_SCENE: SceneDefinition = {
       const blade = new BoxGeometry(0.06, DIAL_RADIUS * 0.78, 0.03);
       blade.translate(0, (DIAL_RADIUS * 0.78) / 2 - 0.06, 0);
       const hand = at(kit.solid(blade, "accent"), 0, DIAL_HEIGHT, 0.09);
-      hand.name = "hand";
+      hand.name = HAND;
       const plaque = at(
         kit.solid(new BoxGeometry(1.55, 0.44, 0.06), "ground"),
         0,
@@ -274,7 +277,7 @@ export const LILLE_SCENE: SceneDefinition = {
 
   motions: {
     "clock-face": (prop, progress) => {
-      const hand = prop.getObjectByName("hand");
+      const hand = prop.getObjectByName(HAND);
       if (hand) hand.rotation.z = handAngle(progress);
     },
   },

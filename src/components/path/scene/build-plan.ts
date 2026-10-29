@@ -81,14 +81,14 @@ export function litLines(plan: BuildPlan, elapsed: number): number[] {
   return [...new Set(lit)].sort((a, b) => a - b);
 }
 
-/** The stills a step shows before its scene renders and as the fallback, one
- *  per mode: grey-box renders of the runtime's end state, made by `bun run
- *  generate:path-stills`, or, for a scene in `PAINTED_SCENES`, those renders
- *  painted over (`docs/path-assets.md`). */
 /** The scenes whose stills are painted over their grey-box renders, which
  *  the stills script therefore never overwrites. */
 export const PAINTED_SCENES: readonly PathSceneId[] = ["lille"];
 
+/** The stills a step shows before its scene renders and as the fallback, one
+ *  per mode: grey-box renders of the runtime's end state, made by `bun run
+ *  generate:path-stills`, or, for a scene in `PAINTED_SCENES`, those renders
+ *  painted over (`docs/path-assets.md`). */
 export function stillsFor(
   step: PathStep,
 ): { light: string; dark: string } | undefined {

@@ -9,6 +9,7 @@ import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
+import sharp from "sharp";
 import { BoxGeometry, Group, Mesh, type Object3D } from "three";
 
 import { buildPlan, stillsFor } from "@/components/path/scene/build-plan";
@@ -18,7 +19,6 @@ import {
   HAND_END_ANGLE,
   handAngle,
   LILLE_FIGURE,
-  LILLE_FIGURE_LINES,
   LILLE_SCENE,
 } from "@/components/path/scene/lille";
 import { decodeModel, encodeModel } from "@/components/path/scene/model-format";
@@ -37,7 +37,6 @@ const SCENE_BYTES = 1.5 * 1024 * 1024;
 test.describe("the figure", () => {
   test("says exactly what decision 3 gives it, with 'projected'", () => {
     expect(LILLE_FIGURE).toBe("10,000 m³ a year — projected saving");
-    expect(LILLE_FIGURE_LINES.join(" ")).toBe(LILLE_FIGURE);
   });
 
   /* Taken from the step's line, so a change to the CV's number moves the
@@ -125,6 +124,11 @@ test.describe("the model format", () => {
 
   test("refuses a file that is not one, or is cut short", () => {
     expect(() => decodeModel(new ArrayBuffer(64))).toThrow(/Not a path model/);
+    const stray = encodeModel({
+      ...mesh,
+      indices: Uint32Array.from([0, 1, 4]),
+    });
+    expect(() => decodeModel(stray)).toThrow(/past its vertices/);
     const whole = encodeModel(mesh);
     expect(() => decodeModel(whole.slice(0, whole.byteLength - 2))).toThrow(
       /expected/,
@@ -216,6 +220,56 @@ test.describe("on /path", () => {
           .join(" "),
       );
     });
+  });
+
+  /* A return draws Lille from the models it already holds, so it must look
+     as it did the first time: no prop resized, nothing missing. Antialiasing
+     and the label's texture differ by a few pixels between draws; a resized
+     prop changes a large share of the stage. */
+  test("a return to Lille draws the scene it drew the first time", async ({
+    page,
+  }) => {
+    /* What is under test is the drawing, not the frame rate: a steady
+       60 Hz clock keeps a loaded test machine from tripping the slow-frames
+       fallback halfway through. */
+    await page.addInitScript(() => {
+      const native = window.requestAnimationFrame.bind(window);
+      let now = 0;
+      window.requestAnimationFrame = (callback) =>
+        native(() => callback((now += 1000 / 60)));
+    });
+    const canvas = page.locator("[data-path-stage] canvas");
+    async function drawnLille() {
+      await expect(stage(page)).toHaveAttribute("data-scene-props", /belfry/);
+      await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+      await page.evaluate(
+        () =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() => requestAnimationFrame(resolve)),
+          ),
+      );
+      return sharp(await canvas.screenshot())
+        .raw()
+        .toBuffer();
+    }
+    await page.goto("/path#lille");
+    const first = await drawnLille();
+    await page.locator('[data-path-step-link="home"]').click();
+    await expect(stage(page)).toHaveAttribute("data-scene-props", /plateau/);
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await page.locator('[data-path-step-link="lille"]').click();
+    const again = await drawnLille();
+    expect(again.length).toBe(first.length);
+    let changed = 0;
+    for (let i = 0; i < first.length; i += 4) {
+      const delta = Math.max(
+        Math.abs(first[i] - again[i]),
+        Math.abs(first[i + 1] - again[i + 1]),
+        Math.abs(first[i + 2] - again[i + 2]),
+      );
+      if (delta > 32) changed++;
+    }
+    expect(changed / (first.length / 4)).toBeLessThan(0.01);
   });
 
   test("under reduced motion, Lille shows its end state without a build", async ({

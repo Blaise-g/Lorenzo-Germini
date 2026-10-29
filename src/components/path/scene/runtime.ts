@@ -14,10 +14,10 @@ import {
   PlaneGeometry,
   Scene,
   SRGBColorSpace,
+  Vector3,
   WebGLRenderer,
   type Material,
   type Object3D,
-  type Texture,
 } from "three";
 import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
@@ -57,7 +57,9 @@ const TURN_RADIANS = Math.PI / 4;
 const TURN_MS = 450;
 const THEME_MS = 350;
 const DROP_HEIGHT = 3.2;
-/** How far the outline stands off a solid's surface, along its normals. */
+/** How far the outline's hull is pushed out along the surface's averaged
+ *  normals: the full width on a smooth surface, less on a face that meets
+ *  others at a corner (about 0.58 of it on a box's faces). */
 const OUTLINE_WIDTH = 0.05;
 /** Text is drawn at this size, then scaled to the scene's line height. */
 const TEXT_PX = 96;
@@ -164,9 +166,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     );
   };
   const geometries = new Set<BufferGeometry>();
-  /* Text materials and their textures belong to the shown scene. */
+  /* Text materials, and the textures they hold, belong to the shown scene. */
   const labels: { material: MeshBasicMaterial; role: PaletteRole }[] = [];
-  const textures = new Set<Texture>();
   /* Models are kept across scenes once decoded: a return to Lille fetches
      nothing. */
   const models = new Map<string, ModelMesh>();
@@ -217,13 +218,40 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* The hull's normals are the surface's, averaged where faces meet: a
      flat-shaded box has a normal per face, and pushing each face out along
-     its own would open gaps at every corner. */
+     its own would open gaps at every corner. Each face counts by its angle
+     at the vertex, not its area, so a long face does not pull the corner's
+     normal over and leave the small faces beside it unoutlined. */
   function hullOf(geometry: BufferGeometry) {
     const bare = new BufferGeometry();
     bare.setAttribute("position", geometry.getAttribute("position"));
     if (geometry.index) bare.setIndex(geometry.index);
     const hull = mergeVertices(bare, 1e-4);
-    hull.computeVertexNormals();
+    const position = hull.getAttribute("position");
+    const index = hull.index!;
+    const normals = new Float32Array(position.count * 3);
+    const corner = [new Vector3(), new Vector3(), new Vector3()];
+    const along = new Vector3();
+    const across = new Vector3();
+    const face = new Vector3();
+    for (let i = 0; i < index.count; i += 3) {
+      const ids = [index.getX(i), index.getX(i + 1), index.getX(i + 2)];
+      ids.forEach((id, k) => corner[k].fromBufferAttribute(position, id));
+      along.subVectors(corner[1], corner[0]);
+      across.subVectors(corner[2], corner[0]);
+      face.crossVectors(along, across);
+      if (face.lengthSq() === 0) continue;
+      face.normalize();
+      ids.forEach((id, k) => {
+        along.subVectors(corner[(k + 1) % 3], corner[k]).normalize();
+        across.subVectors(corner[(k + 2) % 3], corner[k]).normalize();
+        const angle = Math.acos(Math.min(Math.max(along.dot(across), -1), 1));
+        normals[id * 3] += face.x * angle;
+        normals[id * 3 + 1] += face.y * angle;
+        normals[id * 3 + 2] += face.z * angle;
+      });
+    }
+    hull.setAttribute("normal", new BufferAttribute(normals, 3));
+    hull.normalizeNormals();
     geometries.add(hull);
     return hull;
   }
@@ -254,7 +282,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const mesh = url ? models.get(url) : undefined;
       if (!mesh) throw new Error(`The model ${name} is not loaded`);
       const geometry = new BufferGeometry();
-      geometry.setAttribute("position", new BufferAttribute(mesh.positions, 3));
+      /* A copy: scaling writes into the array, and the cache keeps it. */
+      geometry.setAttribute(
+        "position",
+        new BufferAttribute(mesh.positions.slice(), 3),
+      );
       geometry.setIndex(new BufferAttribute(mesh.indices, 1));
       geometry.scale(height, height, height);
       return kit.solid(geometry, role);
@@ -282,7 +314,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const texture = new CanvasTexture(canvas);
       texture.colorSpace = SRGBColorSpace;
       texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-      textures.add(texture);
       const material = new MeshBasicMaterial({
         map: texture,
         transparent: true,
@@ -311,7 +342,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   async function prepare(next: SceneDefinition) {
     await Promise.all([
-      document.fonts.load(labelFont()),
+      /* A face that does not load is drawn in its fallback, not a reason to
+         drop the scene. */
+      document.fonts.load(labelFont()).catch(() => undefined),
       ...Object.values(next.models ?? {}).map(loadModel),
     ]);
   }
@@ -336,10 +369,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function disposeLabels() {
-    for (const { material } of labels) material.dispose();
-    for (const texture of textures) texture.dispose();
+    for (const { material } of labels) {
+      material.map?.dispose();
+      material.dispose();
+    }
     labels.length = 0;
-    textures.clear();
   }
 
   /* ─── The shown scene and its build ─── */
@@ -623,6 +657,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function build(step: PathStep, next: SceneDefinition | undefined) {
+    canvas.style.opacity = "";
+    turnStep = 0;
+    turnElapsed = TURN_MS;
+    pivot.rotation.y = 0;
     loadScene(next);
     if (!next) return clearStage("idle");
     plan = buildPlan(step);
@@ -633,18 +671,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     show(step) {
       const next = SCENES[step.sceneId];
       const request = ++showing;
-      turnStep = 0;
-      turnElapsed = TURN_MS;
-      pivot.rotation.y = 0;
       if (!next || ready(next)) return build(step, next);
-      /* Loading: an empty stage, not the last scene, until the assets are
-         in. A scene that cannot get them shows its stills. */
+      /* Loading: the canvas is see-through, so the step's still shows, not
+         the last scene, until the assets are in. A scene that cannot get
+         them, or cannot be built from them, shows its stills. */
       loadScene(undefined);
       clearStage("loading");
-      requestFrame();
+      canvas.style.opacity = "0";
       prepare(next).then(
         () => {
-          if (!disposed && request === showing) build(step, next);
+          if (disposed || request !== showing) return;
+          try {
+            build(step, next);
+          } catch {
+            fallBack("context-failed");
+          }
         },
         () => {
           if (!disposed && request === showing) fallBack("assets-failed");
@@ -660,6 +701,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (plan) startBuild();
     },
     turn(direction) {
+      if (!plan) return;
       const next = Math.max(
         -TURN_LIMIT,
         Math.min(TURN_LIMIT, turnStep + direction),

@@ -24,6 +24,7 @@ import {
   stillsFor,
 } from "../src/components/path/scene/build-plan";
 import { PATH_STEPS } from "../src/data/path";
+import type { PathStep } from "../src/data/path.types";
 
 const origin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3200"}`;
 /* Wide enough that the stage is about as wide as it gets at 1440. */
@@ -40,8 +41,7 @@ if (!reachable) {
   process.exit(1);
 }
 
-const isPainted = (step: (typeof PATH_STEPS)[number]) =>
-  PAINTED_SCENES.includes(step.sceneId);
+const isPainted = (step: PathStep) => PAINTED_SCENES.includes(step.sceneId);
 const greyBoxes = await mkdtemp(path.join(tmpdir(), "path-grey-boxes-"));
 
 const browser = await chromium.launch({ args: ["--mute-audio"] });

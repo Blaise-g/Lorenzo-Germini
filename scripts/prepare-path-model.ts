@@ -11,11 +11,11 @@
    `bunx` at a pinned version, so it adds nothing to the lockfile. */
 
 import { spawnSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { encodeModel } from "../src/components/path/scene/model-format";
+import { bounds, encodeModel } from "../src/components/path/scene/model-format";
 
 /* §9's budget for a Hunyuan3D prop. */
 const MAX_BYTES = 300 * 1024;
@@ -30,6 +30,12 @@ if (!input || !name) {
 }
 const ratioFlag = flags.indexOf("--ratio");
 const ratio = ratioFlag >= 0 ? Number(flags[ratioFlag + 1]) : 0.05;
+if (!(ratio > 0 && ratio <= 1)) {
+  console.error(
+    "--ratio is the share of triangles kept, above 0 and at most 1",
+  );
+  process.exit(1);
+}
 
 function gltfTransform(...args: string[]) {
   const result = spawnSync("bunx", [GLTF_TRANSFORM, ...args], {
@@ -54,6 +60,7 @@ gltfTransform(
 
 /* A GLB is a 12-byte header, a JSON chunk, then a binary chunk. */
 const glb = await readFile(simplified);
+await rm(scratch, { recursive: true });
 const jsonLength = glb.readUInt32LE(12);
 const gltf = JSON.parse(glb.subarray(20, 20 + jsonLength).toString("utf8"));
 const binStart = 20 + jsonLength + 8;
@@ -99,18 +106,18 @@ const transformed = (gltf.nodes ?? []).some(
 if (transformed) throw new Error("Node transforms are not handled");
 
 const primitive = gltf.meshes[0].primitives[0];
+/* Mode 4 is triangles, glTF's default; weld always leaves an index. */
+if ((primitive.mode ?? 4) !== 4 || primitive.indices === undefined) {
+  throw new Error("Expected indexed triangles");
+}
 const positions = Float32Array.from(read(primitive.attributes.POSITION));
 const indices = Uint32Array.from(read(primitive.indices));
 
 /* Seated: its lowest point on y = 0, centred on x and z, one unit tall, so
    the scene places and scales it without knowing where Hunyuan put it. */
-const min = [Infinity, Infinity, Infinity];
-const max = [-Infinity, -Infinity, -Infinity];
-positions.forEach((value, i) => {
-  min[i % 3] = Math.min(min[i % 3], value);
-  max[i % 3] = Math.max(max[i % 3], value);
-});
+const { min, max } = bounds(positions);
 const height = max[1] - min[1];
+if (!(height > 0)) throw new Error("The mesh has no height to seat");
 const origin = [(min[0] + max[0]) / 2, min[1], (min[2] + max[2]) / 2];
 for (let i = 0; i < positions.length; i++) {
   positions[i] = (positions[i] - origin[i % 3]) / height;
