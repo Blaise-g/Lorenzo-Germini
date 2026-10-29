@@ -15,6 +15,16 @@ import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { ENTERED_STORAGE_KEY, SEEN_STORAGE_KEY } from "@/lib/path-state";
 
+/* The overlay is what is under test, not the board: the stage shows its
+   stills, WebGL refused. Drawn in software, as it is here without a GPU, the
+   board takes a loaded machine's main thread for seconds at a time, and
+   eight pages drawing at once time the overlay's own tests out. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = () => null;
+  });
+});
+
 const stepList = (page: Page) =>
   page.getByRole("navigation", { name: "The path" });
 const stepLink = (page: Page, slug: PathStepSlug) =>

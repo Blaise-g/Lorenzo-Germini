@@ -77,6 +77,10 @@ test("nothing opens /path without a click", async ({ page }) => {
      now. A sleep is the only way to observe an absence of navigation. */
   await page.waitForTimeout(1500);
   expect(new URL(page.url()).pathname).toBe("/");
-  await page.getByTestId("path-door").click();
-  await expect(page).toHaveURL(/\/path#lille$/);
+  /* A navigation, waited for as one: on a dev server shared by a full
+     suite, the hop to `/path` takes seconds, past an assertion's 5. */
+  await Promise.all([
+    page.waitForURL(/\/path#lille$/),
+    page.getByTestId("path-door").click(),
+  ]);
 });

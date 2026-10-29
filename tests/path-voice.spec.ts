@@ -31,6 +31,16 @@ const manifest = JSON.parse(
   ),
 ) as VoiceManifest;
 
+/* The voice is under test, not the board: WebGL is refused and the stage
+   shows its stills. Drawn in software, as it is here without a GPU, the
+   board takes a loaded machine's main thread for seconds at a time, and
+   eight pages drawing at once time these tests out. */
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.getContext = () => null;
+  });
+});
+
 const voice = (page: Page) => page.locator("[data-path-voice]");
 const caption = (page: Page) => page.locator("[data-path-caption]");
 const message = (page: Page) => page.locator("[data-path-voice-message]");
@@ -155,17 +165,11 @@ test.describe("/path's voice", () => {
   });
 });
 
-/* The tour plays, so the narration runs. WebGL is refused, so the stage
-   shows its stills and settles each step at once. Real time: the audio
-   element keeps its own. */
+/* The tour plays, so the narration runs. The stage shows its stills, so
+   it settles each step at once. Real time: the audio element keeps its
+   own. */
 test.describe("with the tour playing", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } });
-
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      HTMLCanvasElement.prototype.getContext = () => null;
-    });
-  });
 
   /* Decision 13: a refresh or a shared link never starts a voice, whatever
      the remembered switch says. Until a press the tour runs on captions. */
