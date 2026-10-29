@@ -25,8 +25,11 @@ import {
 } from "../src/components/path/scene/build-plan";
 import { PATH_STEPS } from "../src/data/path";
 import type { PathStep } from "../src/data/path.types";
+import { devServerUrl } from "../tests/support/dev-server";
 
-const origin = `http://localhost:${process.env.PLAYWRIGHT_PORT ?? "3200"}`;
+/* The dev server's URL from the one place that reads `PLAYWRIGHT_PORT`, so
+   this script, `bun run dev` and the test runner cannot disagree. */
+const origin = devServerUrl;
 /* Wide enough that the stage is about as wide as it gets at 1440. */
 const viewport = { width: 1440, height: 900 };
 /* §11's budget for a still. */

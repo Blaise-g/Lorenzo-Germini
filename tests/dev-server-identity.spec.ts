@@ -40,3 +40,26 @@ test.describe("dev server identity", () => {
     expect(identityMarker).toBe(RESUME_DATA.name);
   });
 });
+
+/* One source for the port (AGENTS.md): the dev script's default and the
+   support module's agree, and no script reads `PLAYWRIGHT_PORT` itself. */
+test.describe("the dev server's port", () => {
+  test("the dev script's default is the support module's", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const pkg = JSON.parse(await readFile("package.json", "utf8"));
+    const fallback = pkg.scripts.dev.match(/PLAYWRIGHT_PORT:-(\d+)/)?.[1];
+    expect(fallback).toBeDefined();
+    /* The module reads the variable at import; the default is the literal
+       it falls back to, so read that from its source. */
+    const source = await readFile("tests/support/dev-server.ts", "utf8");
+    expect(source).toContain(`process.env.PLAYWRIGHT_PORT ?? "${fallback}"`);
+  });
+
+  test("no script reads PLAYWRIGHT_PORT or a port of its own", async () => {
+    const { readdir, readFile } = await import("node:fs/promises");
+    for (const file of await readdir("scripts")) {
+      const source = await readFile(`scripts/${file}`, "utf8");
+      expect(source, file).not.toMatch(/PLAYWRIGHT_PORT\s*\?\?|localhost:\d/);
+    }
+  });
+});
