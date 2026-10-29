@@ -129,6 +129,10 @@ test.describe("/path's voice", () => {
     /* Under reduced motion the tour waits, and the caption shows the step's
        first cue. */
     await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
+    /* With no voice, a screen reader hears the caption: a polite live
+       region carrying the whole cue. */
+    await expect(caption(page)).toHaveAttribute("aria-live", "polite");
+    await expect(caption(page)).toHaveAttribute("aria-atomic", "true");
   });
 
   /* #141's testing decision for fragments: goto, Back, Forward and reload
@@ -211,6 +215,8 @@ test.describe("with the tour playing", () => {
     /* Heard now, so the captions step aside unless asked for. */
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "false");
     await expect(caption(page)).toBeEmpty();
+    /* And the voice is what a screen reader hears, not the line too. */
+    await expect(caption(page)).toHaveAttribute("aria-live", "off");
   });
 
   test("a first press held down on Pause starts no voice before it lands", async ({
@@ -401,5 +407,7 @@ test.describe("the captions", () => {
     await caption(page).click();
     await expect(captionsSwitch(page)).toHaveAttribute("aria-checked", "true");
     await expect(caption(page)).toHaveText(narrationFor("lille").cues[0].text);
+    /* Shown with the voice on, the line is not said over it. */
+    await expect(caption(page)).toHaveAttribute("aria-live", "off");
   });
 });

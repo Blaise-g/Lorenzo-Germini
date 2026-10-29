@@ -32,21 +32,3 @@ export const OVERLAY_PANEL_CSS = [
       `[data-path-overlay][data-path-shown="${slug}"] :is([data-path-panel="${slug}"],[data-path-backdrop="${slug}"]){display:block}`,
   ),
 ].join("");
-
-const mostLines = Math.max(...PATH_STEPS.map((step) => step.lines.length));
-
-/** A caption line lit as its prop lands (storyboard §7.4): ink instead of
- *  body, with the piece's accent dot in the gutter. The stage puts the lit
- *  indices on the overlay root as `data-path-lit`; only the shown panel is
- *  displayed, so only its lines can light. Since v3 the panel is off the
- *  screen, so this reaches the screen only through a reader of the DOM; the
- *  board shows the lit prop itself. One rule per index the data can reach,
- *  generated so a longer step cannot be left without one. */
-export const CAPTION_LIT_CSS = [
-  "[data-path-text-panel] [data-path-line]{position:relative}",
-  "[data-path-text-panel] [data-path-line]::before{content:'';position:absolute;left:-1rem;top:0.7em;width:0.375rem;height:0.375rem;border-radius:9999px;background:var(--color-accent);opacity:0;transition:opacity 240ms var(--ease-out)}",
-  ...Array.from({ length: mostLines }, (_, index) => {
-    const line = `[data-path-overlay][data-path-lit~="${index}"] [data-path-text-panel] [data-path-line="${index}"]`;
-    return `${line}{color:var(--color-ink)}${line}::before{opacity:1}`;
-  }),
-].join("");

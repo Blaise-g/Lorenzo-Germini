@@ -36,11 +36,7 @@ import { stillsFor } from "@/components/path/scene/build-plan";
 
 import { PATH_COPY } from "./copy";
 import { PATH_OVERLAY_INSET } from "./inset";
-import {
-  CAPTION_LIT_CSS,
-  OVERLAY_FIRST_PAINT_SCRIPT,
-  OVERLAY_PANEL_CSS,
-} from "./first-paint";
+import { OVERLAY_FIRST_PAINT_SCRIPT, OVERLAY_PANEL_CSS } from "./first-paint";
 import {
   FlatSiteLink,
   MarkEntered,
@@ -116,7 +112,7 @@ export default function PathPage() {
           they would beat every utility, `print:` ones included. */}
       <style
         dangerouslySetInnerHTML={{
-          __html: `@layer components{${OVERLAY_PANEL_CSS}${CAPTION_LIT_CSS}}`,
+          __html: `@layer components{${OVERLAY_PANEL_CSS}}`,
         }}
       />
       <StageStatusProvider>

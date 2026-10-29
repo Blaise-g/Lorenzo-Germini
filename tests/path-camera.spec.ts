@@ -307,6 +307,18 @@ async function countDraws(page: Page) {
   });
 }
 
+/** Waits for every landmark the index lists to have arrived, or failed.
+ *  The board loads all but the first step's once it is up, when the page
+ *  is idle; one landing in view draws, so a count of draws held still
+ *  starts after the last. */
+async function landmarksSettled(page: Page) {
+  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
+    "data-path-landmarks",
+    "settled",
+    { timeout: 15_000 },
+  );
+}
+
 const draws = (page: Page) =>
   page.evaluate(
     () => (window as unknown as { __draws: { draws: number } }).__draws.draws,
@@ -384,8 +396,16 @@ async function pauseTime(page: Page) {
   await page.clock.pauseAt(new Date(start.getTime() + 1000));
 }
 
-/** Runs frames until the stage reports `slug` settled. */
+/** Runs frames until the stage reports `slug` settled. The board's files
+ *  arrive in real time, not the page's fake time: a clock run while they
+ *  load spends the settle wait, and the tour's own, on a build not yet
+ *  begun. So the clock runs only once the build has. */
 async function runUntilSettled(page: Page, slug: PathStepSlug) {
+  await expect(stage(page)).toHaveAttribute(
+    "data-build-state",
+    /^(building|built)$/,
+    { timeout: 15_000 },
+  );
   let elapsed = 0;
   while (elapsed < SETTLE_MAX_WAIT_MS) {
     const element = stage(page);
@@ -393,6 +413,9 @@ async function runUntilSettled(page: Page, slug: PathStepSlug) {
       (await element.getAttribute("data-stage-settled")) !== null &&
       (await element.getAttribute("data-scene-step")) === slug
     ) {
+      /* The idle load of the rest has had its fake time by now; the files
+         arrive in real time. */
+      await landmarksSettled(page);
       return elapsed;
     }
     await page.clock.runFor(100);
@@ -607,6 +630,7 @@ test.describe("under reduced motion", () => {
         .map(() => "close-up"),
     );
 
+    await landmarksSettled(page);
     await page.waitForTimeout(300);
     const still = await draws(page);
     await page.waitForTimeout(1000);

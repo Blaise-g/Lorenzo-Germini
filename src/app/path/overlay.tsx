@@ -1,20 +1,12 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useRef } from "react";
 import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 import type {
   PathStepMark,
   PathStepNode,
 } from "@/components/flat-site/path-steps";
-import type { PathStepSlug } from "@/data/path.types";
 import {
   clearSeen,
   fragmentForStep,
@@ -22,6 +14,7 @@ import {
   markEntered,
   markSeen,
 } from "@/lib/path-state";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useSeenSteps, useSelectedStep } from "@/lib/use-path-state";
 
 import { PATH_COPY } from "./copy";
@@ -34,25 +27,12 @@ import { TourProgress } from "./tour";
    fragment), and from then on each leaf follows it through `useSelectedStep`,
    as `/`'s leaves do. */
 
-/** Caption lines lit, by index, and the step whose lines they are. */
-export type LitLines = { slug: PathStepSlug; lines: readonly number[] };
-
-const LitLinesContext = createContext<(lit: LitLines) => void>(() => {});
-
-/** For the scene stage: lights a step's caption lines, by index, as their
- *  props land (storyboard §7.4). */
-export function useSetLitLines() {
-  return useContext(LitLinesContext);
-}
-
 /** The overlay root, carrying the selected step as `data-path-shown`. CSS
  *  shows that step's still and, on paper or without JavaScript, its text
  *  from it, with nothing to fetch (GH-141, decision 7). `data-path-scripted`
  *  marks a page with JavaScript running, which takes the text off the
  *  screen: the first-paint script sets it before paint, and hydration keeps
- *  it. It carries the lit caption lines too, as `data-path-lit`: the lines
- *  are the text's own, server HTML, so they are lit from here rather than
- *  re-rendered. */
+ *  it. */
 export function OverlayRoot({
   className,
   children,
@@ -62,10 +42,6 @@ export function OverlayRoot({
 }) {
   const { selected } = useSelectedStep();
   const hydrated = useHydrated();
-  const [lit, setLit] = useState<LitLines>({ slug: selected, lines: [] });
-  /* Lines lit for one step never light another's: on a Back or a fragment,
-     the new panel shows a render before its scene's build resets them. */
-  const lines = lit.slug === selected ? lit.lines : [];
   const rootRef = useRef<HTMLDivElement>(null);
 
   /* What changed the step last, as `data-path-input`: a key, a pointer or
@@ -99,11 +75,10 @@ export function OverlayRoot({
       data-path-overlay
       data-path-shown={selected}
       data-path-scripted={hydrated ? "" : undefined}
-      data-path-lit={lines.length > 0 ? lines.join(" ") : undefined}
       suppressHydrationWarning
       className={className}
     >
-      <LitLinesContext value={setLit}>{children}</LitLinesContext>
+      {children}
     </div>
   );
 }
@@ -224,18 +199,6 @@ function StatusMark({ seen }: { seen: boolean }) {
         />
       )}
     </svg>
-  );
-}
-
-const subscribeToNothing = () => () => {};
-
-/** True once hydrated: the pawn, the current step and the narration's
- *  caption are JavaScript's, so they stay out of the server HTML. */
-export function useHydrated() {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false,
   );
 }
 

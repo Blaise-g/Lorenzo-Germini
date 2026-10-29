@@ -70,7 +70,11 @@ import {
   writeLut,
 } from "@/components/path/scene/post";
 import { buildPiece } from "@/components/path/scene/props";
-import { SCENE_ASSETS } from "@/components/path/scene/scene-assets";
+import {
+  loadOrder,
+  modelFile,
+  SCENE_ASSETS,
+} from "@/components/path/scene/scene-assets";
 import {
   framed,
   inConvex,
@@ -677,6 +681,31 @@ test.describe("the model manifest", () => {
       });
       expect(asset.scale).toBeGreaterThan(0);
     }
+  });
+
+  /* The rest of the board loads after the first tile, nearest first round
+     the loop: the tour's next landing first, the step it came from last. */
+  test("loads the rest from the next step round the loop", () => {
+    expect(loadOrder(LOOP, "lille")).toEqual([
+      "now",
+      "next",
+      "home",
+      "turin",
+      "switzerland",
+      "cuneo-2022",
+      "lille",
+    ]);
+    expect(loadOrder(LOOP, "next")[0]).toBe("home");
+    expect(loadOrder(LOOP, "home")).toHaveLength(LOOP.length);
+  });
+
+  test("asks for a landmark's LOD only when one is wanted and listed", () => {
+    const [asset] = SCENE_ASSETS;
+    const lodFile = `/path/models/${asset.id}.lod.glb`;
+    expect(modelFile(asset, { lodFile }, true)).toBe(lodFile);
+    expect(modelFile(asset, { lodFile }, false)).toBe(asset.file);
+    expect(modelFile(asset, {}, true)).toBe(asset.file);
+    expect(modelFile(asset, undefined, true)).toBe(asset.file);
   });
 });
 

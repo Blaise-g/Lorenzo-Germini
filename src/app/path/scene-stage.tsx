@@ -29,7 +29,6 @@ import { cn } from "@/lib/utils";
 
 import { STAGE_COPY } from "./copy";
 import { narrationFor } from "./narration";
-import { useSetLitLines } from "./overlay";
 import { useSetStageStatus } from "./stage-status";
 import { useTourStatus } from "./tour";
 
@@ -101,7 +100,6 @@ export function SceneStage({
 }) {
   const { selected } = useSelectedStep();
   const step = stepNamed(selected);
-  const setLitLines = useSetLitLines();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
   const stageBoxRef = useRef<HTMLDivElement>(null);
@@ -110,25 +108,18 @@ export function SceneStage({
   const [snapshot, setSnapshot] = useState<SceneSnapshot>(IDLE);
   const [reducedMotion, setReducedMotion] = useState(false);
   const setStageStatus = useSetStageStatus();
-  /* The step the runtime was last told to show, so its lit lines are
-     attributed to it and not to whatever step the overlay shows next. */
-  const shownSlugRef = useRef<PathStepSlug>(selected);
   const selectedRef = useRef<PathStepSlug>(selected);
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
 
-  const fallBack = useCallback(
-    (next: FallbackReason) => {
-      runtimeRef.current?.dispose();
-      runtimeRef.current = null;
-      setReason(next);
-      setMode("fallback");
-      setSnapshot(IDLE);
-      setLitLines({ slug: shownSlugRef.current, lines: [] });
-    },
-    [setLitLines],
-  );
+  const fallBack = useCallback((next: FallbackReason) => {
+    runtimeRef.current?.dispose();
+    runtimeRef.current = null;
+    setReason(next);
+    setMode("fallback");
+    setSnapshot(IDLE);
+  }, []);
 
   /* Whether the last change of step was the tour advancing by itself, which
      the board walks, rather than a pick, which it flies to: told apart
@@ -144,7 +135,6 @@ export function SceneStage({
   }, []);
 
   const show = useCallback((slug: PathStepSlug) => {
-    shownSlugRef.current = slug;
     runtimeRef.current?.show(stepNamed(slug), {
       advance: advancedRef.current,
       narrationMs: narrationFor(slug).durationMs,
@@ -190,7 +180,6 @@ export function SceneStage({
           reducedMotion: reducedMotion.matches,
           onChange(next) {
             setSnapshot(next);
-            setLitLines({ slug: shownSlugRef.current, lines: next.lit });
           },
           onFallback: fallBack,
         });
@@ -213,7 +202,7 @@ export function SceneStage({
       setMode("pending");
       setSnapshot(IDLE);
     };
-  }, [fallBack, setLitLines, show]);
+  }, [fallBack, show]);
 
   /* Selecting a step moves the pawn to its tile and builds it. The stage
      never advances to another step itself: the tour does that. */
@@ -339,6 +328,9 @@ export function SceneStage({
         data-scene-mode={mode}
         data-build-state={buildState}
         data-scene-props={shown.length > 0 ? shown.join(" ") : undefined}
+        data-scene-lit={
+          snapshot.lit.length > 0 ? snapshot.lit.join(" ") : undefined
+        }
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-camera-shot={mode === "webgl" ? snapshot.shot : undefined}

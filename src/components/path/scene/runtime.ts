@@ -1,8 +1,10 @@
 import {
   Box3,
   Color,
+  Frustum,
   Group,
   InstancedMesh,
+  Matrix4,
   Mesh,
   PerspectiveCamera,
   PlaneGeometry,
@@ -12,6 +14,7 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
+  type BufferGeometry,
   type Material,
   type Object3D,
   type Texture,
@@ -26,6 +29,7 @@ import {
   loadLandmarkIndex,
   loadModel,
   type ModelResult,
+  whenIdle,
 } from "./assets";
 import {
   BOARD,
@@ -77,7 +81,14 @@ import { isDarkMode, readPalette, type Palette } from "./palette";
 import { createGovernor, createPost, isPhone, startRung } from "./post";
 import { buildPiece } from "./props";
 import { pawnPathPoint } from "./path-spline";
-import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
+import {
+  assetsForStep,
+  type LandmarkEntry,
+  loadOrder,
+  LOD_FROM_RUNG,
+  modelFile,
+  SCENE_ASSETS,
+} from "./scene-assets";
 import {
   makeBoard,
   makePath,
@@ -288,7 +299,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The tiles ─── */
 
-  /** Each landmark's outcome, by its file. */
+  /** Each landmark's outcome, by its id. */
   const models = new Map<string, ModelResult>();
   const tiles = new Map<PathStepSlug, Tile>();
   /** How tall each piece stands as built, by `<slug>:<piece>`. */
@@ -298,13 +309,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   function stepIndex(slug: PathStepSlug) {
     return LOOP.indexOf(slug);
-  }
-
-  /** The files of `slug`'s landmarks that failed, to fetch again. */
-  function failedFilesOf(slug: PathStepSlug) {
-    return assetsForStep(slug)
-      .map((asset) => asset.file)
-      .filter((file) => models.get(file)?.status === "failed");
   }
 
   function makeTile(slug: PathStepSlug): Tile {
@@ -317,7 +321,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const landmarks = assetsForStep(slug);
     piecesOf(slug).forEach((piece, index) => {
       const asset = landmarks.find((each) => each.piece === piece.id);
-      const model = asset && models.get(asset.file);
+      const model = asset && models.get(asset.id);
       const built =
         asset && model?.status === "loaded"
           ? { object: fitModel(model.scene, asset, piece) }
@@ -445,35 +449,61 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let prepared = false;
   /** The one `prepare` in flight: a second show while it runs waits on it. */
   let preparing: Promise<void> | undefined;
+  /** The landmarks the index lists, by id: none until it is read. */
+  let listed: ReadonlyMap<string, LandmarkEntry> = new Map();
+  /** Whether the idle load of the rest has started. */
+  let loadingRest = false;
 
-  /** Loads in flight, by file: a second ask while one runs waits on it,
-   *  so a quick reselection never fetches, or orphans, a model twice. */
+  /** Loads in flight, by id: a second ask while one runs waits on it, so a
+   *  quick reselection never fetches, or orphans, a model twice. */
   const loading = new Map<string, Promise<void>>();
 
-  /** Fetches the landmarks of `files` not yet loaded or known absent. */
-  async function loadModels(files: readonly string[]) {
+  const idsOf = (slug: PathStepSlug) =>
+    assetsForStep(slug).map((asset) => asset.id);
+
+  /** Whether a landmark of `slug`'s failed: its tile waits on it again. */
+  const failedIn = (slug: PathStepSlug) =>
+    idsOf(slug).some((id) => models.get(id)?.status === "failed");
+
+  /** Marks the canvas `data-path-landmarks`: "settled" once every landmark
+   *  the index lists has arrived or failed, "loading" until then. */
+  function markLandmarks() {
+    const pending = [...listed.keys()].some(
+      (id) => !models.has(id) || loading.has(id),
+    );
+    canvas.dataset.pathLandmarks = pending ? "loading" : "settled";
+  }
+
+  /** Fetches the landmarks of `ids` not yet loaded or known absent: the
+   *  LOD on a phone or a stepped-down board. One that arrives after its
+   *  tile was made takes its stand-in's place there. */
+  async function loadModels(ids: readonly string[]) {
+    const lod = phone || governor.rung >= LOD_FROM_RUNG;
     await Promise.all(
-      SCENE_ASSETS.filter((asset) => files.includes(asset.file)).map(
-        (asset) => {
-          const known = models.get(asset.file);
-          if (known && known.status !== "failed") return undefined;
-          let load = loading.get(asset.file);
-          if (!load) {
-            load = loadModel(asset).then((result) => {
-              loading.delete(asset.file);
-              if (!disposed) models.set(asset.file, result);
-            });
-            loading.set(asset.file, load);
-          }
-          return load;
-        },
-      ),
+      SCENE_ASSETS.filter((asset) => ids.includes(asset.id)).map((asset) => {
+        const known = models.get(asset.id);
+        if (known && known.status !== "failed") return undefined;
+        let load = loading.get(asset.id);
+        if (!load) {
+          const file = modelFile(asset, listed.get(asset.id), lod);
+          load = loadModel(file).then((result) => {
+            loading.delete(asset.id);
+            if (disposed) return;
+            models.set(asset.id, result);
+            if (result.status === "loaded") swapTile(asset.step);
+            markLandmarks();
+          });
+          loading.set(asset.id, load);
+          markLandmarks();
+        }
+        return load;
+      }),
     );
   }
 
-  /* Everything the board needs before it can show: the card grain and every
-     landmark the index lists. A landmark it does not list stands in, asked
-     for by no one. A grain that does not load is a board without it, not a
+  /* What the board needs before any tile can show: the card grain and the
+     landmark index. A landmark the index does not list stands in, asked for
+     by no one. A grain that does not load is a board without it, not a
      reason to drop the board. */
   async function prepare() {
     await Promise.all([
@@ -484,19 +514,105 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         },
         () => undefined,
       ),
-      loadLandmarkIndex().then((listed) => {
+      loadLandmarkIndex().then((index) => {
+        listed = index;
         for (const asset of SCENE_ASSETS) {
-          if (!listed.has(asset.id))
-            models.set(asset.file, { status: "absent" });
+          if (!listed.has(asset.id)) models.set(asset.id, { status: "absent" });
         }
-        return loadModels(
-          SCENE_ASSETS.filter((asset) => listed.has(asset.id)).map(
-            (asset) => asset.file,
-          ),
-        );
+        markLandmarks();
       }),
     ]);
     prepared = true;
+  }
+
+  /** The pawn is headed for `slug`: its landmarks and the next step's are
+   *  fetched now, so the tour's next landing finds its own in. */
+  function approach(slug: PathStepSlug) {
+    void loadModels([...idsOf(slug), ...idsOf(wrap(stepIndex(slug) + 1))]);
+  }
+
+  /** Once the first tile is up, the rest arrive when the page is idle, one
+   *  step at a time, nearest first. */
+  function loadRest(from: PathStepSlug) {
+    if (loadingRest) return;
+    loadingRest = true;
+    whenIdle(async () => {
+      for (const slug of loadOrder(LOOP, from)) {
+        if (disposed) return;
+        await loadModels(idsOf(slug));
+      }
+    });
+  }
+
+  const frustum = new Frustum();
+  const viewProjection = new Matrix4();
+
+  /** Whether any of `tile` is in the camera's view, on a canvas showing. */
+  function onScreen(tile: Tile) {
+    if (canvas.style.opacity === "0") return false;
+    frustum.setFromProjectionMatrix(
+      viewProjection.multiplyMatrices(
+        camera.projectionMatrix,
+        camera.matrixWorldInverse,
+      ),
+    );
+    return frustum.intersectsBox(new Box3().setFromObject(tile.group));
+  }
+
+  /** Frees what a replaced tile alone held: its pieces' geometry. Its
+   *  materials are the paint box's, and a loaded model's geometry is the
+   *  model's, kept for the tile that replaces it. */
+  function retire(group: Group) {
+    const kept = new Set<BufferGeometry>();
+    for (const result of models.values()) {
+      if (result.status !== "loaded") continue;
+      result.scene.traverse((node) => {
+        if (node instanceof Mesh) kept.add(node.geometry);
+      });
+    }
+    group.traverse((node) => {
+      if (node instanceof InstancedMesh) node.dispose();
+      if (node instanceof Mesh && !kept.has(node.geometry)) {
+        node.geometry.dispose();
+      }
+    });
+  }
+
+  /** Remakes `slug`'s tile, if it is made, with the landmarks that have
+   *  arrived since: each takes its stand-in's place, posed as the tile
+   *  stood. On screen, the tile arrives (`arriveTile`). */
+  function swapTile(slug: PathStepSlug) {
+    const old = tiles.get(slug);
+    if (!old) return;
+    let tile: Tile;
+    try {
+      tile = makeTile(slug);
+    } catch (error) {
+      /* The stand-in it had keeps standing. */
+      console.error(error);
+      return;
+    }
+    board.remove(old.group);
+    board.add(tile.group);
+    tiles.set(slug, tile);
+    retire(old.group);
+    pose();
+    if (!onScreen(tile)) return;
+    arriveTile(slug);
+    render();
+  }
+
+  /** A landmark has landed on `slug`'s tile in view. v3-life's seam: the
+   *  tile's arrival (its rise, the ground's reveal, the landmark's grade).
+   *  Until then a standing tile rises into place again, as tiles passed on a
+   *  jump do; under reduced motion, or with the tour paused, it is simply
+   *  there. */
+  function arriveTile(slug: PathStepSlug) {
+    if (reducedMotion || frozen || !built.has(slug)) return;
+    if (slug === current && buildState === "building") return;
+    built.delete(slug);
+    catchingUp.set(slug, 0);
+    requestFrame();
   }
 
   /** Makes every tile not yet made; a tile whose landmark failed, or whose
@@ -505,7 +621,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     for (const slug of LOOP) {
       if (tiles.has(slug)) continue;
       const failed = assetsForStep(slug)
-        .map((asset) => models.get(asset.file))
+        .map((asset) => models.get(asset.id))
         .find((result) => result?.status === "failed");
       if (failed?.status === "failed") {
         failedTiles.set(slug, failed.reason);
@@ -794,13 +910,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         if (reason) return fallBack(reason);
       }
     }
-    /* Frames that run long shed AO, then pixels. */
-    const shed = governor.sample(delta);
-    if (shed) {
-      post.setQuality(shed);
-      frame();
-    }
-
     /* The visitor's own changes run on while the tour is paused. */
     const free = Math.min(delta, MAX_STEP_MS);
     const step = frozen ? 0 : free;
@@ -854,7 +963,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       paint();
     }
 
-    draw(step / 1000);
+    /* Draws that run long shed AO, then pixels. Timed around the draw
+       itself, not the gap between frames, which carries vsync and every
+       stall of the page's own. */
+    const shed = governor.sample(draw(step / 1000));
+    if (shed) {
+      post.setQuality(shed);
+      frame();
+    }
     canvas.dataset.pathSceneRendered = "true";
     if (moving()) requestFrame();
     else lastTime = undefined;
@@ -886,10 +1002,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /** Draws a frame through the post chain; `seconds` moves the grain on,
-   *  and under reduced motion it holds still. */
+   *  and under reduced motion it holds still. Returns how long the draw
+   *  took, in ms: the CPU's share, as WebGL returns before the GPU is
+   *  done. */
   function draw(seconds: number) {
+    const start = performance.now();
     followShot();
     post.render(reducedMotion ? 0 : seconds);
+    return performance.now() - start;
   }
 
   function render() {
@@ -1090,10 +1210,15 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   return {
     show(step, options) {
       const request = ++showing;
-      const retry = failedFilesOf(step.slug);
-      if (prepared && retry.length === 0) return buildOrFail(step, options);
+      /* Once the board is up, a step builds at once: a landmark of its own
+         still on its way takes its stand-in's place when it lands. Only one
+         that failed is waited on, fetched again. */
+      if (prepared && !failedIn(step.slug)) {
+        approach(step.slug);
+        return buildOrFail(step, options);
+      }
       /* Loading: the canvas is see-through, so the step's still shows until
-         the board is in. */
+         the board, and the step's own landmarks, are in. */
       abandon();
       canvas.style.opacity = "0";
       stills = undefined;
@@ -1103,19 +1228,34 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       shown = [];
       buildState = "loading";
       emit();
-      const ready = prepared ? loadModels(retry) : (preparing ??= prepare());
-      ready.then(
-        () => {
-          if (disposed || request !== showing) return;
-          failedTiles.delete(step.slug);
-          frame();
-          buildOrFail(step, options);
-        },
-        () => {
-          if (!disposed && request === showing)
-            failScene(step, "assets-failed");
-        },
-      );
+      (preparing ??= prepare())
+        .then(() => loadModels(idsOf(step.slug)))
+        .then(
+          () => {
+            if (disposed || request !== showing) return;
+            /* A landmark of its own that did not arrive takes its tile off
+               the board, stand-in and all, so the step shows its stills,
+               as a tile made without it would. */
+            const tile = tiles.get(step.slug);
+            if (tile && failedIn(step.slug)) {
+              board.remove(tile.group);
+              tiles.delete(step.slug);
+              built.delete(step.slug);
+              catchingUp.delete(step.slug);
+              retire(tile.group);
+            }
+            failedTiles.delete(step.slug);
+            frame();
+            buildOrFail(step, options);
+            /* The next step's are the first of the rest: after the first
+               paint, not competing with it. */
+            loadRest(step.slug);
+          },
+          () => {
+            if (!disposed && request === showing)
+              failScene(step, "assets-failed");
+          },
+        );
     },
     skip() {
       if (buildState !== "building") return false;

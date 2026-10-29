@@ -85,7 +85,12 @@ export function startRung(phone: boolean): number {
   return phone ? PHONE_START : 0;
 }
 
-/** A frame the governor counts as long: past 20 ms, the ticket's p95. */
+/** A draw the governor counts as long: past 20 ms, the ticket's p95 for a
+ *  whole frame. The runtime times `draw()` itself (v3-harden; v3-light's
+ *  F6), not the gap between frames, which carries vsync and every stall of
+ *  the page's own. That is the CPU's share: WebGL returns before the GPU is
+ *  done, so a board bound by its GPU alone reads short here, and the
+ *  fallback's frame sample (`fallback.ts`) is what catches it. */
 export const LONG_FRAME_MS = 20;
 /** How many drawn frames each verdict reads. Under `FRAME_SAMPLE_SIZE`
  *  (`fallback.ts`), so a GPU a little too slow sheds AO within the
@@ -109,7 +114,7 @@ export function createGovernor(start = 0) {
     get rung() {
       return rung;
     },
-    /** Counts one frame's time; returns the new quality if it stepped. */
+    /** Counts one draw's time; returns the new quality if it stepped. */
     sample(ms: number): Quality | null {
       if (!(ms > 0) || ms >= 1000) return null;
       frames.push(ms);

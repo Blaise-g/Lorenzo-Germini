@@ -4,13 +4,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 
-import { fragmentForStep, readStorage } from "@/lib/path-state";
+import { fragmentForStep, readStorage, writeStorage } from "@/lib/path-state";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
 import { VOICE_COPY } from "./copy";
 import { narrationFor, VOICE_PROVIDER_NAME } from "./narration";
-import { useHydrated } from "./overlay";
 import { useNarrationCue } from "./stage-status";
 import { useNarrationPlayhead } from "./tour";
 import {
@@ -61,12 +61,7 @@ const subscribeToVoice = subscribeTo(VOICE_CHANGE_EVENT);
 const subscribeToCaptions = subscribeTo(CAPTIONS_CHANGE_EVENT);
 
 function store(key: string, event: string, value: string | null) {
-  try {
-    if (value === null) window.localStorage.removeItem(key);
-    else window.localStorage.setItem(key, value);
-  } catch {
-    /* Unavailable storage: the switch lasts as long as nothing. */
-  }
+  writeStorage(key, value);
   window.dispatchEvent(new Event(event));
 }
 
@@ -291,9 +286,14 @@ export function NarrationBar({
         }}
       />
       <div className="min-w-0 flex-1">
-        {/* Two lines held open, so a longer cue does not move the board. */}
+        {/* Two lines held open, so a longer cue does not move the board.
+            A polite live region while the voice cannot be heard, so a
+            screen reader says each cue as the tour reaches it; silent
+            while the voice says it, so nothing is said twice. */}
         <p
           data-path-caption
+          aria-live={audible ? "off" : "polite"}
+          aria-atomic
           className="path-caption font-display text-ink text-base leading-snug text-pretty lg:text-lg"
         >
           {caption}

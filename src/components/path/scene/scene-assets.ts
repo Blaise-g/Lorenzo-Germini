@@ -23,10 +23,29 @@ import { pieceOf } from "./board";
 export type AssetRole = "landmark";
 
 /** The index of the landmarks shipped: an object keyed by `SceneAsset.id`.
- *  Its entries' fields (the LOD file, triangles, bytes, model, licence and
- *  normalisation) are the landmark package's record; the board reads only
- *  which ids are there. */
+ *  Its entries' fields (triangles, bytes, model, licence and normalisation)
+ *  are the landmark package's record; the board reads which ids are there
+ *  and each one's `lodFile`. */
 export const LANDMARK_INDEX = "/path/models/landmarks.json";
+
+/** What the board reads of a landmark's entry in the index: its decimated
+ *  file, with smaller textures, if it has one. */
+export type LandmarkEntry = Readonly<{ lodFile?: string }>;
+
+/** The governor's rung (`post.ts`) from which a landmark not yet fetched is
+ *  fetched as its LOD: the rungs that draw fewer pixels. A phone fetches
+ *  the LODs from the start. */
+export const LOD_FROM_RUNG = 2;
+
+/** The file to fetch for `asset`: its LOD when `lod` asks for one and the
+ *  index lists one, otherwise the full model. */
+export function modelFile(
+  asset: SceneAsset,
+  entry: LandmarkEntry | undefined,
+  lod: boolean,
+): string {
+  return lod && entry?.lodFile ? entry.lodFile : asset.file;
+}
 
 export type SceneAsset = Readonly<{
   /** Unique across the board, `<step>-<subject>`. */
@@ -96,4 +115,15 @@ export const SCENE_ASSETS: readonly SceneAsset[] = [
 /** A tile's generated landmarks. */
 export function assetsForStep(step: PathStepSlug): readonly SceneAsset[] {
   return SCENE_ASSETS.filter((asset) => asset.step === step);
+}
+
+/** The steps in the order the board loads their landmarks once the first
+ *  tile is up: from the one after `from` round the loop, nearest first, so
+ *  the tour's next landing is never the last to arrive. */
+export function loadOrder(
+  loop: readonly PathStepSlug[],
+  from: PathStepSlug,
+): PathStepSlug[] {
+  const start = loop.indexOf(from);
+  return loop.map((_, index) => loop[(start + 1 + index) % loop.length]);
 }

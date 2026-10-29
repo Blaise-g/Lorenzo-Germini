@@ -108,12 +108,14 @@ export function readStorage(key: string): string | null {
   }
 }
 
-function writeStorage(key: string, value: string | null) {
+/** Sets `key`, or removes it for null. Unavailable storage: the value
+ *  lasts as long as nothing. */
+export function writeStorage(key: string, value: string | null) {
   try {
     if (value === null) window.localStorage.removeItem(key);
     else window.localStorage.setItem(key, value);
   } catch {
-    /* Unavailable storage: the tick lasts as long as nothing. */
+    /* Nothing to keep it in. */
   }
 }
 

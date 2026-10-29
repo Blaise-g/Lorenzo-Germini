@@ -7,6 +7,9 @@
    `path-scene-contract.spec.ts`; the pawn's hops and the tour's settled cue
    are `path-board.spec.ts`. */
 
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { expect, test, type Page } from "@playwright/test";
 
 import { buildPlan } from "@/components/path/scene/build-plan";
@@ -58,6 +61,17 @@ async function listLandmarks(page: Page, ids: readonly string[]) {
 }
 
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
+
+/** Waits for every landmark the index lists to have arrived, or failed:
+ *  the board loads all but the first step's after its first paint. */
+async function landmarksSettled(page: Page) {
+  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
+    "data-path-landmarks",
+    "settled",
+    { timeout: 15_000 },
+  );
+}
+
 const buildControl = (page: Page) => page.locator("[data-path-build-control]");
 const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
@@ -72,7 +86,7 @@ function propsThrough(slug: PathStepSlug) {
   return [...plan.standing, ...plan.building.map((prop) => prop.id)].join(" ");
 }
 
-/** The caption lines a step's props light, as the overlay root lists them. */
+/** The caption lines a step's props light, as the stage lists them. */
 function captionLines(slug: PathStepSlug) {
   return [...new Set(stepNamed(slug).props.map((p) => p.captionLine))]
     .sort((a, b) => a - b)
@@ -162,7 +176,7 @@ test.describe("the build", () => {
     const started = Date.now();
     /* Part-way, the first prop has landed and lit its line while the rest
        are still to come: the highlight follows the build, not its end. */
-    await expect(overlay(page)).toHaveAttribute("data-path-lit", "0");
+    await expect(stage(page)).toHaveAttribute("data-scene-lit", "0");
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     await expect(stage(page)).not.toHaveAttribute(
       "data-scene-props",
@@ -177,28 +191,14 @@ test.describe("the build", () => {
     expect(took).toBeGreaterThan(1500);
     expect(took).toBeLessThan(4000);
     expect(await buildStates(page)).toEqual(["loading", "building", "built"]);
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("home"),
     );
     await expect(stage(page)).toHaveAttribute(
       "data-scene-props",
       propsThrough("home"),
     );
-
-    /* The lit line is the panel's own line, drawn in ink. */
-    const line = page.locator('[data-path-panel="home"] [data-path-line="0"]');
-    const ink = await page.evaluate(() => {
-      const probe = document.createElement("span");
-      probe.style.color = "var(--color-ink)";
-      document.body.append(probe);
-      const value = getComputedStyle(probe).color;
-      probe.remove();
-      return value;
-    });
-    await expect
-      .poll(() => line.evaluate((element) => getComputedStyle(element).color))
-      .toBe(ink);
   });
 
   /* Arriving cold at step 4, the pawn has passed steps 1–3: their tiles
@@ -218,8 +218,8 @@ test.describe("the build", () => {
       "data-scene-props",
       propsThrough("cuneo-2022"),
     );
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("cuneo-2022"),
     );
 
@@ -232,8 +232,8 @@ test.describe("the build", () => {
       "data-scene-props",
       propsThrough("now"),
     );
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("now"),
     );
   });
@@ -249,15 +249,15 @@ test.describe("the build", () => {
       "data-scene-props",
       propsThrough("home"),
     );
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("home"),
     );
 
     await expect(buildControl(page)).toHaveText("Replay");
     await buildControl(page).click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
-    await expect(overlay(page)).not.toHaveAttribute("data-path-lit", /./);
+    await expect(stage(page)).not.toHaveAttribute("data-scene-lit", /./);
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 5000,
     });
@@ -293,8 +293,8 @@ test.describe("the build", () => {
 
   /* While a tile's landmarks load, Replay and the turns are shown
      unavailable and do nothing; the one with focus keeps it. The board asks
-     for every landmark up front, so Lille's are refused at first and held on
-     their retry. */
+     for the rest of its landmarks once home is up, so Lille's are refused
+     then, and held on their retry. */
   test("while a scene loads, its controls are unavailable and keep focus", async ({
     page,
   }) => {
@@ -310,6 +310,7 @@ test.describe("the build", () => {
     await page.goto("/path#home");
     await buildControl(page).click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await landmarksSettled(page);
     await buildControl(page).focus();
     refuse = false;
 
@@ -489,26 +490,11 @@ test.describe("reduced motion", () => {
       "data-scene-props",
       propsThrough("next"),
     );
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("cuneo-2022"),
     );
     await expect(buildControl(page)).toHaveText("Replay");
-    /* A lit line is set in ink, once its 300 ms transition has run. */
-    const color = (index: number) =>
-      page
-        .locator(`[data-path-panel="cuneo-2022"] [data-path-line="${index}"]`)
-        .evaluate((line) => getComputedStyle(line).color);
-    const ink = await page.evaluate(() => {
-      const probe = document.createElement("span");
-      probe.style.color = "var(--color-ink)";
-      document.body.append(probe);
-      const value = getComputedStyle(probe).color;
-      probe.remove();
-      return value;
-    });
-    await expect.poll(() => color(0)).toBe(ink);
-    await expect.poll(() => color(1)).toBe(ink);
   });
 
   /* One step's end state cuts to another's: the stage names the new step
@@ -519,8 +505,8 @@ test.describe("reduced motion", () => {
     await stepLink(page, "turin").click();
     await expect(stage(page)).toHaveAttribute("data-scene-step", "turin");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
-    await expect(overlay(page)).toHaveAttribute(
-      "data-path-lit",
+    await expect(stage(page)).toHaveAttribute(
+      "data-scene-lit",
       captionLines("turin"),
     );
   });
@@ -561,6 +547,8 @@ test.describe("rendering on demand", () => {
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect.poll(() => draws(page)).toBeGreaterThan(0);
+    /* A landmark landing in view draws it, once: let them all land. */
+    await landmarksSettled(page);
     /* Let a frame already requested finish. */
     await page.waitForTimeout(200);
     const settled = await draws(page);
@@ -629,6 +617,95 @@ test.describe("on a wide, high-density screen", () => {
     }));
     expect(size.cssWidth).toBeGreaterThan(1600);
     expect(size.pixels).toBeLessThanOrEqual(MAX_DRAWING_PIXELS + 1);
+  });
+});
+
+/* The landmarks load lazily (v3-harden): a landing waits on its own step's
+   only, and the rest follow once the board is up. One that lands on a tile
+   already standing takes its stand-in's place there, with no loading state
+   and no still. */
+test.describe("landmarks loaded later", () => {
+  test("a landmark landing after its tile was shown takes its stand-in's place", async ({
+    page,
+  }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/path/models/turin-mole*.glb", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await recordBuildStates(page);
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+
+    await stepLink(page, "turin").click();
+    await expect(stage(page)).toHaveAttribute("data-scene-step", "turin");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    /* Built at once, with the mole's stand-in: no loading, no still. */
+    expect((await buildStates(page)).slice(1)).not.toContain("loading");
+    await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);
+    const canvas = page.locator("[data-path-stage] canvas");
+    await expect(canvas).toHaveAttribute("data-path-landmarks", "loading");
+    const { default: sharp } = await import("sharp");
+    const drawn = async () =>
+      sharp(await canvas.screenshot())
+        .raw()
+        .toBuffer();
+    const standIn = await drawn();
+
+    release();
+    await landmarksSettled(page);
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+    const mole = await drawn();
+    let changed = 0;
+    for (let i = 0; i < standIn.length; i += 4) {
+      const delta = Math.max(
+        Math.abs(standIn[i] - mole[i]),
+        Math.abs(standIn[i + 1] - mole[i + 1]),
+        Math.abs(standIn[i + 2] - mole[i + 2]),
+      );
+      if (delta > 32) changed++;
+    }
+    /* The close-up is on the mole: the model in its place redraws a share
+       of the stage, where a missed swap redraws next to none. */
+    expect(changed / (standIn.length / 4)).toBeGreaterThan(0.01);
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+  });
+
+  test.describe("on a phone", () => {
+    test.use({
+      viewport: { width: 375, height: 812 },
+      isMobile: true,
+      hasTouch: true,
+    });
+
+    test("fetches each landmark's LOD, and no full model", async ({ page }) => {
+      const models: string[] = [];
+      page.on("request", (request) => {
+        if (/\/path\/models\/.+\.glb$/.test(request.url())) {
+          models.push(new URL(request.url()).pathname);
+        }
+      });
+      await page.goto("/path#lille");
+      await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+      await landmarksSettled(page);
+      const index = JSON.parse(
+        await readFile(
+          path.join(process.cwd(), "public", LANDMARK_INDEX),
+          "utf8",
+        ),
+      ) as Record<string, { lodFile: string }>;
+      expect(models.sort()).toEqual(
+        Object.values(index)
+          .map((entry) => entry.lodFile)
+          .sort(),
+      );
+    });
   });
 });
 

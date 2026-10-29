@@ -18,6 +18,7 @@ import { GRAIN_FILE } from "@/components/path/scene/assets";
 import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
 import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
 import {
+  assetsForStep,
   LANDMARK_INDEX,
   SCENE_ASSETS,
 } from "@/components/path/scene/scene-assets";
@@ -66,9 +67,33 @@ async function listedIds(): Promise<string[]> {
   );
 }
 
-/** The files the board fetches, each once, whichever step a visitor lands
- *  on: the grain, the landmark index and every landmark it lists. A
- *  landmark it does not list is never asked for; its stand-in stands. */
+/** The files the board fetches before a landing on `slug` first paints:
+ *  the grain, the landmark index and that step's own landmarks the index
+ *  lists. The rest load later, lazily (`runtime.ts`). A landmark the index
+ *  does not list is never asked for; its stand-in stands. */
+async function firstPaintFiles(slug: PathStepSlug): Promise<string[]> {
+  const listed = await listedIds();
+  return [
+    GRAIN_FILE,
+    LANDMARK_INDEX,
+    ...assetsForStep(slug)
+      .filter((asset) => listed.includes(asset.id))
+      .map((asset) => asset.file),
+  ];
+}
+
+/** Waits for every landmark the index lists to have arrived, or failed:
+ *  until then one may land and take its stand-in's place. */
+async function landmarksSettled(page: Page) {
+  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
+    "data-path-landmarks",
+    "settled",
+    { timeout: 15_000 },
+  );
+}
+
+/** Every file the board can fetch on a desktop: the grain, the index and
+ *  every landmark it lists. */
 async function worldFiles(): Promise<string[]> {
   const listed = await listedIds();
   return [
@@ -138,23 +163,38 @@ test.describe("the budgets", () => {
     }
   });
 
-  /* Every landing loads the grain, every landmark there is and one still,
-     on top of the page itself. */
   /* The index lists only what shipped, and only landmarks the manifest
-     names: a listed file that is not there would 404 on every visit. */
+     names: a listed file that is not there, or a listed LOD, would 404 on
+     every visit that asks for it. */
   test("the landmark index lists only shipped files the manifest names", async () => {
     const ids = SCENE_ASSETS.map((asset) => asset.id);
-    for (const id of await listedIds()) {
+    const index = JSON.parse(
+      await readFile(publicFile(LANDMARK_INDEX), "utf8"),
+    ) as Record<string, { lodFile?: string }>;
+    for (const [id, entry] of Object.entries(index)) {
       expect(ids, id).toContain(id);
       const asset = SCENE_ASSETS.find((each) => each.id === id)!;
       await expect(access(publicFile(asset.file)), id).resolves.toBeUndefined();
+      if (entry.lodFile) {
+        await expect(
+          access(publicFile(entry.lodFile)),
+          entry.lodFile,
+        ).resolves.toBeUndefined();
+      }
     }
   });
 
-  test("the board's files and a still fit 1.5 MB with the page", async () => {
+  /* A landing's first paint loads the grain, the index, its own step's
+     landmarks and one still, on top of the page itself; the rest of the
+     board's landmarks follow it. The costliest landing is the budget's. */
+  test("a landing's first-paint files and a still fit 1.5 MB with the page", async () => {
     let world = 0;
-    for (const url of await worldFiles()) {
-      world += (await stat(publicFile(url))).size;
+    for (const step of PATH_STEPS) {
+      let files = 0;
+      for (const url of await firstPaintFiles(step.slug)) {
+        files += (await stat(publicFile(url))).size;
+      }
+      world = Math.max(world, files);
     }
     const stills = PATH_STEPS.flatMap((step) =>
       Object.values(stillsFor(step) ?? {}),
@@ -171,7 +211,7 @@ test.describe("on /path", () => {
   test.describe("the build", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    test("Lille asks for every world file once, then builds in about 2–3 s and ends still", async ({
+    test("Lille asks for its own files first, then builds in about 2–3 s and ends still", async ({
       page,
     }) => {
       const files: string[] = [];
@@ -180,8 +220,38 @@ test.describe("on /path", () => {
           files.push(request.url());
         }
       });
+      const href = (url: string) => new URL(url, page.url()).href;
+      /* The board's files fetched by the time the build starts, read in the
+         page as it does: a poll from here would see it later. */
+      await page.addInitScript(() => {
+        const seen = { files: null as string[] | null };
+        (window as unknown as { __firstPaint: typeof seen }).__firstPaint =
+          seen;
+        new MutationObserver(() => {
+          const element = document.querySelector("[data-path-stage]");
+          if (
+            seen.files ||
+            element?.getAttribute("data-build-state") !== "building"
+          ) {
+            return;
+          }
+          seen.files = performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name)
+            .filter((name) => /\/path\/(world|models)\//.test(name));
+        }).observe(document, { subtree: true, attributes: true });
+      });
       await page.goto("/path#lille");
       await expect(stage(page)).toHaveAttribute("data-build-state", "building");
+      /* What the first paint waited on: Lille's own, and no other step's. */
+      const firstPaint = await page.evaluate(
+        () =>
+          (window as unknown as { __firstPaint: { files: string[] } })
+            .__firstPaint.files,
+      );
+      expect([...firstPaint].sort()).toEqual(
+        (await firstPaintFiles("lille")).map(href).sort(),
+      );
       const started = Date.now();
       await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
         timeout: 5000,
@@ -193,12 +263,11 @@ test.describe("on /path", () => {
         "data-scene-props",
         propsThrough("lille"),
       );
-      await expect(overlay(page)).toHaveAttribute("data-path-lit", "0 1 2");
-      /* One fetch each, however many times the stage asked to show Lille,
-         and no landmark the index does not list. */
-      expect(files.sort()).toEqual(
-        (await worldFiles()).map((url) => new URL(url, page.url()).href).sort(),
-      );
+      await expect(stage(page)).toHaveAttribute("data-scene-lit", "0 1 2");
+      /* Then the rest of the board, once each, however many times the
+         stage asked to show Lille, and no landmark the index does not list. */
+      await landmarksSettled(page);
+      expect(files.sort()).toEqual((await worldFiles()).map(href).sort());
     });
 
     test("Skip ends it at once", async ({ page }) => {
@@ -223,6 +292,8 @@ test.describe("on /path", () => {
   }) => {
     const canvas = page.locator("[data-path-stage] canvas");
     async function drawnLille() {
+      /* Every landmark in, so none lands between the two draws. */
+      await landmarksSettled(page);
       await expect(stage(page)).toHaveAttribute("data-scene-props", /belfry/);
       await expect(stage(page)).toHaveAttribute("data-build-state", "built");
       /* A screenshot is what is on screen over the canvas: the last step's
