@@ -22,7 +22,7 @@ declare global {
    layout shift at or below 0.01." */
 const MAX_CUMULATIVE_LAYOUT_SHIFT = 0.01;
 
-/* Every route at the URL a visitor arrives on. None of the three has a
+/* Every route at the URL a visitor arrives on. None of them has a
    Suspense boundary any more — the `?variant=` knob went with #26 and the
    `?n=` knob with #24 — so what this measures is that none of them grows one
    that shifts the page, and that the cached feed read on `/writing` does not
@@ -30,8 +30,17 @@ const MAX_CUMULATIVE_LAYOUT_SHIFT = 0.01;
 
    The dev-only `/writing/fixture/<state>` route is excluded: a fixture state
    is a deliberate request for differently shaped content, which is the one
-   place a shift is intended. */
-const routesMeasuredForLayoutShift = ["/", "/cv", "/writing"];
+   place a shift is intended.
+
+   `/path` (#147) is measured at a fragment too: its server HTML shows the
+   default step, and the fragment's step replaces it on hydration. */
+const routesMeasuredForLayoutShift = [
+  "/",
+  "/cv",
+  "/writing",
+  "/path",
+  "/path#lille",
+];
 
 async function measureCumulativeLayoutShift(page: Page, route: string) {
   await page.addInitScript(() => {
@@ -76,6 +85,21 @@ test.describe("Cache Components prerender baseline", () => {
       expect(shift).toBeLessThanOrEqual(MAX_CUMULATIVE_LAYOUT_SHIFT);
     });
   }
+
+  /* On a phone `/path` stacks the board, the strip and the bar, and the
+     strip scrolls its current step into the middle on hydration. */
+  test.describe("on a phone", () => {
+    test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+    for (const route of ["/path", "/path#lille"]) {
+      test(`${route} settles without visible layout shift`, async ({
+        page,
+      }) => {
+        const shift = await measureCumulativeLayoutShift(page, route);
+        expect(shift).toBeLessThanOrEqual(MAX_CUMULATIVE_LAYOUT_SHIFT);
+      });
+    }
+  });
 
   /* #26 removed the homepage's only runtime read — the `?variant=` knob — so
      the route has no Suspense boundary left to stick on and prerenders whole.

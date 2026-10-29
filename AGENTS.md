@@ -39,9 +39,10 @@ flags anything colour-shaped anywhere under `src/` — comments included — whi
 values inside the token layer, and means it reads `#100` as an `#rgb` triple. Citations in
 `src/` are therefore written `GH-100`; everywhere else — docs, PRs, issues — keeps `#100`,
 where the hash is a working link and no guard runs. ADR-0004 has the why, and why the guard
-was not narrowed instead. It lives in `tests/support/design-system-guard.ts`; its two
-exemptions (`globals.css` token blocks, `warm-print.ts`) are pinned by tests, so widening one
-is a deliberate act.
+was not narrowed instead. It lives in `tests/support/design-system-guard.ts`; its three
+exemptions (`globals.css` token blocks, `warm-print.ts`, and the 3D path's scene art in
+`src/components/path/scene/`, ADR-0008) are pinned by tests, so widening one is a deliberate
+act.
 
 **One dev server per repo, so `dev` and the test runner share port 3200.** Next holds a
 lock at `.next/dev/lock` for the working directory, not the port — a second `next dev` here

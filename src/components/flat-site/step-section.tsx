@@ -16,8 +16,9 @@ export const FLAT_SITE_LINK_CLASS_NAME =
 export const FLAT_SITE_LINK_ROW_CLASS_NAME =
   "font-label flex flex-wrap gap-x-6 gap-y-5 text-xs tracking-[0.12em] uppercase print:hidden";
 
-/* Each step and side prop is its own anchored section, with every word of its
-   text in the server HTML: the path's links scroll here with JavaScript off,
+/* On `/`, each step and side prop is its own anchored section, with every word
+   of its text in the server HTML: the path's links scroll here with JavaScript
+   off,
    and role, dates and results are never behind a gesture (GH-141, decision 7). */
 const sectionClassName =
   "max-w-[42rem] scroll-mt-8 print-keep-together print:scroll-mt-0";
@@ -75,13 +76,25 @@ function Illustration({ illustration }: { illustration: PathIllustration }) {
   );
 }
 
-export function StepSection({ step }: { step: PathStep }) {
+/** `anchored` gives the section its step's slug as its `id`, so `/#lille`
+ *  scrolls to it. `/path`'s text panel turns it off: there the fragment only
+ *  selects, and in Chromium a fragment naming an element takes focus off the
+ *  step link that set it (GH-147). With no id, `PathSteps` does not mark the
+ *  section selected either, so the heading's ring is not drawn there: `/path`
+ *  shows one panel at a time, and the piece marks the step. */
+export function StepSection({
+  step,
+  anchored = true,
+}: {
+  step: PathStep;
+  anchored?: boolean;
+}) {
   const period = stepPeriod(step);
   const headingId = `${step.slug}-heading`;
 
   return (
     <section
-      id={step.slug}
+      id={anchored ? step.slug : undefined}
       aria-labelledby={headingId}
       data-path-step={step.slug}
       className={cn(sectionClassName, "group/step")}

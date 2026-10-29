@@ -10,6 +10,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { PATH_DOOR_PREVIEW_STORAGE_KEY } from "@/components/flat-site/path-door";
 import { RESUME_DATA } from "@/data/resume-data";
 
 /* Technical nouns a reader would not find on a non-technical portfolio. Terms
@@ -70,25 +71,43 @@ async function textAboveTheFold(page: import("@playwright/test").Page) {
   });
 }
 
+/* With the door to `/path` switched on (GH-151) the header grows a line, and
+   the claim must still clear the fold. The dev-only preview key stands in for
+   the switch. */
+const doorStates = [
+  { door: false, suffix: "" },
+  { door: true, suffix: " with the door on" },
+] as const;
+
 for (const { height, label, width } of foldWidths) {
-  test(`the ${label} fold makes a technical claim`, async ({ page }) => {
-    await page.setViewportSize({ height, width });
-    await page.goto("/");
-    await page.evaluate(() => document.fonts.ready);
+  for (const { door, suffix } of doorStates) {
+    test(`the ${label} fold makes a technical claim${suffix}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ height, width });
+      if (door) {
+        await page.addInitScript((key) => {
+          window.localStorage.setItem(key, "1");
+        }, PATH_DOOR_PREVIEW_STORAGE_KEY);
+      }
+      await page.goto("/");
+      if (door) await expect(page.getByTestId("path-door")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
 
-    const fold = (await textAboveTheFold(page)).toLowerCase();
+      const fold = (await textAboveTheFold(page)).toLowerCase();
 
-    const found = technicalTerms.filter((term) =>
-      fold.includes(term.toLowerCase()),
-    );
-    expect(
-      found.length,
-      `the ${label} fold should name at least three technical terms (parity with the incumbent); found ${found.join(", ") || "none"}`,
-    ).toBeGreaterThanOrEqual(3);
+      const found = technicalTerms.filter((term) =>
+        fold.includes(term.toLowerCase()),
+      );
+      expect(
+        found.length,
+        `the ${label} fold should name at least three technical terms (parity with the incumbent); found ${found.join(", ") || "none"}`,
+      ).toBeGreaterThanOrEqual(3);
 
-    expect(
-      namedSystems.filter((system) => fold.includes(system.toLowerCase())),
-      `the ${label} fold should name at least one concrete system`,
-    ).not.toHaveLength(0);
-  });
+      expect(
+        namedSystems.filter((system) => fold.includes(system.toLowerCase())),
+        `the ${label} fold should name at least one concrete system`,
+      ).not.toHaveLength(0);
+    });
+  }
 }

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
+import { PATH_NARRATION } from "@/data/path-narration";
 import { RESUME_DATA } from "@/data/resume-data";
 
 /* The content rules of the path (GH-141, decisions 2, 3, 9 and 10), checked on
@@ -11,13 +12,17 @@ function sentencesOf(text: string): string[] {
   return text.match(/[^.]+\.(?=\s|$)/g)?.map((part) => part.trim()) ?? [];
 }
 
-/** Every string a visitor reads or hears: dates, slugs and hrefs left out,
- *  because they are dates and addresses, not claims. */
+/** Every string a visitor reads or hears, the narration's cues included:
+ *  dates, slugs and hrefs left out, because they are dates and addresses,
+ *  not claims. */
 function prose(): { where: string; value: string }[] {
   const steps = PATH_STEPS.flatMap((step) => [
     ...step.lines.map((value) => ({ where: `${step.slug} line`, value })),
+    ...PATH_NARRATION[step.slug].map((cue) => ({
+      where: `${step.slug} narration`,
+      value: cue.text,
+    })),
     { where: `${step.slug} text`, value: step.text },
-    { where: `${step.slug} voice script`, value: step.voiceScript },
     { where: `${step.slug} place`, value: step.place },
     ...step.roles.flatMap((role) =>
       [role.title, role.organisation, role.location].map((value) => ({
@@ -99,10 +104,9 @@ test.describe("the path's steps", () => {
     ).toEqual([undefined, undefined, undefined, undefined]);
   });
 
-  test("have a voice script equal to their text", () => {
+  test("have a text that is their lines", () => {
     for (const step of PATH_STEPS) {
       expect(step.text, step.slug).toBe(step.lines.join(" "));
-      expect(step.voiceScript, step.slug).toBe(step.text);
     }
   });
 
