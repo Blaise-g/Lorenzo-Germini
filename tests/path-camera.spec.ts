@@ -315,7 +315,9 @@ async function landmarksSettled(page: Page) {
   await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
     "data-path-landmarks",
     "settled",
-    { timeout: 15_000 },
+    /* A state, waited on for as long as the test may run: on a starved
+       machine the files take what they take. */
+    { timeout: 0 },
   );
 }
 
@@ -404,7 +406,7 @@ async function runUntilSettled(page: Page, slug: PathStepSlug) {
   await expect(stage(page)).toHaveAttribute(
     "data-build-state",
     /^(building|built)$/,
-    { timeout: 15_000 },
+    { timeout: 0 },
   );
   let elapsed = 0;
   while (elapsed < SETTLE_MAX_WAIT_MS) {

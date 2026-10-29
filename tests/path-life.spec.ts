@@ -291,6 +291,18 @@ async function countDraws(page: Page) {
   });
 }
 
+/** Waits for every landmark the index lists to have arrived, or failed:
+ *  each that lands on a tile in view draws its arrival (v3-harden loads
+ *  them once the page is idle). A state, waited on for as long as the
+ *  test may run. */
+async function landmarksSettled(page: Page) {
+  await expect(page.locator("[data-path-stage] canvas")).toHaveAttribute(
+    "data-path-landmarks",
+    "settled",
+    { timeout: 0 },
+  );
+}
+
 const draws = (page: Page) =>
   page.evaluate(
     () => (window as unknown as { __draws: { draws: number } }).__draws.draws,
@@ -356,7 +368,46 @@ test.describe("the beats on the board", () => {
   test("under reduced motion, a playing board still comes to rest", async ({
     page,
   }) => {
-    await countDraws(page);
+    /* Counted as frames that drew, and cues that started: a beat draws its
+       end state once as its cue starts, which on a loaded machine can fall
+       anywhere in the window, while anything ambient draws every frame. */
+    await page.addInitScript(() => {
+      const counts = { frames: 0, cues: 0 };
+      (window as unknown as { __rest: typeof counts }).__rest = counts;
+      let frame = 0;
+      let drawn = -1;
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) =>
+        raf((time) => {
+          frame += 1;
+          callback(time);
+        });
+      const proto = WebGL2RenderingContext.prototype;
+      for (const name of ["drawElements", "drawArrays"] as const) {
+        const original = proto[name] as (...args: unknown[]) => void;
+        (proto as unknown as Record<string, unknown>)[name] = function (
+          this: WebGL2RenderingContext,
+          ...args: unknown[]
+        ) {
+          if (drawn !== frame) {
+            drawn = frame;
+            counts.frames += 1;
+          }
+          return original.apply(this, args);
+        };
+      }
+      new MutationObserver(() => (counts.cues += 1)).observe(document, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["data-path-cue"],
+      });
+    });
+    const rest = () =>
+      page.evaluate(
+        () =>
+          (window as unknown as { __rest: { frames: number; cues: number } })
+            .__rest,
+      );
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-stage-settled", "", {
       timeout: 15_000,
@@ -367,11 +418,16 @@ test.describe("the beats on the board", () => {
       "data-path-tour",
       "playing",
     );
-    await page.waitForTimeout(800);
-    const settled = await draws(page);
+    /* Each landmark that lands in view draws its arrival once. */
+    await landmarksSettled(page);
+    const before = await rest();
     await page.waitForTimeout(1500);
-    /* A beat may draw its end state once as a cue starts; nothing more. */
-    expect((await draws(page)) - settled).toBeLessThan(40);
+    const after = await rest();
+    /* At most one frame per cue begun, and one for a draw already asked
+       for; a board kept drawing would run to dozens. */
+    expect(after.frames - before.frames).toBeLessThanOrEqual(
+      after.cues - before.cues + 1,
+    );
   });
 });
 
