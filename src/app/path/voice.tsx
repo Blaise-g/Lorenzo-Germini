@@ -14,16 +14,20 @@ import { useSelectedStep } from "@/lib/use-path-state";
 
 import { VOICE_COPY } from "./copy";
 import { CONTROL_CLASS_NAME } from "./scene-stage";
+import { useSetNarrating } from "./tour";
 import { VOICE_CHANGE_EVENT, VOICE_STORAGE_KEY } from "./voice-manifest";
 
 /* The voice on `/path` (GH-150; GH-141, decision 9; storyboard §7.6). Off by
    default: "Listen" plays the selected step's clip, and the Voice switch,
    remembered in local storage, plays the clip of each step selected after it
    is on. Nothing plays on load: a refresh or a shared link never starts a
-   voice (decision 13), so the switch answers `hashchange` — a selection or a
-   Back — and not the selected step itself, which hydration also changes. The
-   audio element has no source until a clip is first played, so a visit that
-   never listens fetches no audio. */
+   voice (decision 13), so the switch answers `hashchange` — a selection, a
+   Back, or the tour moving on — and not the selected step itself, which
+   hydration also changes. And only once the visitor has pressed, clicked or
+   tapped something in this visit: the tour moves on by itself, and a
+   remembered switch must not start a voice on a page nobody has touched yet.
+   The audio element has no source until a clip is first played, so a visit
+   that never listens fetches no audio. */
 
 type Status = "idle" | "loading" | "playing" | "paused" | "blocked" | "failed";
 
@@ -77,6 +81,11 @@ function selectedByFragment(): PathStepSlug | undefined {
   return hash === "" || hash === "#" ? DEFAULT_STEP : stepFromFragment(hash);
 }
 
+/** Whether the visitor has pressed, clicked, tapped or typed on the page in
+ *  this visit. Counted here rather than read from `navigator.userActivation`,
+ *  which an automated navigation can already have set. */
+let pressed = false;
+
 export function VoiceControls({
   clips,
   providerName,
@@ -93,6 +102,7 @@ export function VoiceControls({
   const loadedRef = useRef<PathStepSlug | null>(null);
   const [loaded, setLoaded] = useState<PathStepSlug | null>(null);
   const [status, setStatus] = useState<Status>("idle");
+  const setNarrating = useSetNarrating();
 
   const play = useCallback(
     (slug: PathStepSlug) => {
@@ -139,11 +149,30 @@ export function VoiceControls({
       const slug = selectedByFragment();
       if (!slug) return;
       if (loadedRef.current !== null && loadedRef.current !== slug) stop();
-      if (voiceOn) play(slug);
+      if (voiceOn && pressed) play(slug);
     }
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, [voiceOn, play, stop]);
+
+  useEffect(() => {
+    const onPress = () => {
+      pressed = true;
+    };
+    window.addEventListener("pointerdown", onPress, true);
+    window.addEventListener("keydown", onPress, true);
+    return () => {
+      window.removeEventListener("pointerdown", onPress, true);
+      window.removeEventListener("keydown", onPress, true);
+    };
+  }, []);
+
+  /* While a clip is reading, the tour waits for it to finish before moving
+     on from its step. Not while it loads: a load that hangs must not hold
+     the tour for good. */
+  useEffect(() => {
+    setNarrating(status === "playing" ? loaded : null);
+  }, [status, loaded, setNarrating]);
 
   const hasClip = clips[selected] !== undefined;
   /* What the controls show for the selected step: another step's clip,
