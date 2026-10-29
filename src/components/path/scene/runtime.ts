@@ -1,15 +1,10 @@
 import {
-  AgXToneMapping,
   Color,
-  DirectionalLight,
   Group,
-  HemisphereLight,
   InstancedMesh,
   Mesh,
-  PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
-  PMREMGenerator,
   Raycaster,
   Scene,
   ShadowMaterial,
@@ -20,7 +15,6 @@ import {
   type Object3D,
   type Texture,
 } from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { PATH_STEPS } from "@/data/path";
 import type { PathStep, PathStepSlug } from "@/data/path.types";
@@ -52,7 +46,7 @@ import {
   type BuildPlan,
   type BuildState,
 } from "./build-plan";
-import { drawingPixelRatio } from "./drawing-buffer";
+import { drawingPixelRatio, pixelRatioCap } from "./drawing-buffer";
 import {
   centreOf,
   filled,
@@ -80,8 +74,10 @@ import {
   movePose,
   risePose,
 } from "./motion";
+import { createLighting } from "./lighting";
 import { createPaint } from "./paint";
 import { isDarkMode, readPalette, type Palette } from "./palette";
+import { createGovernor, createPost, isPhone, startRung } from "./post";
 import { buildPiece } from "./props";
 import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
 import { makeBoard, makePath, makePawn, makeTileBase } from "./world";
@@ -126,10 +122,6 @@ const MAX_PIECE_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, rises from part-way: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REBUILD_FROM = 0.42;
-/** The sun's shadow map, square. 1024 keeps contact shadows a texel or two
- *  wide across the board; 2048 cost 33.6 MB of the 64 MB GPU budget with its
- *  depth texture (`docs/path-measurements.md`). */
-const SHADOW_MAP = 1024;
 
 export type SceneSnapshot = {
   buildState: BuildState;
@@ -200,61 +192,42 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* Throws when the browser refuses a context, including one with a major
      performance caveat that the host's probe did not see; the host catches it
-     and shows the stills. No multisampling: the buffer is drawn at twice
-     the CSS size at least, which smooths edges at a third of the memory
-     (`drawing-buffer.ts`, ADR-0009). */
+     and shows the stills. No multisampling, depth or stencil on the canvas:
+     the post chain draws into its own buffers and smooths edges with SMAA
+     (`post.ts`). */
   const renderer = new WebGLRenderer({
     canvas,
     antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: "high-performance",
     failIfMajorPerformanceCaveat: true,
   });
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFSoftShadowMap;
-  /* AgX keeps the inks' hue through the highlights, where the default
-     clamps them to white (the benchmark's §4(c)). */
-  renderer.toneMapping = AgXToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  /* A phone takes §4(f)'s cuts: a lower pixel ratio, no AO, half-size
+     bloom. */
+  const phone = isPhone();
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(CAMERA_FOV, 1, 0.5, 200);
   const board = new Group();
   scene.add(board);
 
-  /* A soft room for fill and the lacquer's highlights, a sky over a
-     terracotta ground, and one sun with soft shadows. Package W4 grades and
-     lights the board properly; this is the baseline to judge the models
-     by. */
-  /* The room is blurred at 128 (a 384×512 half-float map, 1.6 MB) and the
-     generator freed at once, its ping-pong target with it: a rough board
-     reads no detail in it, and the GPU budget is 64 MB. */
-  const pmrem = new PMREMGenerator(renderer);
-  const room = new RoomEnvironment();
-  const environment = pmrem.fromScene(room, 0.04, 0.1, 100, { size: 128 });
-  pmrem.dispose();
-  room.dispose();
-  scene.environment = environment.texture;
-  scene.environmentIntensity = 0.35;
-  const sky = new HemisphereLight(0xffffff, 0xffffff, 0.75);
-  const sun = new DirectionalLight(0xffffff, 2.9);
-  sun.position.set(-10, 16, 8);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
-  Object.assign(sun.shadow.camera, {
-    left: -17,
-    right: 17,
-    top: 14,
-    bottom: -14,
-    near: 1,
-    far: 50,
+  const lighting = createLighting(scene, renderer, TURN_LIMIT * TURN_RADIANS);
+  const governor = createGovernor(startRung(phone));
+  const post = createPost({
+    renderer,
+    scene,
+    camera,
+    phone,
+    quality: governor.quality,
   });
-  sun.shadow.bias = -0.0004;
-  sun.shadow.normalBias = 0.03;
-  sun.shadow.radius = 2;
-  scene.add(sky, sun);
 
   /* The table the board lies on is the page: only the board's shadow shows
      on it. */
   const tableMaterial = new ShadowMaterial({ opacity: 0.22 });
+  /* No depth: the post chain reads an empty depth as the page, and hands
+     the page's ground back there, shaded by this shadow (`post.ts`). */
+  tableMaterial.depthWrite = false;
   const table = new Mesh(new PlaneGeometry(120, 120), tableMaterial);
   table.rotation.x = -Math.PI / 2;
   table.position.y = -BOARD.thickness;
@@ -285,10 +258,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       ]),
     ) as Palette;
     paintBox.repaint(mixed);
+    paintBox.setNight(themeMix.value);
     background.copy(mixed.fog);
     scene.background = background;
-    sky.color.copy(mixed.paper);
-    sky.groundColor.copy(mixed["ink-warm"]).lerp(mixed.paper, 0.4);
+    lighting.setMix(mixed, themeMix.value);
+    post.setMix(mixed, themeMix.value, background);
     /* A shadow on a dark page reads with a little more weight. */
     tableMaterial.opacity = 0.18 + 0.2 * themeMix.value;
   }
@@ -868,8 +842,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     renderer.setDrawingBufferSize(
       width,
       height,
-      drawingPixelRatio(width, height, window.devicePixelRatio),
+      drawingPixelRatio(
+        width,
+        height,
+        window.devicePixelRatio,
+        pixelRatioCap(phone),
+      ) * post.quality.pixelScale,
     );
+    post.setSize(width, height);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     aim();
@@ -941,6 +921,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         if (reason) return fallBack(reason);
       }
     }
+    /* Frames that run long shed AO, then pixels. */
+    const shed = governor.sample(delta);
+    if (shed) {
+      post.setQuality(shed);
+      frame();
+    }
 
     const step = Math.min(delta, MAX_STEP_MS);
     let posed = false;
@@ -993,15 +979,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       paint();
     }
 
-    renderer.render(scene, camera);
+    draw(step / 1000);
     canvas.dataset.pathSceneRendered = "true";
     if (moving()) requestFrame();
     else lastTime = undefined;
   }
 
+  /** Draws a frame through the post chain; `seconds` moves the grain on,
+   *  and under reduced motion it holds still. */
+  function draw(seconds: number) {
+    post.render(reducedMotion ? 0 : seconds);
+  }
+
   function render() {
     if (!frameRequest && !contextLost && !fellBack) {
-      renderer.render(scene, camera);
+      draw(0);
       canvas.dataset.pathSceneRendered = "true";
     }
   }
@@ -1035,7 +1027,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     contextLost = false;
     lastTime = undefined;
     requestFrame();
-    renderer.render(scene, camera);
+    draw(0);
   }
 
   function onThemeChange() {
@@ -1310,8 +1302,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         material.dispose();
       }
       paintBox.dispose();
-      environment.dispose();
-      sun.shadow.map?.dispose();
+      lighting.dispose();
+      post.dispose();
       renderer.dispose();
     },
   };

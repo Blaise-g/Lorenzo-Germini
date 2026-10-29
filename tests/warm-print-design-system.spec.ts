@@ -97,8 +97,10 @@ test("the three color token sets declare exactly the seven Warm Print roles", as
    roles rather than an eighth: the role test above matches `--color-` only,
    so these are counted here, in each of the three blocks. */
 const pathTokens = [
+  "--path-felt",
   "--path-fog",
   "--path-ink-cool",
+  "--path-ink-sun",
   "--path-ink-warm",
   "--path-paper",
 ];
@@ -109,7 +111,7 @@ function pathTokenNames(source: string) {
     .sort();
 }
 
-test("the three token sets each declare the four path tokens", async () => {
+test("the three token sets each declare every path token", async () => {
   const css = await readFile(
     path.join(process.cwd(), "src/app/globals.css"),
     "utf8",

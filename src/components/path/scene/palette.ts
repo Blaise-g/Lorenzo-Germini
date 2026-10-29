@@ -2,9 +2,10 @@ import { Color } from "three";
 
 /* The board's colours are the path tokens in `globals.css` (ADR-0008), read
    from the page so the CSS stays their one source. The board keeps v2's
-   riso palette as material colour: the stock, the two inks and the table it
-   lies on, from which `paint.ts` mixes every surface's tone, so one board
-   serves light and dark. */
+   riso palette as material colour: the stock, three inks, the felt under
+   the tiles and the page it lies on, from which `paint.ts` mixes every
+   surface's tone. Light and dark share the board's colours and differ in
+   `fog`: dark mode is night, lit by `lighting.ts`, not a second print. */
 
 /** Each role's token, spelled out whole: Tailwind emits an `@theme`
  *  variable only when its scanner finds the name used in a source file, and
@@ -13,6 +14,8 @@ const PALETTE_TOKENS = {
   paper: "--path-paper",
   "ink-warm": "--path-ink-warm",
   "ink-cool": "--path-ink-cool",
+  "ink-sun": "--path-ink-sun",
+  felt: "--path-felt",
   fog: "--path-fog",
 } as const;
 

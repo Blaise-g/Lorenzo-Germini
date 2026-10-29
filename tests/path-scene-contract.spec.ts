@@ -15,20 +15,25 @@ import {
 import {
   decideFallback,
   FALLBACK_REASON_LINES,
+  FRAME_SAMPLE_SIZE,
   SCENE_FALLBACK_LINES,
   type CapabilitySignals,
 } from "@/components/path/scene/fallback";
 import {
   DRAWING_BYTES_PER_PIXEL,
   drawingPixelRatio,
+  GPU_BUDGET_MB,
   MAX_DRAWING_PIXELS,
   MAX_PIXEL_RATIO,
   MIN_PIXEL_RATIO,
+  pixelRatioCap,
+  POST_BYTES_PER_PIXEL,
 } from "@/components/path/scene/drawing-buffer";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { Box3, Color, Mesh, Vector3 } from "three";
+import { LookupTexture } from "postprocessing";
+import { Box3, Color, Matrix4, Mesh, Vector3 } from "three";
 
 import {
   BOARD,
@@ -45,9 +50,25 @@ import {
   tileScale,
 } from "@/components/path/scene/board";
 import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
+import {
+  boardBounds,
+  lightPreset,
+  shadowBounds,
+} from "@/components/path/scene/lighting";
 import { createPaint } from "@/components/path/scene/paint";
 import { PALETTE_ROLES, type Palette } from "@/components/path/scene/palette";
 import { pathSpline, tileAnchors } from "@/components/path/scene/path-spline";
+import {
+  createGovernor,
+  GOVERNOR_WINDOW,
+  gradeColour,
+  gradeFor,
+  LONG_FRAME_MS,
+  LUT_SIZE,
+  PHONE_START,
+  QUALITY_LADDER,
+  writeLut,
+} from "@/components/path/scene/post";
 import { buildPiece } from "@/components/path/scene/props";
 import { SCENE_ASSETS } from "@/components/path/scene/scene-assets";
 import {
@@ -213,43 +234,54 @@ test.describe("what each step builds", () => {
   });
 });
 
-/* GH-141's 64 MB GPU budget, against the stage sizes the measurement report
-   estimates (docs/path-measurements.md): CSS width and height of the stage. */
+/* The GPU budget (docs/path-measurements.md, v3-light), against the stage
+   sizes measured with the post chain: CSS width and height of the stage. */
 test.describe("the drawing buffer", () => {
-  /* The budget's MB is a million bytes; the report's uploads were measured
-     in MiB. Mixing them is how 64.4 MB once passed as 61.4. */
+  /* The budget's MB is a million bytes, as the measurement's is. Mixing it
+     with MiB is how 64.4 MB once passed as 61.4. */
   const MB = 1000 * 1000;
-  const MiB = 1024 * 1024;
-  /** The board's uploaded buffers and textures, shadow map included, from
-   *  the report: 17.5 MiB measured, rounded up. */
-  const UPLOADS = 18 * MiB;
-  const bufferBytes = (width: number, height: number, dpr: number) => {
-    const ratio = drawingPixelRatio(width, height, dpr);
+  /** What does not scale with the canvas: the board's buffers and
+   *  textures, the shadow map and the environment, 41.5 MB measured,
+   *  rounded up. */
+  const FIXED = 42 * MB;
+  const PER_PIXEL = DRAWING_BYTES_PER_PIXEL + POST_BYTES_PER_PIXEL;
+  const gpuBytes = (
+    width: number,
+    height: number,
+    dpr: number,
+    cap?: number,
+  ) => {
+    const ratio = drawingPixelRatio(width, height, dpr, cap);
     return (
-      Math.floor(width * ratio) *
-      Math.floor(height * ratio) *
-      DRAWING_BYTES_PER_PIXEL
+      Math.floor(width * ratio) * Math.floor(height * ratio) * PER_PIXEL + FIXED
     );
   };
 
-  /* The stage's CSS size at 1440×900, 1280×720, 1512×982, 2560×1440 and
+  /* The stage's CSS size at 1440×900, 1280×720, 1920×1080, 2560×1440 and
      375×812, measured. */
   const STAGES = [
-    [920, 678],
-    [760, 498],
-    [992, 760],
-    [1336, 858],
-    [1976, 1218],
+    [1360, 555],
+    [1200, 375],
+    [1840, 735],
+    [2480, 1095],
     [375, 300],
   ] as const;
 
-  test("every measured stage stays under the 64 MB budget, at ×1, ×2 and ×3", () => {
+  /* Measured totals: 299.1 MB at 1440×900×2 and 331.5 MB at 2560×1440×2.
+     The model has to come out at or above them, or the budget checks
+     nothing. */
+  test("the per-pixel model covers the measured totals", () => {
+    expect(gpuBytes(1360, 555, 2)).toBeGreaterThanOrEqual(299.1 * MB);
+    expect(gpuBytes(2480, 1095, 2)).toBeGreaterThanOrEqual(331.5 * MB);
+  });
+
+  test("every measured stage stays under the GPU budget, at ×1, ×2 and ×3", () => {
     for (const [width, height] of STAGES) {
       for (const dpr of [1, 2, 3]) {
         expect(
-          bufferBytes(width, height, dpr) + UPLOADS,
+          gpuBytes(width, height, dpr),
           `${width}×${height} at ×${dpr}`,
-        ).toBeLessThanOrEqual(64 * MB);
+        ).toBeLessThanOrEqual(GPU_BUDGET_MB * MB);
       }
     }
   });
@@ -257,9 +289,9 @@ test.describe("the drawing buffer", () => {
   /* The cap at its fullest still leaves the budget room: no stage, however
      large, goes over. */
   test("the pixel cap alone keeps the budget", () => {
-    expect(
-      MAX_DRAWING_PIXELS * DRAWING_BYTES_PER_PIXEL + UPLOADS,
-    ).toBeLessThanOrEqual(64 * MB);
+    expect(MAX_DRAWING_PIXELS * PER_PIXEL + FIXED).toBeLessThanOrEqual(
+      GPU_BUDGET_MB * MB,
+    );
   });
 
   test("no stage holds more than its pixel cap, at any density", () => {
@@ -280,19 +312,24 @@ test.describe("the drawing buffer", () => {
     }
   });
 
-  /* No multisampling, so a screen at ratio 1 is drawn at 2 and averaged
-     down; a screen at 2 or 3 is drawn at its own ratio. */
-  test("a stage under the cap is drawn at the device's ratio, and never under 2", () => {
-    expect(drawingPixelRatio(920, 678, 1)).toBe(MIN_PIXEL_RATIO);
+  /* SMAA antialiases, so a screen is drawn at its own ratio, never
+     supersampled; a ratio under 1 is raised to 1, and a dense screen is
+     held at 2, a phone at 1.5. */
+  test("a stage under the cap is drawn at the device's ratio, within its device's cap", () => {
+    expect(drawingPixelRatio(920, 678, 1)).toBe(1);
+    expect(drawingPixelRatio(920, 678, 0.5)).toBe(MIN_PIXEL_RATIO);
+    expect(drawingPixelRatio(920, 678, 1.25)).toBe(1.25);
     expect(drawingPixelRatio(920, 678, 2)).toBe(2);
-    expect(drawingPixelRatio(375, 300, 3)).toBe(3);
-    expect(drawingPixelRatio(375, 300, 4)).toBe(MAX_PIXEL_RATIO);
+    expect(drawingPixelRatio(375, 300, 3)).toBe(MAX_PIXEL_RATIO);
+    expect(drawingPixelRatio(375, 300, 3, pixelRatioCap(true))).toBe(1.5);
+    expect(drawingPixelRatio(375, 300, 1, pixelRatioCap(true))).toBe(1);
+    expect(pixelRatioCap(false)).toBe(MAX_PIXEL_RATIO);
   });
 
   test("the stage of a 1440×900 screen at ×2 is drawn at ×2, and only stages past the cap are softer", () => {
-    expect(drawingPixelRatio(920, 678, 2)).toBe(2);
-    expect(drawingPixelRatio(992, 760, 2)).toBe(2);
-    expect(drawingPixelRatio(1976, 1218, 2)).toBeLessThan(2);
+    expect(drawingPixelRatio(1360, 555, 2)).toBe(2);
+    expect(drawingPixelRatio(1840, 735, 2)).toBeLessThan(2);
+    expect(drawingPixelRatio(2480, 1095, 2)).toBeLessThan(2);
   });
 });
 
@@ -768,5 +805,266 @@ test.describe("the motion", () => {
       /* Each tile on the way is touched down on, the last one included. */
       expect(landings, `${steps} tiles`).toBe(Math.abs(steps));
     }
+  });
+});
+
+/* The light tokens, as the scene reads them (globals.css): the grade and
+   the light are mixed from these. */
+const LIGHT_PALETTE = {
+  paper: new Color("#f4ecdc"),
+  "ink-warm": new Color("#c4562f"),
+  "ink-cool": new Color("#3f6290"),
+  "ink-sun": new Color("#dda23a"),
+  felt: new Color("#3d6b5c"),
+  fog: new Color("#faf6ef"),
+} satisfies Palette;
+
+/* §4(f): when frames run long, AO goes first, then pixels; and the
+   governor has to act before the fallback's median sends the page to its
+   stills. */
+test.describe("the quality governor", () => {
+  const LONG = LONG_FRAME_MS + 5;
+  const SHORT = 8;
+  const feed = (
+    governor: ReturnType<typeof createGovernor>,
+    frames: number[],
+  ) => frames.map((ms) => governor.sample(ms)).filter(Boolean);
+
+  test("reads its windows inside the fallback's sample", () => {
+    expect(GOVERNOR_WINDOW).toBeLessThan(FRAME_SAMPLE_SIZE);
+  });
+
+  test("keeps the best rung while frames stay short", () => {
+    const governor = createGovernor();
+    expect(feed(governor, Array(GOVERNOR_WINDOW * 10).fill(SHORT))).toEqual([]);
+    expect(governor.quality).toEqual({ ao: true, pixelScale: 1 });
+  });
+
+  test("steps once a quarter of a window runs long, and not on fewer", () => {
+    const quarter = GOVERNOR_WINDOW / 4;
+    const under = createGovernor();
+    const window = (long: number) => [
+      ...Array(long).fill(LONG),
+      ...Array(GOVERNOR_WINDOW - long).fill(SHORT),
+    ];
+    expect(feed(under, window(quarter - 1))).toEqual([]);
+    const at = createGovernor();
+    expect(feed(at, window(quarter))).toEqual([QUALITY_LADDER[1]]);
+  });
+
+  test("drops AO before it drops pixels, one rung a window, and stops at the last", () => {
+    const governor = createGovernor();
+    const steps = feed(governor, Array(GOVERNOR_WINDOW * 8).fill(LONG));
+    expect(steps).toEqual(QUALITY_LADDER.slice(1));
+    expect(steps[0]).toEqual({ ao: false, pixelScale: 1 });
+    for (let i = 1; i < steps.length; i++) {
+      expect(steps[i]!.pixelScale).toBeLessThan(steps[i - 1]!.pixelScale);
+    }
+    expect(governor.rung).toBe(QUALITY_LADDER.length - 1);
+  });
+
+  /* A long frame in a window that did not step is forgotten: the verdict
+     is per window, not a running count. */
+  test("starts each window afresh", () => {
+    const governor = createGovernor();
+    const almost = [
+      ...Array(GOVERNOR_WINDOW / 4 - 1).fill(LONG),
+      ...Array(GOVERNOR_WINDOW - GOVERNOR_WINDOW / 4 + 1).fill(SHORT),
+    ];
+    expect(feed(governor, [...almost, ...almost, ...almost])).toEqual([]);
+  });
+
+  /* A backgrounded tab's first frame back, or a clock that did not move,
+     is not a frame time. */
+  test("ignores times that are not frames", () => {
+    const governor = createGovernor();
+    const junk = [0, -4, Number.NaN, Number.POSITIVE_INFINITY, 1000, 60_000];
+    expect(feed(governor, Array(GOVERNOR_WINDOW).fill(junk).flat())).toEqual(
+      [],
+    );
+    /* And none of it filled the window: one short of a window of long
+       frames still has not stepped. */
+    expect(feed(governor, Array(GOVERNOR_WINDOW - 1).fill(LONG))).toEqual([]);
+  });
+
+  test("a phone starts without AO, and a start past the ladder holds its last rung", () => {
+    expect(createGovernor(PHONE_START).quality.ao).toBe(false);
+    expect(createGovernor(PHONE_START).quality.pixelScale).toBe(1);
+    expect(createGovernor(99).quality).toEqual(QUALITY_LADDER.at(-1));
+  });
+});
+
+/* The grade, a LUT built from the path palette: it has to stay a grade, a
+   lean on the colour, and not invert, clip or tint a grey into a colour
+   ramp. */
+test.describe("the grade", () => {
+  const day = gradeFor(LIGHT_PALETTE, 0);
+  const night = gradeFor(LIGHT_PALETTE, 1);
+  const steps = Array.from({ length: 33 }, (_, i) => i / 32);
+  const luma = ([r, g, b]: number[]) => 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+  test("keeps every colour in range", () => {
+    for (const grade of [day, night, gradeFor(LIGHT_PALETTE, 0.5)]) {
+      for (const r of steps.filter((_, i) => i % 4 === 0)) {
+        for (const g of steps.filter((_, i) => i % 4 === 0)) {
+          for (const b of steps.filter((_, i) => i % 4 === 0)) {
+            for (const channel of gradeColour(r, g, b, grade)) {
+              expect(channel).toBeGreaterThanOrEqual(0);
+              expect(channel).toBeLessThanOrEqual(1);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  test("keeps a grey ramp in order, light and night", () => {
+    for (const grade of [day, night]) {
+      const ramp = steps.map((x) => luma(gradeColour(x, x, x, grade)));
+      for (let i = 1; i < ramp.length; i++) {
+        expect(ramp[i]).toBeGreaterThan(ramp[i - 1]!);
+      }
+      expect(ramp[0]).toBeLessThan(0.02);
+      expect(ramp.at(-1)).toBeGreaterThan(0.95);
+    }
+  });
+
+  /* Night leans the shadows blue, toward the cool ink, further than the
+     day does. */
+  test("cools the night's shadows more than the day's", () => {
+    const blueness = ([r, , b]: number[]) => b / Math.max(r, 1e-4);
+    const dark = 0.2;
+    expect(blueness(gradeColour(dark, dark, dark, night))).toBeGreaterThan(
+      blueness(gradeColour(dark, dark, dark, day)),
+    );
+    expect(blueness(gradeColour(dark, dark, dark, night))).toBeGreaterThan(1);
+  });
+
+  /* A grade that changes nothing has to write the effect's own neutral
+     LUT: that pins the layout against `LookupTexture`, not against
+     `writeLut`'s own index. */
+  test("an identity grade writes the lookup's neutral LUT", () => {
+    const identity = {
+      ...day,
+      contrast: 0,
+      saturation: 1,
+      shadowAmount: 0,
+      highlightAmount: 0,
+    };
+    const data = new Float32Array(LUT_SIZE ** 3 * 4);
+    writeLut(data, identity);
+    const neutral = LookupTexture.createNeutral(LUT_SIZE).image
+      .data as Float32Array;
+    expect(data.length).toBe(neutral.length);
+    for (let i = 0; i < data.length; i++) {
+      expect(data[i], `texel ${i >> 2}`).toBeCloseTo(neutral[i]!, 6);
+    }
+  });
+
+  /* The shipped LUT is bytes, so a phone without float linear filtering
+     still reads it. */
+  test("writes a byte LUT on the 0 to 255 scale", () => {
+    const floats = new Float32Array(LUT_SIZE ** 3 * 4);
+    const bytes = new Uint8Array(LUT_SIZE ** 3 * 4);
+    writeLut(floats, night);
+    writeLut(bytes, night);
+    for (let i = 0; i < bytes.length; i++) {
+      expect(Math.abs(bytes[i]! - floats[i]! * 255)).toBeLessThanOrEqual(1);
+    }
+    expect(bytes[3]).toBe(255);
+  });
+
+  test("writes the LUT red fastest, as the lookup reads it", () => {
+    const data = new Float32Array(LUT_SIZE ** 3 * 4);
+    writeLut(data, night);
+    const s = 1 / (LUT_SIZE - 1);
+    for (const [r, g, b] of [
+      [0, 0, 0],
+      [LUT_SIZE - 1, 0, 0],
+      [0, LUT_SIZE - 1, 0],
+      [0, 0, LUT_SIZE - 1],
+      [3, 7, 11],
+      [LUT_SIZE - 1, LUT_SIZE - 1, LUT_SIZE - 1],
+    ]) {
+      const i = (r! + g! * LUT_SIZE + b! * LUT_SIZE * LUT_SIZE) * 4;
+      const expected = gradeColour(r! * s, g! * s, b! * s, night);
+      expect([data[i], data[i + 1], data[i + 2]], `${r},${g},${b}`).toEqual(
+        expected.map((x) => Math.fround(x)),
+      );
+      expect(data[i + 3]).toBe(1);
+    }
+  });
+});
+
+/* Dark mode is night: the same board under a low, weak, cool moon. */
+test.describe("the light", () => {
+  test("night lowers, weakens and cools the sun, and cools the sky", () => {
+    const day = lightPreset(LIGHT_PALETTE, 0);
+    const night = lightPreset(LIGHT_PALETTE, 1);
+    expect(night.from.y).toBeLessThan(day.from.y);
+    expect(night.sunIntensity).toBeLessThan(day.sunIntensity / 2);
+    const coolness = (c: Color) => c.b / c.r;
+    expect(coolness(night.sunColour)).toBeGreaterThan(coolness(day.sunColour));
+    expect(coolness(night.skyColour)).toBeGreaterThan(coolness(day.skyColour));
+    expect(night.environmentIntensity).toBeLessThan(day.environmentIntensity);
+  });
+
+  test("the sun stays above the board through the crossfade, and past its ends", () => {
+    for (const t of [-1, 0, 0.25, 0.5, 0.75, 1, 2]) {
+      const { from, sunIntensity } = lightPreset(LIGHT_PALETTE, t);
+      expect(from.length()).toBeCloseTo(1, 6);
+      expect(from.y, `at ${t}`).toBeGreaterThan(0.2);
+      expect(sunIntensity).toBeGreaterThan(0);
+    }
+    expect(lightPreset(LIGHT_PALETTE, 2)).toEqual(
+      lightPreset(LIGHT_PALETTE, 1),
+    );
+  });
+
+  /* The swap point for the camera rig's shot focus: with none, the shadow
+     covers the whole board and everything on it. */
+  test("the shadow covers the board at every turn, or the shot's focus when given one", () => {
+    const maxTurn = 0.3;
+    const board = shadowBounds(undefined, maxTurn);
+    expect(board).toEqual(boardBounds(maxTurn));
+    for (const turn of [-maxTurn, -maxTurn / 2, 0, maxTurn / 2, maxTurn]) {
+      const yaw = new Matrix4().makeRotationY(turn);
+      for (const x of [-1, 1]) {
+        for (const z of [-1, 1]) {
+          const corner = new Vector3(
+            x * BOARD.halfWidth,
+            0,
+            z * BOARD.halfDepth,
+          ).applyMatrix4(yaw);
+          expect(board.containsPoint(corner), `at ${turn}`).toBe(true);
+        }
+      }
+    }
+    /* Unturned, the box is the board's own: no texels spent past it. */
+    expect(boardBounds().max.x).toBeCloseTo(BOARD.halfWidth, 6);
+    const target = new Vector3(2, 0.5, -1);
+    const focused = shadowBounds({ target, radius: 1.5 });
+    expect(focused.getCenter(new Vector3())).toEqual(target);
+    expect(focused.getSize(new Vector3())).toEqual(new Vector3(3, 3, 3));
+  });
+});
+
+/* Night lights the windows: most panes and the pipe's flow glow, and the
+   dark panes stay dark. */
+test.describe("the board by night", () => {
+  test("lit panes and the pipe glow by night, and the dark pane does not", () => {
+    const paint = createPaint(LIGHT_PALETTE);
+    const [lit, , unlit] = paint.panes;
+    paint.setNight(0);
+    const dayLit = lit.emissiveIntensity;
+    const dayPipe = paint.pipeFlow.emissiveIntensity;
+    const dayUnlit = unlit.emissiveIntensity;
+    paint.setNight(1);
+    expect(lit.emissiveIntensity).toBeGreaterThan(dayLit + 1);
+    expect(paint.pipeFlow.emissiveIntensity).toBeGreaterThan(dayPipe + 1);
+    expect(unlit.emissiveIntensity).toBe(dayUnlit);
+    paint.setNight(0);
+    expect(lit.emissiveIntensity).toBe(dayLit);
+    paint.dispose();
   });
 });

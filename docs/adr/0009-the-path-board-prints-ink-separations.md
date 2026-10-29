@@ -5,8 +5,8 @@ path token list it names.
 
 **Superseded by ADR-0010** (v3-world, 2026-10-29) for the board's art and material. The board is
 now solid geometry modelled in code, and the cards, the ink shader and the scene's printed text
-are retired. Still standing from this ADR: the four path tokens, supersampling rather than
-multisampling, the board's own column, and the pawn's spot.
+are retired. Still standing from this ADR: the board's own column and the pawn's spot. ADR-0011
+(v3-light) replaced supersampling with SMAA and raised the path tokens from four to six.
 
 The `/path` board is printed card: seven tiles whose die-cut cards fold up, in two risograph inks
 on cream stock. It has to read the same in light, dark and print, as every scene does under
