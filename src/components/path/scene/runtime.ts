@@ -546,6 +546,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   const frustum = new Frustum();
   const viewProjection = new Matrix4();
+  const tileBox = new Box3();
 
   /** Whether any of `tile` is in the camera's view, on a canvas showing. */
   function onScreen(tile: Tile) {
@@ -556,7 +557,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         camera.matrixWorldInverse,
       ),
     );
-    return frustum.intersectsBox(new Box3().setFromObject(tile.group));
+    return frustum.intersectsBox(tileBox.setFromObject(tile.group));
   }
 
   /** Frees what a replaced tile alone held: its pieces' geometry. Its
@@ -597,6 +598,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     tiles.set(slug, tile);
     retire(old.group);
     pose();
+    /* Its first draw compiles and uploads: not a measure of the board. */
+    unmeasured = true;
     if (!onScreen(tile)) return;
     arriveTile(slug);
     render();
@@ -855,6 +858,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   let frameRequest = 0;
   let lastTime: number | undefined;
+  /** The next draw compiles or uploads something new — a landmark swapped
+   *  in, a rung's changed chain — so its time is not the governor's. */
+  let unmeasured = false;
   let paused = document.visibilityState === "hidden";
   /** The tour as last reported, and whether its pause has frozen the
    *  board: set by a pause, cleared by play or by the next selection. */
@@ -966,10 +972,17 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* Draws that run long shed AO, then pixels. Timed around the draw
        itself, not the gap between frames, which carries vsync and every
        stall of the page's own. */
-    const shed = governor.sample(draw(step / 1000));
+    const drawn = draw(step / 1000);
+    /* Nor the first draw after an idle stretch, which may compile. */
+    const measured = delta > 0 && !unmeasured;
+    unmeasured = false;
+    const shed = measured ? governor.sample(drawn) : null;
     if (shed) {
       post.setQuality(shed);
+      unmeasured = true;
+      /* Resizing the canvas cleared what was just drawn: draw again. */
       frame();
+      requestFrame();
     }
     canvas.dataset.pathSceneRendered = "true";
     if (moving()) requestFrame();
@@ -1013,8 +1026,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function render() {
-    if (!frameRequest && !contextLost && !fellBack) {
+    if (!frameRequest && !paused && !contextLost && !fellBack) {
       draw(0);
+      unmeasured = false;
       canvas.dataset.pathSceneRendered = "true";
     }
   }
@@ -1215,7 +1229,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
          that failed is waited on, fetched again. */
       if (prepared && !failedIn(step.slug)) {
         approach(step.slug);
-        return buildOrFail(step, options);
+        buildOrFail(step, options);
+        /* A first landing overtaken before its own landmarks came: the
+           rest still follow (once only). */
+        loadRest(step.slug);
+        return;
       }
       /* Loading: the canvas is see-through, so the step's still shows until
          the board, and the step's own landmarks, are in. */

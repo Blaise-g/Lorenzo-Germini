@@ -399,8 +399,8 @@ html {
       scroll-snap-align: center;
     }
 
-    /* Under a board that takes half a phone's screen, the strip packs
-       close, its links shorter below the date. */
+    /* Under the board, where the strip scrolls (a phone's screen, and a
+       tablet's), it packs close, its links shorter below the date. */
     .path-step-link {
       padding-bottom: 0.625rem;
     }

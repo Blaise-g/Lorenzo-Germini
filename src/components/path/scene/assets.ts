@@ -25,9 +25,9 @@ import {
    the next time its tile is selected.
 
    The models load lazily (v3-harden), so a first paint carries one step's
-   landmarks, not seven: a step's own before its tile builds, the next
-   step's as it is shown, and the rest one at a time when the page is idle
-   (`runtime.ts`). A phone, and a board the governor has stepped down, fetch
+   landmarks, not seven: a step's own before its tile builds, and the rest
+   one at a time once the page is idle, nearest first. A step shown after
+   that also asks for its own and the next step's at once (`runtime.ts`). A phone, and a board the governor has stepped down, fetch
    each model's LOD (`modelFile`). */
 
 /** The card stock's grain: a tileable grey height map, read as a bump. */

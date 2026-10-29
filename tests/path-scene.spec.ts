@@ -171,17 +171,34 @@ test.describe("the build", () => {
     page,
   }) => {
     await recordBuildStates(page);
+    /* Every state the stage passes through, recorded as it changes: a
+       loaded machine's polling can miss the middle of a build. */
+    await page.addInitScript(() => {
+      const seen: (string | null)[][] = [];
+      (window as unknown as { __stageStates: typeof seen }).__stageStates =
+        seen;
+      new MutationObserver(() => {
+        const stage = document.querySelector("[data-path-stage]");
+        if (!stage) return;
+        seen.push(
+          ["data-build-state", "data-scene-lit", "data-scene-props"].map(
+            (name) => stage.getAttribute(name),
+          ),
+        );
+      }).observe(document, {
+        subtree: true,
+        attributes: true,
+        childList: true,
+        attributeFilter: [
+          "data-build-state",
+          "data-scene-lit",
+          "data-scene-props",
+        ],
+      });
+    });
     await page.goto("/path#home");
     await expect(stage(page)).toHaveAttribute("data-build-state", "building");
     const started = Date.now();
-    /* Part-way, the first prop has landed and lit its line while the rest
-       are still to come: the highlight follows the build, not its end. */
-    await expect(stage(page)).toHaveAttribute("data-scene-lit", "0");
-    await expect(stage(page)).toHaveAttribute("data-build-state", "building");
-    await expect(stage(page)).not.toHaveAttribute(
-      "data-scene-props",
-      propsThrough("home"),
-    );
     await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
       timeout: 8000,
     });
@@ -191,6 +208,20 @@ test.describe("the build", () => {
     expect(took).toBeGreaterThan(1500);
     expect(took).toBeLessThan(4000);
     expect(await buildStates(page)).toEqual(["loading", "building", "built"]);
+    /* Part-way, the first prop had landed and lit its line while the rest
+       were still to come: the highlight follows the build, not its end. */
+    const states = await page.evaluate(
+      () =>
+        (window as unknown as { __stageStates: (string | null)[][] })
+          .__stageStates,
+    );
+    expect(
+      states.some(
+        ([state, lit, props]) =>
+          state === "building" && lit === "0" && props !== propsThrough("home"),
+      ),
+      JSON.stringify(states),
+    ).toBe(true);
     await expect(stage(page)).toHaveAttribute(
       "data-scene-lit",
       captionLines("home"),

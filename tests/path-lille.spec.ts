@@ -203,6 +203,8 @@ test.describe("the budgets", () => {
     for (const url of stills) {
       still = Math.max(still, (await stat(publicFile(url))).size);
     }
+    /* Files on disk, stricter than the wire (Lille's two models are
+       644.7 KB here, 608.0 KB sent): with Lille's, about 5 KB to spare. */
     expect(PAGE_BYTES + world + still).toBeLessThanOrEqual(SCENE_BYTES);
   });
 });
