@@ -1,10 +1,10 @@
 import { Color } from "three";
 
 /* The board's colours are the path tokens in `globals.css` (ADR-0008), read
-   from the page so the CSS stays their one source. The board is printed in
-   two risograph inks on card stock (comp B), so its palette is the stock, the
-   two inks and the table it lies on; every card, tile and the pawn is coloured
-   from these in the ink shader, so one texture serves light and dark. */
+   from the page so the CSS stays their one source. The board keeps v2's
+   riso palette as material colour: the stock, the two inks and the table it
+   lies on, from which `paint.ts` mixes every surface's tone, so one board
+   serves light and dark. */
 
 /** Each role's token, spelled out whole: Tailwind emits an `@theme`
  *  variable only when its scanner finds the name used in a source file, and

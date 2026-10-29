@@ -4,7 +4,7 @@
 
 /** The fewest device pixels a CSS pixel is drawn with. The renderer does not
  *  multisample (ADR-0009): it draws at twice the CSS size at least, so a
- *  screen at ratio 2 gets the cards at its own sharpness, and a screen at
+ *  screen at ratio 2 gets the board at its own sharpness, and a screen at
  *  ratio 1 gets them supersampled, each pixel the average of four. */
 export const MIN_PIXEL_RATIO = 2;
 

@@ -1,4 +1,4 @@
-/* The board's motion, as pure functions of time: the cards' fold, the
+/* The board's motion, as pure functions of time: the pieces' rise, the
    pawn's hops along the loop and its landing. No three.js and no DOM here,
    so a spec checks the curves directly. The grammar is Emil Kowalski's:
    springs for things that settle, a strong ease-in-out for things already on
@@ -34,36 +34,44 @@ export function easeInOut(t: number): number {
   return x < 0.5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2;
 }
 
-/* ─── The fold ─── */
+/* ─── The rise ─── */
 
-/** A card lying back on its tile, nearly flat: it never starts from flat
- *  zero, as a pop-up's card never lies perfectly flat in its fold. */
-export const FOLD_FROM = -Math.PI / 2 + 0.16;
-/** The fold's spring: about half a second to look settled, a small bounce
- *  past upright. */
-const FOLD_SPRING_MS = 520;
-const FOLD_BOUNCE = 0.22;
-/** How much of the fold a card takes to fade in over, dithered. */
-const FOLD_FADE = 0.14;
+/** A piece coming up out of its tile: squat and a touch narrow as it
+ *  starts, never from nothing, then springing up to its full height with a
+ *  small overshoot. */
+export const RISE_FROM = { height: 0.18, width: 0.9, sink: 0.12 } as const;
+/** The rise's spring: about 0.6 s to look settled, a small bounce past full
+ *  height. */
+const RISE_SPRING_MS = 600;
+const RISE_BOUNCE = 0.22;
 
-export type FoldPose = {
-  /** Rotation about the hinge: `FOLD_FROM` lying back, 0 upright. */
-  angle: number;
-  /** 0 hidden, 1 solid. */
-  opacity: number;
-  /** A touch under full size as it starts, never 0. */
-  scale: number;
+export type RisePose = {
+  /** Whether it shows at all: not before its rise starts. */
+  visible: boolean;
+  /** Its scale across (x and z) and up (y), about its foot. */
+  width: number;
+  height: number;
+  /** How far below its place it stands, in scene units. */
+  sink: number;
 };
 
-/** A card `progress` of the way through its fold window (0 to 1). */
-export function foldPose(progress: number, windowMs: number): FoldPose {
-  if (progress <= 0) return { angle: FOLD_FROM, opacity: 0, scale: 0.94 };
-  if (progress >= 1) return { angle: 0, opacity: 1, scale: 1 };
-  const settled = spring(progress * windowMs, FOLD_SPRING_MS, FOLD_BOUNCE);
+/** A piece `progress` of the way through its rise window (0 to 1). */
+export function risePose(progress: number, windowMs: number): RisePose {
+  if (progress <= 0) {
+    return {
+      visible: false,
+      width: RISE_FROM.width,
+      height: RISE_FROM.height,
+      sink: RISE_FROM.sink,
+    };
+  }
+  if (progress >= 1) return { visible: true, width: 1, height: 1, sink: 0 };
+  const settled = spring(progress * windowMs, RISE_SPRING_MS, RISE_BOUNCE);
   return {
-    angle: FOLD_FROM * (1 - settled),
-    opacity: Math.min(progress / FOLD_FADE, 1),
-    scale: 0.94 + 0.06 * Math.min(settled, 1),
+    visible: true,
+    width: RISE_FROM.width + (1 - RISE_FROM.width) * Math.min(settled, 1),
+    height: RISE_FROM.height + (1 - RISE_FROM.height) * settled,
+    sink: RISE_FROM.sink * Math.max(1 - settled, 0),
   };
 }
 
@@ -105,8 +113,8 @@ export function movePose(
   };
 }
 
-/** The pawn's landing: a quick squash that springs back, as a paper cone
- *  would on a card. 1 is its rest height. */
+/** The pawn's landing: a quick squash that springs back, as a turned
+ *  wooden piece set down hard would seem to. 1 is its rest height. */
 export const LANDING_MS = 320;
 
 export function landingSquash(t: number): number {

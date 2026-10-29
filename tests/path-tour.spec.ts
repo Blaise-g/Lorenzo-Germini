@@ -691,7 +691,7 @@ test.describe("with the board drawing", () => {
     page,
   }) => {
     /* Cards that never arrive: the tile stays loading, and never settles. */
-    await page.route("**/path/cards/**", () => {});
+    await page.route("**/path/{world,models}/**", () => {});
     await page.goto("/path#turin");
     await hydrated(page);
     const stage = page.locator("[data-path-stage]");

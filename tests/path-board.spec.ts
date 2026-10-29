@@ -73,9 +73,9 @@ async function settleOn(page: Page, slug: PathStepSlug) {
 test.describe("the pawn's move", () => {
   test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-  /* Lille to "now" is one tile: one hop, then now's cards fold up in the
-     data's order over about 2–3 s. No card of now's shows while the pawn is
-     in the air. */
+  /* Lille to "now" is one tile: one hop, then now's pieces rise in the
+     data's order over about 2–3 s. No piece of now's shows while the pawn
+     is in the air. */
   test("hops to the next tile, then builds it", async ({ page }) => {
     await settleOn(page, "lille");
     const start = await watchProps(page);
@@ -99,7 +99,7 @@ test.describe("the pawn's move", () => {
   });
 
   /* Home to step 4 is three tiles forward: the pawn lands inside about
-     1.2 s, so step 4's first card starts to fold by then, and home's tile,
+     1.2 s, so step 4's first piece starts to rise by then, and home's tile,
      already built, stays standing throughout. */
   test("a far jump lands inside 1.2 s, and built tiles stay built", async ({
     page,

@@ -1,23 +1,17 @@
 import {
-  BoxGeometry,
-  BufferGeometry,
+  AgXToneMapping,
   Color,
-  ConeGeometry,
-  DataTexture,
   DirectionalLight,
-  DoubleSide,
-  ExtrudeGeometry,
   Group,
   HemisphereLight,
   Mesh,
-  PCFShadowMap,
+  PCFSoftShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  PMREMGenerator,
   Raycaster,
   Scene,
   ShadowMaterial,
-  Shape,
-  ShapeGeometry,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -25,25 +19,28 @@ import {
   type Object3D,
   type Texture,
 } from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 
 import { PATH_STEPS } from "@/data/path";
 import type { PathStep, PathStepSlug } from "@/data/path.types";
 
 import {
-  LOOP,
-  MVP_INK_STRENGTH,
-  MVP_WINDOW_LINES,
-  NAME_REACH,
-  TAB_REACH,
-  NAME_STRIP,
-  PAWN_RADIUS,
-  pawnSpot,
-  TILE,
-  tileCentre,
+  fitModel,
+  loadGrain,
+  loadLandmarkIndex,
+  loadModel,
+  type ModelResult,
+} from "./assets";
+import {
+  BOARD,
+  boardOutline,
   frameShapes,
   HOP_HEIGHT,
-  PAWN_HEIGHT,
-  tileName,
+  LOOP,
+  pawnSpot,
+  piecesOf,
+  TILE,
+  tileCentre,
   tileScale,
 } from "./board";
 import {
@@ -54,7 +51,6 @@ import {
   type BuildPlan,
   type BuildState,
 } from "./build-plan";
-import { cardsForStep, type CardArt } from "./card-art";
 import { drawingPixelRatio } from "./drawing-buffer";
 import {
   centreOf,
@@ -75,34 +71,29 @@ import {
   type SceneFallbackReason,
 } from "./fallback";
 import {
-  drawnInk,
-  inkMaterial,
-  loadGrain,
-  loadInk,
-  type InkShared,
-  type InkMaterial,
-  type InkOptions,
-  type InkPlates,
-} from "./ink";
-import { handAngle, LILLE_FIGURE_LINES } from "./lille";
-import {
   easeInOut,
-  foldPose,
   landingSquash,
   LANDING_MS,
   loopSteps,
   moveDuration,
   movePose,
+  risePose,
 } from "./motion";
+import { createPaint } from "./paint";
 import { isDarkMode, readPalette, type Palette } from "./palette";
+import { buildPiece } from "./props";
+import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
+import { makeBoard, makePath, makePawn, makeTileBase } from "./world";
 
-/* The 3D path's board (GH-148; comp B, "Risograph Pop-up"): vanilla three.js,
-   imported dynamically by the host on `/path` only, after the overlay has
-   painted (GH-141, implementation decision 6). One printed board holds every
-   step as a tile on a loop. Selecting a step hops the pawn there along the
-   loop and folds that tile's cards up in the data's order, lighting the
-   caption lines as they settle; then the board stops drawing until something
-   moves again. Tiles already built stay built. */
+/* The 3D path's board (GH-148; v3, a solid tabletop board): vanilla
+   three.js, imported dynamically by the host on `/path` only, after the
+   overlay has painted (GH-141, implementation decision 6). One thick board
+   holds every step as a tile on a loop, every piece on it modelled solid
+   (`world.ts`, `props.ts`) or loaded (`scene-assets.ts`), and nothing on it
+   is text. Selecting a step hops the pawn there along the loop and raises
+   that tile's pieces in the data's order, lighting the caption lines as they
+   settle; then the board stops drawing until something moves again. Tiles
+   already built stay built. */
 
 const TURN_RADIANS = 0.3;
 const TURN_MS = 450;
@@ -117,43 +108,30 @@ const CONTEXT_RESTORE_MS = 3000;
  *  the build's clock does not jump across them. */
 const MAX_STEP_MS = 100;
 const CAMERA_FOV = 26;
-/** A high three-quarter view, as comp B's: the camera's angle above the
- *  table. Steeper, the ring stands taller, and fills more of a stage that is
- *  taller than the ring is deep. */
+/** A high three-quarter view: the camera's angle above the table. */
 const CAMERA_ELEVATION = 0.95;
-/** How much of the stage's free part the board may fill, either way. The
- *  board's own labels, such as the MVP window's tag, are not among the
- *  outlines the camera keeps in view, and reach a little past a tile's
- *  side, so across it leaves them room. */
+/** How much of the stage's free part the board may fill, either way. */
 const FRAME_FILL = { x: 0.93, y: 0.96 } as const;
-/** Each card after the first in a prop folds this much later. */
-const CARD_STAGGER_MS = 110;
-/** The selected tile stands this much proud of the table, in its own
+/** Each piece after the first in a prop rises this much later. */
+const PIECE_STAGGER_MS = 110;
+/** The selected tile stands this much proud of the board, in its own
  *  units, as a tile picked up off a board does: its shadow says which. */
 const LIFT_HEIGHT = 0.3;
 /** How long a tile takes to rise or settle back. */
 const LIFT_MS = 320;
-/** However many cards a prop has, the last starts with time left to fold. */
-const MAX_CARD_DELAY_MS = PROP_DROP_MS * 0.6;
-/** A tile already built, built again, folds from part-way back: it stays
+/** However many pieces a prop has, the last starts with time left to
+ *  rise. */
+const MAX_PIECE_DELAY_MS = PROP_DROP_MS * 0.6;
+/** A tile already built, built again, rises from part-way: it stays
  *  standing rather than vanishing and rising from nothing. */
-const REFOLD_FROM = 0.42;
-/** Printed text on the board, in pixels of texture per scene unit. */
-const PRINT_PX = 150;
-const TILE_PX = 84;
-/** A card's cut edge, standing behind its face: the card's thickness. */
-const CARD_THICKNESS = 0.02;
-/* A standing card's glued tab reaches `TAB_REACH` in front of its fold at
-   most, and never over the tile's name. A card too close to the name for a
-   tab worth seeing has none. */
-const TAB_MIN_DEPTH = 0.1;
-/** A tab is narrower than its card: its ends are cut back. */
-const TAB_WIDTH_SHARE = 0.86;
+const REBUILD_FROM = 0.42;
+/** The sun's shadow map, square: crisp contact shadows across the board. */
+const SHADOW_MAP = 2048;
 
 export type SceneSnapshot = {
   buildState: BuildState;
   lit: readonly number[];
-  /** The props standing or folding up on the board, in the data's order. */
+  /** The props standing or rising on the board, in the data's order. */
   shown: readonly string[];
   turn: number;
   /** The step the board last settled, or is settling, on. */
@@ -185,71 +163,32 @@ export type SceneRuntime = {
   /** The part of the stage the page leaves the board, in CSS pixels; the
    *  whole stage until the host says otherwise. */
   setFrame(frame: StageFrame): void;
-  /** The step whose tile, or a card standing on it, is under a point on the
-   *  canvas, in CSS pixels from its top-left corner; null for none. */
+  /** The step whose tile, or a piece standing on it, is under a point on
+   *  the canvas, in CSS pixels from its top-left corner; null for none. */
   pick(x: number, y: number): PathStepSlug | null;
   dispose(): void;
 };
 
-/** One card on a tile, hinged at its foot. */
-type Piece = {
-  hinge: Group;
-  /** The glued tab a card standing on the tile folds up from, lying flat
-   *  in front of it: shown and grown with the card, never turned. */
-  tab?: Object3D;
-  materials: InkMaterial[];
-  /** Its delay after its prop starts to fold. */
+/** One piece on a tile, rising from its foot. */
+type Riser = {
+  /** Scaled as it rises; its piece stands inside, in `sinker`. */
+  riser: Group;
+  /** Lowered as it starts to rise. */
+  sinker: Group;
+  /** Its delay after its prop starts to rise. */
   delay: number;
-  motion?: (hinge: Object3D, progress: number) => void;
+  motion?: (progress: number) => void;
 };
 
 type Tile = {
   slug: PathStepSlug;
   group: Group;
-  /** Its pieces by the prop they fold up with, in the data's order. */
-  props: Map<string, Piece[]>;
+  /** Its pieces by the prop they rise with, in the data's order. */
+  props: Map<string, Riser[]>;
 };
 
 function stepNamed(slug: PathStepSlug) {
   return PATH_STEPS.find((step) => step.slug === slug)!;
-}
-
-/** The chamfered outline every tile is cut to, centred on its origin. */
-function tileShape() {
-  const w = TILE.width / 2;
-  const d = TILE.depth / 2;
-  const c = TILE.chamfer;
-  const shape = new Shape();
-  shape.moveTo(-w + c, -d);
-  shape.lineTo(w - c, -d);
-  shape.lineTo(w, -d + c);
-  shape.lineTo(w, d - c);
-  shape.lineTo(w - c, d);
-  shape.lineTo(-w + c, d);
-  shape.lineTo(-w, d - c);
-  shape.lineTo(-w, -d + c);
-  shape.closePath();
-  return shape;
-}
-
-function chamferPath(context: CanvasRenderingContext2D, w: number, h: number) {
-  const c = (TILE.chamfer / TILE.width) * w;
-  context.beginPath();
-  context.moveTo(c, 0);
-  context.lineTo(w - c, 0);
-  context.lineTo(w, c);
-  context.lineTo(w, h - c);
-  context.lineTo(w - c, h);
-  context.lineTo(c, h);
-  context.lineTo(0, h - c);
-  context.lineTo(0, c);
-  context.closePath();
-}
-
-function flatGrain() {
-  const texture = new DataTexture(Uint8Array.from([128, 128, 128, 255]), 1, 1);
-  texture.needsUpdate = true;
-  return texture;
 }
 
 export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
@@ -267,40 +206,51 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     failIfMajorPerformanceCaveat: true,
   });
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.type = PCFSoftShadowMap;
+  /* AgX keeps the inks' hue through the highlights, where the default
+     clamps them to white (the benchmark's §4(c)). */
+  renderer.toneMapping = AgXToneMapping;
+  renderer.toneMappingExposure = 1.0;
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(CAMERA_FOV, 1, 0.5, 200);
   const board = new Group();
   scene.add(board);
 
-  /* Flat, even daylight with one sun for crisp contact shadows (comp B):
-     the sky does most of the lighting, so a card facing the visitor prints
-     close to its token colours. */
-  const sky = new HemisphereLight(0xffffff, 0xffffff, 2.3);
-  const sun = new DirectionalLight(0xffffff, 1.25);
-  sun.position.set(-11, 13, 4);
+  /* A soft room for fill and the lacquer's highlights, a sky over a
+     terracotta ground, and one sun with soft shadows. Package W4 grades and
+     lights the board properly; this is the baseline to judge the models
+     by. */
+  const pmrem = new PMREMGenerator(renderer);
+  const room = new RoomEnvironment();
+  const environment = pmrem.fromScene(room, 0.04);
+  room.dispose();
+  scene.environment = environment.texture;
+  scene.environmentIntensity = 0.35;
+  const sky = new HemisphereLight(0xffffff, 0xffffff, 0.75);
+  const sun = new DirectionalLight(0xffffff, 2.9);
+  sun.position.set(-10, 16, 8);
   sun.castShadow = true;
-  /* 768 square: the shadows of a tile's cards stay crisp, and the map
-     takes 1.8 MB less than a 1024 one, at 4 bytes a texel
-     (`docs/path-measurements.md`). */
-  sun.shadow.mapSize.set(768, 768);
+  sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
   Object.assign(sun.shadow.camera, {
-    left: -15,
-    right: 15,
-    top: 13,
-    bottom: -13,
+    left: -17,
+    right: 17,
+    top: 14,
+    bottom: -14,
     near: 1,
     far: 50,
   });
-  sun.shadow.bias = -0.0008;
-  sun.shadow.normalBias = 0.02;
+  sun.shadow.bias = -0.0004;
+  sun.shadow.normalBias = 0.03;
+  sun.shadow.radius = 2;
   scene.add(sky, sun);
 
-  /* The table the board lies on is the page: only the shadows show on it. */
-  const tableMaterial = new ShadowMaterial({ opacity: 0.2 });
-  const table = new Mesh(new PlaneGeometry(90, 90), tableMaterial);
+  /* The table the board lies on is the page: only the board's shadow shows
+     on it. */
+  const tableMaterial = new ShadowMaterial({ opacity: 0.22 });
+  const table = new Mesh(new PlaneGeometry(120, 120), tableMaterial);
   table.rotation.x = -Math.PI / 2;
+  table.position.y = -BOARD.thickness;
   table.receiveShadow = true;
   scene.add(table);
 
@@ -317,458 +267,79 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let themeFrom = themeMix.value;
   let themeTarget = themeMix.value;
   let themeElapsed = THEME_MS;
-
-  const colours: InkShared = {
-    paper: { value: new Color() },
-    ink1: { value: new Color() },
-    ink2: { value: new Color() },
-    /* Even grey until `grain.webp` arrives, which is no grain at all. */
-    grain: { value: flatGrain() },
-  };
+  const paintBox = createPaint(firstPalette);
   const background = new Color();
 
   function paint() {
-    const mix = (role: keyof Palette) =>
-      palettes.light[role].clone().lerp(palettes.dark[role], themeMix.value);
-    colours.paper.value.copy(mix("paper"));
-    colours.ink1.value.copy(mix("ink-warm"));
-    colours.ink2.value.copy(mix("ink-cool"));
-    background.copy(mix("fog"));
+    const mixed = Object.fromEntries(
+      (Object.keys(palettes.light) as (keyof Palette)[]).map((role) => [
+        role,
+        palettes.light[role].clone().lerp(palettes.dark[role], themeMix.value),
+      ]),
+    ) as Palette;
+    paintBox.repaint(mixed);
+    background.copy(mixed.fog);
     scene.background = background;
-    /* A shadow on dark stock reads with a little more weight. */
-    tableMaterial.opacity = 0.2 + 0.2 * themeMix.value;
+    sky.color.copy(mixed.paper);
+    sky.groundColor.copy(mixed["ink-warm"]).lerp(mixed.paper, 0.4);
+    /* A shadow on a dark page reads with a little more weight. */
+    tableMaterial.opacity = 0.18 + 0.2 * themeMix.value;
   }
   paint();
 
-  /* Everything the board allocates, for `dispose`. */
-  const geometries = new Set<BufferGeometry>();
-  const materials = new Set<Material>();
-  const textures = new Set<Texture>([colours.grain.value!]);
-
-  function own<T extends BufferGeometry>(geometry: T) {
-    geometries.add(geometry);
-    return geometry;
-  }
-
-  /* The tile tops are seen at a slant, where trilinear filtering alone
-     reaches for a smaller mip and blurs the names. */
-  const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-
-  function surface(texture: Texture, options: InkOptions) {
-    textures.add(texture);
-    texture.anisotropy = anisotropy;
-    const made = inkMaterial(texture, colours, options);
-    made.material.shadowSide = DoubleSide;
-    made.depthMaterial.side = DoubleSide;
-    materials.add(made.material);
-    materials.add(made.depthMaterial);
-    return made;
-  }
-
-  /** A die-cut card standing on its hinge: its printed face, and behind it
-   *  its cut edge, which shows as the card's thickness. */
-  function card(
-    texture: Texture,
-    size: readonly [number, number],
-    anchor: { u: number; v: number },
-    options: InkOptions,
-  ): { hinge: Group; materials: InkMaterial[] } {
-    const [width, height] = size;
-    const geometry = own(new PlaneGeometry(width, height));
-    geometry.translate((0.5 - anchor.u) * width, (0.5 - anchor.v) * height, 0);
-    const face = surface(texture, { ...options, size });
-    const edge = surface(texture, { ...options, size, edge: true });
-    const front = new Mesh(geometry, face.material);
-    front.castShadow = true;
-    front.receiveShadow = true;
-    front.customDepthMaterial = face.depthMaterial;
-    const back = new Mesh(geometry, edge.material);
-    back.position.z = -CARD_THICKNESS;
-    back.position.y = -CARD_THICKNESS / 2;
-    const hinge = new Group();
-    hinge.add(front, back);
-    return { hinge, materials: [face.material, edge.material] };
-  }
-
-  /* A card standing on the tile has a tab: paper, its ends chamfered and its cut edge
-     ruled, and the crease it folds up along scored as a slate dashed line.
-     One print for every tab; each card's tab has its own material, so it
-     fades with its card. */
-  const tabTexture = drawnInk(256, 40, (plates) => {
-    const { cut, ink2 } = plates;
-    const outline = new Path2D("M0 0 L256 0 L232 40 L24 40 Z");
-    cut.fill(outline);
-    ink2.lineWidth = 4;
-    ink2.stroke(new Path2D("M2 0 L25 38 L231 38 L254 0"));
-    ink2.lineWidth = 3;
-    ink2.setLineDash([9, 7]);
-    ink2.beginPath();
-    ink2.moveTo(8, 4);
-    ink2.lineTo(248, 4);
-    ink2.stroke();
-  });
-
-  function tab(art: CardArt): { tab: Mesh; material: InkMaterial } | null {
-    if (art.position.y !== 0 || art.anchor.v !== 0) return null;
-    const depth = Math.min(
-      TAB_REACH,
-      TILE.depth / 2 - NAME_STRIP - NAME_REACH - art.position.z,
-    );
-    if (depth < TAB_MIN_DEPTH) return null;
-    const tabWidth = art.width * TAB_WIDTH_SHARE;
-    const geometry = own(new PlaneGeometry(tabWidth, depth));
-    /* Flat on the tile, its scored edge along the card's foot. */
-    geometry.rotateX(-Math.PI / 2);
-    geometry.translate((0.5 - art.anchor.u) * art.width, 0.006, depth / 2);
-    const { material } = surface(tabTexture, {
-      seed: `${art.id}-tab`,
-      size: [tabWidth, depth],
-    });
-    const mesh = new Mesh(geometry, material);
-    mesh.receiveShadow = true;
-    return { tab: mesh, material };
-  }
-
-  /* ─── Printed text ─── */
-
-  function fontOf(variable: string, weight: number, px: number) {
-    const family =
-      getComputedStyle(document.documentElement)
-        .getPropertyValue(variable)
-        .trim() || "serif";
-    return `${weight} ${px}px ${family}`;
-  }
-  const displayFont = (px: number) => fontOf("--font-display", 600, px);
-  const labelFont = (px: number) => fontOf("--font-label", 600, px);
-
-  type Label = {
-    lines: readonly string[];
-    font: (px: number) => string;
-    lineHeight: number;
-    ink: "ink1" | "ink2";
-    /** A die-cut plaque behind the text, ruled in its ink; without it the
-     *  text is printed on whatever it overlays. */
-    plaque?: boolean;
-  };
-
-  /** Lines of text printed in one ink, `lineHeight` scene units each, as a
-   *  separation; returns its size in scene units. */
-  function printed(label: Label) {
-    const px = Math.round(label.lineHeight * PRINT_PX * 0.72);
-    const leading = label.lineHeight * PRINT_PX;
-    const measure = document.createElement("canvas").getContext("2d")!;
-    measure.font = label.font(px);
-    const textWidth = Math.max(
-      ...label.lines.map((line) => measure.measureText(line).width),
-    );
-    const pad = label.plaque ? px * 0.9 : px * 0.2;
-    const width = Math.ceil(textWidth + pad * 2);
-    const height = Math.ceil(leading * label.lines.length + pad * 0.9);
-    const texture = drawnInk(width, height, (plates) => {
-      const ink = plates[label.ink];
-      if (label.plaque) {
-        plates.cut.fillRect(0, 0, width, height);
-        ink.lineWidth = Math.max(2, px * 0.08);
-        const inset = px * 0.28;
-        ink.strokeRect(inset, inset, width - inset * 2, height - inset * 2);
-      }
-      ink.font = label.font(px);
-      ink.textAlign = "center";
-      ink.textBaseline = "middle";
-      label.lines.forEach((line, index) =>
-        ink.fillText(
-          line,
-          width / 2,
-          height / 2 + (index - (label.lines.length - 1) / 2) * leading,
-        ),
-      );
-      if (!label.plaque) {
-        plates.cut.font = ink.font;
-        plates.cut.textAlign = "center";
-        plates.cut.textBaseline = "middle";
-        label.lines.forEach((line, index) =>
-          plates.cut.fillText(
-            line,
-            width / 2,
-            height / 2 + (index - (label.lines.length - 1) / 2) * leading,
-          ),
-        );
-      }
-    });
-    return {
-      texture,
-      size: [width / PRINT_PX, height / PRINT_PX] as const,
-    };
-  }
-
   /* ─── The tiles ─── */
 
-  const cardTextures = new Map<string, Texture>();
-  const failedFiles = new Set<string>();
+  /** Each landmark's outcome, by its file. */
+  const models = new Map<string, ModelResult>();
   const tiles = new Map<PathStepSlug, Tile>();
   /** Tiles that could not be made, and why; tried again on the next show. */
   const failedTiles = new Map<PathStepSlug, SceneFallbackReason>();
-  let tileShapeGeometry: ShapeGeometry | undefined;
-  let tileSlabGeometry: ExtrudeGeometry | undefined;
-  let plainTexture: Texture | undefined;
-
-  function cardTexture(art: CardArt) {
-    const texture = cardTextures.get(art.file);
-    if (!texture) throw new Error(`The card ${art.file} is not loaded`);
-    return texture;
-  }
-
-  function tileTop(slug: PathStepSlug) {
-    const width = Math.round(TILE.width * TILE_PX);
-    const height = Math.round(TILE.depth * TILE_PX);
-    const band = stepIndex(slug) % 2 === 0 ? "ink1" : "ink2";
-    const other = band === "ink1" ? "ink2" : "ink1";
-    return drawnInk(width, height, (plates: InkPlates) => {
-      chamferPath(plates.cut, width, height);
-      plates.cut.fill();
-      /* A ruled border in the second ink, and the corners printed solid:
-         the tile's own ink at the front, the other at the back, as a
-         board's colour bands are laid. */
-      const corner = 0.95 * TILE_PX;
-      const wedge = (
-        context: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        dx: number,
-        dy: number,
-      ) => {
-        context.save();
-        chamferPath(context, width, height);
-        context.clip();
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(x + dx * corner, y);
-        context.lineTo(x, y + dy * corner);
-        context.closePath();
-        context.fill();
-        context.restore();
-      };
-      wedge(plates[band], 0, height, 1, -1);
-      wedge(plates[band], width, height, -1, -1);
-      wedge(plates[other], 0, 0, 0.7, 0.7);
-      wedge(plates[other], width, 0, -0.7, 0.7);
-      plates.ink2.lineWidth = 0.03 * TILE_PX;
-      const inset = 0.16 * TILE_PX;
-      plates.ink2.save();
-      plates.ink2.translate(inset, inset);
-      chamferPath(plates.ink2, width - inset * 2, height - inset * 2);
-      plates.ink2.stroke();
-      plates.ink2.restore();
-      /* The front strip carries the name, in the second ink. */
-      const strip = NAME_STRIP * TILE_PX;
-      plates.ink2.font = displayFont(Math.round(0.56 * TILE_PX));
-      plates.ink2.textAlign = "center";
-      plates.ink2.textBaseline = "middle";
-      plates.ink2.fillText(tileName(slug), width / 2, height - strip);
-    });
-  }
 
   function stepIndex(slug: PathStepSlug) {
     return LOOP.indexOf(slug);
   }
 
-  function tileBase(slug: PathStepSlug) {
-    tileShapeGeometry ??= (() => {
-      const shape = tileShape();
-      const geometry = own(new ShapeGeometry(shape));
-      /* A shape's UVs are its coordinates; the top's texture spans it. */
-      const uv = geometry.getAttribute("uv");
-      for (let i = 0; i < uv.count; i++) {
-        uv.setXY(
-          i,
-          uv.getX(i) / TILE.width + 0.5,
-          uv.getY(i) / TILE.depth + 0.5,
-        );
-      }
-      geometry.rotateX(-Math.PI / 2);
-      geometry.translate(0, TILE.thickness + 0.002, 0);
-      return geometry;
-    })();
-    tileSlabGeometry ??= (() => {
-      const geometry = own(
-        new ExtrudeGeometry(tileShape(), {
-          depth: TILE.thickness,
-          bevelEnabled: false,
-        }),
-      );
-      geometry.rotateX(-Math.PI / 2);
-      return geometry;
-    })();
-    plainTexture ??= drawnInk(2, 2, (plates) =>
-      plates.cut.fillRect(0, 0, 2, 2),
-    );
-
-    const top = new Mesh(
-      tileShapeGeometry,
-      surface(tileTop(slug), {
-        seed: slug,
-        size: [TILE.width, TILE.depth],
-      }).material,
-    );
-    top.receiveShadow = true;
-    const slab = new Mesh(
-      tileSlabGeometry,
-      surface(plainTexture, { edge: true }).material,
-    );
-    slab.castShadow = true;
-    slab.receiveShadow = true;
-    const group = new Group();
-    group.add(slab, top);
-    return group;
-  }
-
-  /** The pieces the board itself prints for a tile, beyond its cards: the
-   *  labels and moving parts no card carries. */
-  function extras(slug: PathStepSlug): { prop: string; piece: Piece }[] {
-    const cards = cardsForStep(slug);
-    const placed = (
-      prop: string,
-      made: { hinge: Group; materials: InkMaterial[] },
-      x: number,
-      y: number,
-      z: number,
-      motion?: Piece["motion"],
-    ) => {
-      made.hinge.position.set(x, y, z);
-      return { prop, piece: { ...made, delay: 0, motion } };
-    };
-
-    if (slug === "lille") {
-      const clock = cards.find((art) => art.prop === "clock-face");
-      if (!clock) return [];
-      const { x, y, z } = clock.position;
-      /* The dial's hand: a slip of card pinned at the dial's centre, which
-         turns inside a hinge that folds up with the dial. */
-      const handTexture = drawnInk(8, 64, (plates) => {
-        plates.cut.fillRect(0, 0, 8, 64);
-        plates.ink2.fillRect(0, 0, 8, 64);
-      });
-      const blade = card(
-        handTexture,
-        [clock.width * 0.06, clock.height * 0.36],
-        { u: 0.5, v: 0.12 },
-        { seed: "hand" },
-      );
-      blade.hinge.name = "hand";
-      blade.hinge.position.y = clock.height / 2;
-      const hand = { hinge: new Group(), materials: blade.materials };
-      hand.hinge.add(blade.hinge);
-      /* The post the dial stands on, when it stands above the tile. */
-      const post = card(
-        plainTexture!,
-        [0.07, Math.max(y, 0.01)],
-        { u: 0.5, v: 0 },
-        { seed: "post", edge: false },
-      );
-      const plaque = printed({
-        lines: LILLE_FIGURE_LINES,
-        font: displayFont,
-        lineHeight: 0.3,
-        ink: "ink1",
-        plaque: true,
-      });
-      return [
-        placed("clock-face", post, x, 0, z - 0.03),
-        placed("clock-face", hand, x, y, z + 0.012, (hinge, progress) => {
-          const pin = hinge.getObjectByName("hand");
-          if (pin) pin.rotation.z = handAngle(progress);
-        }),
-        placed(
-          "clock-face",
-          card(
-            plaque.texture,
-            plaque.size,
-            { u: 0.5, v: 0 },
-            {
-              seed: "plaque",
-            },
-          ),
-          0.2,
-          0,
-          0.7,
-        ),
-      ];
-    }
-
-    if (slug === "cuneo-2022") {
-      const tag = printed({
-        lines: MVP_WINDOW_LINES,
-        font: labelFont,
-        lineHeight: 0.3,
-        ink: "ink2",
-        plaque: true,
-      });
-      return [
-        placed(
-          "mvp-window",
-          card(
-            tag.texture,
-            tag.size,
-            { u: 0.5, v: 0 },
-            {
-              seed: "mvp",
-              inkStrength: MVP_INK_STRENGTH,
-            },
-          ),
-          1.05,
-          0,
-          0.8,
-        ),
-      ];
-    }
-
-    return [];
+  /** The files of `slug`'s landmarks that failed, to fetch again. */
+  function failedFilesOf(slug: PathStepSlug) {
+    return assetsForStep(slug)
+      .map((asset) => asset.file)
+      .filter((file) => models.get(file)?.status === "failed");
   }
 
   function makeTile(slug: PathStepSlug): Tile {
-    const group = tileBase(slug);
+    const group = makeTileBase(paintBox, slug);
     const step = stepNamed(slug);
-    const props = new Map<string, Piece[]>(
+    const props = new Map<string, Riser[]>(
       step.props.map((prop) => [prop.id, []]),
     );
     const firstProp = step.props[0].id;
-    for (const art of cardsForStep(slug)) {
-      const made = card(cardTexture(art), [art.width, art.height], art.anchor, {
-        seed: art.id,
-        inkStrength: art.prop === "mvp-window" ? MVP_INK_STRENGTH : 1,
-      });
-      made.hinge.position.set(
-        art.position.x,
-        TILE.thickness + art.position.y,
-        art.position.z,
-      );
-      /* Only a card folding up from the tile itself has a tab; one mounted
-         on another card has none to lie on. */
-      const standing = tab(art);
-      if (standing) {
-        standing.tab.position.copy(made.hinge.position);
-        group.add(standing.tab);
-      }
-      /* A card that renders no prop, such as a tree, folds up with the
+    const landmarks = assetsForStep(slug);
+    piecesOf(slug).forEach((piece, index) => {
+      const asset = landmarks.find((each) => each.piece === piece.id);
+      const model = asset && models.get(asset.file);
+      const built =
+        asset && model?.status === "loaded"
+          ? { object: fitModel(model.scene, asset, piece) }
+          : buildPiece(paintBox, slug, piece, index + stepIndex(slug) * 7);
+      /* The riser scales about the piece's foot; the sinker inside it
+         lowers the piece as it starts, leaving the piece's own pose alone. */
+      const riser = new Group();
+      const sinker = new Group();
+      sinker.add(built.object);
+      riser.add(sinker);
+      riser.position.set(piece.x, TILE.thickness + (piece.y ?? 0), piece.z);
+      group.add(riser);
+      /* A piece that renders no prop, such as a tree, rises with the
          tile's first. */
-      const pieces = props.get(art.prop ?? firstProp) ?? props.get(firstProp)!;
-      pieces.push({
-        hinge: made.hinge,
-        tab: standing?.tab,
-        materials: standing
-          ? [...made.materials, standing.material]
-          : made.materials,
-        delay: pieces.length * CARD_STAGGER_MS,
+      const risers =
+        props.get(piece.prop ?? firstProp) ?? props.get(firstProp)!;
+      risers.push({
+        riser,
+        sinker,
+        delay: risers.length * PIECE_STAGGER_MS,
+        motion: built.motion,
       });
-      group.add(made.hinge);
-    }
-    for (const { prop, piece } of extras(slug)) {
-      piece.hinge.position.y += TILE.thickness;
-      const pieces = props.get(prop)!;
-      piece.delay = pieces[0]?.delay ?? 0;
-      pieces.push(piece);
-      group.add(piece.hinge);
-    }
+    });
     const [x, z] = tileCentre(slug);
     group.position.set(x, 0, z);
     group.scale.setScalar(tileScale(slug));
@@ -776,64 +347,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return { slug, group, props };
   }
 
-  /* The paths between tiles: printed strips under the tiles' edges. */
-  function makeConnectors() {
-    const texture = drawnInk(256, 48, (plates) => {
-      plates.cut.fillRect(0, 0, 256, 48);
-      for (let i = 0; i < 4; i++) {
-        plates[i % 2 === 0 ? "ink1" : "ink2"].fillRect(i * 64 + 6, 8, 52, 32);
-      }
-    });
-    const material = surface(texture, { seed: "path", size: [3, 0.6] });
-    LOOP.forEach((slug, index) => {
-      const next = LOOP[(index + 1) % LOOP.length];
-      const [ax, az] = tileCentre(slug);
-      const [bx, bz] = tileCentre(next);
-      const length = Math.hypot(bx - ax, bz - az);
-      const strip = new Mesh(
-        own(new BoxGeometry(length, 0.08, 0.7)),
-        material.material,
-      );
-      strip.position.set((ax + bx) / 2, 0.04, (az + bz) / 2);
-      strip.rotation.y = -Math.atan2(bz - az, bx - ax);
-      strip.receiveShadow = true;
-      board.add(strip);
-    });
-  }
+  /* ─── The pawn ─── */
 
-  /* ─── The pawn: a folded paper cone ─── */
-
-  const pawn = new Group();
-  {
-    const texture = drawnInk(64, 128, (plates) => {
-      plates.cut.fillRect(0, 0, 64, 128);
-      /* Terracotta all over but a paper collar, and a slate fold line:
-         solid enough to read against any tile's print. */
-      plates.ink1.fillRect(0, 0, 64, 128);
-      plates.ink1.clearRect(0, 70, 64, 16);
-      plates.ink2.fillRect(30, 0, 4, 128);
-    });
-    const cone = new Mesh(
-      own(new ConeGeometry(PAWN_RADIUS, PAWN_HEIGHT, 7, 1)),
-      surface(texture, { seed: "pawn", size: [1.2, 1] }).material,
-    );
-    (cone.material as InkMaterial).flatShading = true;
-    cone.position.y = PAWN_HEIGHT / 2;
-    cone.castShadow = true;
-    pawn.add(cone);
-    pawn.visible = false;
-    board.add(pawn);
-  }
+  const pawn = makePawn(paintBox);
+  pawn.visible = false;
+  board.add(pawn);
 
   function pawnBase(slug: PathStepSlug) {
     return TILE.thickness * tileScale(slug) + liftOf(slug);
   }
 
-  /** How far each tile has risen, 0 on the table to 1 lifted: the selected
+  /** How far each tile has risen, 0 on the board to 1 lifted: the selected
    *  one rises, the rest settle. */
   const lifts = new Map<PathStepSlug, number>();
   const liftTarget = (slug: PathStepSlug) => (slug === current ? 1 : 0);
-  /** How high `slug`'s tile stands off the table now, in scene units. */
+  /** How high `slug`'s tile stands off the board now, in scene units. */
   const liftOf = (slug: PathStepSlug) =>
     easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT * tileScale(slug);
 
@@ -868,55 +396,59 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /** The one `prepare` in flight: a second show while it runs waits on it. */
   let preparing: Promise<void> | undefined;
 
-  async function loadFiles(files: readonly string[]) {
-    /* Trees are shared between tiles: each file is fetched once. */
+  /** Fetches the landmarks of `files` not yet loaded or known absent. */
+  async function loadModels(files: readonly string[]) {
     await Promise.all(
-      [...new Set(files)].map(async (file) => {
-        if (cardTextures.has(file)) return;
-        try {
-          const texture = await loadInk(file);
-          if (disposed) return texture.dispose();
-          cardTextures.set(file, texture);
-          failedFiles.delete(file);
-        } catch {
-          failedFiles.add(file);
-        }
-      }),
+      SCENE_ASSETS.filter((asset) => files.includes(asset.file)).map(
+        async (asset) => {
+          const known = models.get(asset.file);
+          if (known && known.status !== "failed") return;
+          const result = await loadModel(asset);
+          if (disposed) return;
+          models.set(asset.file, result);
+        },
+      ),
     );
   }
 
-  function filesOf(slug: PathStepSlug) {
-    return [...new Set(cardsForStep(slug).map((art) => art.file))];
-  }
-
-  /* Everything the board needs before it can show: the faces its labels
-     are printed in, the stock's grain and every card's art. A face or a
-     grain that does not load is printed without, not a reason to drop the
-     board. */
+  /* Everything the board needs before it can show: the card grain and every
+     landmark the index lists. A landmark it does not list stands in, asked
+     for by no one. A grain that does not load is a board without it, not a
+     reason to drop the board. */
   async function prepare() {
     await Promise.all([
-      document.fonts.load(displayFont(32)).catch(() => undefined),
-      document.fonts.load(labelFont(32)).catch(() => undefined),
       loadGrain().then(
         (texture) => {
           if (disposed) return texture.dispose();
-          colours.grain.value = texture;
-          textures.add(texture);
+          paintBox.setGrain(texture);
         },
         () => undefined,
       ),
-      loadFiles(LOOP.flatMap(filesOf)),
+      loadLandmarkIndex().then((listed) => {
+        for (const asset of SCENE_ASSETS) {
+          if (!listed.has(asset.id))
+            models.set(asset.file, { status: "absent" });
+        }
+        return loadModels(
+          SCENE_ASSETS.filter((asset) => listed.has(asset.id)).map(
+            (asset) => asset.file,
+          ),
+        );
+      }),
     ]);
     prepared = true;
   }
 
-  /** Makes every tile not yet made; a tile whose art did not load, or whose
+  /** Makes every tile not yet made; a tile whose landmark failed, or whose
    *  own code throws, is left off the board and tried again next time. */
   function makeTiles() {
     for (const slug of LOOP) {
       if (tiles.has(slug)) continue;
-      if (filesOf(slug).some((file) => failedFiles.has(file))) {
-        failedTiles.set(slug, "assets-failed");
+      const failed = assetsForStep(slug)
+        .map((asset) => models.get(asset.file))
+        .find((result) => result?.status === "failed");
+      if (failed?.status === "failed") {
+        failedTiles.set(slug, failed.reason);
         continue;
       }
       try {
@@ -933,14 +465,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The build ─── */
 
-  /** Tiles whose cards stand. */
+  /** Tiles whose pieces stand. */
   const built = new Set<PathStepSlug>();
-  /** Tiles passed on a jump, folding up together at once, by elapsed ms. */
+  /** Tiles passed on a jump, rising together at once, by elapsed ms. */
   const catchingUp = new Map<PathStepSlug, number>();
   let current: PathStepSlug | undefined;
   let plan: BuildPlan | undefined;
   /** Whether the current tile stood before this build began. */
-  let refold = false;
+  let rebuild = false;
   let pawnAt: PathStepSlug | undefined;
   let move:
     | { from: PathStepSlug; steps: number; elapsed: number; duration: number }
@@ -963,35 +495,28 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function poseTile(tile: Tile, at: (planned: string) => number | "up") {
-    for (const [prop, pieces] of tile.props) {
+    for (const [prop, risers] of tile.props) {
       const elapsed = at(prop);
-      for (const piece of pieces) {
+      for (const piece of risers) {
+        const delay = Math.min(piece.delay, MAX_PIECE_DELAY_MS);
         const local =
-          elapsed === "up"
-            ? 1
-            : (elapsed - Math.min(piece.delay, MAX_CARD_DELAY_MS)) /
-              (PROP_DROP_MS - Math.min(piece.delay, MAX_CARD_DELAY_MS));
-        const pose = foldPose(local, PROP_DROP_MS);
-        /* A tile built again never vanishes: it leans back part-way and
-           springs up from there. */
-        const again = refold && tile.slug === current;
-        const opacity = again ? 1 : pose.opacity;
-        piece.hinge.visible = opacity > 0;
-        piece.hinge.rotation.x = again ? pose.angle * REFOLD_FROM : pose.angle;
-        piece.hinge.scale.setScalar(again ? 1 : pose.scale);
-        if (piece.tab) {
-          piece.tab.visible = piece.hinge.visible;
-          piece.tab.scale.setScalar(again ? 1 : pose.scale);
-        }
-        for (const material of piece.materials) {
-          material.userData.opacity.value = opacity;
-        }
-        piece.motion?.(piece.hinge, Math.min(Math.max(local, 0), 1));
+          elapsed === "up" ? 1 : (elapsed - delay) / (PROP_DROP_MS - delay);
+        /* A tile built again never vanishes: it sinks part-way and springs
+           up from there. */
+        const again = rebuild && tile.slug === current;
+        const progress = again
+          ? REBUILD_FROM + (1 - REBUILD_FROM) * Math.max(local, 0)
+          : local;
+        const pose = risePose(progress, PROP_DROP_MS);
+        piece.riser.visible = pose.visible;
+        piece.riser.scale.set(pose.width, pose.height, pose.width);
+        piece.sinker.position.y = -pose.sink;
+        piece.motion?.(Math.min(Math.max(local, 0), 1));
       }
     }
   }
 
-  /** Puts every card and the pawn where the clocks say they are. */
+  /** Puts every piece and the pawn where the clocks say they are. */
   function pose() {
     if (reducedMotion) liftTiles(Infinity);
     for (const tile of tiles.values()) {
@@ -1001,9 +526,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         const starts = new Map(
           plan.building.map((planned) => [planned.id, planned.startsAt]),
         );
-        const folding = move ? -1 : buildElapsed;
+        const rising = move ? -1 : buildElapsed;
         poseTile(tile, (prop) =>
-          refold && move ? "up" : folding - (starts.get(prop) ?? 0),
+          rebuild && move ? "up" : rising - (starts.get(prop) ?? 0),
         );
       } else if (catchingUp.has(slug)) {
         const elapsed = catchingUp.get(slug)!;
@@ -1022,7 +547,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (!tile) return [];
       return step.props
         .filter((prop) =>
-          tile.props.get(prop.id)?.some((piece) => piece.hinge.visible),
+          tile.props.get(prop.id)?.some((piece) => piece.riser.visible),
         )
         .map((prop) => prop.id);
     });
@@ -1059,7 +584,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       x = ax + (bx - ax) * t;
       z = az + (bz - az) * t;
       y = pawnBase(a) + (pawnBase(b) - pawnBase(a)) * t + lift * HOP_HEIGHT;
-      /* Leaning into the hop, as a flicked cone would. */
+      /* Leaning into the hop, as a flicked piece would. */
       pawn.rotation.z = -Math.sign(bx - ax) * lift * 0.18;
       pawn.scale.set(1, 1, 1);
     } else {
@@ -1080,7 +605,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     catchingUp.clear();
     if (plan) buildElapsed = plan.building.at(-1)?.landsAt ?? 0;
     if (current) built.add(current);
-    refold = false;
+    rebuild = false;
     pose();
     /* Emitted even when already built: under reduced motion one step's end
        state cuts to another's, and the host has to hear the new step. */
@@ -1091,7 +616,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The camera ─── */
 
-  const shapes = frameShapes().map(({ slug, outlines }) => ({
+  /* Every tile's outlines, then the board's own rim, which has no tile:
+     the board is framed whole, but may lie under the tabs. */
+  const shapes = [
+    ...frameShapes(),
+    { slug: null, outlines: [boardOutline()] },
+  ].map(({ slug, outlines }) => ({
     slug,
     outlines: outlines.map((outline) =>
       outline.map(([x, y, z]) => new Vector3(x, y, z)),
@@ -1133,9 +663,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  selected tile's are lifted as it will stand once risen. */
   function projected(distance: number) {
     placeCamera(distance);
-    const out: { slug: PathStepSlug; outlines: ClipPoint[][] }[] = [];
+    const out: { slug: PathStepSlug | null; outlines: ClipPoint[][] }[] = [];
     for (const { slug, outlines } of shapes) {
-      const rise = liftTarget(slug) * LIFT_HEIGHT * tileScale(slug);
+      const rise = slug ? liftTarget(slug) * LIFT_HEIGHT * tileScale(slug) : 0;
       const clipped: ClipPoint[][] = [];
       for (const outline of outlines) {
         const points: ClipPoint[] = [];
@@ -1157,19 +687,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /** Whether, from `distance` back, the board stands inside the stage and
-   *  clear of the tabs laid over it: every tile and the cards standing on
-   *  it, and the pawn's hop onto the selected tile, the one hop the camera
-   *  rests on. With `selected` false the hop does not count: the bound the
+   *  its tiles clear of the tabs laid over it: every tile and the pieces
+   *  standing on it, and the pawn's hop onto the selected tile, the one hop
+   *  the camera rests on. With `selected` false the hop does not count: the bound the
    *  camera keeps while it eases between two rests. */
   function fits(distance: number, frame: ClipFrame, selected = true) {
     const tiles = projected(distance);
     if (tiles === null) return false;
     return tiles.every(({ slug, outlines }) =>
-      framed(
-        selected && slug === current ? outlines : outlines.slice(0, -1),
-        frame.safe,
-        frame.clear,
-      ),
+      slug === null
+        ? framed(outlines, frame.safe, [])
+        : framed(
+            selected && slug === current ? outlines : outlines.slice(0, -1),
+            frame.safe,
+            frame.clear,
+          ),
     );
   }
 
@@ -1433,6 +965,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       focusElapsed = Math.min(focusElapsed + step, FOCUS_MS);
     }
     if (aiming) aim();
+    /* The water and the grass move on with every frame drawn. */
+    paintBox.flow(step / 1000);
     if (themeElapsed < THEME_MS) {
       themeElapsed = Math.min(themeElapsed + step, THEME_MS);
       const t = easeInOut(themeElapsed / THEME_MS);
@@ -1526,8 +1060,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  again keeps standing, as it stood before, and a pawn in the air lands
    *  on the tile it is over, so the next move starts from there. */
   function abandon() {
-    if (buildState === "building" && refold && current) built.add(current);
-    refold = false;
+    if (buildState === "building" && rebuild && current) built.add(current);
+    rebuild = false;
     if (move) {
       const { along } = movePose(move.steps, move.elapsed / move.duration);
       const from = stepIndex(move.from);
@@ -1574,13 +1108,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
 
     /* Tiles before this one on the loop stand: the pawn has passed them.
-       Any not standing yet fold up together, at once. */
+       Any not standing yet rise together, at once. */
     for (const other of passed) {
       if (!built.has(other) && tiles.has(other) && !catchingUp.has(other)) {
         catchingUp.set(other, 0);
       }
     }
-    refold = built.has(slug);
+    rebuild = built.has(slug);
     built.delete(slug);
     current = slug;
     buildElapsed = 0;
@@ -1621,15 +1155,15 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
   }
 
-  makeConnectors();
+  board.add(makeBoard(paintBox), makePath(paintBox));
 
   return {
     show(step) {
       const request = ++showing;
-      const retry = filesOf(step.slug).filter((file) => failedFiles.has(file));
+      const retry = failedFilesOf(step.slug);
       if (prepared && retry.length === 0) return buildOrFail(step);
       /* Loading: the canvas is see-through, so the step's still shows until
-         the art is in. */
+         the board is in. */
       abandon();
       canvas.style.opacity = "0";
       stills = undefined;
@@ -1639,7 +1173,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       shown = [];
       buildState = "loading";
       emit();
-      const ready = prepared ? loadFiles(retry) : (preparing ??= prepare());
+      const ready = prepared ? loadModels(retry) : (preparing ??= prepare());
       ready.then(
         () => {
           if (disposed || request !== showing) return;
@@ -1693,7 +1227,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         true,
       );
       for (const { object } of hits) {
-        /* A card not standing yet is not there to point at. */
+        /* A piece not standing yet is not there to point at. */
         let node: Object3D | null = object;
         let shown = true;
         while (node && node.userData.slug === undefined) {
@@ -1730,17 +1264,33 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       document.removeEventListener("visibilitychange", onVisibility);
       canvas.removeEventListener("webglcontextlost", onContextLost);
       canvas.removeEventListener("webglcontextrestored", onContextRestored);
-      for (const geometry of geometries) geometry.dispose();
-      for (const material of materials) material.dispose();
-      for (const texture of textures) texture.dispose();
-      for (const texture of [...textures, ...cardTextures.values()]) {
-        /* A decoded card is an ImageBitmap, which `dispose` leaves open. */
-        const bitmap = texture.source.data as Partial<ImageBitmap> | null;
-        bitmap?.close?.();
+      const geometries = new Set<{ dispose(): void }>();
+      const materials = new Set<Material>();
+      const owned: Object3D[] = [
+        scene,
+        ...[...models.values()].flatMap((result) =>
+          result.status === "loaded" ? [result.scene] : [],
+        ),
+      ];
+      for (const root of owned) {
+        root.traverse((node) => {
+          if (!(node instanceof Mesh)) return;
+          geometries.add(node.geometry);
+          for (const material of [node.material].flat())
+            materials.add(material);
+        });
       }
-      for (const texture of cardTextures.values()) texture.dispose();
-      table.geometry.dispose();
-      tableMaterial.dispose();
+      for (const geometry of geometries) geometry.dispose();
+      for (const material of materials) {
+        for (const value of Object.values(material)) {
+          if ((value as Texture | null)?.isTexture)
+            (value as Texture).dispose();
+        }
+        material.dispose();
+      }
+      paintBox.dispose();
+      environment.dispose();
+      pmrem.dispose();
       sun.shadow.map?.dispose();
       renderer.dispose();
     },

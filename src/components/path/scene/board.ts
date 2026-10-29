@@ -1,34 +1,47 @@
-import { MVP_WINDOW_LABEL, PATH_STEPS } from "@/data/path";
+import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
-import { type CardArt, cardsForStep, TILE_SIZE } from "./card-art";
-
-/* The board's layout (comp B, "Risograph Pop-up"): seven printed tiles on a
+/* The board's layout (v3, a solid tabletop board): seven thick tiles on a
    closed loop in the data's order, home at the back and Lille, the other
-   hero, at the front, with "?" closing the loop beside home. Pure numbers,
-   so a spec checks the layout without a browser. Units are the card art's:
-   a tile is about `TILE_SIZE` (4) across. */
+   hero, at the front, with "?" closing the loop beside home. Every piece
+   standing on a tile is placed here as a box, so the camera, the pawn's spot
+   and a spec all read one layout, without three.js or a browser. Units are
+   scene units: a tile is about 4.5 across, and y is up from the tile's top
+   face. Everything sits on one board, whose top is the table's y = 0. */
 
 /** The loop, in the data's order. */
 export const LOOP: readonly PathStepSlug[] = PATH_STEPS.map(
   (step) => step.slug,
 );
 
-/** The hero tiles: a size up, with their full multi-card scenes. */
+/** The hero tiles: a size up, with their full scenes. */
 export const HERO_STEPS: readonly PathStepSlug[] = ["home", "lille"];
 export const HERO_SCALE = 1.16;
 
-/** A tile's printed top, before its scale: a chamfered card a little
- *  larger than the cards' frame, so they stand inside its border. */
+/** A tile's slab, before its scale: a chamfered octagon, thick and
+ *  bevelled, as a chunky game tile is. `thickness` is the slab's height
+ *  with its bevel. */
 export const TILE = {
-  width: TILE_SIZE + 0.5,
-  depth: TILE_SIZE + 0.3,
+  width: 4.5,
+  depth: 4.3,
   chamfer: 0.5,
-  thickness: 0.2,
+  thickness: 0.42,
+  bevel: 0.07,
 } as const;
 
 /** The loop's half-widths across and in depth. */
 export const LOOP_RADII = { x: 9.2, z: 6.7 } as const;
+
+/** The board under the tiles: a bevelled slab with a raised frame round
+ *  its edge, its top at y = 0 and the table under it. */
+export const BOARD = {
+  halfWidth: 12.9,
+  halfDepth: 10.1,
+  corner: 1.4,
+  thickness: 0.55,
+  frameWidth: 0.55,
+  frameHeight: 0.2,
+} as const;
 
 /** The step whose tile is front and centre. */
 const FRONT_STEP: PathStepSlug = "lille";
@@ -46,77 +59,218 @@ export function tileCentre(slug: PathStepSlug): readonly [number, number] {
   return [LOOP_RADII.x * Math.cos(angle), LOOP_RADII.z * Math.sin(angle)];
 }
 
-/** The pawn's cone's radius at its foot, and the room it keeps from a card
- *  standing near it, in the tile's own units. */
-export const PAWN_RADIUS = 0.55;
-const PAWN_CLEARANCE = 0.08;
-/** How far a standing card's glued tab reaches in front of its foot, at
- *  most. */
-export const TAB_REACH = 0.26;
-/** How far in from a tile's front edge its name is printed, in scene units,
- *  and how far its letters reach back from there. The pawn stands behind
- *  both, so it never stands on the name. */
-export const NAME_STRIP = 0.58;
-export const NAME_REACH = 0.25;
-/** How much a spot to the front counts against one off the middle. */
-const SPOT_FRONT_WEIGHT = 0.6;
-/** The grid the spot is searched on. */
-const SPOT_STEP = 0.05;
-
-/* The search is a pure function of the card layout, and the pawn asks for
-   its spot every frame it moves. */
-const spots = new Map<PathStepSlug, { x: number; z: number }>();
-
-/** Where the pawn stands on `slug`'s tile, in the tile's own frame: the
- *  spot behind the name, inside the tile's border, where its foot touches
- *  no card standing on the tile nor that card's tab; to a side of the tile
- *  rather than its middle, and to the front rather than the back, so the
- *  cards do not hide it. Each tile's cards stand in their own places, so
- *  each tile has its own spot. */
-export function pawnSpotOnTile(slug: PathStepSlug): {
+/** One piece standing on a tile, as the box it fills in the tile's own
+ *  frame: centred on `x`, `z`, from `y` (default 0, the tile's top) up `h`.
+ *  `prop` is the data's prop id it builds with (`PathProp.id`); scenery such
+ *  as trees names none and builds with the tile's first prop. */
+export type Piece = Readonly<{
+  id: string;
+  prop: string | null;
   x: number;
   z: number;
-} {
-  const known = spots.get(slug);
-  if (known) return known;
-  const reach = PAWN_RADIUS + PAWN_CLEARANCE;
-  const cards = cardsForStep(slug).filter((card) => card.position.y === 0);
-  const clear = (x: number, z: number) =>
-    cards.every((card) => {
-      const [left, right] = cardSpan(card);
-      const dx = Math.max(left - x, 0, x - right);
-      const dz = Math.max(
-        card.position.z - z,
-        0,
-        z - card.position.z - TAB_REACH,
-      );
-      return Math.hypot(dx, dz) >= reach;
-    });
-  const xMax = TILE.width / 2 - TILE.chamfer - 0.1;
-  const zMax = TILE.depth / 2 - NAME_STRIP - NAME_REACH - PAWN_RADIUS;
-  const steps = (max: number) => Math.round((2 * max) / SPOT_STEP);
-  let best: { x: number; z: number } | undefined;
-  let bestScore = -Infinity;
-  for (let j = 0; j <= steps(zMax); j += 1) {
-    const z = zMax - j * SPOT_STEP;
-    for (let i = 0; i <= steps(xMax); i += 1) {
-      const x = -xMax + i * SPOT_STEP;
-      /* Off the middle, where the name is printed, and to the front. */
-      const score = Math.abs(x) + SPOT_FRONT_WEIGHT * z - (x > 0 ? 0.05 : 0);
-      if (score > bestScore && clear(x, z)) {
-        best = { x, z };
-        bestScore = score;
-      }
-    }
-  }
-  if (!best) throw new Error(`No room for the pawn on ${slug}'s tile`);
-  spots.set(slug, best);
-  return best;
+  w: number;
+  d: number;
+  h: number;
+  y?: number;
+}>;
+
+export type TileLayout = Readonly<{
+  /** Where the pawn stands on the tile, clear of every piece. */
+  pawn: Readonly<{ x: number; z: number }>;
+  pieces: readonly Piece[];
+}>;
+
+/* Front is +z, toward the visitor; the backdrops stand at the back so the
+   landmark and the pawn are never behind them. */
+export const LAYOUT: Readonly<Record<PathStepSlug, TileLayout>> = {
+  home: {
+    pawn: { x: 1.4, z: 1.3 },
+    pieces: [
+      { id: "plateau", prop: "plateau", x: 0, z: -0.2, w: 2.5, d: 1.7, h: 0.5 },
+      { id: "bisalta", prop: "bisalta", x: 0, z: -1.6, w: 4, d: 1.1, h: 1.75 },
+      {
+        id: "school",
+        prop: "school",
+        x: -0.1,
+        z: -0.15,
+        w: 1.3,
+        d: 1.0,
+        h: 0.95,
+        y: 0.4,
+      },
+      { id: "trees", prop: null, x: -1.55, z: 1.0, w: 0.9, d: 0.9, h: 1.05 },
+    ],
+  },
+  turin: {
+    pawn: { x: 1.25, z: 1.25 },
+    pieces: [
+      { id: "mole", prop: "mole", x: -0.45, z: -0.55, w: 1.2, d: 1.2, h: 3.3 },
+      { id: "coils", prop: "coils", x: 1.0, z: -0.25, w: 1.1, d: 0.9, h: 1.0 },
+      { id: "trees", prop: null, x: -1.55, z: 1.0, w: 0.75, d: 0.75, h: 0.95 },
+      {
+        id: "trees-back",
+        prop: null,
+        x: 1.5,
+        z: -1.45,
+        w: 0.7,
+        d: 0.7,
+        h: 0.9,
+      },
+    ],
+  },
+  switzerland: {
+    pawn: { x: 1.35, z: 1.3 },
+    pieces: [
+      { id: "lake", prop: "lake", x: 0, z: -0.65, w: 4.0, d: 2.2, h: 0.05 },
+      { id: "chablais", prop: "lake", x: 0, z: -1.7, w: 4.3, d: 0.8, h: 1.25 },
+      {
+        id: "sailboat",
+        prop: "lake",
+        x: -0.9,
+        z: -0.45,
+        w: 0.5,
+        d: 0.3,
+        h: 0.7,
+      },
+      {
+        id: "jet-d-eau",
+        prop: "jet-d-eau",
+        x: 0.75,
+        z: -0.55,
+        w: 0.5,
+        d: 1.1,
+        h: 2.6,
+      },
+      {
+        id: "roche-dial",
+        prop: "roche-dial",
+        x: -1.35,
+        z: 1.0,
+        w: 0.65,
+        d: 0.35,
+        h: 0.95,
+      },
+    ],
+  },
+  "cuneo-2022": {
+    pawn: { x: 0.55, z: 1.3 },
+    pieces: [
+      {
+        id: "schoolroom",
+        prop: "schoolroom",
+        x: -0.3,
+        z: -0.6,
+        w: 3.0,
+        d: 1.8,
+        h: 1.6,
+      },
+      {
+        id: "mvp-window",
+        prop: "mvp-window",
+        x: 1.55,
+        z: 0.35,
+        w: 0.85,
+        d: 0.3,
+        h: 1.15,
+      },
+      { id: "trees", prop: null, x: -1.65, z: 1.1, w: 0.75, d: 0.75, h: 0.95 },
+    ],
+  },
+  lille: {
+    pawn: { x: 1.65, z: 1.3 },
+    pieces: [
+      {
+        id: "belfry",
+        prop: "belfry",
+        x: -1.45,
+        z: -0.85,
+        w: 0.8,
+        d: 0.8,
+        h: 3.5,
+      },
+      {
+        id: "courtyard",
+        prop: "courtyard",
+        x: 0.55,
+        z: -0.85,
+        w: 2.6,
+        d: 1.4,
+        h: 1.75,
+      },
+      {
+        id: "pipe-loop",
+        prop: "pipe-loop",
+        x: 0.1,
+        z: 0.9,
+        w: 2.0,
+        d: 0.9,
+        h: 0.45,
+      },
+      {
+        id: "clock-face",
+        prop: "clock-face",
+        x: -1.6,
+        z: 0.95,
+        w: 0.6,
+        d: 0.3,
+        h: 1.05,
+      },
+    ],
+  },
+  now: {
+    pawn: { x: 1.35, z: 1.25 },
+    pieces: [
+      {
+        id: "office",
+        prop: "office",
+        x: 0.35,
+        z: -0.85,
+        w: 2.8,
+        d: 1.3,
+        h: 1.7,
+      },
+      {
+        id: "startup-desk",
+        prop: "startup-desk",
+        x: -0.5,
+        z: 0.7,
+        w: 1.5,
+        d: 0.8,
+        h: 1.05,
+      },
+      { id: "trees", prop: null, x: -1.65, z: -0.9, w: 0.75, d: 0.75, h: 0.95 },
+    ],
+  },
+  next: {
+    pawn: { x: 1.3, z: 1.25 },
+    pieces: [
+      { id: "blank", prop: "blank", x: 0, z: -0.3, w: 2.4, d: 1.1, h: 0.9 },
+    ],
+  },
+};
+
+/** A tile's pieces. */
+export function piecesOf(slug: PathStepSlug): readonly Piece[] {
+  return LAYOUT[slug].pieces;
 }
-/** A card's left and right edges across its tile, `[left, right]`. */
-export function cardSpan(card: CardArt): readonly [number, number] {
-  const left = card.position.x - card.anchor.u * card.width;
-  return [left, left + card.width];
+
+/** A piece by its id on its tile. */
+export function pieceOf(slug: PathStepSlug, id: string): Piece {
+  const piece = LAYOUT[slug].pieces.find((each) => each.id === id);
+  if (!piece) throw new Error(`No piece ${id} on ${slug}'s tile`);
+  return piece;
+}
+
+/** The pawn: a turned game piece, its foot's radius and its height. */
+export const PAWN_RADIUS = 0.42;
+export const PAWN_HEIGHT = 1.3;
+/** How high its foot rises at the top of a hop. */
+export const HOP_HEIGHT = 1.2;
+const PAWN_HOP_TOP = HOP_HEIGHT + PAWN_HEIGHT;
+
+/** The pawn's spot on `slug`'s tile, in the tile's own frame. */
+export function pawnSpotOnTile(slug: PathStepSlug): { x: number; z: number } {
+  return LAYOUT[slug].pawn;
 }
 
 /** The pawn's spot on `slug`'s tile, on the table. */
@@ -131,10 +285,10 @@ export function pawnSpot(slug: PathStepSlug): readonly [number, number] {
 export type FramePoint = readonly [number, number, number];
 
 /** What the camera keeps in view, as outlines on the table: every tile's
- *  footprint, every card standing on it and, last, the top of the pawn's
- *  hop onto it, tile by tile. Each outline is convex and in order round its
- *  edge, so the camera can tell whether the tabs laid over the stage cover
- *  any of it. */
+ *  footprint, the top of every piece standing on it and, last, the top of
+ *  the pawn's hop onto it, tile by tile. Each outline is convex and in order
+ *  round its edge, so the camera can tell whether the tabs laid over the
+ *  stage cover any of it. */
 export function frameShapes(): {
   slug: PathStepSlug;
   outlines: (readonly FramePoint[])[];
@@ -147,36 +301,46 @@ export function frameShapes(): {
     const w = TILE.width / 2;
     const d = TILE.depth / 2;
     const footprint = [at(-w, 0, -d), at(w, 0, -d), at(w, 0, d), at(-w, 0, d)];
-    const cards = cardsForStep(slug).map((card) => {
-      const foot = TILE.thickness + card.position.y;
-      const top = foot + card.height;
-      const [left, right] = cardSpan(card);
-      const z = card.position.z;
+    const tops = piecesOf(slug).map((piece) => {
+      const top = TILE.thickness + (piece.y ?? 0) + piece.h;
+      const [x0, x1] = [piece.x - piece.w / 2, piece.x + piece.w / 2];
+      const [z0, z1] = [piece.z - piece.d / 2, piece.z + piece.d / 2];
       return [
-        at(left, foot, z),
-        at(right, foot, z),
-        at(right, top, z),
-        at(left, top, z),
+        at(x0, top, z0),
+        at(x1, top, z0),
+        at(x1, top, z1),
+        at(x0, top, z1),
       ];
     });
     const spot = pawnSpotOnTile(slug);
     const hop = [at(spot.x, TILE.thickness + PAWN_HOP_TOP, spot.z)];
-    return { slug, outlines: [footprint, ...cards, hop] };
+    return { slug, outlines: [footprint, ...tops, hop] };
   });
 }
 
-/** The pawn's cone, and how high its foot rises at the top of a hop. */
-export const PAWN_HEIGHT = 1.6;
-export const HOP_HEIGHT = 1.2;
-const PAWN_HOP_TOP = HOP_HEIGHT + PAWN_HEIGHT;
-
-/** A tile's printed name: the step's place, its own words from the data. */
-export function tileName(slug: PathStepSlug): string {
-  return PATH_STEPS.find((step) => step.slug === slug)!.place;
+/** The board's rim, the top of its frame, as one outline round its edge:
+ *  the camera frames the whole board, not only its tiles. The rounded
+ *  corners are cut at their chord's far side, so the outline holds them. */
+export function boardOutline(): readonly FramePoint[] {
+  const w = BOARD.halfWidth;
+  const d = BOARD.halfDepth;
+  const c = BOARD.corner * (1 - Math.SQRT1_2);
+  const y = BOARD.frameHeight;
+  return [
+    [-w + c, y, -d],
+    [w - c, y, -d],
+    [w, y, -d + c],
+    [w, y, d - c],
+    [w - c, y, d],
+    [-w + c, y, d],
+    [-w, y, d - c],
+    [-w, y, -d + c],
+  ];
 }
 
-/** The dimmed MVP window's label, set on a tag beside it: decision 3's
- *  words, from the step's own line, in two lines. */
-export const MVP_WINDOW_LINES = MVP_WINDOW_LABEL.split(/(?<= —) /);
-/** Printed faded, like the window it names. */
-export const MVP_INK_STRENGTH = 0.55;
+/** The two side props, Quadrell and L'Oracolo della Ghigliottina: small
+ *  solid objects in the board's middle, off the loop, on the table. */
+export const SIDE_PROPS = {
+  quadrell: { x: -2.2, z: 0.4 },
+  oracolo: { x: 2.2, z: 0.4 },
+} as const;

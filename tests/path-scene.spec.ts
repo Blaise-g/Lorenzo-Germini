@@ -18,6 +18,7 @@ import {
 } from "@/components/path/scene/fallback";
 
 import { MAX_DRAWING_PIXELS } from "@/components/path/scene/drawing-buffer";
+import { LANDMARK_INDEX } from "@/components/path/scene/scene-assets";
 
 import { setTheme, themeToggle } from "./support/theme";
 
@@ -44,6 +45,17 @@ const sceneChunk =
   /three_build_three|components_path_scene_(?!build|fallback|capabilities)/;
 
 const stage = (page: Page) => page.locator("[data-path-stage]");
+
+/** Has the landmark index list `ids`, as if their files had shipped: the
+   board then asks for them, and a test can route what they return. */
+async function listLandmarks(page: Page, ids: readonly string[]) {
+  await page.route(`**${LANDMARK_INDEX}`, (route) =>
+    route.fulfill({
+      json: Object.fromEntries(ids.map((id) => [id, {}])),
+    }),
+  );
+}
+
 const overlay = (page: Page) => page.locator("[data-path-overlay]");
 const buildControl = (page: Page) => page.locator("[data-path-build-control]");
 const stepLink = (page: Page, slug: PathStepSlug) =>
@@ -187,7 +199,7 @@ test.describe("the build", () => {
   });
 
   /* Arriving cold at step 4, the pawn has passed steps 1–3: their tiles
-     stand before step 4's own cards fold up. A later step adds its own to
+     stand before step 4's own pieces rise. A later step adds its own to
      everything before it, Lille's passed tile included. */
   test("steps 4 and 6 build on every earlier tile", async ({ page }) => {
     await page.goto("/path#cuneo-2022");
@@ -276,16 +288,18 @@ test.describe("the build", () => {
     await expect(stepLink(page, "home")).toBeFocused();
   });
 
-  /* While a tile's cards load, Replay and the turns are shown unavailable
-     and do nothing; the one with focus keeps it. The board loads every card
-     up front, so Lille's are refused at first and held on their retry. */
+  /* While a tile's landmarks load, Replay and the turns are shown
+     unavailable and do nothing; the one with focus keeps it. The board asks
+     for every landmark up front, so Lille's are refused at first and held on
+     their retry. */
   test("while a scene loads, its controls are unavailable and keep focus", async ({
     page,
   }) => {
     let release!: () => void;
     const held = new Promise<void>((resolve) => (release = resolve));
     let refuse = true;
-    await page.route("**/path/cards/lille-*", async (route) => {
+    await listLandmarks(page, ["lille-belfry", "lille-bourse"]);
+    await page.route("**/path/models/lille-*", async (route) => {
       if (refuse) return route.fulfill({ status: 500 });
       await held;
       await route.continue();
@@ -555,7 +569,7 @@ test.describe("rendering on demand", () => {
   });
 });
 
-/* Replay and the turns are printed on the board's own frame: at its
+/* Replay and the turns are laid on the board's own frame: at its
    bottom-left on a wide screen, at its bottom-right on a phone, and inside the
    stage either way, so they never land on the strip or the panel. */
 test.describe("the board's tabs", () => {
@@ -615,29 +629,23 @@ test.describe("on a wide, high-density screen", () => {
   });
 });
 
-/* An exception in one tile's own code: Lille's plaque is the only print
-   that carries "10,000", so a `fillText` that throws on it breaks Lille's
-   tile and no other. Only Lille shows its stills, and the tile is tried
-   again the next time it is selected. */
+/* A tile whose build throws: Lille's belfry arrives as a file that does not
+   parse, which breaks Lille's tile and no other. Only Lille shows its
+   stills, and the tile is tried again the next time it is selected, when
+   the file is not there and the belfry's stand-in stands. */
 test.describe("a tile that fails to build", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.addInitScript(() => {
-      const fillText = CanvasRenderingContext2D.prototype.fillText;
-      CanvasRenderingContext2D.prototype.fillText = function (...args) {
-        const fail = (window as unknown as { __failText?: boolean }).__failText;
-        if (fail && String(args[0]).includes("10,000")) {
-          throw new Error("A tile's own code failed");
-        }
-        return fillText.apply(this, args);
-      };
-      (window as unknown as { __failText: boolean }).__failText = true;
-    });
-  });
+  const BELFRY = "**/path/models/lille-belfry.glb";
 
-  const failText = (page: Page, fail: boolean) =>
-    page.evaluate((value) => {
-      (window as unknown as { __failText: boolean }).__failText = value;
-    }, fail);
+  test.beforeEach(async ({ page }) => {
+    await listLandmarks(page, ["lille-belfry"]);
+    await page.route(BELFRY, (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "model/gltf-binary",
+        body: "not a model",
+      }),
+    );
+  });
 
   test("shows its stills and why; the other tiles still build", async ({
     page,
@@ -669,7 +677,7 @@ test.describe("a tile that fails to build", () => {
       "data-fallback-reason",
       "scene-failed",
     );
-    await failText(page, false);
+    await page.unroute(BELFRY);
     await stepLink(page, "now").click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await stepLink(page, "lille").click();
@@ -683,15 +691,16 @@ test.describe("a tile that fails to build", () => {
   });
 });
 
-/* A tile's card that does not arrive: that tile shows its stills and names
-   its cards, the rest of the board builds, and the next selection of the
-   tile fetches them again. */
-test.describe("a tile whose cards fail to load", () => {
+/* A tile's landmark that does not arrive: that tile shows its stills and
+   says why, the rest of the board builds, and the next selection of the tile
+   fetches it again. */
+test.describe("a tile whose landmarks fail to load", () => {
   test("shows its stills and why, and loads them on its next selection", async ({
     page,
   }) => {
     let fail = true;
-    await page.route("**/path/cards/lille-belfry.webp", (route) =>
+    await listLandmarks(page, ["lille-belfry"]);
+    await page.route("**/path/models/lille-belfry.glb", (route) =>
       fail ? route.fulfill({ status: 500 }) : route.continue(),
     );
     await page.goto("/path#lille");

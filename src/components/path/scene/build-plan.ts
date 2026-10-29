@@ -7,7 +7,7 @@ import type { PathSceneId, PathStep } from "@/data/path.types";
    before the runtime loads. */
 
 /** A step's tile build, from selection to its settled board. `building`
- *  covers the pawn's move to the tile as well as the cards folding up;
+ *  covers the pawn's move to the tile as well as its pieces rising;
  *  `idle` is no runtime yet. The host carries it as `data-build-state`. */
 export type BuildState = "idle" | "loading" | "building" | "built";
 
@@ -25,11 +25,11 @@ export function hasScene(step: PathStep): boolean {
   return SCENES_WITH_ART.includes(step.sceneId);
 }
 
-/** About 2–3 s from the first card's fold to the last one settling (GH-141,
+/** About 2–3 s from the first piece's rise to the last one settling (GH-141,
  *  decision 8). Every build takes the whole span, however many props it has,
  *  so one prop is not a lonely blink and five are not a stampede. */
 export const BUILD_MS = 2400;
-/** One prop's fold, from flat to settled on its spring. */
+/** One prop's rise, from squat to settled on its spring. */
 export const PROP_DROP_MS = 800;
 
 /** The camera's limited turn: this many steps either way from the board's
@@ -40,7 +40,7 @@ export type PlannedProp = {
   id: string;
   /** The step's line this prop captions, lit in the text panel as it lands. */
   captionLine: number;
-  /** When it starts to fold and when it settles, in ms from the build's
+  /** When it starts to rise and when it settles, in ms from the build's
    *  start. */
   startsAt: number;
   landsAt: number;
@@ -52,7 +52,7 @@ export type BuildPlan = {
    *  pawn has passed their tiles on its way here (the tour plays the steps
    *  in order, and a fragment enters it part-way). */
   standing: readonly string[];
-  /** Folded up, in the data's order, which is the build order. */
+  /** Raised, in the data's order, which is the build order. */
   building: readonly PlannedProp[];
 };
 

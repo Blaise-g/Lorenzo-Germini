@@ -1,26 +1,26 @@
-/* Lille's tile on the `/path` board (#149, v2's board): the belfry and the
-   Vieille Bourse courtyard with the pipe loop, a clock whose hand sweeps to
-   the projected saving, and its plaque. The contract is #141 — decisions 3, 8, 10 and 11 — with
-   storyboard §7.5 and the asset budgets of §9 and §11 in
-   docs/research/experience-rethink.md. The runtime's shared behaviour is
-   `path-scene.spec.ts`; this is what Lille adds to it, with the card art's
-   budgets. */
+/* Lille's tile on the `/path` board (#149; v3's solid board): the belfry
+   and the Vieille Bourse courtyard with the pipe loop, and a clock whose
+   hand sweeps to the projected saving. Nothing on it is written: the figure
+   is the step's line, which the voice reads. The contract is #141 —
+   decisions 3, 8, 10 and 11 — with storyboard §7.5 and the asset budgets of
+   §9 and §11 in docs/research/experience-rethink.md. The runtime's shared
+   behaviour is `path-scene.spec.ts`; this is what Lille adds to it, with
+   the world's file budgets. */
 
-import { readFile, stat } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
 import sharp from "sharp";
 
 import { buildPlan, stillsFor } from "@/components/path/scene/build-plan";
-import { CARD_ART } from "@/components/path/scene/card-art";
+import { GRAIN_FILE } from "@/components/path/scene/assets";
 import { SCENE_FALLBACK_LINES } from "@/components/path/scene/fallback";
-import { GRAIN_FILE } from "@/components/path/scene/ink";
+import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
 import {
-  HAND_END_ANGLE,
-  handAngle,
-  LILLE_FIGURE,
-} from "@/components/path/scene/lille";
+  LANDMARK_INDEX,
+  SCENE_ASSETS,
+} from "@/components/path/scene/scene-assets";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -55,22 +55,35 @@ function propsThrough(slug: PathStepSlug) {
 /* §9 and §11's budgets. */
 const STILL_BYTES = 150 * 1024;
 const SCENE_BYTES = 1.5 * 1024 * 1024;
-/** What a cold `/path` costs before any card: the HTML, fonts, CSS, Next's
- *  chunks and three.js, measured on a production build
+/** What a cold `/path` costs before any world file: the HTML, fonts, CSS,
+ *  Next's chunks and three.js, measured on a production build
  *  (`docs/path-measurements.md`), rounded up. */
 const PAGE_BYTES = 600 * 1024;
-/** The board's card files: every one the manifest names, each fetched
- *  once, whichever step a visitor lands on. */
-const CARD_FILES = [...new Set(CARD_ART.map((card) => card.file))];
+/** The landmarks shipped: the ids the index lists. */
+async function listedIds(): Promise<string[]> {
+  return Object.keys(
+    JSON.parse(await readFile(publicFile(LANDMARK_INDEX), "utf8")),
+  );
+}
+
+/** The files the board fetches, each once, whichever step a visitor lands
+ *  on: the grain, the landmark index and every landmark it lists. A
+ *  landmark it does not list is never asked for; its stand-in stands. */
+async function worldFiles(): Promise<string[]> {
+  const listed = await listedIds();
+  return [
+    GRAIN_FILE,
+    LANDMARK_INDEX,
+    ...SCENE_ASSETS.filter((asset) => listed.includes(asset.id)).map(
+      (asset) => asset.file,
+    ),
+  ];
+}
 
 test.describe("the figure", () => {
-  test("says exactly what decision 3 gives it, with 'projected'", () => {
-    expect(LILLE_FIGURE).toBe("10,000 m³ a year — projected saving");
-  });
-
-  /* Taken from the step's line, so a change to the CV's number moves the
-     clock with it — or stops the build, rather than leaving it stale. */
-  test("comes from the line the clock captions", () => {
+  /* The clock carries no figure: its caption line does, so a change to the
+     CV's number reaches the voice and the page, never a stale plaque. */
+  test("comes from the line the clock captions, with 'projected'", () => {
     const clock = lille.props.find((prop) => prop.id === "clock-face")!;
     expect(lille.lines[clock.captionLine]).toContain(
       "projected to save 10,000 m³ a year",
@@ -125,23 +138,23 @@ test.describe("the budgets", () => {
     }
   });
 
-  /* The card format (`card-art.ts`): a WebP whose channels are an ink
-     separation, R and G the two inks, A the die-cut mask. */
-  test("every card the manifest names is a WebP with a cut mask", async () => {
-    expect(CARD_FILES.length).toBeGreaterThan(0);
-    for (const url of CARD_FILES) {
-      const meta = await sharp(await readFile(publicFile(url))).metadata();
-      expect(meta.format, url).toBe("webp");
-      expect(meta.hasAlpha, url).toBe(true);
+  /* Every landing loads the grain, every landmark there is and one still,
+     on top of the page itself. */
+  /* The index lists only what shipped, and only landmarks the manifest
+     names: a listed file that is not there would 404 on every visit. */
+  test("the landmark index lists only shipped files the manifest names", async () => {
+    const ids = SCENE_ASSETS.map((asset) => asset.id);
+    for (const id of await listedIds()) {
+      expect(ids, id).toContain(id);
+      const asset = SCENE_ASSETS.find((each) => each.id === id)!;
+      await expect(access(publicFile(asset.file)), id).resolves.toBeUndefined();
     }
   });
 
-  /* Every landing loads the whole board's cards, the grain and one still,
-     on top of the page itself. */
-  test("the board's cards and a still fit 1.5 MB with the page", async () => {
-    let cards = 0;
-    for (const url of [...CARD_FILES, GRAIN_FILE]) {
-      cards += (await stat(publicFile(url))).size;
+  test("the board's files and a still fit 1.5 MB with the page", async () => {
+    let world = 0;
+    for (const url of await worldFiles()) {
+      world += (await stat(publicFile(url))).size;
     }
     const stills = PATH_STEPS.flatMap((step) =>
       Object.values(stillsFor(step) ?? {}),
@@ -150,7 +163,7 @@ test.describe("the budgets", () => {
     for (const url of stills) {
       still = Math.max(still, (await stat(publicFile(url))).size);
     }
-    expect(PAGE_BYTES + cards + still).toBeLessThanOrEqual(SCENE_BYTES);
+    expect(PAGE_BYTES + world + still).toBeLessThanOrEqual(SCENE_BYTES);
   });
 });
 
@@ -158,12 +171,14 @@ test.describe("on /path", () => {
   test.describe("the build", () => {
     test.use({ contextOptions: { reducedMotion: "no-preference" } });
 
-    test("Lille loads every card once, then builds in about 2–3 s and ends still", async ({
+    test("Lille asks for every world file once, then builds in about 2–3 s and ends still", async ({
       page,
     }) => {
-      const cards: string[] = [];
+      const files: string[] = [];
       page.on("request", (request) => {
-        if (request.url().includes("/path/cards/")) cards.push(request.url());
+        if (/\/path\/(world|models)\//.test(request.url())) {
+          files.push(request.url());
+        }
       });
       await page.goto("/path#lille");
       await expect(stage(page)).toHaveAttribute("data-build-state", "building");
@@ -180,11 +195,9 @@ test.describe("on /path", () => {
       );
       await expect(overlay(page)).toHaveAttribute("data-path-lit", "0 1 2");
       /* One fetch each, however many times the stage asked to show Lille,
-         and the stock's grain. */
-      expect(cards.sort()).toEqual(
-        [...CARD_FILES, GRAIN_FILE]
-          .map((url) => new URL(url, page.url()).href)
-          .sort(),
+         and no landmark the index does not list. */
+      expect(files.sort()).toEqual(
+        (await worldFiles()).map((url) => new URL(url, page.url()).href).sort(),
       );
     });
 
@@ -201,10 +214,10 @@ test.describe("on /path", () => {
   });
 
   /* A return draws Lille from the tiles it already holds, so it must look
-     as it did the first time: no card resized, nothing missing. Under
+     as it did the first time: no piece resized, nothing missing. Under
      reduced motion (the suite's default) both are the settled board with
      the pawn on Lille. Antialiasing differs by a few pixels between draws;
-     a resized card changes a large share of the stage. */
+     a resized piece changes a large share of the stage. */
   test("a return to Lille draws the board it drew the first time", async ({
     page,
   }) => {
@@ -277,11 +290,14 @@ test.describe("on /path", () => {
   });
 
   /* An asset failure is Lille's alone: the stage keeps running, so home
-     still builds, and the line names Lille's cards. */
-  test("a card that does not load shows Lille's still and says why, and home still builds", async ({
+     still builds, and the line names Lille. */
+  test("a landmark that does not load shows Lille's still and says why, and home still builds", async ({
     page,
   }) => {
-    await page.route("**/path/cards/lille-*", (route) => route.abort());
+    await page.route(`**${LANDMARK_INDEX}`, (route) =>
+      route.fulfill({ json: { "lille-belfry": {}, "lille-bourse": {} } }),
+    );
+    await page.route("**/path/models/lille-*", (route) => route.abort());
     await page.goto("/path#lille");
     await expect(stage(page)).toHaveAttribute(
       "data-fallback-reason",
@@ -311,8 +327,9 @@ test.describe("on /path", () => {
     await expect(page.locator("[data-path-fallback-reason]")).toHaveCount(0);
     await expect(page.locator("[data-path-stage] canvas")).toBeVisible();
 
-    /* A return asks for the cards again, and gets them this time. */
-    await page.unroute("**/path/cards/lille-*");
+    /* A return asks for the landmarks again, and builds this time: with
+       the model, or with its stand-in where there is none yet. */
+    await page.unroute("**/path/models/lille-*");
     await page.locator('[data-path-step-link="lille"]').click();
     await expect(stage(page)).toHaveAttribute("data-build-state", "built");
     await expect(stage(page)).not.toHaveAttribute("data-fallback-reason", /./);

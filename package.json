@@ -11,7 +11,6 @@
     "generate:brand": "node scripts/generate-brand-assets.mjs",
     "generate:cv": "node scripts/generate-cv-pdf.mjs",
     "generate:og-fonts": "bun run scripts/subset-og-fonts.ts",
-    "generate:path-cards": "bun run scripts/prepare-path-cards.ts",
     "generate:path-stills": "bun run scripts/render-path-stills.ts",
     "install:cv-browser": "playwright install chromium --only-shell",
     "start": "next start",

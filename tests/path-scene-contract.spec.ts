@@ -1,6 +1,7 @@
-/* The board runtime's contract without a browser (#148, v2's board): the
-   fallback decision for each trigger storyboard §7.4 lists, what each step
-   builds, the board's layout and its motion curves. #141's testing decisions
+/* The board runtime's contract without a browser (#148; v3's solid board):
+   the fallback decision for each trigger storyboard §7.4 lists, what each
+   step builds, the board's layout, its pieces, the path spline, the model
+   manifest and the motion curves. #141's testing decisions
    ask for the pure functions to be tested directly; the browser halves are
    `path-scene.spec.ts` and `path-board.spec.ts`. */
 
@@ -24,21 +25,30 @@ import {
   MAX_PIXEL_RATIO,
   MIN_PIXEL_RATIO,
 } from "@/components/path/scene/drawing-buffer";
+import { readdir, readFile } from "node:fs/promises";
+import path from "node:path";
+
+import { Box3, Color, Mesh, Vector3 } from "three";
+
 import {
+  BOARD,
+  boardOutline,
   frameShapes,
+  LAYOUT,
   LOOP,
-  MVP_INK_STRENGTH,
-  MVP_WINDOW_LINES,
-  NAME_REACH,
-  NAME_STRIP,
   PAWN_RADIUS,
+  pawnSpot,
   pawnSpotOnTile,
-  TAB_REACH,
+  piecesOf,
   TILE,
   tileCentre,
   tileScale,
 } from "@/components/path/scene/board";
-import { CARD_ART, cardsForStep } from "@/components/path/scene/card-art";
+import { createPaint } from "@/components/path/scene/paint";
+import { PALETTE_ROLES, type Palette } from "@/components/path/scene/palette";
+import { pathSpline, tileAnchors } from "@/components/path/scene/path-spline";
+import { buildPiece } from "@/components/path/scene/props";
+import { SCENE_ASSETS } from "@/components/path/scene/scene-assets";
 import {
   framed,
   inConvex,
@@ -48,12 +58,12 @@ import {
   type ClipRect,
 } from "@/components/path/scene/frame";
 import {
-  FOLD_FROM,
-  foldPose,
   loopSteps,
   MAX_MOVE_MS,
   moveDuration,
   movePose,
+  RISE_FROM,
+  risePose,
   spring,
 } from "@/components/path/scene/motion";
 import { MVP_WINDOW_LABEL, PATH_STEPS } from "@/data/path";
@@ -120,7 +130,7 @@ test.describe("the fallback decision", () => {
 
   test("a scene's failed assets are named as that scene's", () => {
     expect(SCENE_FALLBACK_LINES["assets-failed"]("Lille")).toContain(
-      "Lille’s cards",
+      "Lille’s models",
     );
     expect(SCENE_FALLBACK_LINES["scene-failed"]("Lille")).toContain(
       "the scene failed to build",
@@ -135,21 +145,22 @@ test.describe("what each step builds", () => {
     expect(PATH_STEPS.every(hasScene)).toBe(true);
   });
 
-  /* The runtime stands each prop's card up when it lands: a prop with no
-     card would light its caption line over an empty tile. */
-  test("every prop a step names has a card on that step's tile", () => {
+  /* The runtime raises each prop's pieces when it lands: a prop with no
+     piece would light its caption line over an empty tile. */
+  test("every prop a step names has a piece on that step's tile", () => {
     for (const step of PATH_STEPS) {
-      const cards = cardsForStep(step.slug).map((card) => card.prop);
+      const pieces = piecesOf(step.slug).map((piece) => piece.prop);
       for (const prop of step.props) {
-        expect(cards, `${step.slug}'s ${prop.id}`).toContain(prop.id);
+        expect(pieces, `${step.slug}'s ${prop.id}`).toContain(prop.id);
       }
-    }
-    /* And no card renders a prop its step does not name. */
-    for (const card of CARD_ART.filter((art) => art.prop)) {
-      expect(
-        stepNamed(card.step).props.map((prop) => prop.id),
-        card.id,
-      ).toContain(card.prop);
+      /* And no piece renders a prop its step does not name. */
+      for (const piece of piecesOf(step.slug)) {
+        if (piece.prop === null) continue;
+        expect(
+          step.props.map((prop) => prop.id),
+          `${step.slug}'s ${piece.id}`,
+        ).toContain(piece.prop);
+      }
     }
   });
 
@@ -298,19 +309,31 @@ test.describe("the MVP window", () => {
     );
   });
 
-  test("is printed on a tag in two lines, faded", () => {
-    expect(MVP_WINDOW_LINES).toEqual([
-      "MVP —",
-      "killed after customer discovery",
-    ]);
-    expect(MVP_WINDOW_LINES.join(" ")).toBe(MVP_WINDOW_LABEL);
-    expect(MVP_INK_STRENGTH).toBeGreaterThan(0);
-    expect(MVP_INK_STRENGTH).toBeLessThan(1);
+  /* The owner's v3 decision: nothing on the board is text. The label is
+     the prop's name in the data, for the overlay and the flat site; the
+     scene's code draws no glyphs and reads no label. */
+  test("is never written in the scene", async () => {
+    const dir = path.join(process.cwd(), "src/components/path/scene");
+    const files = (await readdir(dir)).filter((file) => file.endsWith(".ts"));
+    expect(files.length).toBeGreaterThan(5);
+    for (const file of files) {
+      const source = await readFile(path.join(dir, file), "utf8");
+      for (const sign of [
+        "fillText",
+        "strokeText",
+        "MVP_WINDOW_LABEL",
+        "TextGeometry",
+        "FontLoader",
+        "document.fonts",
+      ]) {
+        expect(source.includes(sign), `${file} uses ${sign}`).toBe(false);
+      }
+    }
   });
 });
 
-/* Comp B: seven tiles on a closed loop in the data's order, Lille and home
-   the heroes, Lille at the front and "?" closing the loop beside home. */
+/* Seven tiles on a closed loop in the data's order, Lille and home the
+   heroes, Lille at the front and "?" closing the loop beside home. */
 test.describe("the board", () => {
   test("the loop is the data's steps, in order", () => {
     expect(LOOP).toEqual(PATH_STEPS.map((step) => step.slug));
@@ -379,45 +402,55 @@ test.describe("the board", () => {
     }
   });
 
-  /* The pawn stands where it covers nothing printed: behind the tile's
-     name, and clear of every card standing on the tile and the tab glued
-     in front of it. */
-  test("the pawn stands behind each tile's name, clear of its cards", () => {
+  /* Every piece stands on its own tile: inside the slab, so nothing
+     overhangs into the path or a neighbour. */
+  test("every piece's box stands inside its tile", () => {
+    for (const slug of LOOP) {
+      for (const piece of piecesOf(slug)) {
+        const label = `${slug}: ${piece.id}`;
+        expect(Math.abs(piece.x) + piece.w / 2, label).toBeLessThanOrEqual(
+          TILE.width / 2 + 1e-9,
+        );
+        expect(Math.abs(piece.z) + piece.d / 2, label).toBeLessThanOrEqual(
+          TILE.depth / 2 + 1e-9,
+        );
+        expect(piece.h, label).toBeGreaterThan(0);
+      }
+      const ids = piecesOf(slug).map((piece) => piece.id);
+      expect(new Set(ids).size, slug).toBe(ids.length);
+    }
+  });
+
+  /* The pawn stands where it covers nothing: on the tile's top, clear of its
+     chamfered corners, behind its colour band, and clear of every piece. */
+  test("the pawn stands clear of every piece and off the band", () => {
     for (const slug of LOOP) {
       const { x, z } = pawnSpotOnTile(slug);
-      expect(z + PAWN_RADIUS, slug).toBeLessThanOrEqual(
-        TILE.depth / 2 - NAME_STRIP - NAME_REACH,
-      );
-      /* Inside the border, and clear of the chamfered corners. */
       expect(Math.abs(x) + PAWN_RADIUS, slug).toBeLessThanOrEqual(
         TILE.width / 2,
       );
-      expect(Math.abs(z) + PAWN_RADIUS, slug).toBeLessThanOrEqual(
-        TILE.depth / 2 - TILE.chamfer,
-      );
-      for (const card of cardsForStep(slug)) {
-        if (card.position.y !== 0) continue;
-        const left = card.position.x - card.anchor.u * card.width;
-        const right = left + card.width;
-        const dx = Math.max(left - x, 0, x - right);
-        const dz = Math.max(
-          card.position.z - z,
-          0,
-          z - card.position.z - TAB_REACH,
-        );
+      expect(
+        Math.abs(x) + Math.abs(z) + PAWN_RADIUS * Math.SQRT2,
+        slug,
+      ).toBeLessThanOrEqual(TILE.width / 2 + TILE.depth / 2 - TILE.chamfer);
+      /* The band runs along the front edge, 0.4 deep. */
+      expect(z + PAWN_RADIUS, slug).toBeLessThanOrEqual(TILE.depth / 2 - 0.4);
+      for (const piece of piecesOf(slug)) {
+        const dx = Math.max(Math.abs(x - piece.x) - piece.w / 2, 0);
+        const dz = Math.max(Math.abs(z - piece.z) - piece.d / 2, 0);
         expect(
           Math.hypot(dx, dz),
-          `${slug}: ${card.id}`,
+          `${slug}: ${piece.id}`,
         ).toBeGreaterThanOrEqual(PAWN_RADIUS);
       }
     }
   });
 
-  test("the camera frames every tile and every card's top", () => {
+  test("the camera frames every tile and every piece's top", () => {
     const points = frameShapes().flatMap(({ outlines }) => outlines.flat());
-    const cards = CARD_ART.length;
-    /* Four footprint corners and a hop top per tile, four corners a card. */
-    expect(points).toHaveLength(LOOP.length * 5 + cards * 4);
+    const pieces = LOOP.flatMap(piecesOf).length;
+    /* Four footprint corners and a hop top per tile, four corners a piece. */
+    expect(points).toHaveLength(LOOP.length * 5 + pieces * 4);
     for (const [, y] of points) expect(y).toBeGreaterThanOrEqual(0);
   });
 
@@ -434,17 +467,176 @@ test.describe("the board", () => {
       const z = footprint.reduce((sum, [, , pz]) => sum + pz, 0) / 4;
       expect(x).toBeCloseTo(cx, 6);
       expect(z).toBeCloseTo(cz, 6);
-      /* A card's outline stands: its top above its foot. */
-      expect(rest).toHaveLength(cardsForStep(slug).length + 1);
-      for (const card of rest.slice(0, -1)) {
-        expect(card).toHaveLength(4);
-        expect(card[2][1]).toBeGreaterThan(card[1][1]);
+      /* Each piece's top stands above the tile's slab, at its full height. */
+      expect(rest).toHaveLength(piecesOf(slug).length + 1);
+      piecesOf(slug).forEach((piece, i) => {
+        const top = rest[i];
+        expect(top).toHaveLength(4);
+        const expected =
+          (TILE.thickness + (piece.y ?? 0) + piece.h) * tileScale(slug);
+        for (const [, y] of top) expect(y).toBeCloseTo(expected, 6);
+      });
+    }
+  });
+
+  /* The camera frames the whole board by its rim: every tile lies inside
+     it, inside its frame. */
+  test("the board's rim holds every tile, inside its frame", () => {
+    const rim = boardOutline();
+    expect(rim).toHaveLength(8);
+    const inner = {
+      x: BOARD.halfWidth - BOARD.frameWidth,
+      z: BOARD.halfDepth - BOARD.frameWidth,
+    };
+    for (const slug of LOOP) {
+      const [footprint] = frameShapes().find(
+        (shape) => shape.slug === slug,
+      )!.outlines;
+      for (const [x, , z] of footprint) {
+        expect(Math.abs(x), slug).toBeLessThan(inner.x);
+        expect(Math.abs(z), slug).toBeLessThan(inner.z);
+        const corner = rim.map(([px, , pz]) => [px, pz] as const);
+        expect(inConvex(corner, [x, z]), slug).toBe(true);
       }
     }
   });
 });
 
-/* Where the board may stand under the printed cards: clip-space arithmetic,
+/* The pieces, built: each fills about the box the layout gives it, which is
+   what the camera frames and the pawn keeps clear of. A piece drawn larger
+   than its box would be cropped or stood on. */
+test.describe("the pieces", () => {
+  const palette = Object.fromEntries(
+    PALETTE_ROLES.map((role, i) => [role, new Color(0.2 * i, 0.5, 0.4)]),
+  ) as Palette;
+  const paint = createPaint(palette);
+
+  test("every piece builds, and stays inside its box", () => {
+    for (const slug of LOOP) {
+      piecesOf(slug).forEach((piece, i) => {
+        const label = `${slug}: ${piece.id}`;
+        const built = buildPiece(paint, slug, piece, i);
+        built.object.updateMatrixWorld(true);
+        /* Home's rivers run on past the plateau to the tile's front edge:
+           flat water, measured against the tile instead. */
+        const box = new Box3();
+        const water = new Box3();
+        built.object.traverse((node) => {
+          if (!(node instanceof Mesh)) return;
+          const flat = piece.id === "plateau" && node.material === paint.water;
+          (flat ? water : box).expandByObject(node, true);
+        });
+        if (!water.isEmpty()) {
+          expect(Math.abs(water.min.x + piece.x), label).toBeLessThanOrEqual(
+            TILE.width / 2,
+          );
+          expect(water.max.x + piece.x, label).toBeLessThanOrEqual(
+            TILE.width / 2,
+          );
+          expect(water.max.z + piece.z, label).toBeLessThanOrEqual(
+            TILE.depth / 2,
+          );
+        }
+        const size = box.getSize(new Vector3());
+        /* A little give for bevels, rims and a leaning plume. */
+        const give = 0.12 + 1e-6;
+        expect(size.x, label).toBeLessThanOrEqual(piece.w + give);
+        expect(size.z, label).toBeLessThanOrEqual(piece.d + give);
+        expect(box.max.y, label).toBeLessThanOrEqual(piece.h + give);
+        expect(box.min.y, label).toBeGreaterThanOrEqual(-0.02);
+        /* And fills it: no piece shrunk to a speck. */
+        expect(Math.max(size.x, size.z), label).toBeGreaterThan(
+          Math.max(piece.w, piece.d) * 0.5,
+        );
+      });
+    }
+  });
+
+  test("a piece's motion ends where its rise ends, and starts still", () => {
+    const clock = buildPiece(
+      paint,
+      "lille",
+      piecesOf("lille").find((piece) => piece.id === "clock-face")!,
+      0,
+    );
+    expect(clock.motion).toBeDefined();
+    const hand = () => {
+      const angles: number[] = [];
+      clock.object.traverse((node) => angles.push(node.rotation.z));
+      return angles;
+    };
+    clock.motion!(0);
+    const atStart = hand();
+    clock.motion!(1);
+    expect(hand()).not.toEqual(atStart);
+  });
+});
+
+/* The spline and the anchors the camera rig (W1) reads. */
+test.describe("the path spline", () => {
+  test("is closed, through every tile's centre in the loop's order", () => {
+    const spline = pathSpline();
+    const anchors = tileAnchors();
+    expect(spline.closed).toBe(true);
+    expect(anchors.map((anchor) => anchor.slug)).toEqual([...LOOP]);
+    anchors.forEach((anchor, i) => {
+      const [x, z] = tileCentre(anchor.slug);
+      expect(anchor.centre.x).toBeCloseTo(x, 6);
+      expect(anchor.centre.z).toBeCloseTo(z, 6);
+      expect(anchor.t).toBeCloseTo(i / LOOP.length, 6);
+      const at = spline.getPoint(anchor.t);
+      expect(at.distanceTo(anchor.centre), anchor.slug).toBeLessThan(1e-6);
+    });
+  });
+
+  test("each anchor's pawn stands on its tile's top", () => {
+    for (const anchor of tileAnchors()) {
+      const [x, z] = pawnSpot(anchor.slug);
+      expect(anchor.pawn.x).toBeCloseTo(x, 6);
+      expect(anchor.pawn.z).toBeCloseTo(z, 6);
+      expect(anchor.pawn.y).toBeCloseTo(
+        TILE.thickness * tileScale(anchor.slug),
+        6,
+      );
+      expect(anchor.top).toBe(anchor.pawn.y);
+    }
+  });
+});
+
+/* The model manifest (`scene-assets.ts`): the seam W2's landmarks land on. */
+test.describe("the model manifest", () => {
+  test("names each landmark once, on its own tile's prop and piece", () => {
+    const ids = SCENE_ASSETS.map((asset) => asset.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toEqual([
+      "home-school",
+      "turin-mole",
+      "switzerland-jet-d-eau",
+      "cuneo-2022-schoolroom",
+      "lille-belfry",
+      "lille-bourse",
+      "now-office",
+    ]);
+    for (const asset of SCENE_ASSETS) {
+      expect(asset.id.startsWith(`${asset.step}-`), asset.id).toBe(true);
+      expect(asset.file).toBe(`/path/models/${asset.id}.glb`);
+      expect(asset.role).toBe("landmark");
+      const prop = stepNamed(asset.step).props.find((p) => p.id === asset.prop);
+      expect(prop, asset.id).toBeDefined();
+      expect(asset.captionLine, asset.id).toBe(prop!.captionLine);
+      const piece = LAYOUT[asset.step].pieces.find((p) => p.id === asset.piece);
+      expect(piece?.prop, asset.id).toBe(asset.prop);
+      expect(asset.anchor).toEqual({
+        x: piece!.x,
+        y: piece!.y ?? 0,
+        z: piece!.z,
+      });
+      expect(asset.scale).toBeGreaterThan(0);
+    }
+  });
+});
+
+/* Where the board may stand under the tabs laid over it: clip-space arithmetic,
    so a wrong sign or a missed edge shows here rather than as a tile under
    the panel. */
 test.describe("the frame", () => {
@@ -509,22 +701,29 @@ test.describe("the motion", () => {
     expect(peak).toBeLessThan(1.15);
   });
 
-  test("a card folds up from nearly flat, never from scale 0, and ends upright", () => {
-    const start = foldPose(0, 800);
-    expect(start.angle).toBe(FOLD_FROM);
-    expect(Math.abs(FOLD_FROM)).toBeLessThan(Math.PI / 2);
-    expect(start.opacity).toBe(0);
-    for (let progress = 0; progress <= 1; progress += 0.01) {
-      expect(foldPose(progress, 800).scale).toBeGreaterThanOrEqual(0.9);
+  test("a piece rises from squat, never from nothing, and ends whole", () => {
+    expect(risePose(0, 800).visible).toBe(false);
+    for (let progress = 0.01; progress < 1; progress += 0.01) {
+      const pose = risePose(progress, 800);
+      expect(pose.visible).toBe(true);
+      expect(pose.height).toBeGreaterThanOrEqual(RISE_FROM.height - 1e-9);
+      expect(pose.width).toBeGreaterThanOrEqual(RISE_FROM.width - 1e-9);
+      expect(pose.width).toBeLessThanOrEqual(1);
+      expect(pose.sink).toBeGreaterThanOrEqual(0);
     }
-    expect(foldPose(1, 800)).toEqual({ angle: 0, opacity: 1, scale: 1 });
-    /* Past upright, a little, on the way: the subtle bounce. */
-    const angles = Array.from(
+    expect(risePose(1, 800)).toEqual({
+      visible: true,
+      width: 1,
+      height: 1,
+      sink: 0,
+    });
+    /* Past full height, a little, on the way: the subtle bounce. */
+    const heights = Array.from(
       { length: 99 },
-      (_, i) => foldPose((i + 1) / 100, 800).angle,
+      (_, i) => risePose((i + 1) / 100, 800).height,
     );
-    expect(Math.max(...angles)).toBeGreaterThan(0);
-    expect(Math.max(...angles)).toBeLessThan(0.15);
+    expect(Math.max(...heights)).toBeGreaterThan(1);
+    expect(Math.max(...heights)).toBeLessThan(1.15);
   });
 
   test("the pawn goes the short way round the loop", () => {
