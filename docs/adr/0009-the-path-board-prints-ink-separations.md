@@ -37,6 +37,23 @@ What ships:
   ends, its cut edge ruled and its crease scored in the cool ink as a dashed line. It lies flat in
   front of the card's foot, fades and grows with the card, and never turns. It stops short of the
   tile's printed name; a card mounted on another card has none.
+- **The board is supersampled, not multisampled** (v2 polish, round 2). The renderer runs with
+  `antialias: false` and draws at a pixel ratio of 2 at least, up to the screen's own, capped by
+  `MAX_DRAWING_PIXELS` (`drawing-buffer.ts`). Printed card is mostly fine line and halftone
+  dots, which multisampling does not smooth, as it smooths only polygon edges; drawing at twice
+  the CSS size smooths both, and at 12 bytes a pixel rather than 36 lets a 1440×900 ×2 stage
+  draw at its own sharpness inside the 64 MB budget (`docs/path-measurements.md`).
+- **The board has its own column, under one printed step strip** (v2 polish, round 2). Comp B
+  lays the step list and the text panel over a full-screen board; round 1 built that, and the board, framed round both, came out small, with tiles that could sit under the panel. On a wide screen the steps
+  are now one card strip across the top, the same component as the phone's strip at a wider
+  size, with the board below it on the left and the transport and a full-height text panel on
+  the right. The board's own tabs, Replay and the turns, are printed on its frame at the
+  bottom-left. The reason is the board's size; the comment over the world in `page.tsx` keeps it.
+- **The selected tile lifts, and the pawn stands beside its name** (v2 polish, round 2). The
+  selected tile rises a little off the table, eased, and drops when another is selected. The
+  pawn stands on a spot found for each tile (`pawnSpotOnTile` in `board.ts`): behind the name
+  band, clear of every card standing on the tile and its tab. Home's school card moved left of
+  centre to leave that spot room.
 - **Every piece stays paper.** Lille's pipe loop is a printed card, not a modelled terracotta
   tube as comp B draws it: one shaded mesh would be the only thing on the board not printed by
   the ink shader, and would read as from another set.

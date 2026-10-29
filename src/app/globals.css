@@ -322,7 +322,7 @@ html {
       color: var(--color-accent-foreground);
     }
 
-    .path-step-link:hover > span:first-child {
+    .path-step-link:hover > span:first-of-type {
       color: var(--color-accent);
     }
 
@@ -332,32 +332,63 @@ html {
     }
   }
 
-  /* The step link fills its row, so the whole row is the target. */
-  .path-step-link {
-    height: 100%;
+  /* The step list: one strip of steps side by side on a drawn line, the
+     whole of each step its link. On a wide screen the steps share the
+     strip's width; on a phone three show at a time, the current one in the
+     middle and its neighbours whole either side of it, fading into the
+     card, and the strip snaps from step to step. */
+  .path-step-row {
+    display: grid;
+    grid-template-columns: repeat(var(--path-steps), minmax(0, 1fr));
   }
 
-  /* The step list: rows beside the drawn line on a wide screen, the line's
-     gutter to their left. On a phone, a strip of the same rows that scrolls
-     sideways under the board, its ends fading into the card. */
-  .path-step-strip {
-    padding-left: 2.25rem;
+  .path-step-link {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.375rem;
+    height: 100%;
+    padding: 0.75rem 0.25rem 1rem;
+    text-align: center;
+  }
+
+  /* Through every step's node: the node's centre is 18px down its link. */
+  .path-step-line {
+    position: absolute;
+    top: calc(1.125rem - 0.5px);
+    right: calc(50% / var(--path-steps));
+    left: calc(50% / var(--path-steps));
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .path-step-node {
+    position: relative;
   }
 
   @media (width < 64rem) {
     .path-step-strip {
-      display: flex;
-      padding-left: 0;
       overflow-x: auto;
       overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory;
       scrollbar-width: none;
       mask-image: linear-gradient(
         to right,
         transparent,
-        black 1rem,
-        black calc(100% - 1rem),
+        black 22%,
+        black 78%,
         transparent
       );
+    }
+
+    /* A third of the strip a step, and a third's room either end, so the
+       first and the last can stand in the middle too. */
+    .path-step-track {
+      width: calc((var(--path-steps) + 2) * 100% / 3);
+      padding-inline: calc(100% / 3);
+    }
+
+    .path-step-row > li {
+      scroll-snap-align: center;
     }
   }
 
@@ -370,6 +401,14 @@ html {
       scrollbar-width: thin;
       scrollbar-color: var(--color-border) transparent;
     }
+
+    .path-panel-text[data-path-more] {
+      mask-image: linear-gradient(
+        to bottom,
+        black calc(100% - 4rem),
+        transparent
+      );
+    }
   }
 
   .path-panel-text:focus-visible {
@@ -377,18 +416,18 @@ html {
     outline-offset: -4px;
   }
 
-  /* The pawn rides the step list's drawn line. On-screen movement, so
-     ease-in-out; a key's change and reduced motion cut it there. */
+  /* The pawn walks the step list's drawn line, its foot on the current
+     step's node. On-screen movement, so ease-in-out; a key's change and
+     reduced motion cut it there. */
   .path-pawn {
     position: absolute;
-    top: 0;
-    left: 0;
+    top: calc(1.125rem - 1.2rem);
+    z-index: 1;
     width: 1.125rem;
     height: 1.5rem;
-    offset-rotate: 0deg;
-    offset-anchor: 50% 80%;
+    translate: -50% 0;
     pointer-events: none;
-    transition: offset-distance 280ms var(--ease-in-out);
+    transition: left 280ms var(--ease-in-out);
   }
 
   /* The dwell running out under the current row: a printed hairline in the

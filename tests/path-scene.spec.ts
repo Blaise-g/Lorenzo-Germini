@@ -555,6 +555,50 @@ test.describe("rendering on demand", () => {
   });
 });
 
+/* Replay and the turns are printed on the board's own frame: at its
+   bottom-left on a wide screen, at its bottom-right on a phone, and inside the
+   stage either way, so they never land on the strip or the panel. */
+test.describe("the board's tabs", () => {
+  for (const { name, viewport, corner } of [
+    {
+      name: "a wide screen",
+      viewport: { width: 1440, height: 900 },
+      corner: "bottom-left",
+    },
+    {
+      name: "a phone",
+      viewport: { width: 375, height: 812 },
+      corner: "bottom-right",
+    },
+  ] as const) {
+    test(`sit at the board's ${corner} on ${name}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      await page.goto("/path#lille");
+      await expect(buildControl(page)).toBeVisible();
+      const tabs = await page
+        .locator("[data-path-board-controls]")
+        .boundingBox();
+      const box = await stage(page).boundingBox();
+      expect(tabs && box).toBeTruthy();
+      const inside = {
+        left: tabs!.x - box!.x,
+        right: box!.x + box!.width - (tabs!.x + tabs!.width),
+        top: tabs!.y - box!.y,
+        bottom: box!.y + box!.height - (tabs!.y + tabs!.height),
+      };
+      for (const gap of Object.values(inside))
+        expect(gap).toBeGreaterThanOrEqual(-0.5);
+      if (corner === "bottom-left") {
+        expect(inside.left).toBeLessThanOrEqual(1);
+        expect(inside.bottom).toBeLessThanOrEqual(1);
+      } else {
+        expect(inside.bottom).toBeLessThanOrEqual(24);
+        expect(inside.right).toBeLessThanOrEqual(48);
+      }
+    });
+  }
+});
+
 test.describe("on a wide, high-density screen", () => {
   test.use({ viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 2 });
 

@@ -179,7 +179,9 @@ export function VoiceControls({
      stopped when it was deselected, is not this one's. */
   const shown: Status = loaded === selected ? status : "idle";
   const playing = shown === "playing";
-  const message = MESSAGE[shown] ?? (hasClip ? "" : VOICE_COPY.noClip);
+  /* A step with no clip says nothing of it here: the label under the
+     controls says once that some steps have none, and Listen is faint. */
+  const message = MESSAGE[shown] ?? "";
 
   return (
     <div data-path-voice data-voice-state={shown} className="print:hidden">

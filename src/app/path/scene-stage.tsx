@@ -1,6 +1,6 @@
 "use client";
 
-import { RotateCcw, RotateCw } from "lucide-react";
+import { Repeat, RotateCcw, RotateCw, SkipForward } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
@@ -49,19 +49,17 @@ export const CONTROL_CLASS_NAME =
 const TAB_CLASS_NAME = "path-tab press transition-refined";
 
 /** Room left between a card laid over the stage and the board. */
-const FRAME_GAP_PX = 24;
+const FRAME_GAP_PX = 12;
 
-/** The cards laid over the stage, as the board must keep clear of them. A
- *  card marked `data-path-cover="board"` — the step list, the board's tabs —
- *  no tile goes under; one marked `"step"` — the text panel — the selected
- *  tile does not go under. A card in the page's flow, as on a phone, covers
- *  nothing. */
+/** The cards laid over the stage, `data-path-cover`, as the board must keep
+ *  clear of them: no tile goes under one, nor the pawn's hop. Only the
+ *  board's own tabs lie on it; the step list and the panel stand beside
+ *  it. */
 function measureFrame(stage: HTMLElement): StageFrame {
   const box = stage.getBoundingClientRect();
   const frame = {
     safe: { left: 0, top: 0, right: box.width, bottom: box.height },
     clear: [] as StageRect[],
-    avoid: [] as StageRect[],
   };
   for (const card of document.querySelectorAll<HTMLElement>(
     "[data-path-cover]",
@@ -69,15 +67,12 @@ function measureFrame(stage: HTMLElement): StageFrame {
     const style = getComputedStyle(card);
     if (style.position !== "absolute" || style.display === "none") continue;
     const rect = card.getBoundingClientRect();
-    const covered = {
+    frame.clear.push({
       left: rect.left - box.left - FRAME_GAP_PX,
       top: rect.top - box.top - FRAME_GAP_PX,
       right: rect.right - box.left + FRAME_GAP_PX,
       bottom: rect.bottom - box.top + FRAME_GAP_PX,
-    };
-    (card.dataset.pathCover === "step" ? frame.avoid : frame.clear).push(
-      covered,
-    );
+    });
   }
   return frame;
 }
@@ -234,6 +229,13 @@ export function SceneStage({
     return () => observer.disconnect();
   }, [mode]);
 
+  /* The board's tabs arrive with the scene and leave with it: the board
+     makes room for them, or takes their corner back. */
+  const measureCovers = useCallback(() => {
+    const box = stageBoxRef.current;
+    if (box) runtimeRef.current?.setFrame(measureFrame(box));
+  }, []);
+
   /* A click on a tile, or on a card standing on it, selects its step, as
      its row in the list does; the list is the keyboard's way to it. A click
      on the tile being built, or off the tiles, skips the build. */
@@ -276,9 +278,16 @@ export function SceneStage({
      controls stay, marked unavailable rather than `disabled`, so one that
      has focus when a Back lands on a loading scene keeps it. */
   const loading = buildState === "loading";
+  const reasonLine = !withScene
+    ? null
+    : sceneStills
+      ? SCENE_FALLBACK_LINES[sceneStills](step.place)
+      : mode === "fallback" && reason
+        ? FALLBACK_REASON_LINES[reason]
+        : null;
 
   return (
-    <div ref={stageRef} className={cn("print:hidden", className)}>
+    <div ref={stageRef} className={cn("relative print:hidden", className)}>
       <div
         ref={stageBoxRef}
         data-path-stage
@@ -288,7 +297,7 @@ export function SceneStage({
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-fallback-reason={reason ?? sceneStills}
-        className="relative h-[clamp(15rem,72vw,26rem)] w-full overflow-hidden lg:h-full"
+        className="relative h-[clamp(16rem,80vw,26rem)] w-full overflow-hidden lg:h-full"
       >
         {children}
         {/* The scene is an illustration of the text beside it, which carries
@@ -328,72 +337,85 @@ export function SceneStage({
         />
       </div>
 
-      {/* One row of fixed height, whatever it holds, so nothing under it
-          moves when the controls arrive or the reason replaces them. Tabs
-          cut from the tour's card: the board's own controls. */}
-      <div
-        data-path-board-controls
-        data-path-cover="board"
-        className="mt-3 flex min-h-11 items-center gap-3 max-lg:px-6 md:max-lg:px-10 lg:absolute lg:bottom-0 lg:left-0 lg:mt-0 lg:max-w-[19rem]"
-      >
-        {live && buildState !== "idle" ? (
-          <>
-            <button
-              type="button"
-              data-path-build-control
-              aria-disabled={loading || undefined}
-              className={TAB_CLASS_NAME}
-              onClick={() => {
-                if (loading) return;
-                if (buildState === "building") runtimeRef.current?.skip();
-                else runtimeRef.current?.replay();
-              }}
-            >
-              <span className="path-tab-face">
-                {buildState === "building"
-                  ? STAGE_COPY.skip
-                  : STAGE_COPY.replay}
-              </span>
-            </button>
-            <button
-              type="button"
-              aria-label={STAGE_COPY.turnLeft}
-              title={STAGE_COPY.turnLeft}
-              aria-disabled={turn <= -TURN_LIMIT || loading || undefined}
-              data-shape="square"
-              className={TAB_CLASS_NAME}
-              onClick={() => {
-                if (!loading) runtimeRef.current?.turn(-1);
-              }}
-            >
-              <RotateCcw aria-hidden className="path-tab-face size-4" />
-            </button>
-            <button
-              type="button"
-              aria-label={STAGE_COPY.turnRight}
-              title={STAGE_COPY.turnRight}
-              aria-disabled={turn >= TURN_LIMIT || loading || undefined}
-              data-shape="square"
-              className={TAB_CLASS_NAME}
-              onClick={() => {
-                if (!loading) runtimeRef.current?.turn(1);
-              }}
-            >
-              <RotateCw aria-hidden className="path-tab-face size-4" />
-            </button>
-          </>
-        ) : null}
-        {mode === "fallback" && reason && withScene ? (
-          <p data-path-fallback-reason className="text-faint text-xs">
-            {FALLBACK_REASON_LINES[reason]}
-          </p>
-        ) : null}
-        {sceneStills && withScene ? (
-          <p data-path-fallback-reason className="text-faint text-xs">
-            {SCENE_FALLBACK_LINES[sceneStills](step.place)}
-          </p>
-        ) : null}
-      </div>
+      {/* The board's own controls: tabs cut from the tour's card, laid in
+          a corner of the board's frame, where the board keeps clear of them:
+          the bottom-left on a wide screen; the bottom-right on a phone, as
+          icons. A phone's board is as wide as the screen, so no corner of it
+          is free: the tabs take a band of the stage under the board, which
+          costs the page height and not the board's size, and as icons the
+          band is as light as it can be.
+          Laid over the stage rather than in a row of their own, so nothing
+          moves when they arrive. */}
+      {live && buildState !== "idle" ? (
+        <div
+          ref={measureCovers}
+          data-path-board-controls
+          data-path-cover
+          className="absolute right-6 bottom-3 flex items-center gap-2 md:right-10 lg:right-auto lg:bottom-0 lg:left-0"
+        >
+          <button
+            type="button"
+            data-path-build-control
+            aria-disabled={loading || undefined}
+            className={cn(TAB_CLASS_NAME, "max-lg:min-w-11 max-lg:px-0")}
+            onClick={() => {
+              if (loading) return;
+              if (buildState === "building") runtimeRef.current?.skip();
+              else runtimeRef.current?.replay();
+            }}
+          >
+            {/* Its word on a wide screen; on a phone, its sign, so the
+                three tabs fit in the board's corner beside Lille. */}
+            <span className="path-tab-face max-lg:sr-only">
+              {buildState === "building" ? STAGE_COPY.skip : STAGE_COPY.replay}
+            </span>
+            {buildState === "building" ? (
+              <SkipForward
+                aria-hidden
+                className="path-tab-face size-4 lg:hidden"
+              />
+            ) : (
+              <Repeat aria-hidden className="path-tab-face size-4 lg:hidden" />
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label={STAGE_COPY.turnLeft}
+            title={STAGE_COPY.turnLeft}
+            aria-disabled={turn <= -TURN_LIMIT || loading || undefined}
+            data-shape="square"
+            className={TAB_CLASS_NAME}
+            onClick={() => {
+              if (!loading) runtimeRef.current?.turn(-1);
+            }}
+          >
+            <RotateCcw aria-hidden className="path-tab-face size-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={STAGE_COPY.turnRight}
+            title={STAGE_COPY.turnRight}
+            aria-disabled={turn >= TURN_LIMIT || loading || undefined}
+            data-shape="square"
+            className={TAB_CLASS_NAME}
+            onClick={() => {
+              if (!loading) runtimeRef.current?.turn(1);
+            }}
+          >
+            <RotateCw aria-hidden className="path-tab-face size-4" />
+          </button>
+        </div>
+      ) : null}
+      {/* Why the stage shows stills, printed small in its bottom-left
+          corner, over the still's bare paper. */}
+      {reasonLine ? (
+        <p
+          data-path-fallback-reason
+          className="text-faint absolute bottom-2 left-6 text-xs md:left-10 lg:left-0"
+        >
+          {reasonLine}
+        </p>
+      ) : null}
 
       {/* One polite announcement per scene shown (storyboard §7.4). */}
       <p aria-live="polite" className="sr-only">

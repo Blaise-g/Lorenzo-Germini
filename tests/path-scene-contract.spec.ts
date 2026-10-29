@@ -22,12 +22,17 @@ import {
   drawingPixelRatio,
   MAX_DRAWING_PIXELS,
   MAX_PIXEL_RATIO,
+  MIN_PIXEL_RATIO,
 } from "@/components/path/scene/drawing-buffer";
 import {
   frameShapes,
   LOOP,
   MVP_INK_STRENGTH,
   MVP_WINDOW_LINES,
+  NAME_REACH,
+  NAME_STRIP,
+  PAWN_RADIUS,
+  pawnSpotOnTile,
   TILE,
   tileCentre,
   tileScale,
@@ -204,8 +209,8 @@ test.describe("the drawing buffer", () => {
   const MB = 1000 * 1000;
   const MiB = 1024 * 1024;
   /** The board's uploaded buffers and textures, shadow map included, from
-   *  the report: 21.6 MiB measured, rounded up. */
-  const UPLOADS = 22 * MiB;
+   *  the report: 17.5 MiB measured, rounded up. */
+  const UPLOADS = 18 * MiB;
   const bufferBytes = (width: number, height: number, dpr: number) => {
     const ratio = drawingPixelRatio(width, height, dpr);
     return (
@@ -215,22 +220,33 @@ test.describe("the drawing buffer", () => {
     );
   };
 
-  /* The stage's CSS size at 1440×900, 1280×720, 2560×1440 and 375×812,
-     measured. */
-  test("every measured stage stays under the 64 MB budget, at ×2 and ×3", () => {
-    for (const [width, height] of [
-      [1360, 782],
-      [1200, 602],
-      [2480, 1322],
-      [375, 270],
-    ]) {
-      for (const dpr of [2, 3]) {
+  /* The stage's CSS size at 1440×900, 1280×720, 1512×982, 2560×1440 and
+     375×812, measured. */
+  const STAGES = [
+    [920, 678],
+    [760, 498],
+    [992, 760],
+    [1976, 1218],
+    [375, 300],
+  ] as const;
+
+  test("every measured stage stays under the 64 MB budget, at ×1, ×2 and ×3", () => {
+    for (const [width, height] of STAGES) {
+      for (const dpr of [1, 2, 3]) {
         expect(
           bufferBytes(width, height, dpr) + UPLOADS,
           `${width}×${height} at ×${dpr}`,
         ).toBeLessThanOrEqual(64 * MB);
       }
     }
+  });
+
+  /* The cap at its fullest still leaves the budget room: no stage, however
+     large, goes over. */
+  test("the pixel cap alone keeps the budget", () => {
+    expect(
+      MAX_DRAWING_PIXELS * DRAWING_BYTES_PER_PIXEL + UPLOADS,
+    ).toBeLessThanOrEqual(64 * MB);
   });
 
   test("no stage holds more than its pixel cap, at any density", () => {
@@ -241,9 +257,9 @@ test.describe("the drawing buffer", () => {
       [3376, 640],
       [7000, 640],
     ]) {
-      for (const dpr of [1, 2, 3]) {
+      for (const dpr of [1, 2, 3, 4]) {
         const ratio = drawingPixelRatio(width, height, dpr);
-        expect(ratio).toBeLessThanOrEqual(Math.min(dpr, MAX_PIXEL_RATIO));
+        expect(ratio).toBeLessThanOrEqual(MAX_PIXEL_RATIO);
         expect(width * ratio * height * ratio).toBeLessThanOrEqual(
           MAX_DRAWING_PIXELS + 1,
         );
@@ -251,9 +267,19 @@ test.describe("the drawing buffer", () => {
     }
   });
 
-  test("a stage under the cap keeps the device's ratio, up to 1.5", () => {
-    expect(drawingPixelRatio(976, 378, 2)).toBe(MAX_PIXEL_RATIO);
-    expect(drawingPixelRatio(342, 224, 1)).toBe(1);
+  /* No multisampling, so a screen at ratio 1 is drawn at 2 and averaged
+     down; a screen at 2 or 3 is drawn at its own ratio. */
+  test("a stage under the cap is drawn at the device's ratio, and never under 2", () => {
+    expect(drawingPixelRatio(920, 678, 1)).toBe(MIN_PIXEL_RATIO);
+    expect(drawingPixelRatio(920, 678, 2)).toBe(2);
+    expect(drawingPixelRatio(375, 300, 3)).toBe(3);
+    expect(drawingPixelRatio(375, 300, 4)).toBe(MAX_PIXEL_RATIO);
+  });
+
+  test("the stage of a 1440×900 screen at ×2 is drawn at ×2, and only stages past the cap are softer", () => {
+    expect(drawingPixelRatio(920, 678, 2)).toBe(2);
+    expect(drawingPixelRatio(992, 760, 2)).toBe(2);
+    expect(drawingPixelRatio(1976, 1218, 2)).toBeLessThan(2);
   });
 });
 
@@ -348,6 +374,32 @@ test.describe("the board", () => {
           p.back < q.front &&
           q.back < p.front;
         expect(overlap, `${a} and ${b}`).toBe(false);
+      }
+    }
+  });
+
+  /* The pawn stands where it covers nothing printed: behind the tile's
+     name, and clear of every card standing on the tile and the tab glued
+     in front of it. */
+  test("the pawn stands behind each tile's name, clear of its cards", () => {
+    for (const slug of LOOP) {
+      const { x, z } = pawnSpotOnTile(slug);
+      expect(z + PAWN_RADIUS, slug).toBeLessThanOrEqual(
+        TILE.depth / 2 - NAME_STRIP - NAME_REACH,
+      );
+      expect(Math.abs(x) + PAWN_RADIUS, slug).toBeLessThanOrEqual(
+        TILE.width / 2,
+      );
+      for (const card of cardsForStep(slug)) {
+        if (card.position.y !== 0) continue;
+        const left = card.position.x - card.anchor.u * card.width;
+        const right = left + card.width;
+        const dx = Math.max(left - x, 0, x - right);
+        const dz = Math.max(card.position.z - z, 0, z - card.position.z - 0.26);
+        expect(
+          Math.hypot(dx, dz),
+          `${slug}: ${card.id}`,
+        ).toBeGreaterThanOrEqual(PAWN_RADIUS);
       }
     }
   });

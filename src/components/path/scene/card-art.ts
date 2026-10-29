@@ -94,7 +94,9 @@ export const CARD_ART: readonly CardArt[] = [
     height: 0.84,
     anchor: FOLD_UP,
     role: "landmark",
-    position: { x: 0.5, y: 0, z: 0.5 },
+    /* Left of centre, so the pawn has room to stand at the right front
+       corner, clear of it and of the tree. */
+    position: { x: 0.05, y: 0, z: 0.5 },
     order: 2,
   },
   {

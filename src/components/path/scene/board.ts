@@ -46,15 +46,73 @@ export function tileCentre(slug: PathStepSlug): readonly [number, number] {
   return [LOOP_RADII.x * Math.cos(angle), LOOP_RADII.z * Math.sin(angle)];
 }
 
-/** Where the pawn stands on a tile, in the tile's own frame: its front-left
- *  corner, clear of the cards and the name. */
-export const PAWN_SPOT = { x: -1.62, z: 1.42 } as const;
+/** The pawn's cone's radius at its foot, and the room it keeps from a card
+ *  standing near it, in the tile's own units. */
+export const PAWN_RADIUS = 0.55;
+const PAWN_CLEARANCE = 0.08;
+/** How deep a card's hinge tab reaches in front of its foot. */
+const TAB_REACH = 0.26;
+/** How far in from a tile's front edge its name is printed, in scene units,
+ *  and how far its letters reach back from there. The pawn stands behind
+ *  both, so it never stands on the name. */
+export const NAME_STRIP = 0.58;
+export const NAME_REACH = 0.25;
+/** How much a spot to the front counts against one off the middle. */
+const SPOT_FRONT_WEIGHT = 0.6;
+/** The grid the spot is searched on. */
+const SPOT_STEP = 0.05;
+
+/** Where the pawn stands on `slug`'s tile, in the tile's own frame: the
+ *  spot behind the name, inside the tile's border, where its foot touches
+ *  no card standing on the tile nor that card's tab; to a side of the tile
+ *  rather than its middle, and to the front rather than the back, so the
+ *  cards do not hide it. Each tile's cards stand in their own places, so
+ *  each tile has its own spot. */
+export function pawnSpotOnTile(slug: PathStepSlug): {
+  x: number;
+  z: number;
+} {
+  const reach = PAWN_RADIUS + PAWN_CLEARANCE;
+  const cards = cardsForStep(slug).filter((card) => card.position.y === 0);
+  const clear = (x: number, z: number) =>
+    cards.every((card) => {
+      const left = card.position.x - card.anchor.u * card.width;
+      const right = left + card.width;
+      const dx = Math.max(left - x, 0, x - right);
+      const dz = Math.max(
+        card.position.z - z,
+        0,
+        z - card.position.z - TAB_REACH,
+      );
+      return Math.hypot(dx, dz) >= reach;
+    });
+  const xMax = TILE.width / 2 - TILE.chamfer - 0.1;
+  const zMax = TILE.depth / 2 - NAME_STRIP - NAME_REACH - PAWN_RADIUS;
+  const steps = (max: number) => Math.round((2 * max) / SPOT_STEP);
+  let best: { x: number; z: number } | undefined;
+  let bestScore = -Infinity;
+  for (let j = 0; j <= steps(zMax); j += 1) {
+    const z = zMax - j * SPOT_STEP;
+    for (let i = 0; i <= steps(xMax); i += 1) {
+      const x = -xMax + i * SPOT_STEP;
+      /* Off the middle, where the name is printed, and to the front. */
+      const score = Math.abs(x) + SPOT_FRONT_WEIGHT * z - (x > 0 ? 0.05 : 0);
+      if (score > bestScore && clear(x, z)) {
+        best = { x, z };
+        bestScore = score;
+      }
+    }
+  }
+  if (!best) throw new Error(`No room for the pawn on ${slug}'s tile`);
+  return best;
+}
 
 /** The pawn's spot on `slug`'s tile, on the table. */
 export function pawnSpot(slug: PathStepSlug): readonly [number, number] {
   const [x, z] = tileCentre(slug);
   const scale = tileScale(slug);
-  return [x + PAWN_SPOT.x * scale, z + PAWN_SPOT.z * scale];
+  const spot = pawnSpotOnTile(slug);
+  return [x + spot.x * scale, z + spot.z * scale];
 }
 
 /** A point on the table, `[x, y, z]`. */
@@ -90,7 +148,8 @@ export function frameShapes(): {
         at(left, top, z),
       ];
     });
-    const hop = [at(PAWN_SPOT.x, TILE.thickness + PAWN_HOP_TOP, PAWN_SPOT.z)];
+    const spot = pawnSpotOnTile(slug);
+    const hop = [at(spot.x, TILE.thickness + PAWN_HOP_TOP, spot.z)];
     return { slug, outlines: [footprint, ...cards, hop] };
   });
 }

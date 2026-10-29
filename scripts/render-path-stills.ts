@@ -45,8 +45,9 @@ try {
   for (const theme of ["light", "dark"] as const) {
     const context = await browser.newContext({
       viewport,
-      /* The runtime caps its pixel ratio at 1.5, so a still captured at 1.5
-         has every pixel the live scene would, and none upsampled. */
+      /* The live board draws at ratio 2 at least (ADR-0009); the still is
+         shown only until it draws, or where it cannot, so it is captured at
+         1.5 to keep a landing's bytes down. */
       deviceScaleFactor: 1.5,
       reducedMotion: "reduce",
     });
@@ -79,10 +80,9 @@ try {
             requestAnimationFrame(() => requestAnimationFrame(resolve)),
           ),
       );
-      /* An element's screenshot is what is on screen over it, and on a wide
-         screen the step list, the panel and the board's tabs lie over the
-         canvas. Hidden, not removed, so the board stays framed for them, as
-         the still will be shown under them. */
+      /* An element's screenshot is what is on screen over it, and the
+         board's tabs lie over the canvas. Hidden, not removed, so the board
+         stays framed for them, as the still will be shown under them. */
       await page.addStyleTag({
         content:
           "[data-path-cover], nextjs-portal { visibility: hidden !important; }",

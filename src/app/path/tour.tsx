@@ -357,7 +357,7 @@ export function TourTransport({ className }: { className?: string }) {
           <span className="path-tab-face">{TOUR_COPY.next}</span>
         </button>
       </div>
-      <p className="text-faint font-label mt-3 hidden text-[0.6875rem] tracking-[0.12em] uppercase pointer-fine:block">
+      <p className="text-faint font-label mt-3 hidden text-[0.6875rem] tracking-[0.12em] uppercase [@media(hover:hover)_and_(pointer:fine)]:block">
         {TOUR_COPY.keys}
       </p>
       <p aria-live="polite" data-path-tour-announcement className="sr-only">
@@ -412,21 +412,39 @@ export function TourHoldPanel({
   className,
   footer,
   children,
-  ...rest
 }: {
   className?: string;
   footer?: ReactNode;
   children: ReactNode;
-  "data-path-cover"?: "board" | "step";
 }) {
   const { setHold } = useTour();
+  const textRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+
+  /* Where the text scrolls and has more below, its foot fades out like ink
+     running off the card, so the cut reads as meant. Measured again as it
+     scrolls, as the panel resizes, and as a step's text replaces another. */
+  useEffect(() => {
+    const text = textRef.current;
+    if (!text) return;
+    const measure = () =>
+      setMore(text.scrollTop + text.clientHeight < text.scrollHeight - 2);
+    const observer = new ResizeObserver(measure);
+    observer.observe(text);
+    for (const child of text.children) observer.observe(child);
+    text.addEventListener("scroll", measure, { passive: true });
+    return () => {
+      observer.disconnect();
+      text.removeEventListener("scroll", measure);
+    };
+  }, []);
+
   return (
-    <div
-      {...rest}
-      className={cn("path-card flex max-w-[46rem] flex-col", className)}
-    >
+    <div className={cn("path-card flex max-w-[46rem] flex-col", className)}>
       <div
+        ref={textRef}
         data-path-text-panel
+        data-path-more={more ? "" : undefined}
         tabIndex={0}
         onPointerEnter={(event) => {
           if (event.pointerType !== "touch") setHold("pointer", true);

@@ -8,7 +8,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { CSSProperties, KeyboardEvent, ReactNode } from "react";
 
 import type {
   PathStepMark,
@@ -170,57 +170,31 @@ export function RevealSelectedText() {
    and the same links as `/`'s `PathSteps`, which stays the flat site's, with
    the board's marks — the pawn on the current step, a tick for a seen one, a
    hollow circle for one not seen yet — and the tour's progress under the
-   current row. Rows are 48px, so each link's hit area clears its neighbours'
-   and the drawn line can place its nodes by arithmetic. */
-const ROW_PX = 48;
-const GUTTER_PX = 28;
-const SPINE_X = GUTTER_PX / 2;
+   current step. One strip at every width, the steps side by side along a
+   drawn line like tracks on a tape: on a wide screen all seven across the
+   top of the board, on a phone three at a time, scrolling sideways with the
+   current one in the middle. */
 
-function nodeY(index: number) {
-  return ROW_PX * index + ROW_PX / 2;
-}
-
-/** The walked line the nodes sit on, swinging to one side and then the
- *  other between steps. Every segment mirrors the last, so step `i` sits at
- *  `i / (count - 1)` of its length, where the pawn's `offset-distance` puts
- *  it. */
-function spinePath(count: number) {
-  let line = `M ${SPINE_X} ${nodeY(0)}`;
-  for (let index = 0; index < count - 1; index++) {
-    const from = nodeY(index);
-    const to = nodeY(index + 1);
-    const swing = index % 2 === 0 ? GUTTER_PX - 3 : 3;
-    line += ` C ${swing} ${from + 16}, ${swing} ${to - 16}, ${SPINE_X} ${to}`;
-  }
-  return line;
-}
-
-function SpineNode({ node, index }: { node: PathStepNode; index: number }) {
-  const y = nodeY(index);
-  if (node === "home") {
-    return (
-      <rect
-        x={SPINE_X - 4.5}
-        y={y - 4.5}
-        width={9}
-        height={9}
-        className="fill-accent"
-      />
-    );
-  }
-  if (node === "open") {
-    return (
-      <circle
-        cx={SPINE_X}
-        cy={y}
-        r={4.5}
-        strokeWidth={1.25}
-        strokeDasharray="2 2"
-        className="fill-ground stroke-accent"
-      />
-    );
-  }
-  return <circle cx={SPINE_X} cy={y} r={4} className="fill-ink" />;
+/** The node a step's line passes through, as `/` draws it. */
+function NodeMark({ node }: { node: PathStepNode }) {
+  return (
+    <svg aria-hidden viewBox="0 0 12 12" className="path-step-node size-3">
+      {node === "home" ? (
+        <rect x={1.5} y={1.5} width={9} height={9} className="fill-accent" />
+      ) : node === "open" ? (
+        <circle
+          cx={6}
+          cy={6}
+          r={4.5}
+          strokeWidth={1.25}
+          strokeDasharray="2 2"
+          className="fill-ground stroke-accent"
+        />
+      ) : (
+        <circle cx={6} cy={6} r={4} className="fill-ink" />
+      )}
+    </svg>
+  );
 }
 
 /** The pawn: a folded paper cone in the accent ink, its crease in the
@@ -314,6 +288,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
   const hydrated = useHydrated();
   const { selected, fromFragment } = useSelectedStep();
   const seen = useSeenSteps();
+  const stripRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLOListElement>(null);
 
   /* A step is seen once a fragment has chosen it: a pick, Back or Forward, a
@@ -323,18 +298,20 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
     if (fromFragment) markSeen(fromFragment);
   }, [fromFragment]);
 
-  /* On a phone the list is a strip that scrolls sideways: the selected step
-     is brought into it, the strip alone scrolling, never the page. */
+  /* Where the strip scrolls, the selected step is brought to its middle,
+     the strip alone scrolling, never the page. */
   useEffect(() => {
-    const list = listRef.current;
-    if (!list || list.scrollWidth <= list.clientWidth) return;
-    const row = list.querySelector<HTMLElement>(
+    const strip = stripRef.current;
+    if (!strip || strip.scrollWidth <= strip.clientWidth) return;
+    const row = strip.querySelector<HTMLElement>(
       `li:has([data-path-step-link="${selected}"])`,
     );
     if (!row) return;
+    const box = strip.getBoundingClientRect();
+    const at = row.getBoundingClientRect();
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    list.scrollTo({
-      left: row.offsetLeft - (list.clientWidth - row.offsetWidth) / 2,
+    strip.scrollTo({
+      left: strip.scrollLeft + at.left - box.left - (box.width - at.width) / 2,
       behavior: reduce.matches ? "instant" : "smooth",
     });
   }, [selected]);
@@ -369,92 +346,79 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
       ?.focus();
   }
 
-  const height = ROW_PX * steps.length;
-  const line = spinePath(steps.length);
   const selectedIndex = steps.findIndex((step) => step.slug === selected);
 
   return (
-    <div className="path-card px-1 lg:px-4 lg:pt-3 lg:pb-1">
-      <div className="relative">
-        <svg
-          aria-hidden
-          width={GUTTER_PX}
-          height={height}
-          viewBox={`0 0 ${GUTTER_PX} ${height}`}
-          className="absolute top-0 left-0 overflow-visible max-lg:hidden"
+    <div className="path-card flex flex-col lg:flex-row">
+      <div ref={stripRef} className="path-step-strip min-w-0 flex-1">
+        <div
+          className="path-step-track"
+          style={{ "--path-steps": steps.length } as CSSProperties}
         >
-          <path
-            d={line}
-            fill="none"
-            strokeWidth={1.25}
-            strokeLinecap="round"
-            className="stroke-border"
-          />
-          {steps.map((step, index) => (
-            <SpineNode key={step.slug} node={step.node} index={index} />
-          ))}
-        </svg>
-        {/* The pawn rides the drawn line from step to step. It mounts in
-            place, so a load of `/path#lille` does not travel there. */}
-        {hydrated && selectedIndex >= 0 ? (
-          <span
-            aria-hidden
-            data-path-piece={selected}
-            className="path-pawn max-lg:hidden"
-            style={{
-              offsetPath: `path("${line}")`,
-              offsetDistance: `${(selectedIndex / (steps.length - 1)) * 100}%`,
-            }}
-          >
-            <Pawn />
-          </span>
-        ) : null}
-        <ol ref={listRef} className="path-step-strip">
-          {steps.map((step) => {
-            const current = hydrated && step.slug === selected;
-            const isSeen = seen.has(step.slug);
-            return (
-              <li
-                key={step.slug}
-                data-path-seen={isSeen ? "" : undefined}
-                className="relative flex items-center max-lg:shrink-0 max-lg:px-3"
-                style={{ height: ROW_PX }}
+          <div className="relative">
+            <span aria-hidden className="path-step-line" />
+            {/* The pawn walks the drawn line from step to step. It mounts in
+                place, so a load of `/path#lille` does not travel there. */}
+            {hydrated && selectedIndex >= 0 ? (
+              <span
+                aria-hidden
+                data-path-piece={selected}
+                className="path-pawn"
+                style={{
+                  left: `${((selectedIndex + 0.5) / steps.length) * 100}%`,
+                }}
               >
-                <a
-                  href={fragmentForStep(step.slug)}
-                  data-path-step-link={step.slug}
-                  aria-current={current ? "location" : undefined}
-                  onKeyDown={onStepKeyDown}
-                  className="path-step-link touch-target group flex-1 gap-x-2.5"
-                >
-                  <span className="font-display group-aria-[current]:text-accent text-lg leading-none">
-                    {step.place}
-                  </span>
-                  {step.period ? (
-                    <span
-                      data-path-date
-                      className="text-faint font-mono text-xs tabular-nums"
+                <Pawn />
+              </span>
+            ) : null}
+            <ol ref={listRef} className="path-step-row">
+              {steps.map((step) => {
+                const current = hydrated && step.slug === selected;
+                const isSeen = seen.has(step.slug);
+                return (
+                  <li
+                    key={step.slug}
+                    data-path-seen={isSeen ? "" : undefined}
+                    className="relative"
+                  >
+                    <a
+                      href={fragmentForStep(step.slug)}
+                      data-path-step-link={step.slug}
+                      aria-current={current ? "location" : undefined}
+                      onKeyDown={onStepKeyDown}
+                      className="path-step-link touch-target group"
                     >
-                      {step.period}
-                    </span>
-                  ) : null}
-                  <span className="ml-auto flex items-center">
-                    <StatusMark seen={isSeen} />
-                  </span>
-                  {isSeen ? (
-                    <span className="sr-only">{PATH_COPY.seen}</span>
-                  ) : null}
-                </a>
-                {current ? <TourProgress /> : null}
-              </li>
-            );
-          })}
-        </ol>
+                      <NodeMark node={step.node} />
+                      <span className="font-display group-aria-[current]:text-accent text-base leading-none lg:text-lg">
+                        {step.place}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        {step.period ? (
+                          <span
+                            data-path-date
+                            className="text-faint font-mono text-xs tabular-nums"
+                          >
+                            {step.period}
+                          </span>
+                        ) : null}
+                        <StatusMark seen={isSeen} />
+                      </span>
+                      {isSeen ? (
+                        <span className="sr-only">{PATH_COPY.seen}</span>
+                      ) : null}
+                    </a>
+                    {current ? <TourProgress /> : null}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </div>
       </div>
-      {/* In the server HTML and of fixed height either way, so the control
+      {/* In the server HTML and of fixed size either way, so the control
           arriving moves nothing. A button: it changes storage and goes
           nowhere. */}
-      <div className="border-border flex h-11 items-center justify-end border-t border-dashed max-lg:px-3 print:hidden">
+      <div className="border-border flex h-11 shrink-0 items-center justify-end border-t border-dashed px-3 lg:h-auto lg:w-28 lg:justify-center lg:border-t-0 lg:border-l lg:px-2 print:hidden">
         {seen.size > 0 ? (
           <button
             type="button"

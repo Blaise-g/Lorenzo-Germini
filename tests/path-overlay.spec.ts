@@ -457,3 +457,138 @@ test("/path is absent from the sitemap", async ({ request }) => {
   expect(sitemap).toContain("<urlset");
   expect(sitemap).not.toMatch(/\/path</);
 });
+
+/* The first screen on a wide screen: the steps as one strip across the
+   top, the board under it, the tour's tabs and the text panel down the
+   right. Nothing is cut: every step is whole in the strip, and the panel's
+   text, where it scrolls, fades at its foot rather than stopping. */
+test.describe("the first screen on a wide screen", () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 720],
+  ] as const) {
+    test(`at ${width}×${height} every step is whole in the strip, and the strip, the board and the panel are in the first screen`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height });
+      await page.goto("/path#lille");
+      await hydrated(page);
+      /* A step is cut if anything printed in it runs past its link. */
+      const clipped = await stepList(page)
+        .locator("[data-path-step-link]")
+        .evaluateAll((links) =>
+          links
+            .filter((link) => {
+              const box = link.getBoundingClientRect();
+              return [...link.children]
+                .filter((child) => !child.classList.contains("sr-only"))
+                .some((child) => {
+                  const at = child.getBoundingClientRect();
+                  return at.left < box.left - 1 || at.right > box.right + 1;
+                });
+            })
+            .map((link) => link.getAttribute("data-path-step-link")),
+        );
+      expect(clipped).toEqual([]);
+      const strip = page.locator(".path-step-strip");
+      expect(
+        await strip.evaluate((el) => el.scrollWidth <= el.clientWidth),
+      ).toBe(true);
+
+      const stage = (await page.locator("[data-path-stage]").boundingBox())!;
+      const list = (await stepList(page).boundingBox())!;
+      const card = (await panel(page).locator("..").boundingBox())!;
+      for (const box of [stage, list, card]) {
+        expect(box.y + box.height).toBeLessThanOrEqual(height);
+      }
+      /* The strip above the board, the panel beside it. */
+      expect(list.y + list.height).toBeLessThanOrEqual(stage.y);
+      expect(stage.x + stage.width).toBeLessThanOrEqual(card.x);
+    });
+  }
+
+  test("the panel's lines stay at a readable measure", async ({ page }) => {
+    await page.setViewportSize({ width: 2560, height: 1440 });
+    await page.goto("/path#lille");
+    await hydrated(page);
+    const characters = await panel(page)
+      .locator('[data-path-panel="lille"] li')
+      .first()
+      .evaluate((item) => {
+        const style = getComputedStyle(item);
+        const probe = document.createElement("span");
+        probe.style.font = style.font;
+        probe.textContent = "abcdefghijklmnopqrstuvwxyz".repeat(4);
+        document.body.append(probe);
+        const perCharacter = probe.getBoundingClientRect().width / 104;
+        probe.remove();
+        return item.getBoundingClientRect().width / perCharacter;
+      });
+    expect(characters).toBeLessThanOrEqual(75);
+    expect(characters).toBeGreaterThanOrEqual(40);
+  });
+
+  test("a step's text too long for the panel fades at its foot, until it is read to the end", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await page.goto("/path#lille");
+    await hydrated(page);
+    const text = panel(page);
+    await expect(text).toHaveAttribute("data-path-more", "");
+    expect(await text.evaluate((el) => getComputedStyle(el).maskImage)).toMatch(
+      /gradient/,
+    );
+    await text.evaluate((el) => el.scrollTo({ top: el.scrollHeight }));
+    await expect(text).not.toHaveAttribute("data-path-more");
+
+    /* A short step fits, and does not fade. */
+    await stepLink(page, "home").click();
+    await expect(text).not.toHaveAttribute("data-path-more");
+  });
+});
+
+/* On a phone the strip shows three steps at a time, whole, the current one
+   in the middle; nothing in it is cut at the strip's edges. */
+test.describe("the strip on a phone", () => {
+  test.use({ viewport: { width: 375, height: 812 }, hasTouch: true });
+
+  for (const slug of ["home", "lille", "next"] as const) {
+    test(`with ${slug} selected, it is in the middle and every step shown is whole`, async ({
+      page,
+    }) => {
+      await page.goto(`/path#${slug}`);
+      await hydrated(page);
+      const strip = page.locator(".path-step-strip");
+      await expect
+        .poll(() =>
+          strip.evaluate((el, current) => {
+            const box = el.getBoundingClientRect();
+            const row = el
+              .querySelector(`[data-path-step-link="${current}"]`)!
+              .closest("li")!
+              .getBoundingClientRect();
+            return Math.abs(
+              row.left + row.width / 2 - (box.left + box.width / 2),
+            );
+          }, slug),
+        )
+        .toBeLessThanOrEqual(2);
+      const cut = await strip.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        return [...el.querySelectorAll("li")]
+          .map((row) => row.getBoundingClientRect())
+          .filter((row) => row.right > box.left + 1 && row.left < box.right - 1)
+          .filter((row) => row.left < box.left - 1 || row.right > box.right + 1)
+          .length;
+      });
+      expect(cut).toBe(0);
+    });
+  }
+
+  test("the keys' line is not shown to a finger", async ({ page }) => {
+    await page.goto("/path");
+    await hydrated(page);
+    await expect(page.getByText(/J back/)).toBeHidden();
+  });
+});

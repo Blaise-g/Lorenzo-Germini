@@ -1,10 +1,6 @@
-/* Where on the stage the board may stand. On a wide screen the page lays its
-   printed cards over the stage, as comp B does: the step list in the top
-   left corner, the text panel in the bottom right. The whole board stays
-   inside the stage and clear of the list; the selected tile, the one the
-   panel is about, stays clear of both, while another tile may tuck its edge
-   under the panel's corner but not its middle. Pure arithmetic in clip
-   space, so a spec checks it without a GPU. */
+/* Where on the stage the board may stand: inside the stage, and clear of
+   the board's tabs laid over its corner. Pure arithmetic in clip space, so
+   a spec checks it without a GPU. */
 
 /** A rectangle on the stage, in CSS pixels from its top-left corner. */
 export type StageRect = {
@@ -15,12 +11,10 @@ export type StageRect = {
 };
 
 /** What the page leaves the board: `safe`, the part of the stage it stays
- *  inside; `clear`, cards no tile goes under; and `avoid`, cards the
- *  selected tile does not go under, nor any tile's middle. */
+ *  inside, and `clear`, the cards laid over it that no tile goes under. */
 export type StageFrame = {
   safe: StageRect;
   clear: readonly StageRect[];
-  avoid: readonly StageRect[];
 };
 
 /** A rectangle in clip space: -1 to 1 across, and up. */
@@ -34,7 +28,6 @@ export function wholeStage(width: number, height: number): StageFrame {
   return {
     safe: { left: 0, top: 0, right: width, bottom: height },
     clear: [],
-    avoid: [],
   };
 }
 
@@ -138,15 +131,15 @@ function crossesRect(a: ClipPoint, b: ClipPoint, rect: ClipRect) {
 }
 
 /** Whether every outline, projected, stands inside `safe` and clear of
- *  every `avoid` rectangle. */
+ *  every `clear` rectangle. */
 export function framed(
   outlines: readonly (readonly ClipPoint[])[],
   safe: ClipRect,
-  avoid: readonly ClipRect[],
+  clear: readonly ClipRect[],
 ): boolean {
   return outlines.every(
     (outline) =>
       outline.every((point) => inRect(safe, point)) &&
-      avoid.every((rect) => !overlaps(outline, rect)),
+      clear.every((rect) => !overlaps(outline, rect)),
   );
 }

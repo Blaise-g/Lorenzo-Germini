@@ -9,9 +9,10 @@ STORY: Watch the path play from home, or pick a step like a track on a tape,
 read what happened there, go back to the flat site at the same step.
 FIRST VIEWPORT: The name, "Flat site", the path in small and the selected
 step's text — all HTML, painted before any 3D.
-FORM: Masthead row, then the board filling the first screen with the cards
-lying on it — the step list and the tabs top-left, the text panel
-bottom-right. On a phone: the board, the steps as a strip, the panel.
+FORM: Masthead row, then the board filling the first screen, the step list
+as a strip across its top and the tour's tabs and the text panel in a
+column down its right. On a phone: the board, the steps as a strip, the
+tabs, the panel.
 */
 
 import type { Metadata } from "next";
@@ -161,74 +162,81 @@ export default function PathPage() {
               dangerouslySetInnerHTML={{ __html: OVERLAY_FIRST_PAINT_SCRIPT }}
             />
 
-            {/* The board is the hero (comp B). On a wide screen it fills the
-                first screen and the printed cards lie on it: the step list and
-                the tour's tabs down the left, the board's tabs under them, the
-                text panel in the bottom-right corner. The camera keeps the
-                board clear of the list and the selected tile clear of the
-                panel too (`data-path-cover`). Long steps scroll
-                inside the panel rather than push it off the screen: the
-                longest runs past a whole screen.
+            {/* The board is the hero (comp B): it fills the first screen, its
+                tabs in a corner of its frame. On a wide screen the step list
+                is one printed strip across the top, and the tour's tabs and
+                the text panel are a column down the right. Comp B laid the
+                list and the panel over the board's corners instead; there no
+                tile may go under the panel, so a panel tall enough to hold a
+                long step without scrolling left the board a third of the
+                width. Beside it, the panel grows to the column's height before
+                its text scrolls, and the board keeps the rest. The canvas
+                spans only the board's own part, so it is drawn sharp within
+                the GPU budget (`drawing-buffer.ts`). Step list and panel are
+                both measure-capped: seven steps across, and lines of about 60
+                characters.
 
-                On a phone the cards cannot lie on a board 375px wide without
-                hiding it, so they leave it (impeccable adapt: rethink, not
-                scale). The board comes first, full width, with its tabs under
-                it; then the steps as a strip that scrolls sideways, with the
-                tour's tabs; then the panel, in the page's flow, which a pick
-                scrolls into view. Print keeps only the selected step's text. */}
+                On a phone: the board first, full width; then the steps, the
+                same strip three at a time; the tour's tabs; then the panel,
+                in the page's flow, which a pick scrolls into view (impeccable
+                adapt: rethink, not scale). Print keeps only the selected
+                step's text. */}
             <div
               data-path-world
-              className="relative mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:block lg:min-h-[36rem] print:mt-6 print:block"
+              className="mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:grid lg:min-h-[36rem] lg:basis-0 lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-[auto_minmax(0,1fr)] lg:gap-x-6 lg:gap-y-4 xl:grid-cols-[minmax(0,1fr)_26rem] 2xl:grid-cols-[minmax(0,1fr)_30rem] print:mt-6 print:block"
             >
-              <SceneStage className="max-lg:order-first max-lg:-mx-6 md:max-lg:-mx-10 lg:absolute lg:inset-0">
+              {/* The tour's keys work with focus anywhere in here, or on the
+                  tour's tabs. */}
+              <nav
+                aria-labelledby="path-heading"
+                data-path-tour-keys
+                className="relative z-10 lg:col-span-2 print:hidden"
+              >
+                <h2 id="path-heading" className="sr-only">
+                  {PATH_COPY.stepListHeading}
+                </h2>
+                <PathStepList
+                  steps={PATH_STEPS.map((step) => ({
+                    slug: step.slug,
+                    place: step.place,
+                    period: stepPeriod(step),
+                    node: stepNode(step),
+                  }))}
+                />
+              </nav>
+
+              <SceneStage className="max-lg:order-first max-lg:-mx-6 md:max-lg:-mx-10 lg:min-h-0">
                 {PATH_STEPS.map((step) => (
                   <StageBackdrop key={step.slug} step={step} />
                 ))}
               </SceneStage>
 
-              {/* The tour's keys work with focus anywhere in here. */}
-              <div
-                data-path-tour-keys
-                data-path-cover="board"
-                className="space-y-4 lg:absolute lg:top-0 lg:left-0 lg:w-[19rem] print:hidden"
-              >
-                <nav aria-labelledby="path-heading">
-                  <h2 id="path-heading" className="sr-only">
-                    {PATH_COPY.stepListHeading}
-                  </h2>
-                  <PathStepList
-                    steps={PATH_STEPS.map((step) => ({
-                      slug: step.slug,
-                      place: step.place,
-                      period: stepPeriod(step),
-                      node: stepNode(step),
-                    }))}
-                  />
-                </nav>
-                <TourTransport />
-              </div>
+              <div className="flex flex-col gap-y-5 lg:min-h-0 lg:gap-y-4 print:block">
+                <div data-path-tour-keys className="print:hidden">
+                  <TourTransport />
+                </div>
 
-              {/* The text panel. Its sections are not anchored: the fragment
-                  selects here rather than scrolling, and focus stays on the
-                  step that was selected (storyboard §7.7). Pointing at it
-                  or focusing in it holds the tour. The voice reads it, so
-                  its controls are printed at its foot. */}
-              <TourHoldPanel
-                data-path-cover="step"
-                footer={
-                  <VoiceControls
-                    clips={voiceClips}
-                    providerName={voiceManifest.providerName}
-                  />
-                }
-                className="lg:absolute lg:right-0 lg:bottom-0 lg:max-h-[min(30rem,55%)] lg:w-[22rem] xl:w-[27rem] print:static print:max-h-none print:w-auto"
-              >
-                {PATH_STEPS.map((step) => (
-                  <div key={step.slug} data-path-panel={step.slug}>
-                    <StepSection step={step} anchored={false} />
-                  </div>
-                ))}
-              </TourHoldPanel>
+                {/* The text panel. Its sections are not anchored: the
+                    fragment selects here rather than scrolling, and focus
+                    stays on the step that was selected (storyboard §7.7).
+                    Pointing at it or focusing in it holds the tour. The voice
+                    reads it, so its controls are printed at its foot. */}
+                <TourHoldPanel
+                  footer={
+                    <VoiceControls
+                      clips={voiceClips}
+                      providerName={voiceManifest.providerName}
+                    />
+                  }
+                  className="lg:min-h-0 print:max-h-none"
+                >
+                  {PATH_STEPS.map((step) => (
+                    <div key={step.slug} data-path-panel={step.slug}>
+                      <StepSection step={step} anchored={false} />
+                    </div>
+                  ))}
+                </TourHoldPanel>
+              </div>
             </div>
           </OverlayRoot>
         </TourProvider>

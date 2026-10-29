@@ -33,6 +33,9 @@ import {
   LOOP,
   MVP_INK_STRENGTH,
   MVP_WINDOW_LINES,
+  NAME_REACH,
+  NAME_STRIP,
+  PAWN_RADIUS,
   pawnSpot,
   TILE,
   tileCentre,
@@ -56,8 +59,6 @@ import {
   centreOf,
   filled,
   framed,
-  inRect,
-  middleOf,
   toClip,
   wholeStage,
   type ClipPoint,
@@ -118,14 +119,19 @@ const CAMERA_FOV = 26;
 /** A high three-quarter view, as comp B's: the camera's angle above the
  *  table. Steeper, the ring stands taller on a wide stage and fills more of
  *  the room the printed cards leave it. */
-const CAMERA_ELEVATION = 0.8;
+const CAMERA_ELEVATION = 0.95;
 /** How much of the stage's free part the board may fill, either way. The
  *  board's own labels, such as the MVP window's tag, are not among the
  *  outlines the camera keeps in view, and reach a little past a tile's
  *  side, so across it leaves them room. */
-const FRAME_FILL = { x: 0.9, y: 0.9 } as const;
+const FRAME_FILL = { x: 0.93, y: 0.96 } as const;
 /** Each card after the first in a prop folds this much later. */
 const CARD_STAGGER_MS = 110;
+/** The selected tile stands this much proud of the table, in its own
+ *  units, as a tile picked up off a board does: its shadow says which. */
+const LIFT_HEIGHT = 0.3;
+/** How long a tile takes to rise or settle back. */
+const LIFT_MS = 320;
 /** However many cards a prop has, the last starts with time left to fold. */
 const MAX_CARD_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, folds from part-way back: it stays
@@ -136,10 +142,6 @@ const PRINT_PX = 150;
 const TILE_PX = 84;
 /** A card's cut edge, standing behind its face: the card's thickness. */
 const CARD_THICKNESS = 0.02;
-/** How far in from a tile's front edge its name is printed, in scene units,
- *  and how far its letters reach back from there. */
-const NAME_STRIP = 0.58;
-const NAME_REACH = 0.25;
 /** How far a standing card's glued tab reaches in front of its fold, at
  *  most: never over the tile's name. A card too close to the name for a
  *  tab worth seeing has none. */
@@ -256,10 +258,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* Throws when the browser refuses a context, including one with a major
      performance caveat that the host's probe did not see; the host catches it
-     and shows the stills. */
+     and shows the stills. No multisampling: the buffer is drawn at twice
+     the CSS size at least, which smooths edges at a third of the memory
+     (`drawing-buffer.ts`, ADR-0009). */
   const renderer = new WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: false,
     failIfMajorPerformanceCaveat: true,
   });
   renderer.shadowMap.enabled = true;
@@ -277,7 +281,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const sun = new DirectionalLight(0xffffff, 1.25);
   sun.position.set(-11, 13, 4);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
+  /* 768 square: the shadows of a tile's cards stay crisp, and the map
+     takes 4.3 MB less than a 1024 one (`drawing-buffer.ts`). */
+  sun.shadow.mapSize.set(768, 768);
   Object.assign(sun.shadow.camera, {
     left: -15,
     right: 15,
@@ -343,8 +349,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return geometry;
   }
 
+  /* The tile tops are seen at a slant, where trilinear filtering alone
+     reaches for a smaller mip and blurs the names. */
+  const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+
   function surface(texture: Texture, options: InkOptions) {
     textures.add(texture);
+    texture.anisotropy = anisotropy;
     const made = inkMaterial(texture, colours, options);
     made.material.shadowSide = DoubleSide;
     made.depthMaterial.side = DoubleSide;
@@ -802,7 +813,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       plates.ink2.fillRect(30, 0, 4, 128);
     });
     const cone = new Mesh(
-      own(new ConeGeometry(0.55, PAWN_HEIGHT, 7, 1)),
+      own(new ConeGeometry(PAWN_RADIUS, PAWN_HEIGHT, 7, 1)),
       surface(texture, { seed: "pawn", size: [1.2, 1] }).material,
     );
     (cone.material as InkMaterial).flatShading = true;
@@ -814,7 +825,40 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function pawnBase(slug: PathStepSlug) {
-    return TILE.thickness * tileScale(slug);
+    return (
+      (TILE.thickness + LIFT_HEIGHT * easeInOut(lifts.get(slug) ?? 0)) *
+      tileScale(slug)
+    );
+  }
+
+  /** How far each tile has risen, 0 on the table to 1 lifted: the selected
+   *  one rises, the rest settle. */
+  const lifts = new Map<PathStepSlug, number>();
+
+  /** Moves every tile's rise `step` ms toward where it is headed, or all
+   *  the way at once; whether any moved. */
+  function liftTiles(step: number) {
+    let changed = false;
+    for (const slug of LOOP) {
+      const from = lifts.get(slug) ?? 0;
+      const to = slug === current ? 1 : 0;
+      if (from === to) continue;
+      const next =
+        reducedMotion || step === Infinity
+          ? to
+          : from +
+            Math.sign(to - from) *
+              Math.min(step / LIFT_MS, Math.abs(to - from));
+      lifts.set(slug, next);
+      changed = true;
+    }
+    return changed;
+  }
+
+  function lifting() {
+    return LOOP.some(
+      (slug) => (lifts.get(slug) ?? 0) !== (slug === current ? 1 : 0),
+    );
   }
 
   /* ─── Loading ─── */
@@ -948,8 +992,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Puts every card and the pawn where the clocks say they are. */
   function pose() {
+    if (reducedMotion) liftTiles(Infinity);
     for (const tile of tiles.values()) {
       const slug = tile.slug;
+      tile.group.position.y =
+        easeInOut(lifts.get(slug) ?? 0) * LIFT_HEIGHT * tileScale(slug);
       if (slug === current && plan && buildState === "building") {
         const starts = new Map(
           plan.building.map((planned) => [planned.id, planned.startsAt]),
@@ -1067,7 +1114,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     camera.updateMatrixWorld();
   }
 
-  type ClipFrame = { safe: ClipRect; clear: ClipRect[]; avoid: ClipRect[] };
+  type ClipFrame = { safe: ClipRect; clear: ClipRect[] };
 
   /** The stage's free part and the cards laid over it, in clip space. */
   function clipFrame(): ClipFrame {
@@ -1078,7 +1125,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return {
       safe: filled(clip(frame.safe), FRAME_FILL),
       clear: frame.clear.map(clip),
-      avoid: frame.avoid.map(clip),
     };
   }
 
@@ -1107,25 +1153,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return out;
   }
 
-  /** Whether, from `distance` back, the board stands inside the free part
-   *  and clear of the cards over it: the selected tile clear of the panel
-   *  too, any other tile's middle and name at least. With `selected` false only the
-   *  stage's edge and the list count. */
+  /** Whether, from `distance` back, the board stands inside the stage and
+   *  clear of the tabs laid over it: every tile and the cards standing on
+   *  it, and the pawn's hop onto the selected tile, the one hop the camera
+   *  rests on. With `selected` false the hop does not count: the bound the
+   *  camera keeps while it eases between two rests. */
   function fits(distance: number, frame: ClipFrame, selected = true) {
     const tiles = projected(distance);
     if (tiles === null) return false;
-    return tiles.every(({ slug, outlines }) => {
-      if (!framed(outlines, frame.safe, frame.clear)) return false;
-      if (!selected) return true;
-      if (slug === current) return framed(outlines, frame.safe, frame.avoid);
-      /* Its middle, and the middle of its front edge, where its name is. */
-      const [, , frontRight, frontLeft] = outlines[0];
-      const name = middleOf([frontRight, frontLeft]);
-      const middle = middleOf(outlines[0]);
-      return frame.avoid.every(
-        (rect) => !inRect(rect, middle) && !inRect(rect, name),
-      );
-    });
+    return tiles.every(({ slug, outlines }) =>
+      framed(
+        selected && slug === current ? outlines : outlines.slice(0, -1),
+        frame.safe,
+        frame.clear,
+      ),
+    );
   }
 
   /** Where the board, seen from `distance` back, sits on the stage: the
@@ -1198,7 +1240,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     restKey = key;
     const [cx, cy] = centreOf(frame.safe);
     restTarget = [cx, cy];
-    if (frame.clear.length + frame.avoid.length === 0) return;
+    if (frame.clear.length === 0) return;
     const leaning = focus.clone();
     const turned = board.rotation.y;
     focus.copy(focusTo);
@@ -1222,9 +1264,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   /* What the camera last showed, and what it eases from when the selected
-     tile, the turn or the stage changes: the panel's corner only clears the
-     selected tile, so the rest the camera comes to differs between steps,
-     and a cut would jump. */
+     tile, the turn or the stage changes: the lean and the place the board
+     rests differ between steps, and a cut would jump. */
   let shownTarget: ClipPoint = [0, 0];
   let shownDistance = 0;
   let fromTarget: ClipPoint = [0, 0];
@@ -1239,8 +1280,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* The camera leans toward the selected tile and comes as close as keeps
      the board framed. While it eases between two rests, it is never closer
-     than keeps every tile inside the stage and clear of the list, so the
-     move crops nothing on the way. */
+     than keeps every tile inside the stage and clear of the board's tabs,
+     so the move crops nothing on the way. */
   function aim() {
     const t = easeInOut(focusElapsed / FOCUS_MS);
     focus.lerpVectors(focusFrom, focusTo, t);
@@ -1311,6 +1352,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       buildState === "building" ||
       catchingUp.size > 0 ||
       landingElapsed < LANDING_MS ||
+      lifting() ||
       turnElapsed < TURN_MS ||
       focusElapsed < FOCUS_MS ||
       themeElapsed < THEME_MS
@@ -1375,6 +1417,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       landingElapsed = Math.min(landingElapsed + step, LANDING_MS);
       posed = true;
     }
+    if (liftTiles(step)) posed = true;
     if (posed) pose();
     /* A turn eases the camera too: one aim a frame for both. */
     const aiming = turnElapsed < TURN_MS || focusElapsed < FOCUS_MS;
@@ -1662,8 +1705,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     setFrame(frame) {
       stageFrame = frame;
-      /* A panel growing with a longer step lands mid-ease: the camera
-         heads for the new rest from where it is, rather than cutting. */
+      /* A resize can land mid-ease: the camera heads for the new rest from
+         where it is, rather than cutting. */
       aim();
       if (prepared) render();
     },

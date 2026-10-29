@@ -13,62 +13,78 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 The one-scene runtime was replaced by one 3D paper board (v2's board ticket): seven printed tiles
 whose die-cut cards fold up, drawn through an ink-separation shader (ADR-0009).
 
-Re-measured 2026-10-29 for v2 polish at `76de10c`, on a production build (`bun run build`, then
-`next start -p 3241`), with the method below, except that Chromium ran on the machine's GPU (ANGLE
-Metal, Apple M5) rather than SwiftShader. Since then the stills were rendered again (smaller; see
-below) and the board's horizontal fill went from 95% to 90% of the stage, which moves no bytes.
+Re-measured 2026-10-29 for v2 polish, round 2, on a production build of the round-2 tree (`bun
+run build`, then `next start -p 3241`), with the method below, except that Chromium ran on the
+machine's GPU (ANGLE Metal, Apple M5) rather than SwiftShader.
 
 **Units.** KB is 1,024 bytes. The GPU budget is **64 MB of a million bytes each, 64,000,000
 bytes**, and GPU figures are given in MB of that size, with MiB (1,024² bytes) beside them. v2's
 first report gave 61.4 "MB" against the budget; that was 61.4 MiB, which is 64.4 MB, over it.
 
-| Budget                   | Budget | Measured                                                   | Within |
-| ------------------------ | ------ | ---------------------------------------------------------- | ------ |
-| Transfer per scene, cold | 1.5 MB | 1,393 KB measured; about 1,367 KB with the new stills      | Yes    |
-| GPU memory, estimated    | 64 MB  | 30.8–58.6 MB (29.4–55.9 MiB); 58.6 MB on every wide screen | Yes    |
-| Each still               | 150 KB | Largest 37.3 KB (`cuneo-2022-dark.webp`)                   | Yes    |
+| Budget                   | Budget | Measured                                             | Within |
+| ------------------------ | ------ | ---------------------------------------------------- | ------ |
+| Transfer per scene, cold | 1.5 MB | 1,396.8 KB                                           | Yes    |
+| GPU memory, estimated    | 64 MB  | 30.5–59.1 MB (29.1–56.4 MiB); 48.3 MB at 1440×900 ×2 | Yes    |
+| Each still               | 150 KB | Largest 65.1 KB (`lille-light.webp`)                 | Yes    |
+| Frame time, a build      | 33 ms  | Median 8.3 ms, 95th percentile 9.1 ms, at every size | Yes    |
 
 Every step is a tile on the one board, so every landing loads the same thing: the page, the
 runtime, every card and one still. `/path#home`, `#lille` and `#next` arriving cold, at
-1440×900 ×2 (the three landings were within 0.3 KB of each other):
+1440×900 ×2 (the three landings were within 0.4 KB of each other):
 
-| What                                         | KB    |
-| -------------------------------------------- | ----- |
-| The `/path` HTML                             | 17.7  |
-| Five WOFF2 fonts                             | 255.7 |
-| CSS                                          | 12.2  |
-| JavaScript, Next's and the route's, three.js | 309.5 |
-| The 21 card files and `grain.webp`           | 735.6 |
-| The step's still, behind the canvas          | 62.2  |
-| **Total**                                    | 1,393 |
+| What                                         | KB      |
+| -------------------------------------------- | ------- |
+| The `/path` HTML                             | 17.7    |
+| Five WOFF2 fonts                             | 255.7   |
+| CSS                                          | 12.2    |
+| JavaScript, Next's and the route's, three.js | 309.5   |
+| The 21 card files and `grain.webp`           | 735.6   |
+| The step's still, behind the canvas          | 65.4    |
+| **Total**                                    | 1,396.8 |
 
-The still in that table is the one shipped before this polish. The stills rendered since are
-35.6–37.3 KB, which brings a landing to about 1,367 KB; that figure is computed from the file
-sizes, not re-measured on the wire.
+The rows other than the still are those of the previous measurement, unchanged to the 0.1 KB.
 
 GPU memory, from wrapping `texStorage2D`, `texImage2D`, `bufferData` and `renderbufferStorage*`
-with the whole board built: 21.6 MiB (22.6 MB) of uploads, textures counted as RGBA with a third
-more for mipmaps, the shadow map and the hinge tabs' one 256×40 separation included. The drawing
-buffer is the canvas in device pixels at 36 bytes a pixel (`drawing-buffer.ts`).
+with the whole board built: 17.5 MiB (18.35 MB) of uploads, textures counted as RGBA with a third
+more for mipmaps, the 768² shadow map and the hinge tabs' one 256×40 separation included. The
+drawing buffer is the canvas in device pixels at 12 bytes a pixel (`drawing-buffer.ts`): colour
+and packed depth-stencil, 4 bytes each, and the compositor's copy of the last frame, 4 more.
 
-| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Drawing buffer | Total, MB (MiB) |
-| ------------------------------ | -------------- | ------------------ | -------------- | --------------- |
-| 375×812, ×3                    | 375×270        | 562×405            | 8.2 MB         | 30.8 (29.4)     |
-| 1280×720, ×2                   | 1200×602       | 1411×708           | 36.0 MB        | 58.6 (55.9)     |
-| 1440×900, ×1                   | 1360×782       | 1318×758           | 36.0 MB        | 58.6 (55.9)     |
-| 1440×900, ×2                   | 1360×782       | 1318×758           | 36.0 MB        | 58.6 (55.9)     |
-| 2560×1440, ×2                  | 2480×1322      | 1369×730           | 36.0 MB        | 58.6 (55.9)     |
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Ratio drawn | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | -------------- | ------------------ | ----------- | -------------- | --------------- |
+| 375×812, ×3                    | 375×300        | 1125×900           | 3           | 12.2 MB        | 30.5 (29.1)     |
+| 1280×720, ×2                   | 760×498        | 1520×996           | 2           | 18.2 MB        | 36.5 (34.8)     |
+| 1440×900, ×1                   | 920×678        | 1840×1356          | 2           | 29.9 MB        | 48.3 (46.1)     |
+| 1440×900, ×2                   | 920×678        | 1840×1356          | 2           | 29.9 MB        | 48.3 (46.1)     |
+| 2560×1440, ×2                  | 1976×1218      | 2348×1447          | 1.19        | 40.8 MB        | 59.1 (56.4)     |
 
-The stage is now the whole first screen, with the step list and the text panel laid over it
-(comp B), so every wide screen reaches the drawing buffer's cap. The cap dropped from 1.2 to 1.0
-million device pixels to bring the total clearly under 64 MB: at 1.2 million it would be 43.2 MB
-of buffer and 65.8 MB in all. The cost is sharpness on large stages: 1440×900 draws at 0.97 device
-pixels per CSS pixel, and 2560×1440 at 0.55, so the board is drawn softer there than the page
-around it. `tests/path-scene-contract.spec.ts` checks the arithmetic in MB for these stages.
+**How the board got sharp inside 64 MB (round 2).** Round 1 drew the board at about one device
+pixel per CSS pixel, under the stage-wide step list and panel, so a 1440×900 ×2 screen showed it
+soft. Round 2 made four changes:
+
+- **No multisampling.** The renderer is created with `antialias: false`. 4× multisampled colour
+  and depth cost 36 bytes a pixel; without it a pixel costs 12. The edges are antialiased instead
+  by drawing at ratio 2 at least, so a ratio-1 screen gets each pixel as the average of four
+  (ADR-0009).
+- **Mipmaps and anisotropy.** Every card texture is mipmapped (already counted in the uploads)
+  and sampled with anisotropy min(8, the GPU's limit), so cards seen at a slant stay crisp
+  without more pixels.
+- **A smaller shadow map.** 768² rather than 1024²: 1.8 MB less at 4 bytes a texel, for a shadow that is soft and a few pixels wide on screen.
+- **A cap only for very large stages.** `MAX_DRAWING_PIXELS` is 3.4 million: 40.8 MB of buffer and
+  59.1 MB in all. The 1440×900 stage at ratio 2 is 2.5 million, so it draws at the screen's own
+  sharpness. Only stages much larger than that, the 2560×1440 one among them, draw at less than
+  ratio 2.
+
+`tests/path-scene-contract.spec.ts` checks this arithmetic in MB for these stages, and that the
+1440×900 ×2 stage draws at ratio 2.
+
+Frame time, from `requestAnimationFrame` gaps over a 2.5 s Replay of Lille's build on the GPU:
+a median of 8.3 ms (the display's 120 Hz) and a 95th percentile of 8.9–9.1 ms at 1440×900 ×2,
+2560×1440 ×2 and 375×812 ×3, so drawing four times the pixels did not cost frames here.
 
 Stills: one per step and mode, all 14 rendered by `generate:path-stills` from the board settled on
-the step at 1440×900 ×1.5, with the cards laid over the stage hidden while the canvas is captured:
-35.6–37.3 KB each, 509 KB in all.
+the step at 1440×900 ×1.5, with the board's tabs hidden while the canvas is captured: 1380×1017,
+60.5–65.1 KB each, 880 KB in all.
 
 The frame-rate fallback is unchanged. In SwiftShader with five test workers sharing the CPU, the
 board draws at 50–75 ms a frame, and the 33 ms sample rightly shows the stills; on the GPU the same
@@ -250,8 +266,8 @@ From #149's asset log (`docs/path-assets.md`), which has the full record:
   reduced motion nothing animates and the sample never fills, so there is no frame-rate fallback
   there, and none is needed.
 - GPU memory is an estimate from uploads and canvas size, not a reading of what the GPU holds.
-- **The board is drawn soft on large screens.** The pixel cap that keeps GPU memory under 64 MB
-  draws a 2560×1440 stage at 0.55 device pixels per CSS pixel. Capping the stage's size, or
-  dropping multisampling for a cheaper antialias, would buy the sharpness back; neither is done.
+- **The board is drawn below ratio 2 on very large stages.** The cap that keeps GPU memory under
+  64 MB draws a 2560×1440 ×2 stage at ratio 1.19. Screens up to about 1440×900 ×2 draw at their
+  own ratio.
 - The `now` voice clip is over #150's ~60 KB target, and `lille` is just over it. See
   [Voice clips](#voice-clips).
