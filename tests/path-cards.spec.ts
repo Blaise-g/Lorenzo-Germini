@@ -61,6 +61,15 @@ test.describe("the card manifest", () => {
     }
   });
 
+  test("no two cards on a tile render the same prop", () => {
+    for (const step of PATH_STEPS) {
+      const props = cardsForStep(step.slug).flatMap((card) =>
+        card.prop ? [card.prop] : [],
+      );
+      expect(new Set(props).size, step.slug).toBe(props.length);
+    }
+  });
+
   test("each tile's build order runs from zero without gaps", () => {
     for (const step of PATH_STEPS) {
       expect(

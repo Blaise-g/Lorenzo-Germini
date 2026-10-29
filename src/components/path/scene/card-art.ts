@@ -29,7 +29,7 @@ export const TILE_SIZE = 4;
  *  a small piece around them (a tree, a sailboat, a dial). */
 export type CardRole = "landmark" | "backdrop" | "accent";
 
-export type CardArt = {
+export type CardArt = Readonly<{
   /** Unique across the board, `<step>-<subject>`. */
   id: string;
   /** The tile it stands on. */
@@ -46,16 +46,16 @@ export type CardArt = {
   /** The hinge, in the card's own 0–1 space: u across from its left edge, v
    *  up from its bottom edge. A card that folds up from the tile is
    *  `{ u: 0.5, v: 0 }`, hinged along its bottom edge. */
-  anchor: { u: number; v: number };
+  anchor: Readonly<{ u: number; v: number }>;
   role: CardRole;
   /** Suggested place for the anchor in the tile's frame (see above). `y` is
    *  zero for a card standing on the tile, and above it for one mounted on
    *  another card, such as the MVP window on the schoolroom. */
-  position: { x: number; y: number; z: number };
+  position: Readonly<{ x: number; y: number; z: number }>;
   /** Suggested build order on its tile, from zero: back to front, and the
    *  order the cards fold up in. */
   order: number;
-};
+}>;
 
 const FOLD_UP = { u: 0.5, v: 0 } as const;
 
@@ -130,7 +130,7 @@ export const CARD_ART: readonly CardArt[] = [
     height: 1.06,
     anchor: FOLD_UP,
     role: "accent",
-    position: { x: 0, y: 0.9, z: -0.3 },
+    position: { x: 0, y: 1.0, z: -0.3 },
     order: 1,
   },
   {
@@ -244,7 +244,6 @@ export const CARD_ART: readonly CardArt[] = [
   {
     id: "lille-bourse",
     step: "lille",
-    prop: "courtyard",
     file: "/path/cards/lille-bourse.webp",
     width: 3.0,
     height: 1.76,
@@ -286,7 +285,7 @@ export const CARD_ART: readonly CardArt[] = [
     height: 0.8,
     anchor: FOLD_UP,
     role: "accent",
-    position: { x: 1.2, y: 0.5, z: 0.5 },
+    position: { x: 1.2, y: 0, z: 0.5 },
     order: 3,
   },
   {

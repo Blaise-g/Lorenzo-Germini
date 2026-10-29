@@ -57,7 +57,7 @@ const LEVELS = 32;
  *  centres of the coils, which the Mole shows through. */
 const CUT_HOLES: ReadonlySet<string> = new Set(["turin-coils"]);
 /** An enclosed hole is cut only above this share of the card's area. */
-const MIN_HOLE = 0.004;
+const MIN_HOLE = 0.0005;
 
 export type Rgb = readonly [number, number, number];
 
@@ -87,8 +87,9 @@ export function unmix(
   const det = aa * bb - ab * ab;
   let ca = (ad * bb - bd * ab) / det;
   let cb = (bd * aa - ad * ab) / det;
-  /* Off the plane the two inks span (a stray grey, or darker than both
-     together), fall back to the best fit with one coverage pinned. */
+  /* Off the plane the two inks span (a stray grey, or a hue neither ink
+     prints), fall back to the best fit with one coverage pinned; a pixel
+     darker than full coverage clamps to it. */
   if (ca < 0) {
     ca = 0;
     cb = bd / bb;
@@ -202,7 +203,7 @@ export function dieCut(
     if (!(cutHoles && holes.sizes[id] >= minHole)) shape[i] = 1;
   }
 
-  /* A die cut is one piece: keep the largest, and any piece near its size. */
+  /* Drop specks: every piece under a twentieth of the largest. */
   const pieces = regions(shape, width, height);
   const largest = Math.max(...pieces.sizes);
   for (let i = 0; i < shape.length; i++) {
@@ -277,7 +278,13 @@ export async function separate(
 
   /* The margin is given in output texels; work in source pixels. */
   const inkLong = Math.max(right - left, bottom - top) + 1;
-  const sourceMargin = Math.max(2, (margin * inkLong) / longSide);
+  /* The output's long side is the ink plus the margin and pad on each
+     side, so solve for the margin in source pixels rather than scaling by
+     the ink alone. */
+  const sourceMargin = Math.max(
+    2,
+    (margin * (inkLong + 4)) / (longSide - 2 * margin),
+  );
   const shape = dieCut(printed, width, height, sourceMargin, cutHoles);
 
   const rgba = Buffer.alloc(width * height * 4);
@@ -312,7 +319,7 @@ export async function separate(
     cropped
       .clone()
       .extractChannel(3)
-      .resize(outWidth, outHeight, { kernel: "lanczos3" })
+      .resize(outWidth, outHeight, { kernel: "linear" })
       .raw()
       .toBuffer(),
   ]);
@@ -486,18 +493,28 @@ async function main() {
       console.error("Usage: bun run generate:path-cards --import <png> <name>");
       process.exit(1);
     }
+    if (!textures().has(name)) {
+      console.error(`${name}: no card in card-art.ts names this texture`);
+      process.exit(1);
+    }
     return importOriginal(png, name);
   }
   const previewFlag = args.indexOf("--preview");
   const previewDir = previewFlag >= 0 ? args[previewFlag + 1] : undefined;
+  if (previewFlag >= 0 && !previewDir) {
+    console.error("Usage: bun run generate:path-cards --preview <dir>");
+    process.exit(1);
+  }
   if (previewDir) await mkdir(previewDir, { recursive: true });
   await mkdir(OUT, { recursive: true });
 
   const available = new Set(await readdir(ORIGINALS).catch(() => []));
-  let over = false;
-  for (const [name, side] of textures()) {
+  let failed = false;
+  const sides = textures();
+  for (const [name, side] of sides) {
     if (!available.has(`${name}.webp`)) {
-      console.warn(`${name}: no original in vendor/path-cards, skipped`);
+      console.error(`${name}: no original in vendor/path-cards`);
+      failed = true;
       continue;
     }
     const card = await separate(
@@ -509,7 +526,7 @@ async function main() {
     const { webp, encoding } = await encode(card.data, card.width, card.height);
     await writeFile(path.join(OUT, `${name}.webp`), webp);
     const flag = webp.length > MAX_BYTES ? "  OVER BUDGET" : "";
-    if (flag) over = true;
+    if (flag) failed = true;
     console.log(
       `${name}: ${card.width}×${card.height}, aspect ${(card.width / card.height).toFixed(3)}, ` +
         `${(webp.length / 1024).toFixed(1)} KB, ${encoding}${flag}`,
@@ -527,8 +544,15 @@ async function main() {
   const texture = await grain();
   await writeFile(path.join(OUT, "grain.webp"), texture);
   console.log(`grain: ${(texture.length / 1024).toFixed(1)} KB`);
-  if (texture.length > GRAIN_MAX_BYTES) over = true;
-  if (over) process.exit(1);
+  if (texture.length > GRAIN_MAX_BYTES) failed = true;
+
+  const named = new Set([...sides.keys()].map((name) => `${name}.webp`));
+  for (const file of await readdir(OUT)) {
+    if (file !== "grain.webp" && !named.has(file)) {
+      console.warn(`${file}: in public/path/cards but no card names it`);
+    }
+  }
+  if (failed) process.exit(1);
 }
 
 /* Run as a script, not when a test imports the functions above. */
