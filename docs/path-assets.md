@@ -90,3 +90,16 @@ change (the normal-extruded hull, and the Bisalta's lathe profile turned to face
 again after review, when the hull's normals became angle-weighted. Lille's paintings were made over
 the first grey boxes. The second change only evens out the outline's width, so the composition they
 were painted over is unchanged.
+
+## Voice (#150)
+
+The clips are made by `bun run generate:path-voice` with macOS `say` (the stock "Samantha" voice),
+encoded to mono HE-AAC at 16 kbps (`docs/path-measurements.md` has the sizes). The page labels
+them as a synthetic voice, never as Lorenzo's.
+
+## Open items
+
+- **The macOS voice is for personal, non-commercial use only.** Apple's licence for the macOS
+  system voices allows their output for personal, non-commercial use only. That is acceptable for
+  the unmerged prototype, but the stage-4 voice, or any voice that ships, needs another provider:
+  the generator's `--provider elevenlabs`, or another whose licence allows it.

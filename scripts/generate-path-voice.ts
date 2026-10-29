@@ -14,9 +14,9 @@
    a stock system voice, converted to AAC with `afconvert`. Either way the page
    labels the clips "synthetic voice", and never as Lorenzo's.
 
-   Open item for stage 4's voice: Apple's licence allows output from the macOS
-   system voices for personal, non-commercial use only. That is acceptable for
-   the unmerged prototype; a shipped voice needs another provider. */
+   Open item for stage 4's voice, recorded in `docs/path-assets.md`: Apple's
+   licence allows output from the macOS system voices for personal,
+   non-commercial use only, so a shipped voice needs another provider. */
 
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
