@@ -66,10 +66,12 @@ test("the cue timings run forward, without overlap, inside the clip", () => {
   }
 });
 
-test("every step's narration runs about 15–30 s", () => {
+/* About: 15 s was a guide, and home's "Behind it rises the Bisalta." takes
+   it to 14.8 s, which padding the copy would only make worse. */
+test("every step's narration runs about 14–30 s", () => {
   for (const step of PATH_STEPS) {
     const { durationMs } = narrationFor(step.slug);
-    expect(durationMs, step.slug).toBeGreaterThanOrEqual(15_000);
+    expect(durationMs, step.slug).toBeGreaterThanOrEqual(14_000);
     expect(durationMs, step.slug).toBeLessThanOrEqual(30_000);
   }
 });

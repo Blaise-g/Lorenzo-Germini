@@ -5,8 +5,8 @@
   "clips": {
     "home": {
       "src": "/path/voice/home.m4a",
-      "bytes": 41010,
-      "durationMs": 16422,
+      "bytes": 37472,
+      "durationMs": 14847,
       "cues": [
         {
           "text": "This is Cuneo, where I grew up and went to school.",
@@ -19,19 +19,19 @@
           "endMs": 6887
         },
         {
-          "text": "Behind it, the Bisalta, the mountain behind Cuneo.",
+          "text": "Behind it rises the Bisalta.",
           "startMs": 7236,
-          "endMs": 10483
+          "endMs": 8908
         },
         {
           "text": "And here, my old high school.",
-          "startMs": 10832,
-          "endMs": 12593
+          "startMs": 9257,
+          "endMs": 11019
         },
         {
           "text": "The path comes back here, and each time it builds up a little more.",
-          "startMs": 12942,
-          "endMs": 16422
+          "startMs": 11368,
+          "endMs": 14847
         }
       ]
     },

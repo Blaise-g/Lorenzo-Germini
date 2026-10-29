@@ -38,7 +38,7 @@ export const PATH_NARRATION: Record<
     },
     /* The Bisalta's inspiration. */
     {
-      text: "Behind it, the Bisalta, the mountain behind Cuneo.",
+      text: "Behind it rises the Bisalta.",
       prop: "bisalta",
     },
     /* The school's inspiration. */

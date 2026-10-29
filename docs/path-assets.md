@@ -402,7 +402,7 @@ set in place. It flags a clip outside 15–30 s or over 60 KB.
 
 | Step          | Clip                                | Cues | Length  | Size    |
 | ------------- | ----------------------------------- | ---- | ------- | ------- |
-| `home`        | `public/path/voice/home.m4a`        | 5    | 16.42 s | 40.0 KB |
+| `home`        | `public/path/voice/home.m4a`        | 5    | 14.85 s | 36.6 KB |
 | `turin`       | `public/path/voice/turin.m4a`       | 4    | 16.67 s | 40.8 KB |
 | `switzerland` | `public/path/voice/switzerland.m4a` | 6    | 29.22 s | 65.8 KB |
 | `cuneo-2022`  | `public/path/voice/cuneo-2022.m4a`  | 5    | 19.01 s | 45.2 KB |
@@ -412,6 +412,11 @@ set in place. It flags a clip outside 15–30 s or over 60 KB.
 
 Durations were checked with `afinfo` and a muted decode; nothing was played aloud, so how the
 voice says "m³", "TL;DR" and "SMEs" is unheard.
+
+v3-harden shortened home's third cue to "Behind it rises the Bisalta." and regenerated home's
+clip and timings alone (the other six are byte-for-byte the clips above). The generator flags it
+as just under 15 s. The muted decode gives 14,847 ms, as the manifest has it, and the new cue's
+window (7,236–8,908 ms) carries speech between two silent gaps.
 
 ## Open items
 
