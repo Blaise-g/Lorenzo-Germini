@@ -58,3 +58,44 @@ export function pathSpline(): CatmullRomCurve3 {
     "centripetal",
   );
 }
+
+let shared: {
+  spline: CatmullRomCurve3;
+  anchors: readonly TileAnchor[];
+} | null = null;
+
+/** The spline and anchors, made once: the pawn reads them every frame. */
+function sharedPath() {
+  shared ??= { spline: pathSpline(), anchors: tileAnchors() };
+  return shared;
+}
+
+const offsetA = new Vector3();
+const offsetB = new Vector3();
+
+/** Where the pawn's foot is `along` tiles from tile `from` (an index into
+ *  the loop; negative is backwards), riding the spline between tiles. On a
+ *  tile it stands on its spot, which is off the spline's centre to keep
+ *  clear of the pieces, so the offset blends from one tile's spot to the
+ *  next's as it goes. `y` is the tile top it stands on, blended the same
+ *  way; the hop's own height is the caller's. */
+export function pawnPathPoint(
+  from: number,
+  along: number,
+  out = new Vector3(),
+): Vector3 {
+  const { spline, anchors } = sharedPath();
+  const count = anchors.length;
+  const base = Math.floor(along);
+  const u = along - base;
+  const a = anchors[(((from + base) % count) + count) % count];
+  const b = anchors[(((from + base + 1) % count) + count) % count];
+  const t = ((((from + along) / count) % 1) + 1) % 1;
+  spline.getPoint(t, out);
+  const blend = u * u * (3 - 2 * u);
+  offsetA.copy(a.pawn).sub(a.centre);
+  offsetB.copy(b.pawn).sub(b.centre);
+  out.add(offsetA.lerp(offsetB, blend));
+  out.y = a.top + (b.top - a.top) * blend;
+  return out;
+}

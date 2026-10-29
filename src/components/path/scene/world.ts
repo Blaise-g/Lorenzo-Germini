@@ -1,11 +1,17 @@
 import {
+  CircleGeometry,
+  DataTexture,
   ExtrudeGeometry,
   Group,
   InstancedMesh,
   LatheGeometry,
+  LinearFilter,
   Matrix4,
   Mesh,
+  MeshStandardMaterial,
   Quaternion,
+  RGBAFormat,
+  RingGeometry,
   Shape,
   Vector2,
   Vector3,
@@ -378,7 +384,61 @@ export function makePawn(paint: Paint): Object3D {
   /* Scaled so its whole height is `PAWN_HEIGHT`. */
   const top = headCentre + r * 0.48;
   pawn.scale.setScalar(h / top);
+  /* The body hops and squashes; its foot's ring and soft contact shadow
+     stay on the tile under it, so the pawn is found at a glance, even in
+     the air. */
+  const body = new Group();
+  body.add(pawn);
+  const contact = new Mesh(
+    new CircleGeometry(r * 1.5, 40),
+    paint.material({ base: "ink-cool", shade: 0.25 }),
+  );
+  contact.material.alphaMap = softDisc();
+  const ring = new Mesh(
+    new RingGeometry(r * 1.32, r * 1.58, 48),
+    paint.material({ base: "ink-warm" }),
+  );
+  for (const [index, flat] of [contact, ring].entries()) {
+    flat.material.transparent = true;
+    flat.material.depthWrite = false;
+    flat.material.opacity = index === 0 ? 0.42 : 0.7;
+    flat.userData.opacity = flat.material.opacity;
+    flat.rotation.x = -Math.PI / 2;
+    flat.position.y = 0.012 + index * 0.004;
+    flat.renderOrder = 1 + index;
+  }
   const group = new Group();
-  group.add(pawn);
+  group.add(contact, ring, body);
+  group.userData.pawn = { body, contact, ring } satisfies PawnParts;
   return group;
+}
+
+/** The pawn's parts the runtime moves: the body, which hops, and the
+ *  contact shadow and ring, which stay on the tile and fade as it rises. */
+export type PawnParts = {
+  body: Object3D;
+  contact: Mesh<CircleGeometry, MeshStandardMaterial>;
+  ring: Mesh<RingGeometry, MeshStandardMaterial>;
+};
+
+/** A disc's alpha, opaque at its centre and gone at its rim: a contact
+ *  shadow's softness, with no light to bake it. */
+function softDisc() {
+  const size = 64;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const d = Math.hypot(x - size / 2 + 0.5, y - size / 2 + 0.5) / (size / 2);
+      const alpha = Math.max(0, 1 - d) ** 1.6;
+      data.fill(
+        Math.round(alpha * 255),
+        (y * size + x) * 4,
+        (y * size + x) * 4 + 4,
+      );
+    }
+  }
+  const texture = new DataTexture(data, size, size, RGBAFormat);
+  texture.magFilter = LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
 }

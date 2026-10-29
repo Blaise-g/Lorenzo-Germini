@@ -34,11 +34,8 @@ import {
 } from "./assets";
 import {
   BOARD,
-  boardOutline,
-  frameShapes,
   HOP_HEIGHT,
   LOOP,
-  pawnSpot,
   piecesOf,
   TILE,
   tileCentre,
@@ -54,16 +51,15 @@ import {
 } from "./build-plan";
 import { drawingPixelRatio } from "./drawing-buffer";
 import {
-  centreOf,
-  filled,
-  framed,
-  toClip,
-  wholeStage,
-  type ClipPoint,
-  type ClipRect,
-  type StageFrame,
-  type StageRect,
-} from "./frame";
+  CAMERA_MS,
+  createCameraRig,
+  driftMs,
+  LENS,
+  transitTimeline,
+  type Transit,
+} from "./camera-rig";
+import { crossfade } from "./crossfade";
+import { toClip, wholeStage, type StageFrame, type StageRect } from "./frame";
 import {
   decideFallback,
   FRAME_SAMPLE_SIZE,
@@ -76,15 +72,21 @@ import {
   landingSquash,
   LANDING_MS,
   loopSteps,
-  moveDuration,
   movePose,
   risePose,
 } from "./motion";
 import { createPaint } from "./paint";
 import { isDarkMode, readPalette, type Palette } from "./palette";
 import { buildPiece } from "./props";
+import { pawnPathPoint } from "./path-spline";
 import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
-import { makeBoard, makePath, makePawn, makeTileBase } from "./world";
+import {
+  makeBoard,
+  makePath,
+  makePawn,
+  makeTileBase,
+  type PawnParts,
+} from "./world";
 
 /* The 3D path's board (GH-148; v3, a solid tabletop board): vanilla
    three.js, imported dynamically by the host on `/path` only, after the
@@ -93,26 +95,19 @@ import { makeBoard, makePath, makePawn, makeTileBase } from "./world";
    (`world.ts`, `props.ts`) or loaded (`scene-assets.ts`), and nothing on it
    is text. Selecting a step hops the pawn there along the loop and raises
    that tile's pieces in the data's order, lighting the caption lines as they
-   settle; then the board stops drawing until something moves again. Tiles
-   already built stay built. */
+   settle. The camera rig (`camera-rig.ts`) holds each step close and travels
+   with the pawn between them; the board draws while the rig moves or the
+   tour plays, and stops when both are still. Tiles already built stay
+   built. */
 
 const TURN_RADIANS = 0.3;
 const TURN_MS = 450;
 const THEME_MS = 350;
-/** The camera's slight lean toward the selected tile, as a share of the
- *  tile's distance from the board's centre, and how long it takes. */
-const FOCUS_SHARE = 0.1;
-const FOCUS_MS = 900;
 /** How long a lost context may take to come back before the stills. */
 const CONTEXT_RESTORE_MS = 3000;
 /** Frames longer than this count as a pause (a hidden tab, a debugger), and
  *  the build's clock does not jump across them. */
 const MAX_STEP_MS = 100;
-const CAMERA_FOV = 26;
-/** A high three-quarter view: the camera's angle above the table. */
-const CAMERA_ELEVATION = 0.95;
-/** How much of the stage's free part the board may fill, either way. */
-const FRAME_FILL = { x: 0.93, y: 0.96 } as const;
 /** Each piece after the first in a prop rises this much later. */
 const PIECE_STAGGER_MS = 110;
 /** The selected tile stands this much proud of the board, in its own
@@ -139,6 +134,10 @@ export type SceneSnapshot = {
   turn: number;
   /** The step the board last settled, or is settling, on. */
   step?: PathStepSlug;
+  /** Whether the camera has landed on `step`'s close-up with the pawn on
+   *  its tile: the tour's cue to start the step's dwell. The build may still
+   *  be rising (`buildState`). */
+  settled: boolean;
   /** Set when the shown step's tile shows its stills instead, and why; the
    *  board keeps running for the other steps. It names its step, so the host
    *  never pairs it with a step selected since. */
@@ -153,9 +152,24 @@ export type SceneRuntimeOptions = {
   onFallback(reason: FallbackReason): void;
 };
 
+/** How the tour stands, as the board follows it: playing (the close-up
+ *  drifts), paused (whatever moves freezes where it is) or ended (the
+ *  camera pulls back to the whole board). */
+export type TourState = "playing" | "paused" | "ended";
+
+export type ShowOptions = {
+  /** The tour advanced here by itself: the pawn walks and the camera
+   *  travels with it. Otherwise the step was picked and the camera flies. */
+  advance: boolean;
+  /** How long the step's narration lasts, which the close-up's drift
+   *  spans. */
+  narrationMs: number;
+};
+
 export type SceneRuntime = {
   /** Moves the pawn to `step`'s tile and builds it. */
-  show(step: PathStep): void;
+  show(step: PathStep, options?: ShowOptions): void;
+  setTourState(state: TourState): void;
   /** Jumps the move and the build to their end; false if nothing was
    *  moving. */
   skip(): boolean;
@@ -216,7 +230,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   renderer.toneMappingExposure = 1.0;
 
   const scene = new Scene();
-  const camera = new PerspectiveCamera(CAMERA_FOV, 1, 0.5, 200);
+  const camera = new PerspectiveCamera(LENS.long, 1, 0.5, 200);
   const board = new Group();
   scene.add(board);
 
@@ -357,8 +371,55 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /* ─── The pawn ─── */
 
   const pawn = makePawn(paintBox);
+  const pawnParts = pawn.userData.pawn as PawnParts;
   pawn.visible = false;
   board.add(pawn);
+
+  /** A move of the pawn, timed by the camera's transit: it leaves at
+   *  `hopStartMs` and lands at `landMs`. An opening drops it onto its tile
+   *  instead. */
+  type Move = {
+    from: PathStepSlug;
+    steps: number;
+    elapsed: number;
+    transit: Transit;
+  };
+
+  const wrap = (index: number) =>
+    LOOP[((index % LOOP.length) + LOOP.length) % LOOP.length];
+
+  /** How far through its hops `m` is at `ms`: 0 before it leaves, 1 on
+   *  landing. */
+  function hopProgress(m: Move, ms: number) {
+    const { hopStartMs, landMs } = m.transit;
+    return Math.min(Math.max((ms - hopStartMs) / (landMs - hopStartMs), 0), 1);
+  }
+
+  function moveAt(m: Move, ms: number) {
+    if (m.transit.kind === "opening") {
+      const p = hopProgress(m, ms);
+      /* Dropped onto its tile: falling faster as it comes. */
+      return { along: 0, lift: 2 * (1 - p * p) };
+    }
+    const kind = m.transit.kind === "skip" ? "skip" : "travel";
+    return movePose(kind, m.steps, hopProgress(m, ms));
+  }
+
+  /** Where the pawn's foot is `ms` into `m`, on the path, in the board's
+   *  frame: off its spot as it leaves, along the spline between tiles, and
+   *  onto the next spot as it lands, standing as high as the tiles under it
+   *  have risen. */
+  function pawnFoot(m: Move, ms: number, out: Vector3) {
+    const from = stepIndex(m.from);
+    const { along } = moveAt(m, ms);
+    pawnPathPoint(from, along, out);
+    const base = Math.floor(along);
+    const u = along - base;
+    const blend = u * u * (3 - 2 * u);
+    const [a, b] = [liftOf(wrap(from + base)), liftOf(wrap(from + base + 1))];
+    out.y += a + (b - a) * blend;
+    return out;
+  }
 
   function pawnBase(slug: PathStepSlug) {
     return TILE.thickness * tileScale(slug) + liftOf(slug);
@@ -491,9 +552,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /** Whether the current tile stood before this build began. */
   let rebuild = false;
   let pawnAt: PathStepSlug | undefined;
-  let move:
-    | { from: PathStepSlug; steps: number; elapsed: number; duration: number }
-    | undefined;
+  let move: Move | undefined;
   let buildElapsed = 0;
   let landingElapsed = LANDING_MS;
   let buildState: BuildState = "idle";
@@ -502,13 +561,26 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let turnStep = 0;
   let turnFrom = 0;
   let turnElapsed = TURN_MS;
-  let focusFrom = new Vector3();
-  let focusTo = new Vector3();
-  let focusElapsed = FOCUS_MS;
   let stills: SceneSnapshot["stills"];
 
+  /** Whether the camera holds the current step's close-up with the pawn
+   *  on its tile; what was last reported. */
+  let settled = false;
+  function isSettled() {
+    return Boolean(current) && !move && rig.settledOn() === current;
+  }
+
   function emit() {
-    onChange({ buildState, lit, shown, turn: turnStep, step: current, stills });
+    settled = isSettled();
+    onChange({
+      buildState,
+      lit,
+      shown,
+      turn: turnStep,
+      step: current,
+      settled,
+      stills,
+    });
   }
 
   function poseTile(tile: Tile, at: (planned: string) => number | "up") {
@@ -577,43 +649,43 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
   }
 
+  const foot = new Vector3();
+
   function posePawn() {
     if (!pawnAt) {
       pawn.visible = false;
       return;
     }
-    pawn.visible = true;
-    let x: number;
-    let z: number;
-    let y: number;
+    const { body, contact, ring } = pawnParts;
+    let lift = 0;
     if (move) {
-      const { along, lift } = movePose(
-        move.steps,
-        move.elapsed / move.duration,
-      );
-      const from = stepIndex(move.from);
-      const base = Math.floor(Math.abs(along)) * Math.sign(along);
-      const at = (offset: number) =>
-        LOOP[(((from + offset) % LOOP.length) + LOOP.length) % LOOP.length];
-      const a = at(base);
-      const b = at(base + Math.sign(move.steps));
-      const t = Math.abs(along - base);
-      const [ax, az] = pawnSpot(a);
-      const [bx, bz] = pawnSpot(b);
-      x = ax + (bx - ax) * t;
-      z = az + (bz - az) * t;
-      y = pawnBase(a) + (pawnBase(b) - pawnBase(a)) * t + lift * HOP_HEIGHT;
+      const now = moveAt(move, move.elapsed);
+      lift = now.lift;
+      pawnFoot(move, move.elapsed, foot);
       /* Leaning into the hop, as a flicked piece would. */
-      pawn.rotation.z = -Math.sign(bx - ax) * lift * 0.18;
-      pawn.scale.set(1, 1, 1);
+      const ahead = pawnFoot(move, move.elapsed + 30, new Vector3()).sub(foot);
+      body.rotation.z = -Math.sign(ahead.x) * Math.min(lift, 1) * 0.18;
+      body.rotation.x = Math.sign(ahead.z) * Math.min(lift, 1) * 0.18;
+      body.scale.set(1, 1, 1);
+      /* An opening's pawn shows once its drop starts. */
+      pawn.visible =
+        move.transit.kind !== "opening" ||
+        move.elapsed >= move.transit.hopStartMs;
     } else {
-      [x, z] = pawnSpot(pawnAt);
-      y = pawnBase(pawnAt);
-      pawn.rotation.z = 0;
+      pawn.visible = true;
+      pawnPathPoint(stepIndex(pawnAt), 0, foot).y += liftOf(pawnAt);
+      body.rotation.set(0, 0, 0);
       const squash = landingSquash(landingElapsed);
-      pawn.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
+      body.scale.set(1 / Math.sqrt(squash), squash, 1 / Math.sqrt(squash));
     }
-    pawn.position.set(x, y, z);
+    pawn.position.copy(foot);
+    body.position.y = lift * HOP_HEIGHT;
+    /* The ring and the shadow stay on the tile, fading as the pawn rises. */
+    const away = Math.min(lift / 2, 1);
+    for (const flat of [contact, ring]) {
+      flat.material.opacity = flat.userData.opacity * (1 - 0.7 * away);
+      flat.scale.setScalar(1 - 0.25 * away);
+    }
   }
 
   function finish() {
@@ -635,230 +707,17 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The camera ─── */
 
-  /* Every tile's outlines, then the board's own rim, which has no tile:
-     the board is framed whole, but may lie under the tabs. */
-  const shapes = [
-    ...frameShapes(),
-    { slug: null, outlines: [boardOutline()] },
-  ].map(({ slug, outlines }) => ({
-    slug,
-    outlines: outlines.map((outline) =>
-      outline.map(([x, y, z]) => new Vector3(x, y, z)),
-    ),
-  }));
+  const rig = createCameraRig({ camera, board, liftHeight: LIFT_HEIGHT });
+  rig.setReducedMotion(reducedMotion);
   let stageFrame: StageFrame | undefined;
 
-  const BOARD_TARGET = new Vector3(0, 1, 0);
-  const focus = new Vector3();
-  const lookAt = new Vector3();
-  const probe = new Vector3();
-
-  function placeCamera(distance: number) {
-    camera.position.set(
-      lookAt.x,
-      lookAt.y + distance * Math.sin(CAMERA_ELEVATION),
-      lookAt.z + distance * Math.cos(CAMERA_ELEVATION),
-    );
-    camera.lookAt(lookAt);
-    camera.updateMatrixWorld();
-  }
-
-  type ClipFrame = { safe: ClipRect; clear: ClipRect[] };
-
-  /** The stage's free part and the cards laid over it, in clip space. */
-  function clipFrame(): ClipFrame {
+  /** The stage's free part and the tabs laid over it, in clip space. */
+  function clipFrame() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
     const frame = stageFrame ?? wholeStage(width, height);
     const clip = (rect: StageRect) => toClip(rect, width, height);
-    return {
-      safe: filled(clip(frame.safe), FRAME_FILL),
-      clear: frame.clear.map(clip),
-    };
-  }
-
-  /** Every tile's outlines, turned as the board is and seen from `distance`
-   *  back, in clip space; null if any point is behind the camera. The
-   *  selected tile's are lifted as it will stand once risen. */
-  function projected(distance: number) {
-    placeCamera(distance);
-    const out: { slug: PathStepSlug | null; outlines: ClipPoint[][] }[] = [];
-    for (const { slug, outlines } of shapes) {
-      const rise = slug ? liftTarget(slug) * LIFT_HEIGHT * tileScale(slug) : 0;
-      const clipped: ClipPoint[][] = [];
-      for (const outline of outlines) {
-        const points: ClipPoint[] = [];
-        for (const point of outline) {
-          probe.copy(point);
-          probe.y += rise;
-          probe
-            .applyMatrix4(board.matrixWorld)
-            .applyMatrix4(camera.matrixWorldInverse);
-          if (probe.z > -camera.near) return null;
-          probe.applyMatrix4(camera.projectionMatrix);
-          points.push([probe.x, probe.y]);
-        }
-        clipped.push(points);
-      }
-      out.push({ slug, outlines: clipped });
-    }
-    return out;
-  }
-
-  /** Whether, from `distance` back, the board stands inside the stage and
-   *  its tiles clear of the tabs laid over it: every tile and the pieces
-   *  standing on it, and the pawn's hop onto the selected tile, the one hop
-   *  the camera rests on. With `selected` false the hop does not count: the bound the
-   *  camera keeps while it eases between two rests. */
-  function fits(distance: number, frame: ClipFrame, selected = true) {
-    const tiles = projected(distance);
-    if (tiles === null) return false;
-    return tiles.every(({ slug, outlines }) =>
-      slug === null
-        ? framed(outlines, frame.safe, [])
-        : framed(
-            selected && slug === current ? outlines : outlines.slice(0, -1),
-            frame.safe,
-            frame.clear,
-          ),
-    );
-  }
-
-  /** Where the board, seen from `distance` back, sits on the stage: the
-   *  centre of its projected bounds, in clip space. */
-  function boundsCentre(distance: number): ClipPoint {
-    const points = (projected(distance) ?? []).flatMap(({ outlines }) =>
-      outlines.flat(),
-    );
-    const xs = points.map(([x]) => x);
-    const ys = points.map(([, y]) => y);
-    return [
-      (Math.min(...xs) + Math.max(...xs)) / 2,
-      (Math.min(...ys) + Math.max(...ys)) / 2,
-    ];
-  }
-
-  /** The closest the camera can come and keep the board framed: found by
-   *  bisection, since how much fits only grows with distance. */
-  function fitDistance(frame: ClipFrame, selected = true, limit = 300) {
-    let near = 5;
-    let far = limit;
-    /* A place that cannot beat `limit` is not worth bisecting. */
-    if (limit < 300 && !fits(far, frame, selected)) return far;
-    for (let i = 0; i < 24; i++) {
-      const middle = (near + far) / 2;
-      if (fits(middle, frame, selected)) far = middle;
-      else near = middle;
-    }
-    return far;
-  }
-
-  const centring = new Vector3();
-  const right = new Vector3();
-  const up = new Vector3();
-
-  /** Points the camera so the board's bounds are centred on `target`, in
-   *  clip space, from as close as keeps it framed; returns that distance. */
-  function aimAt(frame: ClipFrame, target: ClipPoint, limit = 300) {
-    centring.set(0, 0, 0);
-    let distance = 0;
-    for (let pass = 0; pass < 3; pass++) {
-      lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-      distance = fitDistance(frame, true, limit);
-      const [x, y] = boundsCentre(distance);
-      const halfHeight = distance * Math.tan((CAMERA_FOV * Math.PI) / 360);
-      right.setFromMatrixColumn(camera.matrixWorld, 0);
-      up.setFromMatrixColumn(camera.matrixWorld, 1);
-      centring
-        .addScaledVector(right, (x - target[0]) * halfHeight * camera.aspect)
-        .addScaledVector(up, (y - target[1]) * halfHeight);
-    }
-    lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-    return fitDistance(frame, true, limit);
-  }
-
-  /* Where on the stage the board is centred once the camera rests. With
-     nothing laid over it, the middle. With cards laid over it the board
-     may stand larger off the middle, tucked past them: a grid of places
-     round the middle is tried, at the lean and the turn the camera is
-     heading for, and the one that lets it come closest kept. */
-  const TARGET_SHIFTS = [-0.3, -0.15, 0, 0.15, 0.3]
-    .flatMap((sx) => [-0.3, -0.15, 0, 0.15, 0.3].map((sy) => [sx, sy]))
-    .sort(([ax, ay], [bx, by]) => ax * ax + ay * ay - (bx * bx + by * by));
-  let restTarget: ClipPoint = [0, 0];
-  let restKey = "";
-
-  function chooseTarget(frame: ClipFrame) {
-    const key = JSON.stringify([frame, turnStep, current, focusTo.toArray()]);
-    if (key === restKey) return;
-    restKey = key;
-    const [cx, cy] = centreOf(frame.safe);
-    restTarget = [cx, cy];
-    if (frame.clear.length === 0) return;
-    const leaning = focus.clone();
-    const turned = board.rotation.y;
-    focus.copy(focusTo);
-    board.rotation.y = turnStep * TURN_RADIANS;
-    board.updateMatrixWorld();
-    const width = frame.safe.x1 - frame.safe.x0;
-    const height = frame.safe.y1 - frame.safe.y0;
-    let closest = Infinity;
-    for (const [sx, sy] of TARGET_SHIFTS) {
-      const candidate: ClipPoint = [cx + sx * width, cy + sy * height];
-      const distance = aimAt(frame, candidate, Math.min(closest, 300));
-      /* Near-ties go to the place nearest the middle, tried first. */
-      if (distance < closest * 0.995) {
-        closest = distance;
-        restTarget = candidate;
-      }
-    }
-    focus.copy(leaning);
-    board.rotation.y = turned;
-    board.updateMatrixWorld();
-  }
-
-  /* What the camera last showed, and what it eases from when the selected
-     tile, the turn or the stage changes: the lean and the place the board
-     rests differ between steps, and a cut would jump. */
-  let shownTarget: ClipPoint = [0, 0];
-  let shownDistance = 0;
-  let fromTarget: ClipPoint = [0, 0];
-  let fromDistance = 0;
-
-  function easeCamera(instant: boolean) {
-    focusFrom = focus.clone();
-    fromTarget = shownTarget;
-    fromDistance = shownDistance;
-    focusElapsed = instant || shownDistance === 0 ? FOCUS_MS : 0;
-  }
-
-  /* The camera leans toward the selected tile and comes as close as keeps
-     the board framed. While it eases between two rests, it is never closer
-     than keeps every tile inside the stage and clear of the board's tabs,
-     so the move crops nothing on the way. */
-  function aim() {
-    const t = easeInOut(focusElapsed / FOCUS_MS);
-    focus.lerpVectors(focusFrom, focusTo, t);
-    board.updateMatrixWorld();
-    camera.far = 1000;
-    camera.updateProjectionMatrix();
-    const frame = clipFrame();
-    chooseTarget(frame);
-    shownTarget = [
-      fromTarget[0] + (restTarget[0] - fromTarget[0]) * t,
-      fromTarget[1] + (restTarget[1] - fromTarget[1]) * t,
-    ];
-    const resting = aimAt(frame, shownTarget);
-    shownDistance =
-      t >= 1
-        ? resting
-        : Math.max(
-            fromDistance + (resting - fromDistance) * t,
-            fitDistance(frame, false),
-          );
-    placeCamera(shownDistance);
-    camera.far = shownDistance * 2.5;
-    camera.updateProjectionMatrix();
+    return { safe: clip(frame.safe), clear: frame.clear.map(clip) };
   }
 
   function frame() {
@@ -871,18 +730,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       drawingPixelRatio(width, height, window.devicePixelRatio),
     );
     camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-    aim();
-  }
-
-  function focusOn(slug: PathStepSlug, instant: boolean) {
-    const [x, z] = tileCentre(slug);
-    const target = new Vector3(x * FOCUS_SHARE, 0, z * FOCUS_SHARE);
-    if (target.equals(focusTo)) return;
-    focusTo = target;
-    easeCamera(instant);
-    /* An instant lean is no frame's job: aim now. */
-    if (instant) aim();
+    rig.setFrame(clipFrame());
+    rig.place();
   }
 
   const raycaster = new Raycaster();
@@ -893,23 +742,30 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let frameRequest = 0;
   let lastTime: number | undefined;
   let paused = document.visibilityState === "hidden";
+  /** The tour as last reported, and whether its pause has frozen the
+   *  board: set by a pause, cleared by play or by the next selection. */
+  let tourState: TourState = "playing";
+  let frozen = false;
   let contextLost = false;
   let restoreTimer: ReturnType<typeof setTimeout> | undefined;
   let fellBack = false;
   const frameTimes: number[] = [];
 
-  /* Frames are drawn on demand: a move, a build, a turn or a theme change.
-     The frame sample fills only from those, so a settled board draws
-     nothing while it waits for a verdict. */
+  /* Frames are drawn on demand: a move, a build, a turn, a theme change,
+     or the camera moving, which includes its close-up breathing while the
+     tour plays. The frame sample fills only from those, so a settled board
+     draws nothing while it waits for a verdict. A paused tour freezes
+     everything but a theme change. */
   function moving() {
+    if (themeElapsed < THEME_MS) return true;
+    if (frozen) return false;
     return (
       buildState === "building" ||
       catchingUp.size > 0 ||
       landingElapsed < LANDING_MS ||
       lifting() ||
       turnElapsed < TURN_MS ||
-      focusElapsed < FOCUS_MS ||
-      themeElapsed < THEME_MS
+      rig.moving(tourState === "playing")
     );
   }
 
@@ -942,7 +798,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       }
     }
 
-    const step = Math.min(delta, MAX_STEP_MS);
+    const step = frozen ? 0 : Math.min(delta, MAX_STEP_MS);
     let posed = false;
     for (const [slug, elapsed] of catchingUp) {
       if (elapsed + step >= PROP_DROP_MS) {
@@ -954,7 +810,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (buildState === "building" && plan) {
       if (move) {
         move.elapsed += step;
-        if (move.elapsed >= move.duration) {
+        if (move.elapsed >= move.transit.landMs) {
           move = undefined;
           pawnAt = current;
           landingElapsed = 0;
@@ -973,17 +829,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
     if (liftTiles(step)) posed = true;
     if (posed) pose();
-    /* A turn eases the camera too: one aim a frame for both. */
-    const aiming = turnElapsed < TURN_MS || focusElapsed < FOCUS_MS;
     if (turnElapsed < TURN_MS) {
       turnElapsed = Math.min(turnElapsed + step, TURN_MS);
       const t = easeInOut(turnElapsed / TURN_MS);
       board.rotation.y = (turnFrom + (turnStep - turnFrom) * t) * TURN_RADIANS;
     }
-    if (focusElapsed < FOCUS_MS) {
-      focusElapsed = Math.min(focusElapsed + step, FOCUS_MS);
-    }
-    if (aiming) aim();
+    rig.tick(step, tourState === "playing");
+    if (isSettled() !== settled) emit();
     /* The water and the grass move on with every frame drawn. */
     paintBox.flow(step / 1000);
     if (themeElapsed < THEME_MS) {
@@ -1082,10 +934,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (buildState === "building" && rebuild && current) built.add(current);
     rebuild = false;
     if (move) {
-      const { along } = movePose(move.steps, move.elapsed / move.duration);
-      const from = stepIndex(move.from);
-      const over = (from + Math.round(along)) % LOOP.length;
-      pawnAt = LOOP[(over + LOOP.length) % LOOP.length];
+      const { along } = moveAt(move, move.elapsed);
+      pawnAt = wrap(stepIndex(move.from) + Math.round(along));
       move = undefined;
     }
   }
@@ -1104,7 +954,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     emit();
   }
 
-  function build(step: PathStep) {
+  function build(step: PathStep, options?: ShowOptions) {
+    const shownBefore = Boolean(pawnAt) && canvas.style.opacity !== "0";
+    const again = step.slug === current;
     abandon();
     canvas.style.opacity = "";
     stills = undefined;
@@ -1112,16 +964,25 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const first = !pawnAt;
     plan = buildPlan(step);
     const passed = new Set(LOOP.slice(0, stepIndex(slug)));
+    rig.setDriftSpan(driftMs(options?.narrationMs ?? 0));
 
     if (reducedMotion) {
       /* Reduced motion is a designed state: the whole board built, the pawn
-         on its tile, at once (decision 12). */
+         on its tile, and the camera cut to the step's close-up, the old
+         frame crossfading out over the new one (decision 12, §4(f)). */
+      if (shownBefore && !again) {
+        crossfade(
+          canvas,
+          () => renderer.render(scene, camera),
+          CAMERA_MS.crossfade,
+        );
+      }
       for (const tile of tiles.keys()) built.add(tile);
       catchingUp.clear();
       current = slug;
-      focusOn(slug, true);
+      liftTiles(Infinity);
+      rig.cut(slug);
       finish();
-      aim();
       render();
       return;
     }
@@ -1138,20 +999,29 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     current = slug;
     buildElapsed = 0;
     lit = [];
-    const steps = pawnAt
-      ? loopSteps(stepIndex(pawnAt), stepIndex(slug), LOOP.length)
-      : 0;
-    if (!pawnAt) pawnAt = slug;
-    move =
-      steps === 0
-        ? undefined
-        : {
-            from: pawnAt,
-            steps,
-            elapsed: 0,
-            duration: moveDuration(steps),
-          };
-    focusOn(slug, first);
+    /* A selection plays its move even when paused: the visitor asked for
+       it. */
+    frozen = false;
+    if (first) {
+      /* The opening: a visit entering at the first step swoops the whole
+         way down; one entering at a fragment takes the shorter variant. */
+      pawnAt = slug;
+      const transit = transitTimeline("opening", 0, slug !== LOOP[0]);
+      move = { from: slug, steps: 0, elapsed: 0, transit };
+      rig.open(slug, transit);
+    } else {
+      const steps = loopSteps(stepIndex(pawnAt!), stepIndex(slug), LOOP.length);
+      const kind = options?.advance && steps !== 0 ? "travel" : "skip";
+      const transit = transitTimeline(kind, steps);
+      move =
+        steps === 0 ? undefined : { from: pawnAt!, steps, elapsed: 0, transit };
+      if (kind === "travel") {
+        const moving = move!;
+        rig.travel(slug, transit, (ms, out) => pawnFoot(moving, ms, out));
+      } else if (rig.settledOn() !== slug || steps !== 0) {
+        rig.skip(slug, transit);
+      }
+    }
     buildState = "building";
     pose();
     /* Emitted even when already building: a cut from one step's build to
@@ -1162,12 +1032,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Builds `step` on a board that is ready, or shows its stills if its
    *  tile is not. */
-  function buildOrFail(step: PathStep) {
+  function buildOrFail(step: PathStep, options?: ShowOptions) {
     makeTiles();
     const failed = failedTiles.get(step.slug);
     if (failed) return failScene(step, failed);
     try {
-      build(step);
+      build(step, options);
     } catch (error) {
       console.error(error);
       failScene(step, "scene-failed");
@@ -1177,10 +1047,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   board.add(makeBoard(paintBox), makePath(paintBox));
 
   return {
-    show(step) {
+    show(step, options) {
       const request = ++showing;
       const retry = failedFilesOf(step.slug);
-      if (prepared && retry.length === 0) return buildOrFail(step);
+      if (prepared && retry.length === 0) return buildOrFail(step, options);
       /* Loading: the canvas is see-through, so the step's still shows until
          the board is in. */
       abandon();
@@ -1198,7 +1068,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           if (disposed || request !== showing) return;
           failedTiles.delete(step.slug);
           frame();
-          buildOrFail(step);
+          buildOrFail(step, options);
         },
         () => {
           if (!disposed && request === showing)
@@ -1208,8 +1078,21 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     skip() {
       if (buildState !== "building") return false;
+      rig.finish();
       finish();
       return true;
+    },
+    setTourState(state) {
+      if (state === tourState) return;
+      tourState = state;
+      frozen = state === "paused";
+      if (frozen) return;
+      lastTime = undefined;
+      /* The tour has played its last step: back to the whole board. */
+      if (state === "ended" && !reducedMotion && current === LOOP.at(-1)) {
+        rig.end();
+      }
+      requestFrame();
     },
     replay() {
       const step = current && stepNamed(current);
@@ -1225,11 +1108,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       turnFrom = board.rotation.y / TURN_RADIANS;
       turnStep = next;
       emit();
-      easeCamera(reducedMotion);
       if (reducedMotion) {
         board.rotation.y = turnStep * TURN_RADIANS;
         turnElapsed = TURN_MS;
-        aim();
+        rig.place();
         render();
         return;
       }
@@ -1261,13 +1143,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     },
     setFrame(frame) {
       stageFrame = frame;
-      /* A resize can land mid-ease: the camera heads for the new rest from
-         where it is, rather than cutting. */
-      aim();
+      rig.setFrame(clipFrame());
+      rig.place();
       if (prepared) render();
     },
     setReducedMotion(reduced) {
       reducedMotion = reduced;
+      rig.setReducedMotion(reduced);
       if (!reduced || !plan) return;
       /* Reduced motion's designed state is the whole board built. */
       for (const tile of tiles.keys()) built.add(tile);

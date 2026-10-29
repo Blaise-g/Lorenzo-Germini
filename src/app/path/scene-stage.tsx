@@ -23,13 +23,15 @@ import type {
 } from "@/components/path/scene/runtime";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
-import { pushStep } from "@/lib/path-state";
+import { isReplacingStep, pushStep } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
 import { STAGE_COPY } from "./copy";
+import { narrationFor } from "./narration";
 import { useSetLitLines } from "./overlay";
 import { useSetStageStatus } from "./stage-status";
+import { useTourStatus } from "./tour";
 
 /* The board's stage on `/path` (GH-148): page interface around the 3D board,
    so it keeps the seven colour roles (ADR-0008). Before any 3D it shows the
@@ -77,7 +79,13 @@ function measureFrame(stage: HTMLElement): StageFrame {
   return frame;
 }
 
-const IDLE: SceneSnapshot = { buildState: "idle", lit: [], shown: [], turn: 0 };
+const IDLE: SceneSnapshot = {
+  buildState: "idle",
+  lit: [],
+  shown: [],
+  turn: 0,
+  settled: false,
+};
 
 function stepNamed(slug: string) {
   return PATH_STEPS.find((step) => step.slug === slug)!;
@@ -121,10 +129,37 @@ export function SceneStage({
     [setLitLines],
   );
 
+  /* Whether the last change of step was the tour advancing by itself, which
+     the board walks, rather than a pick, which it flies to: told apart
+     inside the `hashchange` the change dispatches, the one place
+     `isReplacingStep` answers. */
+  const advancedRef = useRef(false);
+  useEffect(() => {
+    const onHashChange = () => {
+      advancedRef.current = isReplacingStep();
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
   const show = useCallback((slug: PathStepSlug) => {
     shownSlugRef.current = slug;
-    runtimeRef.current?.show(stepNamed(slug));
+    runtimeRef.current?.show(stepNamed(slug), {
+      advance: advancedRef.current,
+      narrationMs: narrationFor(slug).durationMs,
+    });
+    advancedRef.current = false;
   }, []);
+
+  /* The board's camera follows the tour: its close-up drifts while the
+     tour plays, freezes when it is paused, and pulls back to the whole
+     board when it has ended. */
+  const tourStatus = useTourStatus();
+  const tourStatusRef = useRef(tourStatus);
+  useEffect(() => {
+    tourStatusRef.current = tourStatus;
+    runtimeRef.current?.setTourState(tourStatus);
+  }, [tourStatus]);
 
   /* Capabilities first, so a browser that gets the stills fetches no 3D
      code; then the runtime, in its own chunk. A new runtime shows the
@@ -162,6 +197,7 @@ export function SceneStage({
         return fallBack("context-failed");
       }
       setMode("webgl");
+      runtimeRef.current.setTourState(tourStatusRef.current);
       if (stageBoxRef.current) {
         runtimeRef.current.setFrame(measureFrame(stageBoxRef.current));
       }
@@ -193,15 +229,16 @@ export function SceneStage({
       : undefined;
   const live = mode === "webgl" && withScene && !sceneStills;
 
-  /* The tour's cue (`stage-status.tsx`): settled once the pawn has landed
-     on the selected step and its tile is built, and at once when the stage
-     shows stills or the visitor asked for reduced motion. */
+  /* The tour's cue (`stage-status.tsx`): settled once the camera has
+     landed on the selected step's close-up with the pawn on its tile, its
+     build rising into the dwell (v3; the benchmark's §4(a)), and at once
+     when the stage shows stills or the visitor asked for reduced motion. */
   const settled =
     mode === "fallback" ||
     !withScene ||
     Boolean(sceneStills) ||
     reducedMotion ||
-    (live && snapshot.step === selected && snapshot.buildState === "built");
+    (live && snapshot.step === selected && snapshot.settled);
   useEffect(() => {
     setStageStatus({ slug: selected, settled });
   }, [selected, settled, setStageStatus]);
@@ -304,7 +341,7 @@ export function SceneStage({
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-fallback-reason={reason ?? sceneStills}
-        className="relative h-[clamp(16rem,80vw,26rem)] w-full overflow-hidden lg:h-full"
+        className="relative h-[clamp(20rem,56svh,34rem)] w-full overflow-hidden lg:h-full"
       >
         {children}
         {/* The scene is an illustration of the text beside it, which carries
