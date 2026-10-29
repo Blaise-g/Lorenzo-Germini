@@ -417,7 +417,7 @@ export function TourHoldPanel({
   className?: string;
   footer?: ReactNode;
   children: ReactNode;
-  "data-path-cover"?: string;
+  "data-path-cover"?: "board" | "step";
 }) {
   const { setHold } = useTour();
   return (

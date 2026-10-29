@@ -25,7 +25,6 @@ import {
 } from "@/components/path/scene/drawing-buffer";
 import {
   frameShapes,
-  framePoints,
   LOOP,
   MVP_INK_STRENGTH,
   MVP_WINDOW_LINES,
@@ -354,7 +353,7 @@ test.describe("the board", () => {
   });
 
   test("the camera frames every tile and every card's top", () => {
-    const points = framePoints();
+    const points = frameShapes().flatMap(({ outlines }) => outlines.flat());
     const cards = CARD_ART.length;
     /* Four footprint corners and a hop top per tile, four corners a card. */
     expect(points).toHaveLength(LOOP.length * 5 + cards * 4);

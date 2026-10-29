@@ -1144,9 +1144,11 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** The closest the camera can come and keep the board framed: found by
    *  bisection, since how much fits only grows with distance. */
-  function fitDistance(frame: ClipFrame, selected = true) {
+  function fitDistance(frame: ClipFrame, selected = true, limit = 300) {
     let near = 5;
-    let far = 300;
+    let far = limit;
+    /* A place that cannot beat `limit` is not worth bisecting. */
+    if (limit < 300 && !fits(far, frame, selected)) return far;
     for (let i = 0; i < 24; i++) {
       const middle = (near + far) / 2;
       if (fits(middle, frame, selected)) far = middle;
@@ -1161,12 +1163,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Points the camera so the board's bounds are centred on `target`, in
    *  clip space, from as close as keeps it framed; returns that distance. */
-  function aimAt(frame: ClipFrame, target: ClipPoint) {
+  function aimAt(frame: ClipFrame, target: ClipPoint, limit = 300) {
     centring.set(0, 0, 0);
     let distance = 0;
     for (let pass = 0; pass < 3; pass++) {
       lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-      distance = fitDistance(frame);
+      distance = fitDistance(frame, true, limit);
       const [x, y] = boundsCentre(distance);
       const halfHeight = distance * Math.tan((CAMERA_FOV * Math.PI) / 360);
       right.setFromMatrixColumn(camera.matrixWorld, 0);
@@ -1176,7 +1178,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         .addScaledVector(up, (y - target[1]) * halfHeight);
     }
     lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-    return fitDistance(frame);
+    return fitDistance(frame, true, limit);
   }
 
   /* Where on the stage the board is centred once the camera rests. With
@@ -1191,7 +1193,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   let restKey = "";
 
   function chooseTarget(frame: ClipFrame) {
-    const key = JSON.stringify([frame, turnStep, current]);
+    const key = JSON.stringify([frame, turnStep, current, focusTo.toArray()]);
     if (key === restKey) return;
     restKey = key;
     const [cx, cy] = centreOf(frame.safe);
@@ -1207,7 +1209,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     let closest = Infinity;
     for (const [sx, sy] of TARGET_SHIFTS) {
       const candidate: ClipPoint = [cx + sx * width, cy + sy * height];
-      const distance = aimAt(frame, candidate);
+      const distance = aimAt(frame, candidate, Math.min(closest, 300));
       /* Near-ties go to the place nearest the middle, tried first. */
       if (distance < closest * 0.995) {
         closest = distance;
@@ -1374,16 +1376,17 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       posed = true;
     }
     if (posed) pose();
+    /* A turn eases the camera too: one aim a frame for both. */
+    const aiming = turnElapsed < TURN_MS || focusElapsed < FOCUS_MS;
     if (turnElapsed < TURN_MS) {
       turnElapsed = Math.min(turnElapsed + step, TURN_MS);
       const t = easeInOut(turnElapsed / TURN_MS);
       board.rotation.y = (turnFrom + (turnStep - turnFrom) * t) * TURN_RADIANS;
-      aim();
     }
     if (focusElapsed < FOCUS_MS) {
       focusElapsed = Math.min(focusElapsed + step, FOCUS_MS);
-      aim();
     }
+    if (aiming) aim();
     if (themeElapsed < THEME_MS) {
       themeElapsed = Math.min(themeElapsed + step, THEME_MS);
       const t = easeInOut(themeElapsed / THEME_MS);
@@ -1651,13 +1654,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           shown &&= node.visible;
           node = node.parent;
         }
-        if (node && shown) return node.userData.slug as PathStepSlug;
+        if (node && shown && node.visible) {
+          return node.userData.slug as PathStepSlug;
+        }
       }
       return null;
     },
     setFrame(frame) {
       stageFrame = frame;
-      easeCamera(true);
+      /* A panel growing with a longer step lands mid-ease: the camera
+         heads for the new rest from where it is, rather than cutting. */
       aim();
       if (prepared) render();
     },

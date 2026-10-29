@@ -219,7 +219,8 @@ export function SceneStage({
   const stageRef = useRef<HTMLDivElement>(null);
 
   /* The board keeps clear of the cards laid over it, measured again as the
-     stage changes size. */
+     stage or any of them changes size: the panel grows and shrinks with
+     its step's text. */
   useEffect(() => {
     const box = stageBoxRef.current;
     if (mode !== "webgl" || !box) return;
@@ -227,6 +228,9 @@ export function SceneStage({
       runtimeRef.current?.setFrame(measureFrame(box));
     });
     observer.observe(box);
+    for (const card of document.querySelectorAll("[data-path-cover]")) {
+      observer.observe(card);
+    }
     return () => observer.disconnect();
   }, [mode]);
 
@@ -235,13 +239,10 @@ export function SceneStage({
      on the tile being built, or off the tiles, skips the build. */
   const [pointing, setPointing] = useState(false);
   const pointFrame = useRef(0);
-  function tileAt(event: React.PointerEvent | React.MouseEvent) {
-    const box = event.currentTarget.getBoundingClientRect();
+  function tileAt(target: Element, clientX: number, clientY: number) {
+    const box = target.getBoundingClientRect();
     return (
-      runtimeRef.current?.pick(
-        event.clientX - box.left,
-        event.clientY - box.top,
-      ) ?? null
+      runtimeRef.current?.pick(clientX - box.left, clientY - box.top) ?? null
     );
   }
 
@@ -298,7 +299,11 @@ export function SceneStage({
           ref={canvasRef}
           aria-hidden
           onClick={(event) => {
-            const slug = tileAt(event);
+            const slug = tileAt(
+              event.currentTarget,
+              event.clientX,
+              event.clientY,
+            );
             if (slug && slug !== selected) pushStep(slug);
             else runtimeRef.current?.skip();
           }}
@@ -307,11 +312,7 @@ export function SceneStage({
             const { clientX, clientY, currentTarget } = event;
             cancelAnimationFrame(pointFrame.current);
             pointFrame.current = requestAnimationFrame(() => {
-              const box = currentTarget.getBoundingClientRect();
-              const slug = runtimeRef.current?.pick(
-                clientX - box.left,
-                clientY - box.top,
-              );
+              const slug = tileAt(currentTarget, clientX, clientY);
               setPointing(Boolean(slug && slug !== selected));
             });
           }}

@@ -379,8 +379,10 @@ test.describe("the build", () => {
       const box = (await page
         .locator("[data-path-stage] canvas")
         .boundingBox())!;
+      /* The top-right corner: the step list lies over the top-left one on
+         a wide screen, and the panel over the bottom-right. */
       const png = await page.screenshot({
-        clip: { x: box.x + 2, y: box.y + 2, width: 2, height: 2 },
+        clip: { x: box.x + box.width - 4, y: box.y + 2, width: 2, height: 2 },
       });
       const { default: sharp } = await import("sharp");
       const { data } = await sharp(png)

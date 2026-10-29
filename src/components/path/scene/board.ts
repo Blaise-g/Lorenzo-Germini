@@ -95,12 +95,6 @@ export function frameShapes(): {
   });
 }
 
-/** Every point the camera keeps in view: the tiles' footprints, the top
- *  corners of every card and the top of the pawn's hop. */
-export function framePoints(): FramePoint[] {
-  return frameShapes().flatMap(({ outlines }) => outlines.flat());
-}
-
 /** The pawn's cone, and how high its foot rises at the top of a hop. */
 export const PAWN_HEIGHT = 1.6;
 export const HOP_HEIGHT = 1.2;
