@@ -177,9 +177,9 @@ export function seededRandom(seed: number) {
   };
 }
 
-/** A longer repeatable sequence in (0, 1), Park and Miller's, from a
- *  nonzero `state`: for the grass and the felt's noise, which draw more
- *  than `seededRandom`'s short period gives. */
+/** Park and Miller's repeatable sequence in (0, 1), from a nonzero
+ *  `state`: the one the grass and the felt's noise have always been laid
+ *  out with, so neither moves. */
 export function parkMiller(state: number) {
   return () => {
     state = (state * 16807) % 2147483647;

@@ -17,6 +17,7 @@ pull-back reads as even.
 | ------------------ | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
 | Opening            | 2.4 s, or 1.2 s when the visit enters at a step other than home        | `easeInOutCubic`, FOV 30° → 24° (a portrait phone stays at 30°) |
 | Close-up (dwell)   | The narration plus 0.8 s, at least 5 s                                 | Linear 6° orbit; 1% breathing dolly, sine at 0.15 Hz            |
+| Lean (duo moment)  | 0.7 s in, held 2.4 s, 0.9 s out; 30% closer, 60% toward the duo        | `easeInOutCubic`; only in a dwell, never under reduced motion   |
 | Pull back          | 0.9 s, to 2.2× the close-up's distance (×1.3 more on a portrait phone) | `easeInOutCubic`                                                |
 | Travel             | 0.56 s a tile, the camera 0.25 s behind the pawn                       | Follow damping, half-life 0.12 s                                |
 | Push in            | 1.2 s; the stage reports `settled` at its end                          | `easeOutQuart`                                                  |
@@ -79,6 +80,17 @@ Each draw (`runtime.ts`, `followShot`) hands it to the lit board's chain:
   is mixed in at 60%. From the travel shot out to the whole board it fades to 15% over a band
   wider than the stage, which leaves that shot all but sharp. v3-light's fixed band blurred the
   upper half of a close-up, Lille's subject included.
+
+Night has a lantern (v3-emil-polish, `lighting.ts`): a warm point light hung over the
+focus target. It sits 2.4 units up plus a quarter of the radius, and reaches 3.2 units or
+1.6 radii, whichever is larger. It is at 0 by day and rises with the night mix. It lights the
+dwell's tile so the subject reads in colour at night, the robot's face included on a phone.
+The night also keeps more of the day: the sun at 0.85 and the sky at 0.4 of their day
+strength, the environment at 0.13, and the grade's saturation at 1.02.
+
+A turn refits the shots every frame it moves, since the fit depends on the board's turn. That
+costs about 0.02 ms a frame, measured. The fit cache keeps one entry per shot, its latest
+turn, so a turn no longer floods it and flushes the shots at rest.
 
 A landmark fills its layout box only as far as its proportions allow. Turin's Mole is 3.3 high in
 the layout and about 2.4 as built. So the runtime measures each piece as it builds it

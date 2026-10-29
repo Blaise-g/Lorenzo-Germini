@@ -26,6 +26,8 @@ why "a settled scene draws nothing" holds there; with motion the board draws whi
   multiplied into the sun's light. Shade 0.34 by day, 0.18 by night.
 - The idle pawn squashes 1.6% every 3 s, starting 3 s after it lands.
 - Phones grow half the grass and keep the cloud shadows.
+- Grass is toy tufts (v3-emil-polish): three squashed, rounded blobs in felt warmed 18% toward
+  the sun ink, which sway from their tops. The blade tufts they replace read as dark weeds.
 
 ## Beats
 
@@ -71,7 +73,23 @@ parts stand in the model's frame and are never squashed with it. The window's sh
 built shut over the glass and stand open flat beside it, so its last cue swings them shut.
 Every beat was watched at 0.25× on the board on 2026-10-29.
 
-## Arrival
+## Dormant tiles and arrival
+
+A tile the pawn has not reached yet stands dormant (v3-emil-polish): its pieces squat, at 62%
+of their height and 94% of their width, and its landmark sunk 32% into the tile. It is never
+an empty plinth. On arrival the tile wakes from there on the rise's spring (`wakePose`,
+`landmarkWake` in `motion.ts`), so nothing jumps. A wake cut short by a move goes on as a
+passed tile's catch-up, from where it was. `data-scene-props` and a piece's `shown` mean built
+and risen, so a dormant piece is in neither.
+
+The "?" tile keeps its surprise under a toy-box lid in the warm ink, tied with two sun-ink
+ribbons (`makeVeil` in `world.ts`). The lid lifts off on arrival, in 280 ms on `easeOutQuart`.
+Under reduced motion and in the stills every tile stands fully built, with no dormant look and
+no lid.
+
+Not done: the Coordinator also asked for a mild desaturation on dormant tiles. The pieces'
+materials are shared across tiles, so a dormant tint would need a material per tile. It was
+left out, and the squat pose and the sunk landmark carry the state.
 
 - The landing dips the tile 0.07 units in 55 ms and springs back
   within 350 ms, with 12 dust sprites over 720 ms.
@@ -91,6 +109,18 @@ reduced motion, it swaps at once.
 The buddy follows 130 ms behind on the same path, its hop 0.82 of the figure's height for
 its size, stretching 10% in the air, standing 1.05 units to the figure's left. When it lands
 they high-five: both lean in, the buddy hops.
+
+When a duo moment (the wave, spin or jab) plays during a dwell, the close-up leans in
+(`LEAN` in `camera-rig.ts`). It moves 30% closer and 60% of the way toward the pair's midpoint
+over 0.7 s, holds 2.4 s so a gesture is not bobbed in and out, then eases back over 0.9 s.
+The lean never happens outside a dwell or under reduced motion.
+
+## The end
+
+Once the last step has been told, the camera pulls back and paper confetti bursts over the "?"
+tile (`confetti.ts`). There are 28 flakes in each of the warm, cool, sun and leaf inks. They are
+thrown up, slowed by drag to a paper's fall, and gone in 3.2 s, shrinking over their last 22%.
+It happens once a tour, and never under reduced motion.
 
 ## Click answers and moments
 
@@ -117,7 +147,7 @@ single tile, since the cookie is board-wide.
 Generated models (textured materials only: the landmarks, and since v3-toys the toy props
 and the duo) are pulled toward a ramp from slate through terracotta to the stock by
 lightness, and their black point lifted toward the stock: amount 0.08 and lift 0.03 by day,
-0.10 and 0.08 by night. It was 0.35 and 0.10 by day, 0.38 and 0.20 by night, for the
+0.10 and 0.04 by night (0.08 until v3-emil-polish, which found it greyed the night). It was 0.35 and 0.10 by day, 0.38 and 0.20 by night, for the
 photo-textured landmarks; on the toys, already painted in the board's colours, that greyed
 them by night. Checked close up on every model in both modes on 2026-10-29: they keep their
 colours, the Bourse's brick and the figure's shirt included, by night.

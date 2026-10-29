@@ -1239,6 +1239,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   const foot = new Vector3();
+  const footAhead = new Vector3();
 
   function posePawn() {
     if (!pawnAt) {
@@ -1253,7 +1254,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       lift = now.lift;
       pawnFoot(move, move.elapsed, foot);
       /* Leaning into the hop, as a flicked piece would. */
-      const ahead = pawnFoot(move, move.elapsed + 30, new Vector3()).sub(foot);
+      const ahead = pawnFoot(move, move.elapsed + 30, footAhead).sub(foot);
       body.rotation.z = -Math.sign(ahead.x) * Math.min(lift, 1) * 0.18;
       body.rotation.x = Math.sign(ahead.z) * Math.min(lift, 1) * 0.18;
       body.scale.set(1, 1, 1);

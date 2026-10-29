@@ -61,12 +61,17 @@ try {
       await page.goto(`${origin}/path#${step.slug}`);
       /* After the first, each goto only changes the fragment, so the page
          still carries the last step's end state: wait for the board to settle
-         on this step, every prop standing, the last step's crossfade gone
-         (reduced motion cuts with one), and for a frame rendered after. */
+         on this step, every prop standing, every landmark, toy prop and
+         the duo arrived in place of its stand-in (`data-path-landmarks`),
+         the last step's crossfade gone (reduced motion cuts with one), and
+         for a frame rendered after. */
       await page.waitForFunction(
         ({ slug, props }) => {
           const stage = document.querySelector("[data-path-stage]");
           return (
+            stage
+              ?.querySelector("canvas")
+              ?.getAttribute("data-path-landmarks") === "settled" &&
             stage?.getAttribute("data-build-state") === "built" &&
             stage.getAttribute("data-scene-step") === slug &&
             stage.getAttribute("data-scene-props") === props &&
@@ -74,7 +79,7 @@ try {
           );
         },
         { slug: step.slug, props: everyProp },
-        { timeout: 15_000 },
+        { timeout: 60_000 },
       );
       await page.evaluate(
         () =>
