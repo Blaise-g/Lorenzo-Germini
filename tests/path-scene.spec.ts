@@ -249,6 +249,52 @@ test.describe("the build", () => {
     await expect(stepLink(page, "home")).toBeFocused();
   });
 
+  /* While a scene's assets load, Replay and the turns are shown unavailable
+     and do nothing; the one with focus keeps it. */
+  test("while a scene loads, its controls are unavailable and keep focus", async ({
+    page,
+  }) => {
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => (release = resolve));
+    await page.route("**/path/models/**", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto("/path#home");
+    await buildControl(page).click();
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    await buildControl(page).focus();
+
+    /* A fragment selects Lille without moving focus off Replay. */
+    await page.evaluate(() => {
+      location.hash = "#lille";
+    });
+    await expect(stage(page)).toHaveAttribute("data-build-state", "loading");
+    await expect(buildControl(page)).toHaveAttribute("aria-disabled", "true");
+    await expect(buildControl(page)).toBeFocused();
+    for (const name of ["Turn the scene left", "Turn the scene right"]) {
+      await expect(page.getByRole("button", { name })).toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
+    }
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: "Turn the scene left" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "loading");
+
+    release();
+    await expect(stage(page)).toHaveAttribute(
+      "data-build-state",
+      /building|built/,
+    );
+    await expect(buildControl(page)).not.toHaveAttribute("aria-disabled", /./);
+    /* The press while loading did not turn the scene: both turns are open. */
+    await expect(
+      page.getByRole("button", { name: "Turn the scene left" }),
+    ).toBeEnabled();
+  });
+
   test("the two 45° buttons turn the scene once each way", async ({ page }) => {
     await page.goto("/path#home");
     const left = page.getByRole("button", { name: "Turn the scene left" });

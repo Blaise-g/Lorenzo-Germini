@@ -38,10 +38,10 @@ type Mode = "pending" | "webgl" | "fallback";
 
 /** The stage's text controls, shared with the voice's beside them. */
 export const CONTROL_CLASS_NAME =
-  "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline";
+  "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline aria-disabled:text-faint aria-disabled:no-underline aria-disabled:cursor-default";
 
 const TURN_CLASS_NAME =
-  "border-border text-faint hover:border-ink hover:text-ink transition-refined inline-flex size-9 items-center justify-center rounded-md border disabled:pointer-events-none disabled:opacity-50";
+  "border-border text-faint hover:border-ink hover:text-ink transition-refined inline-flex size-9 items-center justify-center rounded-md border disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
 
 const IDLE: SceneSnapshot = { buildState: "idle", lit: [], shown: [], turn: 0 };
 
@@ -165,6 +165,10 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const buildState: BuildState =
     mode === "pending" && withScene ? "loading" : snapshot.buildState;
   const { shown, turn } = snapshot;
+  /* While a scene's assets load there is nothing to replay or turn. The
+     controls stay, marked unavailable rather than `disabled`, so one that
+     has focus when a Back lands on a loading scene keeps it. */
+  const loading = buildState === "loading";
 
   return (
     <div className="print:hidden">
@@ -200,12 +204,13 @@ export function SceneStage({ children }: { children: ReactNode }) {
             <button
               type="button"
               data-path-build-control
+              aria-disabled={loading || undefined}
               className={CONTROL_CLASS_NAME}
-              onClick={() =>
-                buildState === "building"
-                  ? runtimeRef.current?.skip()
-                  : runtimeRef.current?.replay()
-              }
+              onClick={() => {
+                if (loading) return;
+                if (buildState === "building") runtimeRef.current?.skip();
+                else runtimeRef.current?.replay();
+              }}
             >
               {buildState === "building" ? STAGE_COPY.skip : STAGE_COPY.replay}
             </button>
@@ -215,8 +220,11 @@ export function SceneStage({ children }: { children: ReactNode }) {
                 aria-label={STAGE_COPY.turnLeft}
                 title={STAGE_COPY.turnLeft}
                 disabled={turn <= -TURN_LIMIT}
+                aria-disabled={loading || undefined}
                 className={TURN_CLASS_NAME}
-                onClick={() => runtimeRef.current?.turn(-1)}
+                onClick={() => {
+                  if (!loading) runtimeRef.current?.turn(-1);
+                }}
               >
                 <RotateCcw aria-hidden className="size-4" />
               </button>
@@ -225,8 +233,11 @@ export function SceneStage({ children }: { children: ReactNode }) {
                 aria-label={STAGE_COPY.turnRight}
                 title={STAGE_COPY.turnRight}
                 disabled={turn >= TURN_LIMIT}
+                aria-disabled={loading || undefined}
                 className={TURN_CLASS_NAME}
-                onClick={() => runtimeRef.current?.turn(1)}
+                onClick={() => {
+                  if (!loading) runtimeRef.current?.turn(1);
+                }}
               >
                 <RotateCw aria-hidden className="size-4" />
               </button>
