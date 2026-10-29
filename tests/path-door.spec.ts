@@ -29,12 +29,14 @@ test("with the switch off, / renders no door", async ({ page }) => {
   await expect(page.getByRole("link", { name: /the path/i })).toHaveCount(0);
 });
 
-test("the door invites a first visit to the default step", async ({ page }) => {
+test("the door invites a first visit to a bare /path, whose tour starts from home", async ({
+  page,
+}) => {
   await openDoor(page);
   await page.goto("/");
   const door = page.getByTestId("path-door");
   await expect(door).toHaveText("Walk the path in 3D");
-  await expect(door).toHaveAttribute("href", "/path#now");
+  await expect(door).toHaveAttribute("href", "/path");
   await expect(page.locator("header").getByTestId("path-door")).toBeVisible();
 });
 
@@ -51,6 +53,11 @@ test("the door carries the current step across", async ({ page }) => {
   await page.goto("/#lille");
   const door = page.getByTestId("path-door");
   await expect(door).toHaveAttribute("href", "/path#lille");
+  /* The default step named outright is carried too. */
+  await page.evaluate(() => {
+    window.location.hash = "now";
+  });
+  await expect(door).toHaveAttribute("href", "/path#now");
   await page.evaluate(() => {
     window.location.hash = "cuneo-2022";
   });

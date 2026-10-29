@@ -397,6 +397,66 @@ test.describe("the build", () => {
   });
 });
 
+/* The board's tiles are a second way to pick a step, for a pointer; the
+   step list is the keyboard's, and the tile is hidden from assistive tech
+   with the rest of the canvas. */
+test.describe("picking on the board", () => {
+  /** Sweeps the canvas for a point the board says is a tile other than the
+   *  selected one: the pointer shows it as clickable there. */
+  async function findTile(page: Page) {
+    const canvas = stage(page).locator("canvas");
+    const box = (await canvas.boundingBox())!;
+    for (let row = 1; row < 10; row++) {
+      for (let column = 1; column < 16; column++) {
+        const x = box.x + (box.width * column) / 16;
+        const y = box.y + (box.height * row) / 10;
+        await page.mouse.move(x, y);
+        await page.evaluate(
+          () => new Promise((done) => requestAnimationFrame(() => done(0))),
+        );
+        await page.evaluate(
+          () => new Promise((done) => requestAnimationFrame(() => done(0))),
+        );
+        const cursor = await canvas.evaluate(
+          (element) => getComputedStyle(element).cursor,
+        );
+        if (cursor === "pointer") return { x, y };
+      }
+    }
+    return null;
+  }
+
+  test("a click on another step's tile selects it and pushes; a click off the board does not", async ({
+    page,
+  }) => {
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    const canvas = stage(page).locator("canvas");
+    const box = (await canvas.boundingBox())!;
+
+    /* The middle of the ring is table, not a tile. */
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page).toHaveURL(/#home$/);
+
+    const before = await page.evaluate(() => history.length);
+    const tile = await findTile(page);
+    expect(tile, "a tile under the pointer somewhere").not.toBeNull();
+    await page.mouse.click(tile!.x, tile!.y);
+    await expect(page).not.toHaveURL(/#home$/);
+    const picked = new URL(page.url()).hash.slice(1) as PathStepSlug;
+    await expect(overlay(page)).toHaveAttribute("data-path-shown", picked);
+    expect(await page.evaluate(() => history.length)).toBe(before + 1);
+    await expect(stepLink(page, picked)).toHaveAttribute("aria-current", /./);
+    /* The tile just picked is the selected one: no longer a link. */
+    await page.mouse.move(tile!.x, tile!.y);
+    await expect
+      .poll(() =>
+        canvas.evaluate((element) => getComputedStyle(element).cursor),
+      )
+      .not.toBe("pointer");
+  });
+});
+
 test.describe("reduced motion", () => {
   /* The suite's default context emulates reduced motion. */
   test("shows the whole board built at once, without a build", async ({

@@ -133,6 +133,17 @@ const PRINT_PX = 150;
 const TILE_PX = 84;
 /** A card's cut edge, standing behind its face: the card's thickness. */
 const CARD_THICKNESS = 0.02;
+/** How far in from a tile's front edge its name is printed, in scene units,
+ *  and how far its letters reach back from there. */
+const NAME_STRIP = 0.58;
+const NAME_REACH = 0.25;
+/** How far a standing card's glued tab reaches in front of its fold, at
+ *  most: never over the tile's name. A card too close to the name for a
+ *  tab worth seeing has none. */
+const TAB_DEPTH = 0.26;
+const TAB_MIN_DEPTH = 0.1;
+/** A tab is narrower than its card: its ends are cut back. */
+const TAB_WIDTH_SHARE = 0.86;
 
 export type SceneSnapshot = {
   buildState: BuildState;
@@ -178,6 +189,9 @@ export type SceneRuntime = {
 /** One card on a tile, hinged at its foot. */
 type Piece = {
   hinge: Group;
+  /** The glued tab a card standing on the tile folds up from, lying flat
+   *  in front of it: shown and grown with the card, never turned. */
+  tab?: Object3D;
   materials: InkMaterial[];
   /** Its delay after its prop starts to fold. */
   delay: number;
@@ -361,6 +375,45 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     return { hinge, materials: [face.material, edge.material] };
   }
 
+  /* A card standing on the tile has a tab: paper, its ends chamfered and its cut edge
+     ruled, and the crease it folds up along scored as a slate dashed line.
+     One print for every tab; each card's tab has its own material, so it
+     fades with its card. */
+  const tabTexture = drawnInk(256, 40, (plates) => {
+    const { cut, ink2 } = plates;
+    const outline = new Path2D("M0 0 L256 0 L232 40 L24 40 Z");
+    cut.fill(outline);
+    ink2.lineWidth = 4;
+    ink2.stroke(new Path2D("M2 0 L25 38 L231 38 L254 0"));
+    ink2.lineWidth = 3;
+    ink2.setLineDash([9, 7]);
+    ink2.beginPath();
+    ink2.moveTo(8, 4);
+    ink2.lineTo(248, 4);
+    ink2.stroke();
+  });
+
+  function tab(art: CardArt): { tab: Mesh; material: InkMaterial } | null {
+    if (art.position.y !== 0 || art.anchor.v !== 0) return null;
+    const depth = Math.min(
+      TAB_DEPTH,
+      TILE.depth / 2 - NAME_STRIP - NAME_REACH - art.position.z,
+    );
+    if (depth < TAB_MIN_DEPTH) return null;
+    const tabWidth = art.width * TAB_WIDTH_SHARE;
+    const geometry = own(new PlaneGeometry(tabWidth, depth));
+    /* Flat on the tile, its scored edge along the card's foot. */
+    geometry.rotateX(-Math.PI / 2);
+    geometry.translate((0.5 - art.anchor.u) * art.width, 0.006, depth / 2);
+    const { material } = surface(tabTexture, {
+      seed: `${art.id}-tab`,
+      size: [tabWidth, depth],
+    });
+    const mesh = new Mesh(geometry, material);
+    mesh.receiveShadow = true;
+    return { tab: mesh, material };
+  }
+
   /* ─── Printed text ─── */
 
   function fontOf(variable: string, weight: number, px: number) {
@@ -492,7 +545,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       plates.ink2.stroke();
       plates.ink2.restore();
       /* The front strip carries the name, in the second ink. */
-      const strip = 0.58 * TILE_PX;
+      const strip = NAME_STRIP * TILE_PX;
       plates.ink2.font = displayFont(Math.round(0.56 * TILE_PX));
       plates.ink2.textAlign = "center";
       plates.ink2.textBaseline = "middle";
@@ -654,26 +707,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       ];
     }
 
-    if (slug === "next") {
-      const blank = cards.find((art) => art.prop === "blank");
-      if (!blank) return [];
-      const mark = printed({
-        lines: ["?"],
-        font: displayFont,
-        lineHeight: 0.55,
-        ink: "ink2",
-      });
-      const { x, y, z } = blank.position;
-      return [
-        placed(
-          "blank",
-          card(mark.texture, mark.size, { u: 0.5, v: 0 }, { seed: "?" }),
-          x,
-          y + blank.height * 0.2 - mark.size[1] / 2,
-          z + 0.01,
-        ),
-      ];
-    }
     return [];
   }
 
@@ -694,10 +727,24 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         TILE.thickness + art.position.y,
         art.position.z,
       );
+      /* Only a card folding up from the tile itself has a tab; one mounted
+         on another card has none to lie on. */
+      const standing = tab(art);
+      if (standing) {
+        standing.tab.position.copy(made.hinge.position);
+        group.add(standing.tab);
+      }
       /* A card that renders no prop, such as a tree, folds up with the
          tile's first. */
       const pieces = props.get(art.prop ?? firstProp) ?? props.get(firstProp)!;
-      pieces.push({ ...made, delay: pieces.length * CARD_STAGGER_MS });
+      pieces.push({
+        hinge: made.hinge,
+        tab: standing?.tab,
+        materials: standing
+          ? [...made.materials, standing.material]
+          : made.materials,
+        delay: pieces.length * CARD_STAGGER_MS,
+      });
       group.add(made.hinge);
     }
     for (const { prop, piece } of extras(slug)) {
@@ -884,6 +931,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         piece.hinge.visible = opacity > 0;
         piece.hinge.rotation.x = again ? pose.angle * REFOLD_FROM : pose.angle;
         piece.hinge.scale.setScalar(again ? 1 : pose.scale);
+        if (piece.tab) {
+          piece.tab.visible = piece.hinge.visible;
+          piece.tab.scale.setScalar(again ? 1 : pose.scale);
+        }
         for (const material of piece.materials) {
           material.userData.opacity.value = opacity;
         }
@@ -1055,7 +1106,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /** Whether, from `distance` back, the board stands inside the free part
    *  and clear of the cards over it: the selected tile clear of the panel
-   *  too, any other tile's middle at least. With `selected` false only the
+   *  too, any other tile's middle and name at least. With `selected` false only the
    *  stage's edge and the list count. */
   function fits(distance: number, frame: ClipFrame, selected = true) {
     const tiles = projected(distance);
@@ -1064,8 +1115,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (!framed(outlines, frame.safe, frame.clear)) return false;
       if (!selected) return true;
       if (slug === current) return framed(outlines, frame.safe, frame.avoid);
+      /* Its middle, and the middle of its front edge, where its name is. */
+      const [, , frontRight, frontLeft] = outlines[0];
+      const name = middleOf([frontRight, frontLeft]);
       const middle = middleOf(outlines[0]);
-      return frame.avoid.every((rect) => !inRect(rect, middle));
+      return frame.avoid.every(
+        (rect) => !inRect(rect, middle) && !inRect(rect, name),
+      );
     });
   }
 

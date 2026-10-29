@@ -288,6 +288,11 @@ export const CARD_ART: readonly CardArt[] = [
     position: { x: 1.2, y: 0, z: 0.5 },
     order: 3,
   },
+  /* The pipe stays a printed card, not a terracotta tube. Comp B draws it
+     as a round pipe, but everything else on the board is paper printed in
+     two inks; one modelled, shaded object would read as from another set,
+     and would be the only mesh not drawn by the ink shader. A card also
+     folds up as the rest do, and costs no geometry. */
   {
     id: "lille-pipe-loop",
     step: "lille",
