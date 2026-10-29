@@ -1,4 +1,5 @@
 import {
+  Box3,
   Color,
   Group,
   InstancedMesh,
@@ -290,6 +291,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /** Each landmark's outcome, by its file. */
   const models = new Map<string, ModelResult>();
   const tiles = new Map<PathStepSlug, Tile>();
+  /** How tall each piece stands as built, by `<slug>:<piece>`. */
+  const heights = new Map<string, number>();
   /** Tiles that could not be made, and why; tried again on the next show. */
   const failedTiles = new Map<PathStepSlug, SceneFallbackReason>();
 
@@ -319,6 +322,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         asset && model?.status === "loaded"
           ? { object: fitModel(model.scene, asset, piece) }
           : buildPiece(paintBox, slug, piece, index + stepIndex(slug) * 7);
+      /* Measured before it is parented, so in its own frame: how tall it
+         stands once up, for the camera's close-up (`pieceHeight`). */
+      heights.set(
+        `${slug}:${piece.id}`,
+        new Box3().setFromObject(built.object).max.y,
+      );
       /* The riser scales about the piece's foot; the sinker inside it
          lowers the piece as it starts, leaving the piece's own pose alone. */
       const riser = new Group();
@@ -685,7 +694,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The camera ─── */
 
-  const rig = createCameraRig({ camera, board, liftHeight: LIFT_HEIGHT });
+  const rig = createCameraRig({
+    camera,
+    board,
+    liftHeight: LIFT_HEIGHT,
+    pieceHeight: (slug, piece) => heights.get(`${slug}:${piece}`),
+  });
   rig.setReducedMotion(reducedMotion);
   let stageFrame: StageFrame | undefined;
 

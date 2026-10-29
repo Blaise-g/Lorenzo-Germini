@@ -59,13 +59,31 @@ rounds. The clips are kept in `/tmp/orch-path-v2/camera/`.
   props are up, and the build rises on into the dwell. `tests/path-camera.spec.ts` proves every
   step's build ends inside its dwell, the shortest one included, however the camera arrived.
 
-## For the lighting
+## The light and the lens follow the shot
 
-`rig.focus()` returns the current shot's focus in world space: `{ target, radius }`. The target
-is the point the camera looks at. The radius is the larger half-extent of the frame at the
-target's depth: the half-width on a landscape stage, the half-height on a portrait one. The sun's
-shadow frustum can be fitted to it, padded: the camera looks down at 28° to 70°, so the ground it
-sees behind the target reaches farther than the radius.
+`rig.focus()` returns the current shot's focus in world space: `{ target, radius, wide }`. The
+target is the point the camera looks at. The radius is the larger half-extent of the frame at the
+target's depth: the half-width on a landscape stage, the half-height on a portrait one. `wide` is
+that radius as a share of the whole-board shot's: about 0.3 to 0.5 at a close-up, 1 at the
+overview.
+
+Each draw (`runtime.ts`, `followShot`) hands it to the lit board's chain:
+
+- **The sun's shadow** (`lighting.setFocus`) is fitted to the target and radius. It is refitted only
+  when the target moves or the radius crosses a step of about 9%, so a close-up's breathing does
+  not make the shadow's texels swim. A close-up's 2048² map then covers a tile and its
+  neighbours, and its contact shadows read crisp.
+- **The tilt-shift's sharp band** (`post.setFocus`) is centred on the target's height on screen,
+  so a close-up's subject is never what is blurred. Its strength follows `wide`
+  (`tiltShiftFor`): at a close-up a band half the stage high stays sharp, and the blur outside it
+  is mixed in at 60%. From the travel shot out to the whole board it fades to 15% over a band
+  wider than the stage, which leaves that shot all but sharp. v3-light's fixed band blurred the
+  upper half of a close-up, Lille's subject included.
+
+A landmark fills its layout box only as far as its proportions allow. Turin's Mole is 3.3 high in
+the layout and about 2.4 as built. So the runtime measures each piece as it builds it
+(`pieceHeight`), and a close-up frames what stands, not the box. Framed on the box, Turin's
+close-up held a quarter of the stage of empty sky above the Mole.
 
 ## Open
 

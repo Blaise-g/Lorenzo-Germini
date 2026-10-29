@@ -7,6 +7,7 @@ import {
   frameShapes,
   PAWN_HEIGHT,
   pawnSpotOnTile,
+  piecesOf,
   TILE,
   tileCentre,
   tileScale,
@@ -271,6 +272,10 @@ export type CameraRigOptions = {
   board: Object3D;
   /** How far the selected tile stands proud of the board, in its units. */
   liftHeight: number;
+  /** How tall a piece stands as built, in its tile's units, where known:
+   *  a landmark fills its layout box only as far as its proportions allow,
+   *  so a close-up framed on the box would hold empty sky above it. */
+  pieceHeight?: (slug: PathStepSlug, piece: string) => number | undefined;
 };
 
 export type CameraRig = {
@@ -337,7 +342,7 @@ type Phase =
   | { kind: "overview"; slug: PathStepSlug };
 
 export function createCameraRig(options: CameraRigOptions): CameraRig {
-  const { camera, board, liftHeight } = options;
+  const { camera, board, liftHeight, pieceHeight } = options;
   let frame: RigFrame = {
     safe: { x0: -1, x1: 1, y0: -1, y1: 1 },
     clear: [],
@@ -461,12 +466,22 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
     const scale = tileScale(slug);
     const spot = pawnSpotOnTile(slug);
     const shapes = frameShapes().find((each) => each.slug === slug)!;
+    /* The outlines are the footprint, then each piece's top, then the hop:
+       a piece's top is moved to where it stands as built. */
+    const pieces = piecesOf(slug);
+    const tops = shapes.outlines.slice(1, -1).map((outline, index) => {
+      const piece = pieces[index];
+      const built = pieceHeight?.(slug, piece.id);
+      const top =
+        built === undefined
+          ? undefined
+          : (TILE.thickness + (piece.y ?? 0) + built) * scale;
+      return outline.map(([x, y, z]) => [x, top ?? y, z] as const);
+    });
     const outlines = [
-      ...shapes.outlines
-        .slice(0, -1)
-        .map((outline) =>
-          outline.map(([x, y, z]) => new Vector3(x, y + rise, z)),
-        ),
+      ...[shapes.outlines[0], ...tops].map((outline) =>
+        outline.map(([x, y, z]) => new Vector3(x, y + rise, z)),
+      ),
       [
         new Vector3(
           cx + spot.x * scale,
@@ -509,7 +524,10 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
   }
 
   function closeUp(slug: PathStepSlug): Shot {
-    return cached(`close:${slug}`, () => {
+    const built = piecesOf(slug).map(
+      (piece) => pieceHeight?.(slug, piece.id)?.toFixed(2) ?? "",
+    );
+    return cached(`close:${slug}:${built.join()}`, () => {
       const { points, outlines } = diorama(slug);
       return fitClear(
         points,

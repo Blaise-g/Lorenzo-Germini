@@ -7,21 +7,31 @@
    the shot in `data-camera-shot`. */
 
 import { expect, test, type Page } from "@playwright/test";
+import { Group, PerspectiveCamera, Vector3 } from "three";
 
 import { STAGE_COPY } from "@/app/path/copy";
 import { narrationFor } from "@/app/path/narration";
 import { dwellMs, SETTLE_MAX_WAIT_MS } from "@/app/path/tour-clock";
 import { buildPlan } from "@/components/path/scene/build-plan";
 import {
+  pieceOf,
+  TILE,
+  tileCentre,
+  tileScale,
+} from "@/components/path/scene/board";
+import {
   breathing,
   CAMERA_MS,
   closeUpSlot,
+  createCameraRig,
+  type CameraRig,
   DRIFT,
   driftAngle,
   driftMs,
   transitTimeline,
 } from "@/components/path/scene/camera-rig";
 import { easeInOutCubic, easeOutQuart } from "@/components/path/scene/motion";
+import { tiltShiftFor } from "@/components/path/scene/post";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 
@@ -38,6 +48,8 @@ test.use({
 });
 
 const DEG = Math.PI / 180;
+/** Any lift: the test's rig and its own sums share it. */
+const LIFT = 0.4;
 
 test.describe("the timeline", () => {
   /* §4(a): a skip holds 0.3 s, flies 1.1 s, and the close-up has landed,
@@ -154,6 +166,76 @@ test.describe("the timeline", () => {
     expect(closeUpSlot(safe, true).y0).toBeGreaterThan(
       closeUpSlot(safe, false).y0,
     );
+  });
+
+  /* The post chain's tilt-shift follows the shot (the coordinator's review
+     of v3-light on this branch): at a close-up the band, half the stage
+     high and sharp, softens only towards the frame's edges, and only in
+     part; a shot of the whole board is all but sharp. */
+  test("the tilt-shift is gentle at a close-up and all but gone wide", () => {
+    for (const wide of [0.3, 0.5]) {
+      const close = tiltShiftFor(wide);
+      expect(close.area - close.feather).toBeGreaterThanOrEqual(0.3);
+      expect(close.area).toBeGreaterThanOrEqual(0.9);
+      expect(close.strength).toBeLessThanOrEqual(0.6);
+    }
+    const whole = tiltShiftFor(1);
+    expect(whole.strength).toBeLessThanOrEqual(0.2);
+    expect(whole.area).toBeGreaterThanOrEqual(1.5);
+    let last = tiltShiftFor(0).strength;
+    for (let wide = 0.05; wide <= 1.2; wide += 0.05) {
+      const { strength } = tiltShiftFor(wide);
+      expect(strength).toBeLessThanOrEqual(last);
+      last = strength;
+    }
+  });
+
+  /* A landmark fills its layout box only as far as its proportions allow:
+     Turin's Mole, 3.3 high in the layout, stands about 2.4 as built. The
+     close-up frames what stands, so the Mole's top reaches the slot's top
+     rather than leaving the box's empty top above it. */
+  test("the close-up frames its pieces as built, not their boxes", () => {
+    const mole = pieceOf("turin", "mole");
+    const built = 2.4;
+    const moleTop = (rig: CameraRig, camera: PerspectiveCamera) => {
+      rig.open("turin", transitTimeline("opening", 0, false));
+      rig.tick(10_000, false);
+      camera.updateMatrixWorld();
+      const [cx, cz] = tileCentre("turin");
+      const scale = tileScale("turin");
+      const y = (TILE.thickness + built) * scale + LIFT * scale;
+      return Math.max(
+        ...[-1, 1].flatMap((sx) =>
+          [-1, 1].map(
+            (sz) =>
+              new Vector3(
+                cx + (mole.x + (sx * mole.w) / 2) * scale,
+                y,
+                cz + (mole.z + (sz * mole.d) / 2) * scale,
+              ).project(camera).y,
+          ),
+        ),
+      );
+    };
+    const slotTop = closeUpSlot({ x0: -1, x1: 1, y0: -1, y1: 1 }, false).y1;
+    const rigWith = (
+      pieceHeight?: (slug: PathStepSlug, piece: string) => number | undefined,
+    ) => {
+      const camera = new PerspectiveCamera(30, 16 / 9, 0.1, 200);
+      const rig = createCameraRig({
+        camera,
+        board: new Group(),
+        liftHeight: LIFT,
+        pieceHeight,
+      });
+      return moleTop(rig, camera);
+    };
+    expect(rigWith()).toBeLessThan(slotTop - 0.1);
+    expect(
+      rigWith((slug, piece) =>
+        slug === "turin" && piece === "mole" ? built : undefined,
+      ),
+    ).toBeCloseTo(slotTop, 1);
   });
 });
 

@@ -282,16 +282,30 @@ const BLOOM = { day: 0.35, night: 1.4 } as const;
  *  `wide` is the share of the whole board a shot holds (`camera-rig.ts`):
  *  at or under `close.wide` the close-up's look, at or over `whole.wide`
  *  the whole board's, blended between. */
-const TILT_SHIFT = {
+export const TILT_SHIFT = {
   close: { wide: 0.55, area: 0.95, feather: 0.6, strength: 0.6 },
   whole: { wide: 0.95, area: 1.6, feather: 0.6, strength: 0.15 },
 } as const;
+
+/** The tilt-shift for a shot holding `wide` of the whole board. */
+export function tiltShiftFor(wide: number) {
+  const { close, whole } = TILT_SHIFT;
+  const t = smoothstep(
+    clamp01((wide - close.wide) / (whole.wide - close.wide)),
+  );
+  const mix = (a: number, b: number) => a + (b - a) * t;
+  return {
+    area: mix(close.area, whole.area),
+    feather: mix(close.feather, whole.feather),
+    strength: mix(close.strength, whole.strength),
+  };
+}
 
 export type PostOptions = {
   renderer: WebGLRenderer;
   scene: Scene;
   camera: Camera;
-  /** Half-size bloom and a full-height sharp band (§4(f)). */
+  /** Half-size bloom (§4(f)). */
   phone: boolean;
   /** The quality to start on: the governor's. */
   quality: Quality;
@@ -425,15 +439,11 @@ export function createPost({
      *  holds), from a close-up's gentle falloff to a whole-board shot that
      *  is all but sharp. */
     setFocus(height: number, wide: number) {
-      const { close, whole } = TILT_SHIFT;
-      const t = smoothstep(
-        clamp01((wide - close.wide) / (whole.wide - close.wide)),
-      );
+      const { area, feather, strength } = tiltShiftFor(wide);
       tiltShift.offset = Math.min(Math.max(height, -1), 1);
-      tiltShift.feather = close.feather + (whole.feather - close.feather) * t;
-      tiltShift.focusArea = close.area + (whole.area - close.area) * t;
-      tiltShift.blendMode.opacity.value =
-        close.strength + (whole.strength - close.strength) * t;
+      tiltShift.feather = feather;
+      tiltShift.focusArea = area;
+      tiltShift.blendMode.opacity.value = strength;
     },
     /** Grades and glows the frame for `night`, and hands the page's ground
      *  back where the board is not. */
