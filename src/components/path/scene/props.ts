@@ -243,25 +243,30 @@ export function treeCluster(paint: Paint, piece: Piece, seed = 1): Built {
   return { object: group };
 }
 
-/** One tuft: three crossed blades, tapering to their tips, about 0.16
- *  tall, its foot at the origin. */
+/** One tuft of toy grass: three soft rounded blobs in a clump, about 0.07
+ *  tall, its foot at the origin, so it reads as the moulded grass of a
+ *  play set, not as dark blades or specks at the wide shot. */
 function tuftGeometry(): BufferGeometry {
   const positions: number[] = [];
   const normals: number[] = [];
-  const blade = (angle: number, lean: number, height: number) => {
-    const cos = Math.cos(angle);
-    const sin = Math.sin(angle);
-    const w = 0.028;
-    const tip = [lean * cos, height, lean * sin];
-    const left = [-w * sin, 0, w * cos];
-    const right = [w * sin, 0, -w * cos];
-    positions.push(...left, ...right, ...tip);
-    for (let i = 0; i < 3; i++) normals.push(0, 1, 0);
+  const blob = (x: number, z: number, radius: number) => {
+    const sphere = new IcosahedronGeometry(1, 1);
+    const position = sphere.getAttribute("position");
+    const normal = sphere.getAttribute("normal");
+    for (let i = 0; i < position.count; i++) {
+      /* Squashed to a dome and sunk a little, so it sits on the ground. */
+      positions.push(
+        x + position.getX(i) * radius,
+        Math.max(position.getY(i), -0.3) * radius * 0.8 + radius * 0.3,
+        z + position.getZ(i) * radius,
+      );
+      normals.push(normal.getX(i), normal.getY(i), normal.getZ(i));
+    }
+    sphere.dispose();
   };
-  blade(0, 0.03, 0.16);
-  blade((Math.PI * 2) / 3, -0.02, 0.13);
-  blade((Math.PI * 4) / 3, 0.025, 0.11);
-  blade(Math.PI / 3, -0.03, 0.09);
+  blob(0, 0, 0.05);
+  blob(0.045, 0.02, 0.036);
+  blob(-0.03, 0.04, 0.032);
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
   geometry.setAttribute("normal", new Float32BufferAttribute(normals, 3));

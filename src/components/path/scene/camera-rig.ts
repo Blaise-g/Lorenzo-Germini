@@ -87,6 +87,21 @@ export const DRIFT = {
   tailMs: 800,
 } as const;
 
+/** The close-up's lean toward the duo while one of their gestures plays
+ *  (v3-emil-polish): how much nearer it comes, how far toward them it
+ *  looks, and how long it takes in and back out. A gesture is rare, so it
+ *  may move the camera, a little; in on a gentle ease, out a touch slower,
+ *  and retargeted from wherever it is if another gesture starts. */
+export const LEAN = {
+  closer: 0.3,
+  toward: 0.6,
+  inMs: 700,
+  outMs: 900,
+  /** It holds at least this long, however short the gesture, so it reads
+   *  as a closer look rather than a bob. */
+  holdMs: 2400,
+} as const;
+
 /** Travel height, as a share of the close-up's distance, and a portrait
  *  phone's extra. */
 export const TRAVEL_DISTANCE = 2.2;
@@ -307,6 +322,10 @@ export type CameraRig = {
   setFrame(frame: RigFrame): void;
   /** The drift's span for the step being told (`driftMs`). */
   setDriftSpan(ms: number): void;
+  /** Leans the close-up in toward `target` (in the board's frame), or back
+   *  out with null (`LEAN`). Only a dwell leans, and never under reduced
+   *  motion. */
+  lean(target: Vector3 | null): void;
   setReducedMotion(reduced: boolean): void;
   /** Whether anything in the rig still moves, given whether the tour
    *  plays. */
@@ -589,11 +608,15 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       case "dwell": {
         const close = closeUp(phase.slug);
         if (reducedMotion) return close;
+        const leaning = easeInOutCubic(leanAmount);
         return {
           ...close,
-          target: close.target.clone(),
+          target: close.target.clone().lerp(leanTarget, LEAN.toward * leaning),
           yaw: close.yaw + driftAngle(phase.elapsed, driftSpan),
-          distance: close.distance * breathing(phase.elapsed),
+          distance:
+            close.distance *
+            breathing(phase.elapsed) *
+            (1 - LEAN.closer * leaning),
         };
       }
       case "end":
@@ -670,6 +693,24 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
     camera.updateMatrixWorld();
   }
 
+  /* The lean: where toward, how far in now (0 to 1), and whether in. */
+  const leanTarget = new Vector3();
+  let leanAmount = 0;
+  let leanIn = false;
+
+  /** Moves the lean on `ms` toward in or out, linearly in time: the shot
+   *  eases it (`current`). */
+  function stepLean(ms: number) {
+    if (phase.kind !== "dwell" || reducedMotion) {
+      leanAmount = 0;
+      leanIn = false;
+      return;
+    }
+    leanAmount = leanIn
+      ? Math.min(leanAmount + ms / LEAN.inMs, 1)
+      : Math.max(leanAmount - ms / LEAN.outMs, 0);
+  }
+
   function settleDistance() {
     return eye.distanceTo(goal.position) + look.distanceTo(goalLook);
   }
@@ -740,6 +781,7 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       } else if (phase.kind === "dwell" && playing && !reducedMotion) {
         phase.elapsed += ms;
       }
+      stepLean(ms);
       apply(followMs);
     },
     place() {
@@ -755,6 +797,10 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
     setDriftSpan(ms) {
       driftSpan = ms;
     },
+    lean(target) {
+      leanIn = target !== null && phase.kind === "dwell" && !reducedMotion;
+      if (target && leanIn) leanTarget.copy(target);
+    },
     setReducedMotion(reduced) {
       reducedMotion = reduced;
       if (reduced) {
@@ -766,6 +812,7 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       if (phase.kind === "transit" || phase.kind === "end") return true;
       /* The close-up breathes for as long as the tour plays on it. */
       if (phase.kind === "dwell" && playing && !reducedMotion) return true;
+      if (leanAmount !== (leanIn ? 1 : 0)) return true;
       return placed && settleDistance() > 1e-3;
     },
     settledOn() {

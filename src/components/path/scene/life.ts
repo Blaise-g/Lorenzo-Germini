@@ -79,6 +79,9 @@ export function createLife(options: {
   const { board, camera, paint, emit } = options;
   const pieces = new Map<PathStepSlug, LifePiece[]>();
   const playing: Playing[] = [];
+  /** The beats that have ended and whose end state stands, until their
+   *  tile rests. */
+  const ended: Playing[] = [];
   const hops: Hop[] = [];
   /** What has hopped on this move already: once a pass. */
   const hopped = new Set<Object3D>();
@@ -183,9 +186,17 @@ export function createLife(options: {
     }
   }
 
-  /** Stops `entry`'s beat where it ends. */
+  /** Stops `entry`'s beat where it ends, and holds that end state, so a
+   *  piece remade under it (a model swapping in) is put back in it. */
   function end(entry: Playing) {
     play(entry, entry.beat.ms);
+    const same = ended.findIndex(
+      (each) =>
+        each.target.slug === entry.target.slug &&
+        each.target.piece === entry.target.piece,
+    );
+    if (same >= 0) ended.splice(same, 1);
+    ended.push(entry);
   }
 
   return {
@@ -193,10 +204,14 @@ export function createLife(options: {
      *  a piece replaced, as a model swaps in, plays on in its place. */
     setTile(slug: PathStepSlug, list: LifePiece[]) {
       pieces.set(slug, list);
-      for (const entry of playing) {
+      for (const entry of [...playing, ...ended]) {
         if (entry.target.slug !== slug) continue;
         const next = list.find((each) => each.piece === entry.target.piece);
         if (next) entry.target = next;
+      }
+      /* A beat that has ended keeps its end state on the new piece. */
+      for (const entry of [...ended]) {
+        if (entry.target.slug === slug) end(entry);
       }
     },
 
@@ -231,6 +246,9 @@ export function createLife(options: {
           end(playing[i]);
           playing.splice(i, 1);
         }
+      }
+      for (let i = ended.length - 1; i >= 0; i--) {
+        if (ended[i].target.slug === slug) ended.splice(i, 1);
       }
       for (const each of pieces.get(slug) ?? []) {
         restOwn(each.beater, paint);

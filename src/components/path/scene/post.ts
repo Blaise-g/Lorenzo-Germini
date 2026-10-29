@@ -157,7 +157,7 @@ function tint(colour: Color): [number, number, number] {
 /** The grade at `night`, from the palette. Day: a little contrast and
  *  colour, slate in the shadows and cream in the highlights, the riso
  *  print's two papers. Night: blue shadows and warm lamplight highlights,
- *  the colour pulled back. */
+ *  the colour kept, so the night is not a grey print of the day. */
 export function gradeFor(palette: Palette, night: number): Grade {
   const t = Math.min(Math.max(night, 0), 1);
   const lerp = (a: number, b: number) => a + (b - a) * t;
@@ -166,7 +166,7 @@ export function gradeFor(palette: Palette, night: number): Grade {
   const lamp = tint(palette["ink-sun"]);
   return {
     contrast: lerp(0.4, 0.24),
-    saturation: lerp(1.18, 0.92),
+    saturation: lerp(1.18, 1.02),
     shadow,
     shadowAmount: lerp(0.16, 0.34),
     highlight: [0, 1, 2].map(

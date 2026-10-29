@@ -24,11 +24,12 @@ export type InkGrade = {
 
 /** The grade by day (`night` 0) and by night (1), mixed between. Light:
  *  the models are painted toys now (v3-toys), already in the board's
- *  colours, and a third of the way to the ramp greyed them by night. Tuned
+ *  colours, and a third of the way to the ramp greyed them by night, as
+ *  did a black point lifted toward the stock under moonlight. Tuned
  *  by eye on every model, close up, in both modes (`docs/path-life.md`). */
 export const INK_GRADE = {
   day: { amount: 0.08, lift: 0.03 },
-  night: { amount: 0.1, lift: 0.08 },
+  night: { amount: 0.1, lift: 0.04 },
 } as const;
 
 export function inkGrade(palette: Palette, night: number): InkGrade {

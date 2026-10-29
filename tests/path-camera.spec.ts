@@ -28,6 +28,7 @@ import {
   DRIFT,
   driftAngle,
   driftMs,
+  LEAN,
   transitTimeline,
 } from "@/components/path/scene/camera-rig";
 import { easeInOutCubic, easeOutQuart } from "@/components/path/scene/motion";
@@ -236,6 +237,60 @@ test.describe("the timeline", () => {
         slug === "turin" && piece === "mole" ? built : undefined,
       ),
     ).toBeCloseTo(slotTop, 1);
+  });
+});
+
+/* v3-emil-polish: a duo moment in a dwell leans the close-up in toward the
+   pair, so a wave reads at 1440, and back out after; nothing outside a
+   dwell leans, and reduced motion never does. */
+test.describe("the lean", () => {
+  function dwelling(reduced = false) {
+    const camera = new PerspectiveCamera(30, 16 / 9, 0.1, 200);
+    const rig = createCameraRig({
+      camera,
+      board: new Group(),
+      liftHeight: LIFT,
+    });
+    rig.setReducedMotion(reduced);
+    rig.open("lille", transitTimeline("opening", 0, reduced));
+    rig.tick(10_000, true);
+    return { camera, rig };
+  }
+  const duo = () => {
+    const [x, z] = tileCentre("lille");
+    return new Vector3(x + 0.6, 1, z + 0.4);
+  };
+  const run = (rig: CameraRig, ms: number) => {
+    for (let t = 0; t < ms; t += 16) rig.tick(16, true);
+  };
+
+  test("leans in toward the duo in a dwell, holds, and eases back", () => {
+    const { camera, rig } = dwelling();
+    const target = duo();
+    const away = () => camera.position.distanceTo(target);
+    const start = away();
+    rig.lean(target);
+    expect(rig.moving(true)).toBe(true);
+    let last = start;
+    for (let t = 0; t < LEAN.inMs + 200; t += 16) {
+      rig.tick(16, true);
+      /* No jump: frame to frame it only creeps. */
+      expect(Math.abs(away() - last)).toBeLessThan(start * 0.03);
+      last = away();
+    }
+    expect(away()).toBeLessThan(start * 0.85);
+    rig.lean(null);
+    run(rig, LEAN.outMs + 3000);
+    expect(Math.abs(away() - start) / start).toBeLessThan(0.08);
+  });
+
+  test("never leans under reduced motion", () => {
+    const { camera, rig } = dwelling(true);
+    const target = duo();
+    const start = camera.position.clone();
+    rig.lean(target);
+    run(rig, LEAN.inMs + 200);
+    expect(camera.position.distanceTo(start)).toBeLessThan(1e-6);
   });
 });
 

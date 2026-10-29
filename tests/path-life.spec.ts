@@ -12,6 +12,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  PerspectiveCamera,
   type PlaneGeometry,
   Vector3,
   ShaderChunk,
@@ -40,7 +41,19 @@ import {
   landingDip,
   LANDING_MS,
   landmarkSink,
+  landmarkWake,
+  DORMANT,
+  DORMANT_LANDMARK_SINK,
+  risePose,
+  wakePose,
 } from "@/components/path/scene/motion";
+import {
+  CONFETTI,
+  flakeAt,
+  flakes,
+  flakeSize,
+} from "@/components/path/scene/confetti";
+import { createLife, type LifePiece } from "@/components/path/scene/life";
 import { inject, SUN_ANCHOR, VIEW_ANCHOR } from "@/components/path/scene/paint";
 import {
   createMoments,
@@ -138,6 +151,63 @@ test.describe("the curves", () => {
     );
     expect(overshoot).toBeLessThan(0);
     expect(overshoot).toBeGreaterThan(-0.2);
+  });
+
+  /* v3-emil-polish: a tile not yet reached stands dormant, squat and its
+     landmark sunk part-way, and wakes from there on the pawn's arrival:
+     the wake starts where the dormant pose is, so nothing jumps, and ends
+     where a fresh rise would. */
+  test("a dormant piece wakes from its dormant pose without a jump", () => {
+    const rest = wakePose(0, 1200);
+    expect(rest).toEqual({
+      visible: true,
+      width: DORMANT.width,
+      height: DORMANT.height,
+      sink: 0,
+    });
+    const first = wakePose(16 / 1200, 1200);
+    expect(Math.abs(first.height - rest.height)).toBeLessThan(0.05);
+    expect(Math.abs(first.width - rest.width)).toBeLessThan(0.02);
+    expect(wakePose(1, 1200)).toEqual(risePose(1, 1200));
+    /* It never sinks below its dormant height on the way up. */
+    for (let i = 0; i <= 100; i++) {
+      expect(wakePose(i / 100, 1200).height).toBeGreaterThanOrEqual(
+        DORMANT.height,
+      );
+    }
+    expect(landmarkWake(0, 1400)).toBe(DORMANT_LANDMARK_SINK);
+    expect(landmarkWake(1, 1400)).toBe(0);
+    expect(
+      Math.abs(landmarkWake(16 / 1400, 1400) - DORMANT_LANDMARK_SINK),
+    ).toBeLessThan(0.03);
+    /* Visible while dormant: a sunk landmark still stands above its tile. */
+    expect(DORMANT_LANDMARK_SINK).toBeLessThan(0.5);
+  });
+
+  /* The tour's end: paper thrown up that falls slowly and is gone. */
+  test("the confetti goes up, drifts down, and is gone at its end", () => {
+    const all = flakes(CONFETTI.perInk, 11);
+    expect(flakes(CONFETTI.perInk, 11)).toEqual(all);
+    const at = new Vector3();
+    for (const flake of all) {
+      expect(flakeAt(flake, 0, at).length()).toBe(0);
+      const peak = Math.max(
+        ...Array.from(
+          { length: 40 },
+          (_, i) => flakeAt(flake, (i / 40) * CONFETTI.ms, at).y,
+        ),
+      );
+      expect(peak).toBeGreaterThan(0.6);
+      /* Falling by its end, and slowly: paper, not stone. */
+      const late = flakeAt(flake, CONFETTI.ms - 100, at).y;
+      const later = flakeAt(flake, CONFETTI.ms, at).y;
+      expect(later).toBeLessThan(late);
+      expect((late - later) / 0.1).toBeLessThan(2.5);
+    }
+    expect(flakeSize(0)).toBe(1);
+    expect(flakeSize(CONFETTI.ms * (1 - CONFETTI.fade) - 1)).toBe(1);
+    expect(flakeSize(CONFETTI.ms)).toBe(0);
+    expect(CONFETTI.ms).toBeLessThan(4000);
   });
 
   test("phones grow half the grass", () => {
@@ -661,5 +731,69 @@ test.describe("clicking the board's pieces", () => {
       "data-path-tour",
       "paused",
     );
+  });
+});
+
+/* ─── A beat's end state across a model swap ─── */
+
+test.describe("a beat's end state", () => {
+  /** The MVP window as a generated model: glass lit through its grade. */
+  function windowPiece(): LifePiece & { lit: () => { value: number }[] } {
+    const beater = new Group();
+    const glass = new Mesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshStandardMaterial(),
+    );
+    glass.name = "glass";
+    const inkLit = { value: 0 };
+    (glass.material as MeshStandardMaterial).userData.inkLit = inkLit;
+    beater.add(glass);
+    return {
+      slug: "cuneo-2022",
+      piece: "mvp-window",
+      beater,
+      lit: () => [inkLit],
+      shown: () => true,
+    };
+  }
+  const glassLit = (piece: LifePiece) =>
+    ((piece.beater.children[0] as Mesh).material as MeshStandardMaterial)
+      .userData.inkLit.value as number;
+
+  /* Under reduced motion a beat shows its end state at once. The model
+     swapping in after it (the stand-in replaced by the generated GLB) used
+     to come up at rest, losing what the caption had just said. */
+  test("under reduced motion, survives the piece being swapped", () => {
+    const life = createLife({
+      board: new Group(),
+      camera: new PerspectiveCamera(),
+      paint: {
+        material: () => new MeshStandardMaterial(),
+        boost() {},
+        setWater() {},
+      } as unknown as Paint,
+      emit() {},
+    });
+    const before = windowPiece();
+    life.setTile("cuneo-2022", [before]);
+    const beat = life.cue(
+      "cuneo-2022",
+      "mvp-window",
+      { nth: 0, last: false },
+      true,
+    );
+    expect(beat?.piece).toBe("mvp-window");
+    const lit = glassLit(before);
+    expect(lit).toBeGreaterThan(0);
+
+    const after = windowPiece();
+    life.setTile("cuneo-2022", [after]);
+    expect(glassLit(after)).toBe(lit);
+
+    /* Resting the tile, as it builds again, clears it for good. */
+    life.restTile("cuneo-2022");
+    const again = windowPiece();
+    life.setTile("cuneo-2022", [again]);
+    expect(glassLit(again)).toBe(0);
   });
 });

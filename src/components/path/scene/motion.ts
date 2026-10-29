@@ -75,6 +75,29 @@ export function risePose(progress: number, windowMs: number): RisePose {
   };
 }
 
+/** A piece on a tile the tour has not reached: standing, so no tile is
+ *  ever a bare plinth, but squat, as a toy not yet set up. Not sunk: a
+ *  flat piece, a lake or a plateau, would sink out of sight. Its wake
+ *  springs from here to full height. */
+export const DORMANT = { height: 0.62, width: 0.94 } as const;
+
+/** A piece waking from `DORMANT`, `progress` of the way through its rise
+ *  window of `windowMs`: dormant at 0 and before, so the wake starts where
+ *  the piece stood, with no jump; then the rise's spring to full height. */
+export function wakePose(progress: number, windowMs: number): RisePose {
+  if (progress >= 1) return { visible: true, width: 1, height: 1, sink: 0 };
+  const settled =
+    progress <= 0
+      ? 0
+      : spring(progress * windowMs, RISE_SPRING_MS, RISE_BOUNCE);
+  return {
+    visible: true,
+    width: DORMANT.width + (1 - DORMANT.width) * Math.min(settled, 1),
+    height: DORMANT.height + (1 - DORMANT.height) * settled,
+    sink: 0,
+  };
+}
+
 /* ─── The pawn ─── */
 
 /** How many tiles the pawn moves to get from `from` to `to` on a loop of
@@ -229,6 +252,17 @@ export function landmarkSink(progress: number, windowMs: number): number {
   if (progress <= 0) return 1;
   if (progress >= 1) return 0;
   return 1 - spring(progress * windowMs, 600, 0.18);
+}
+
+/** How far a landmark on a dormant tile stands sunk into it, as a share
+ *  of its height: low enough to read as not yet played, high enough that
+ *  its silhouette reads from the whole-board shot. */
+export const DORMANT_LANDMARK_SINK = 0.32;
+
+/** A landmark waking from `DORMANT_LANDMARK_SINK`: how far below its place
+ *  it still is, as `landmarkSink` gives it, from where it stood dormant. */
+export function landmarkWake(progress: number, windowMs: number): number {
+  return DORMANT_LANDMARK_SINK * landmarkSink(progress, windowMs);
 }
 
 /** How long the tile's ground takes to grow out from a landmark's foot. */

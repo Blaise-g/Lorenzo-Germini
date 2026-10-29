@@ -3,6 +3,7 @@ import {
   Color,
   DirectionalLight,
   HemisphereLight,
+  PointLight,
   PCFShadowMap,
   PMREMGenerator,
   Vector3,
@@ -18,7 +19,8 @@ import type { Palette } from "./palette";
    terracotta ground, one sun with soft shadows, and a small room through
    PMREM for fill and the lacquer's highlights. Dark mode is night, not a
    darker print: the same board under a low moon and a cool sky, its windows
-   lit (`paint.ts`) and carried by bloom (`post.ts`). Both presets are mixed
+   lit (`paint.ts`) and carried by bloom (`post.ts`), and a lantern hung
+   over the step in view so it keeps its colours. Both presets are mixed
    from the path tokens by one value, 0 day to 1 night, so a theme change
    crossfades the light with the paint. Tone mapping is the post chain's
    (AgX, `post.ts`): a composer draws into its own buffer, where the
@@ -78,6 +80,9 @@ export type LightPreset = {
   environmentIntensity: number;
   /** How dark the sun's shadow is, 0 to 1. */
   shadowIntensity: number;
+  /** The lantern over the shot's focus: lamplight, at night only. */
+  lanternColour: Color;
+  lanternIntensity: number;
 };
 
 /** The light at `night` (0 day, 1 night), mixed from the palette. Day: a
@@ -90,20 +95,28 @@ export function lightPreset(palette: Palette, night: number): LightPreset {
   const sunDay = palette.paper.clone().lerp(white, 0.55);
   const moon = palette["ink-cool"].clone().lerp(white, 0.45);
   const skyDay = palette.paper.clone().lerp(white, 0.3);
-  const skyNight = palette["ink-cool"].clone().multiplyScalar(0.7);
+  const skyNight = palette["ink-cool"].clone().multiplyScalar(0.85);
   const groundDay = palette["ink-warm"].clone().lerp(palette.paper, 0.45);
   const groundNight = palette.fog.clone().lerp(palette["ink-cool"], 0.25);
   return {
     from: SUN_FROM.clone().lerp(MOON_FROM, t).normalize(),
     sunColour: sunDay.lerp(moon, t),
-    sunIntensity: 2.7 + (0.45 - 2.7) * t,
+    sunIntensity: 2.7 + (0.85 - 2.7) * t,
     skyColour: skyDay.lerp(skyNight, t),
     groundColour: groundDay.lerp(groundNight, t),
-    skyIntensity: 0.45 + (0.26 - 0.45) * t,
-    environmentIntensity: 0.36 + (0.06 - 0.36) * t,
+    skyIntensity: 0.45 + (0.4 - 0.45) * t,
+    environmentIntensity: 0.36 + (0.13 - 0.36) * t,
     shadowIntensity: 0.92 + (0.8 - 0.92) * t,
+    lanternColour: palette["ink-sun"].clone().lerp(white, 0.55),
+    lanternIntensity: LANTERN.intensity * t,
   };
 }
+
+/** The night's lantern: a warm lamp hung over the step the camera holds,
+ *  so the pieces there read in their own colours, and the duo's faces
+ *  with them, while the rest of the board stays moonlit. Present by day
+ *  at no strength, so a theme change never recompiles a program. */
+export const LANTERN = { intensity: 5, height: 2.4, reach: 3.2 } as const;
 
 /** How far back the sun stands from the box it lights, past its corners. */
 const SUN_STANDOFF = 4;
@@ -135,7 +148,17 @@ export function createLighting(
   sun.shadow.bias = -0.0003;
   sun.shadow.normalBias = 0.025;
   sun.shadow.radius = 3;
-  scene.add(sky, sun, sun.target);
+  const lantern = new PointLight();
+  lantern.decay = 1.2;
+  scene.add(sky, sun, sun.target, lantern);
+  /** Hangs the lantern over a focus, or the board's middle, sized to it. */
+  function hang(focus?: ShotFocus) {
+    const radius = focus?.radius ?? BOARD.halfWidth;
+    lantern.distance = Math.max(LANTERN.reach, radius * 1.6);
+    lantern.position.set(0, LANTERN.height + radius * 0.25, 0);
+    if (focus) lantern.position.add(focus.target);
+  }
+  hang();
 
   let from = SUN_FROM.clone();
   let bounds = shadowBounds(undefined, maxTurn);
@@ -188,6 +211,8 @@ export function createLighting(
       sky.groundColor.copy(preset.groundColour);
       sky.intensity = preset.skyIntensity;
       scene.environmentIntensity = preset.environmentIntensity;
+      lantern.color.copy(preset.lanternColour);
+      lantern.intensity = preset.lanternIntensity;
       if (!preset.from.equals(from)) {
         from = preset.from;
         fit();
@@ -197,6 +222,7 @@ export function createLighting(
     setFocus(focus?: ShotFocus) {
       bounds = shadowBounds(focus, maxTurn);
       fit();
+      hang(focus);
     },
     dispose() {
       environment.dispose();

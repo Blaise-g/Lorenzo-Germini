@@ -129,6 +129,37 @@ function solid(
   return mesh;
 }
 
+/** The "?" step's veil while the tour has not reached it: a toy box's
+ *  lid in terracotta, tied with a ribbon of the sun ink, over the piece
+ *  `box` (in the tile's frame) stands in, so the tile is never bare and
+ *  its surprise keeps. The arrival lifts it off (`runtime.ts`). */
+export function makeVeil(
+  paint: Paint,
+  box: Readonly<{ x: number; z: number; w: number; d: number; h: number }>,
+): Group {
+  const veil = new Group();
+  const w = box.w + 0.14;
+  const d = box.d + 0.14;
+  const h = box.h * 0.7;
+  const lid = solid(new RoundedBoxGeometry(w, h, d, 3, 0.08), paint, "warm", {
+    grain: true,
+  });
+  const across = solid(
+    new RoundedBoxGeometry(0.16, h + 0.02, d + 0.02, 2, 0.03),
+    paint,
+    "sun",
+  );
+  const along = solid(
+    new RoundedBoxGeometry(w + 0.02, h + 0.02, 0.16, 2, 0.03),
+    paint,
+    "sun",
+  );
+  veil.add(lid, across, along);
+  for (const part of veil.children) part.position.y = h / 2;
+  veil.position.set(box.x, TILE.thickness, box.z);
+  return veil;
+}
+
 /** Each tile's colour band, in the loop's order, as a game board's
  *  property colours: the three inks and the felt's green, each step a hue
  *  or a shade of its own, no two neighbours alike. */

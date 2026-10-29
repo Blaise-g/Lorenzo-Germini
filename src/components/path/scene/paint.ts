@@ -57,7 +57,9 @@ export const TONES = {
   /** Foliage: the felt's green, lifted toward the stock, a sage. */
   leaf: { base: "felt", toward: "paper", amount: 0.2 },
   leafDark: { base: "felt", toward: "ink-cool", amount: 0.3, shade: 0.7 },
-  grass: { base: "felt", toward: "ink-sun", amount: 0.3, shade: 1.05 },
+  /** Toy grass: the felt's green lifted toward the sun ink, a fresh leaf
+   *  that stands off the felt by day and still reads green by night. */
+  grass: { base: "felt", toward: "ink-sun", amount: 0.18, shade: 1.5 },
   water: { base: "ink-cool", toward: "paper", amount: 0.08, shade: 0.95 },
   /** Window glass, dark by day. */
   pane: { base: "ink-cool", shade: 0.55 },
@@ -525,12 +527,12 @@ export function createPaint(palette: Palette) {
     },
   ]);
 
-  /* Grass: blades that sway on a wind from their tips, each tuft on its own
+  /* Grass: toy tufts that lean on a wind from their tops, each on its own
      phase from where it stands. */
   /** A field of grass, growing out from `grow`'s point (x, z in its tile's
    *  frame) as far as its radius (z): igloo's materialise (§4(d)). */
   function makeGrass(grow: IUniform<Vector3>) {
-    const made = material(TONES.grass, { doubleSided: true, roughness: 0.9 });
+    const made = material(TONES.grass, { roughness: 0.75 });
     patchMaterial(made, [
       clouds,
       {
@@ -553,8 +555,8 @@ export function createPaint(palette: Palette) {
         #endif
         float gust = sin( uTime * 1.3 + rooted.x * 0.9 + rooted.y * 0.6 )
           + 0.4 * sin( uTime * 2.9 + rooted.x * 2.3 );
-        transformed.x += gust * 0.05 * position.y * position.y * 6.0;
-        transformed.z += gust * 0.025 * position.y * position.y * 6.0;
+        transformed.x += gust * 0.2 * position.y * position.y * 6.0;
+        transformed.z += gust * 0.1 * position.y * position.y * 6.0;
         float growEdge = uGrow.z - distance( rooted, uGrow.xy )
           + 0.22 * sin( rooted.x * 5.3 ) * cos( rooted.y * 4.1 );
         transformed *= smoothstep( 0.0, 0.55, growEdge );`,

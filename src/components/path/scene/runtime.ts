@@ -59,6 +59,7 @@ import {
   CAMERA_MS,
   createCameraRig,
   driftMs,
+  LEAN,
   LENS,
   transitTimeline,
   type CameraShot,
@@ -83,11 +84,13 @@ import {
   landingDip,
   landingSquash,
   landmarkSink,
+  landmarkWake,
   LANDING_MS,
   loopSteps,
   movePose,
   REVEAL_MS,
   risePose,
+  wakePose,
 } from "./motion";
 import { createLighting } from "./lighting";
 import { createPaint } from "./paint";
@@ -119,11 +122,13 @@ import {
   makePath,
   makePawn,
   makeTileBase,
+  makeVeil,
   MARKER,
   PHONE_GRASS_SHARE,
   type PawnParts,
 } from "./world";
 import { createMoments, type MomentName, type MomentStage } from "./moments";
+import { createConfetti } from "./confetti";
 import { createPlay, SOFT, type Reactor } from "./play";
 
 /* The 3D path's board (GH-148; v3, a solid tabletop board): vanilla
@@ -159,6 +164,16 @@ const MAX_PIECE_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, rises from part-way: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REBUILD_FROM = 0.42;
+/** The moments that are the duo's gestures, which the camera leans in
+ *  for. */
+const DUO_MOMENTS: ReadonlySet<MomentName> = new Set(["wave", "spin", "jab"]);
+/** The step that keeps its surprise: its piece stands under a lid until
+ *  the tour reaches it (`makeVeil`). */
+const VEILED: PathStepSlug = "next";
+/** How long the lid takes to lift off, and how high it goes, in the
+ *  tile's units: off before the piece under it has risen. */
+const VEIL_MS = 280;
+const VEIL_LIFT = 0.9;
 /** The landing's thump: how far the tile dips under the pawn, in its own
  *  units (§4(d)'s "about 2 cm", judged by eye against the pawn). */
 const LANDING_DIP = 0.07;
@@ -288,6 +303,9 @@ type Riser = {
   /** A landmark comes up out of the tile rather than unfolding, this tall
    *  as built; undefined for any other piece. */
   landmark?: number;
+  /** Whether its build has reached it: up, or rising. A dormant piece
+   *  stands, but is not shown in `data-scene-props`' sense. */
+  shown: boolean;
 };
 
 type Tile = {
@@ -301,6 +319,8 @@ type Tile = {
   beaters: Map<string, Group>;
   /** The file each piece was made from, by its id; null for code. */
   files: Map<string, string | null>;
+  /** The "?" step's lid (`makeVeil`), over its piece until it wakes. */
+  veil?: Group;
 };
 
 function stepNamed(slug: PathStepSlug) {
@@ -478,6 +498,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         delay: risers.length * PIECE_STAGGER_MS,
         motion: built.motion,
         landmark: asset ? heights.get(`${slug}:${piece.id}`) : undefined,
+        shown: false,
       });
       lifePieces.push({
         slug,
@@ -492,7 +513,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     group.scale.setScalar(tileScale(slug));
     group.userData.slug = slug;
     life.setTile(slug, lifePieces);
-    return { slug, group, props, grow, beaters, files };
+    const veiled = slug === VEILED ? piecesOf(slug)[0] : undefined;
+    const veil = veiled && makeVeil(paintBox, { ...veiled, h: veiled.h });
+    if (veil) group.add(veil);
+    return { slug, group, props, grow, beaters, files, veil };
   }
 
   /** A toy prop as a built piece (`toys.ts`), graded as a landmark is. */
@@ -1062,6 +1086,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const built = new Set<PathStepSlug>();
   /** Tiles passed on a jump, rising together at once, by elapsed ms. */
   const catchingUp = new Map<PathStepSlug, number>();
+  /** The plan's start of each prop on a tile whose wake was cut short, so
+   *  it rises on as it was rising (`abandon`). */
+  const wakeStarts = new Map<PathStepSlug, Map<string, number>>();
+  /** When a tile catching up stands whole: its last prop's rise done. */
+  const catchUpEnd = (slug: PathStepSlug) =>
+    Math.max(0, ...(wakeStarts.get(slug)?.values() ?? [])) + PROP_DROP_MS;
   let current: PathStepSlug | undefined;
   let plan: BuildPlan | undefined;
   /** Whether the current tile stood before this build began. */
@@ -1107,30 +1137,41 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   }
 
   function poseTile(tile: Tile, at: (planned: string) => number | "up") {
+    /* A tile built again never vanishes: it sinks part-way and springs up
+       from there. */
+    const again = rebuild && tile.slug === current;
+    let woken = again;
     for (const [prop, risers] of tile.props) {
       const elapsed = at(prop);
       for (const piece of risers) {
         const delay = Math.min(piece.delay, MAX_PIECE_DELAY_MS);
         const local =
           elapsed === "up" ? 1 : (elapsed - delay) / (PROP_DROP_MS - delay);
-        /* A tile built again never vanishes: it sinks part-way and springs
-           up from there. */
-        const again = rebuild && tile.slug === current;
         const progress = again
           ? REBUILD_FROM + (1 - REBUILD_FROM) * Math.max(local, 0)
           : local;
         const window = PROP_DROP_MS - delay;
+        piece.shown = again || local > 0;
+        woken ||= local > 0;
         if (piece.landmark !== undefined) {
           /* A landmark comes up out of its tile on a spring: igloo's
-             materialise, not a fold (§4(d)). */
+             materialise, not a fold (§4(d)); from where it stood dormant,
+             unless it is built and arriving again. */
           const arriving = arrivals.get(tile.slug);
-          const at =
-            arriving === undefined ? progress : arriving / PROP_DROP_MS;
-          piece.riser.visible = at > 0;
+          const sink =
+            arriving !== undefined
+              ? landmarkSink(arriving / PROP_DROP_MS, window)
+              : again
+                ? landmarkSink(progress, window)
+                : landmarkWake(local, window);
+          piece.riser.visible = sink < 1;
           piece.riser.scale.set(1, 1, 1);
-          piece.sinker.position.y = -landmarkSink(at, window) * piece.landmark;
+          piece.sinker.position.y = -sink * piece.landmark;
         } else {
-          const pose = risePose(progress, window);
+          /* A piece not yet reached stands dormant, and wakes from there. */
+          const pose = again
+            ? risePose(progress, window)
+            : wakePose(local, window);
           piece.riser.visible = pose.visible;
           piece.riser.scale.set(pose.width, pose.height, pose.width);
           /* The sinker sits inside the riser's scale: undo its height, so
@@ -1140,6 +1181,26 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         piece.motion?.(Math.min(Math.max(local, 0), 1));
       }
     }
+    if (tile.veil) poseVeil(tile.veil, woken ? veilClock(tile) : 0);
+  }
+
+  /** How long `tile`'s lid has been lifting, in ms. */
+  function veilClock(tile: Tile) {
+    const first = [...tile.props.values()][0]?.[0];
+    if (!first || built.has(tile.slug) || reducedMotion) return VEIL_MS;
+    if (tile.slug === current && buildState === "building" && plan) {
+      return move ? 0 : buildElapsed;
+    }
+    return catchingUp.get(tile.slug) ?? VEIL_MS;
+  }
+
+  /** Lifts the lid off, `ms` in: up and away on a quick ease-out, shrinking
+   *  as it goes, faster than the piece under it rises. */
+  function poseVeil(veil: Group, ms: number) {
+    const t = easeOutQuart(Math.min(Math.max(ms / VEIL_MS, 0), 1));
+    veil.visible = t < 1;
+    veil.position.y = TILE.thickness + t * VEIL_LIFT;
+    veil.scale.setScalar(1 - 0.6 * t);
   }
 
   /** Puts every piece and the pawn where the clocks say they are. */
@@ -1158,7 +1219,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         );
       } else if (catchingUp.has(slug)) {
         const elapsed = catchingUp.get(slug)!;
-        poseTile(tile, () => elapsed);
+        const starts = wakeStarts.get(slug);
+        poseTile(tile, (prop) => elapsed - (starts?.get(prop) ?? 0));
       } else if (built.has(slug)) {
         poseTile(tile, () => "up");
       } else {
@@ -1173,9 +1235,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const tile = tiles.get(step.slug);
       if (!tile) return [];
       return step.props
-        .filter((prop) =>
-          tile.props.get(prop.id)?.some((piece) => piece.riser.visible),
-        )
+        .filter((prop) => tile.props.get(prop.id)?.some((piece) => piece.shown))
         .map((prop) => prop.id);
     });
     if (nextLit.join() !== lit.join() || nextShown.join() !== shown.join()) {
@@ -1257,6 +1317,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     landingElapsed = LANDING_MS;
     for (const slug of catchingUp.keys()) built.add(slug);
     catchingUp.clear();
+    wakeStarts.clear();
     if (plan) buildElapsed = plan.building.at(-1)?.landsAt ?? 0;
     if (current) built.add(current);
     rebuild = false;
@@ -1347,6 +1408,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       life.active() ||
       gestures.active() ||
       moments.active() ||
+      confetti.active() ||
       trail !== undefined ||
       arrivals.size > 0 ||
       alive()
@@ -1386,8 +1448,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const step = frozen ? 0 : free;
     let posed = false;
     for (const [slug, elapsed] of catchingUp) {
-      if (elapsed + step >= PROP_DROP_MS) {
+      if (elapsed + step >= catchUpEnd(slug)) {
         catchingUp.delete(slug);
+        wakeStarts.delete(slug);
         built.add(slug);
       } else catchingUp.set(slug, elapsed + step);
       posed = true;
@@ -1587,6 +1650,22 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
    *  on the tile it is over, so the next move starts from there. */
   function abandon() {
     if (buildState === "building" && rebuild && current) built.add(current);
+    /* A tile cut short in its wake rises on from where it is, as the tiles
+       the pawn passed do, rather than sinking back to dormant. */
+    if (
+      buildState === "building" &&
+      !rebuild &&
+      current &&
+      plan &&
+      !move &&
+      buildElapsed > 0
+    ) {
+      wakeStarts.set(
+        current,
+        new Map(plan.building.map((planned) => [planned.id, planned.startsAt])),
+      );
+      catchingUp.set(current, buildElapsed);
+    }
     rebuild = false;
     if (move) {
       const { along } = moveAt(move, move.elapsed);
@@ -1631,6 +1710,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       }
       for (const tile of tiles.keys()) built.add(tile);
       catchingUp.clear();
+      wakeStarts.clear();
       current = slug;
       liftTiles(Infinity);
       rig.cut(slug);
@@ -1645,6 +1725,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       if (!built.has(other) && tiles.has(other) && !catchingUp.has(other)) {
         catchingUp.set(other, 0);
       }
+    }
+    /* A tile reselected while its cut-short wake runs on is built again
+       from there, as a standing tile is. */
+    if (catchingUp.delete(slug)) {
+      wakeStarts.delete(slug);
+      built.add(slug);
     }
     rebuild = built.has(slug);
     built.delete(slug);
@@ -1731,6 +1817,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const reactions = createPlay({ paint: paintBox, board });
   const gestures = createPlay({ paint: paintBox, board });
   const moments = createMoments({ board, paint: paintBox, play: gestures });
+  const confetti = createConfetti({ board, paint: paintBox });
   let lastReaction: string | undefined;
   let reactionCount = 0;
   let lastMoment: string | undefined;
@@ -1867,6 +1954,32 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   const footWorld = new Vector3();
 
+  /** Over `slug`'s tile, at about the figure's height, in the board's
+   *  frame: where the end's confetti is thrown from. */
+  function burstOver(slug: PathStepSlug) {
+    const [x, z] = tileCentre(slug);
+    return new Vector3(
+      x,
+      liftOf(slug) + (TILE.thickness + PAWN_HEIGHT) * tileScale(slug),
+      z,
+    );
+  }
+
+  /** How long the camera has leaned in on the duo for one of their
+   *  gestures, on the board's clock (`LEAN`); undefined when it is not. */
+  let duoHeldMs: number | undefined;
+  const duoMid = new Vector3();
+
+  /** Between the figure and the buddy, at the figure's middle, in the
+   *  board's frame. */
+  function duoCentre() {
+    return duoMid
+      .copy(pawn.position)
+      .add(buddy.position)
+      .multiplyScalar(0.5)
+      .setY(pawn.position.y + PAWN_HEIGHT * 0.5);
+  }
+
   /** The board's life, `step` ms on: its ambient motion, its beats, the
    *  hops beside the pawn's path and its landmarks' rise. */
   function stepLife(step: number) {
@@ -1882,6 +1995,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
        they freeze on Pause and finish after the end; a new moment waits
        for the board to be living, and quiet. */
     gestures.tick(step);
+    confetti.tick(step);
     const played = moments.tick(
       step,
       living > 0 &&
@@ -1899,13 +2013,19 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       lastMoment = `${played}:${++momentCount}`;
       emit();
     }
+    if (played && DUO_MOMENTS.has(played)) duoHeldMs = 0;
+    if (duoHeldMs !== undefined) {
+      duoHeldMs += step;
+      if (duoHeldMs >= LEAN.holdMs && !gestures.active()) duoHeldMs = undefined;
+    }
+    rig.lean(duoHeldMs !== undefined ? duoCentre() : null);
     for (const tile of tiles.values()) {
       for (const risers of tile.props.values()) {
         for (const piece of risers) {
           if (
             piece.landmark !== undefined &&
             tile.slug === current &&
-            piece.riser.visible &&
+            piece.shown &&
             !risen.has(piece)
           ) {
             risen.add(piece);
@@ -2008,7 +2128,10 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
          closing chord. */
       if (state === "ended" && current === LOOP.at(-1)) {
         event("end");
-        if (!reducedMotion) rig.end();
+        if (!reducedMotion) {
+          rig.end();
+          confetti.burst(burstOver(LOOP.at(-1)!));
+        }
       }
       requestFrame();
     },
@@ -2041,6 +2164,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     moment(name) {
       if (!current || reducedMotion) return;
       moments.play(name, current, momentStage);
+      if (DUO_MOMENTS.has(name)) duoHeldMs = 0;
       lastMoment = `${name}:${++momentCount}`;
       emit();
       requestFrame();
@@ -2165,6 +2289,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
           placePendingMarker(handle);
         }
         moments.finish();
+        confetti.finish();
       }
       /* Turned off on a resting board, its life starts again. */
       if (!reduced || !plan) {
@@ -2176,6 +2301,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       /* Reduced motion's designed state is the whole board built. */
       for (const tile of tiles.keys()) built.add(tile);
       catchingUp.clear();
+      wakeStarts.clear();
       finish();
     },
     dispose() {
