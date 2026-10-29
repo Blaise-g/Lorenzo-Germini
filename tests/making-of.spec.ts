@@ -6,6 +6,7 @@
 
 import { expect, test } from "@playwright/test";
 
+import { SCENES_WITH_ART } from "@/components/path/scene/build-plan";
 import { BUILT_SCENES, MAKING_OF, MAKING_OF_NAMES } from "@/data/making-of";
 import { PATH_STEPS } from "@/data/path";
 
@@ -39,19 +40,25 @@ test("carries every part §7.8 lists", async ({ page }) => {
 test("names each built scene with its inspirations and sources", async ({
   page,
 }) => {
+  /* Every scene with art, read from the data rather than listed here. */
+  expect([...BUILT_SCENES]).toEqual([...SCENES_WITH_ART]);
+  expect(MAKING_OF.scenes.items.map((s) => s.sceneId)).toEqual([
+    ...SCENES_WITH_ART,
+  ]);
   await page.goto("/");
-  for (const sceneId of BUILT_SCENES) {
+  for (const sceneId of SCENES_WITH_ART) {
     const step = PATH_STEPS.find((s) => s.sceneId === sceneId)!;
     for (const inspiration of step.illustration.inspirations) {
       await expect(page.locator(section), sceneId).toContainText(inspiration);
     }
-  }
-  const lille = MAKING_OF.scenes.items.find((s) => s.sceneId === "lille")!;
-  expect(lille.sources.length).toBeGreaterThan(0);
-  for (const source of lille.sources) {
-    await expect(
-      page.locator(section).getByRole("link", { name: source.label }),
-    ).toHaveAttribute("href", source.href);
+    const item = MAKING_OF.scenes.items.find((s) => s.sceneId === sceneId)!;
+    expect(item.inspirations).toEqual(step.illustration.inspirations);
+    expect(item.sources.length, sceneId).toBeGreaterThan(0);
+    for (const source of item.sources) {
+      await expect(
+        page.locator(section).getByRole("link", { name: source.label }),
+      ).toHaveAttribute("href", source.href);
+    }
   }
 });
 

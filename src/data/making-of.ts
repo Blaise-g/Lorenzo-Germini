@@ -4,14 +4,15 @@
    stay in docs/path-measurements.md and the page describes them in words.
    The only digits allowed are inside the terms in `MAKING_OF_NAMES`. */
 
+import { SCENES_WITH_ART } from "@/components/path/scene/build-plan";
 import { PATH_STEPS } from "@/data/path";
 import type { PathSceneId } from "@/data/path.types";
 
 /** Names and terms that carry a digit, and so the only digits on the section. */
 export const MAKING_OF_NAMES = ["C2PA", "Hunyuan3D", "3D"] as const;
 
-/** The scenes the prototype builds, in path order. */
-export const BUILT_SCENES: PathSceneId[] = ["home", "lille"];
+/** The scenes the prototype builds, in path order: those with art. */
+export const BUILT_SCENES: readonly PathSceneId[] = SCENES_WITH_ART;
 
 export type MakingOfScene = {
   sceneId: PathSceneId;
@@ -22,6 +23,16 @@ export type MakingOfScene = {
 
 /* Sources are the ones `docs/path-assets.md` checked the places against. */
 const SCENE_SOURCES: Partial<Record<PathSceneId, MakingOfScene["sources"]>> = {
+  home: [
+    {
+      label: "Bisalta, Wikipedia",
+      href: "https://it.wikipedia.org/wiki/Bisalta",
+    },
+    {
+      label: "Cuneo, Wikipedia",
+      href: "https://it.wikipedia.org/wiki/Cuneo",
+    },
+  ],
   lille: [
     {
       label: "Chambre de commerce de Lille, Wikipédia",
