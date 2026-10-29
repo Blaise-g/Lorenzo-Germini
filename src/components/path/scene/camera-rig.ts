@@ -312,10 +312,12 @@ export type CameraRig = {
   settledOn(): PathStepSlug | null;
   /** What the camera is doing now. */
   shot(): CameraShot;
-  /** The current shot's focus, for the light's shadow frustum (v3-light):
-   *  where the camera looks, in world space, and the radius about it that
-   *  the frame holds. */
-  focus(): { target: Vector3; radius: number };
+  /** The current shot's focus, for the light's shadow frustum and the
+   *  tilt-shift's band (v3-light): where the camera looks, in world space;
+   *  the radius about it that the frame holds; and that radius as a share
+   *  of the whole-board shot's, about 0.3 to 0.5 at a close-up and 1 at
+   *  the overview. */
+  focus(): { target: Vector3; radius: number; wide: number };
 };
 
 type Phase =
@@ -759,11 +761,15 @@ export function createCameraRig(options: CameraRigOptions): CameraRig {
       return phase.kind;
     },
     focus() {
+      const across = Math.max(camera.aspect, 1);
       const radius =
         camera.position.distanceTo(look) *
         Math.tan((camera.fov * DEG) / 2) *
-        Math.max(camera.aspect, 1);
-      return { target: look.clone(), radius };
+        across;
+      const whole = overview();
+      const wholeRadius =
+        whole.distance * Math.tan((whole.fov * DEG) / 2) * across;
+      return { target: look.clone(), radius, wide: radius / wholeRadius };
     },
   };
 }

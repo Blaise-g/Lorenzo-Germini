@@ -2,7 +2,8 @@
 
 Decided in v3's world ticket (v3-world, 2026-10-29), from the v3 benchmark
 (`docs/research/path-v3-benchmark/`). It supersedes ADR-0009 for the board's art and material.
-ADR-0009's supersampling, its own column and its pawn spot stand. Extends ADR-0008.
+ADR-0009's own column and pawn spot stand. Extends ADR-0008. ADR-0011 (v3-light) replaces its
+baseline light, adds two path tokens, and raises the GPU budget the consequences below name.
 
 The benchmark set v2's paper board against igloo, Bruno Simon and jesse-zhou. Beside them it read
 as flat cards on a flat board. The owner's call for v3 was a solid tabletop board game with its

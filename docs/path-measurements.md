@@ -53,6 +53,109 @@ draws only on demand, as before.
 
 **Stills.** All 14 were rendered again by `generate:path-stills` at each step's close-up, at
 1440×900 ×1.5: 2040×833, 35.1–69.0 KB each.
+## The lit board (v3-light)
+
+v3-light put the solid board through a post chain and made dark mode night (ADR-0011):
+
+1. N8AO at half resolution;
+2. bloom;
+3. tilt-shift;
+4. AgX;
+5. a palette LUT;
+6. grain;
+7. a vignette;
+8. the page's ground;
+9. SMAA.
+
+Measured 2026-10-29 on a production build of the v3-light tree (`next build`, then
+`next start -p 3266`). Chromium was muted and ran on the machine's GPU (ANGLE Metal, Apple M5),
+with the cache disabled. Units are as above.
+
+| Budget                   | Budget     | Measured                                                        | Within |
+| ------------------------ | ---------- | --------------------------------------------------------------- | ------ |
+| Transfer per scene, cold | 1.5 MB     | 842.3 KB                                                        | Yes    |
+| GPU memory, live         | **360 MB** | 59.0–331.5 MB; 299.1 MB at 1440×900 ×2                          | Yes    |
+| Each still               | 150 KB     | Largest 38.1 KB (`cuneo-2022-light.webp`)                       | Yes    |
+| Frame time, 95th pct     | ~20 ms     | 16.7–16.8 ms at the display's 60 Hz; 4.5–5.0 ms drawn, uncapped | Yes    |
+
+**The GPU budget is raised from 64 MB to 360 MB.** The post chain needs targets the size of the
+drawing buffer, and v2's budget held only the canvas and its textures:
+
+- the composer's two half-float buffers;
+- N8AO's output;
+- three depth textures;
+- SMAA's edges and weights;
+- the half-size targets of AO, bloom, tilt-shift and the ground's half-float copy.
+
+The chain holds about 78 bytes per drawing pixel (`POST_BYTES_PER_PIXEL`), on top of the
+canvas's 8, and 42 MB does not scale with the canvas. At the 3.4-million-pixel cap that
+comes to 334 MB. The budget leaves about 26 MB for a landmark model's textures.
+`tests/path-scene-contract.spec.ts` checks that the per-pixel model covers the measured totals
+and that the cap keeps the budget.
+
+Two cuts brought the first measurement, 371.6 MB at 1440×900 ×2, down to 299.1 MB:
+
+- N8AO found the table's transparent shadow catcher on every frame and kept two full-size
+  half-float transparency targets for it, one with a depth texture. The catcher writes no depth,
+  so takes no occlusion, and detection is now off.
+- The canvas has no depth or stencil, since the composer's buffers carry the depth. It holds
+  8 bytes a pixel, not 12.
+
+The shadow map went back to 2048² (33.6 MB) for the contact shadows.
+
+| Viewport (CSS px, pixel ratio) | Canvas (device px) | Quality at start | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB |
+| ------------------------------ | ------------------ | ---------------- | -------- | ------- | ------------- | -------------- | --------- |
+| 375×812, ×3 (phone)            | 562×450            | No AO, ×1.5      | 51.6     | 4.6     | 0.8           | 2.0            | 59.0      |
+| 1280×720, ×2                   | 2400×750           | Full             | 173.5    | 4.6     | 2.6           | 14.4           | 195.1     |
+| 1440×900, ×1                   | 1360×555           | Full             | 93.7     | 4.6     | 1.5           | 6.0            | 105.9     |
+| 1440×900, ×2                   | 2720×1110          | Full             | 266.6    | 4.6     | 3.8           | 24.2           | 299.1     |
+| 1920×1080, ×1                  | 1840×735           | Full             | 139.3    | 4.6     | 2.1           | 10.8           | 156.9     |
+| 2560×1440, ×2                  | 2774×1225          | Full             | 295.5    | 4.6     | 4.2           | 27.2           | 331.5     |
+
+A ratio-1 screen is now drawn at ratio 1, not supersampled at 2, because SMAA smooths the edges.
+A phone is capped at ratio 1.5.
+
+**Frame time.** The rAF gaps were measured over a 2.5 s Replay of Lille's build. With vsync on,
+every viewport above gave a median of 16.7 ms and a 95th percentile of 16.7–16.8 ms. This run's
+display, and a blank page, both ran at 60 Hz. v3-world's 8.3 ms was at 120 Hz, so the two cannot
+be compared directly.
+
+To see under the vsync, Chromium was run again with `--disable-gpu-vsync
+--disable-frame-rate-limit`, counting only gaps over 1 ms, the frames the board drew:
+
+| Viewport                 | Median  | 95th percentile |
+| ------------------------ | ------- | --------------- |
+| 375×812 ×3, phone rung   | 2.8 ms  | 3.8 ms          |
+| 1280×720 ×2              | 3.4 ms  | 5.1 ms          |
+| 1440×900 ×1              | 3.1 ms  | 4.3 ms          |
+| 1440×900 ×2, three runs  | 3.4–6.8 | 4.5–8.1 ms      |
+| 1920×1080 ×1             | 2.9 ms  | 3.5 ms          |
+| 2560×1440 ×2, three runs | 4.1–4.3 | 4.9–5.0 ms      |
+
+The 1440×900 ×2 run of 6.8 ms and 8.1 ms was the first run, cold. The two repeats gave
+3.4–3.6 ms and 4.5–4.7 ms.
+
+**Per pass.** These are from `EXT_disjoint_timer_query_webgl2`, read on the dev server at
+1440×900 ×2, as the median ms per pass. The queries overlap on ANGLE Metal: they sum to about
+21 ms against a 3.5 ms frame. So the column to read is the share, not the ms.
+
+| Pass                          | Timer ms | Share |
+| ----------------------------- | -------- | ----- |
+| Render (scene and shadow map) | 1.4      | 7%    |
+| N8AO, half resolution         | 3.0      | 14%   |
+| Ground copy, half size        | 2.9      | 14%   |
+| Bloom and tilt-shift          | 6.2      | 30%   |
+| AgX, LUT, grain and vignette  | 3.3      | 16%   |
+| SMAA and the ground           | 3.9      | 19%   |
+
+**The governor.** If a quarter of a 24-frame window runs past 20 ms, it drops AO, then
+pixel ratio to 75% and then 50%. It acts within the fallback's 60-frame sample, so a GPU a
+little too slow sheds AO in time for the later frames to bring the median under 33 ms. The
+sample still counts the frames before the step, so a GPU far too slow goes to the stills as
+before. No rung was taken at any size here.
+
+**Stills.** All 14 were rendered again by `generate:path-stills` through the post chain:
+2040×833, 25.0–38.1 KB each. Grain and the night grade did not push any of them near 150 KB.
 
 ## The solid board (v3)
 

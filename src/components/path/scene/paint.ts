@@ -32,10 +32,13 @@ export type Tone = Readonly<{
 /** The tones the board is painted in, by what they are. */
 export const TONES = {
   paper: { base: "paper" },
-  /** The board under the tiles: kraft board, a shade under the stock, so
-   *  the tiles stand off it. */
-  boardTop: { base: "paper", toward: "ink-warm", amount: 0.2, shade: 0.9 },
-  frame: { base: "ink-cool", shade: 0.7 },
+  /** The board under the tiles: a green baize, so the cream tiles stand
+   *  off it as a game's pieces stand off its cloth. */
+  boardTop: { base: "felt" },
+  /** The frame round it: a lacquered walnut, the terracotta taken deep. */
+  frame: { base: "ink-warm", toward: "felt", amount: 0.18, shade: 0.42 },
+  sun: { base: "ink-sun" },
+  sunDeep: { base: "ink-sun", toward: "ink-warm", amount: 0.35, shade: 0.85 },
   warm: { base: "ink-warm" },
   warmLight: { base: "ink-warm", toward: "paper", amount: 0.45 },
   warmDeep: { base: "ink-warm", shade: 0.72 },
@@ -44,11 +47,15 @@ export const TONES = {
   coolDeep: { base: "ink-cool", shade: 0.55 },
   /** Plaster and stone: paper leaning warm. */
   stone: { base: "paper", toward: "ink-warm", amount: 0.12 },
-  /** Foliage: slate leaning to the stock, a sage. */
-  leaf: { base: "ink-cool", toward: "paper", amount: 0.12, shade: 0.88 },
-  leafDark: { base: "ink-cool", shade: 0.55 },
-  grass: { base: "ink-cool", toward: "paper", amount: 0.42, shade: 0.88 },
+  /** Foliage: the felt's green, lifted toward the stock, a sage. */
+  leaf: { base: "felt", toward: "paper", amount: 0.2 },
+  leafDark: { base: "felt", toward: "ink-cool", amount: 0.3, shade: 0.7 },
+  grass: { base: "felt", toward: "ink-sun", amount: 0.3, shade: 1.05 },
   water: { base: "ink-cool", toward: "paper", amount: 0.08, shade: 0.95 },
+  /** Window glass, dark by day. */
+  pane: { base: "ink-cool", shade: 0.55 },
+  /** The light a lamp gives: the third ink, warmed toward the stock. */
+  lamp: { base: "ink-sun", toward: "paper", amount: 0.3 },
 } as const satisfies Record<string, Tone>;
 
 export type ToneName = keyof typeof TONES;
@@ -67,24 +74,30 @@ export type MaterialOptions = {
   flat?: boolean;
   /** Glows in its own tone at this strength, for screens and lit glass. */
   glow?: number;
-  /** Takes the card-grain bump map, once loaded. */
+  /** Glows this much more at night: in its own tone if it glows by day
+   *  too, in lamplight if not. */
+  lamp?: number;
+  /** Takes the card-grain bump map, once loaded, and a mottled roughness. */
   grain?: boolean;
+  /** Takes the felt's nap as a normal map. */
+  felt?: boolean;
   doubleSided?: boolean;
 };
 
-/** A tileable noise, as a normal map for the water: two octaves of value
- *  noise turned into slopes. Made in code, so it costs no request. */
-function waterNormals(size = 64): DataTexture {
+/** A tileable value noise, `size` square, summed over octaves of
+ *  `[cells, weight]`: each octave a lattice of `cells` across. */
+function valueNoise(
+  size: number,
+  octaves: readonly (readonly [number, number])[],
+  seed: number,
+): Float32Array {
   const height = new Float32Array(size * size);
-  let seed = 7;
+  let state = seed;
   const random = () => {
-    seed = (seed * 16807) % 2147483647;
-    return seed / 2147483647;
+    state = (state * 16807) % 2147483647;
+    return state / 2147483647;
   };
-  for (const [cells, weight] of [
-    [8, 0.65],
-    [16, 0.35],
-  ] as const) {
+  for (const [cells, weight] of octaves) {
     const lattice = Array.from({ length: cells * cells }, random);
     const at = (x: number, y: number) =>
       lattice[((y + cells) % cells) * cells + ((x + cells) % cells)];
@@ -103,21 +116,12 @@ function waterNormals(size = 64): DataTexture {
       }
     }
   }
-  const data = new Uint8Array(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const h = (dx: number, dy: number) =>
-        height[((y + dy + size) % size) * size + ((x + dx + size) % size)];
-      const nx = (h(-1, 0) - h(1, 0)) * 3;
-      const ny = (h(0, -1) - h(0, 1)) * 3;
-      const length = Math.hypot(nx, ny, 1);
-      const i = (y * size + x) * 4;
-      data[i] = ((nx / length) * 0.5 + 0.5) * 255;
-      data[i + 1] = ((ny / length) * 0.5 + 0.5) * 255;
-      data[i + 2] = ((1 / length) * 0.5 + 0.5) * 255;
-      data[i + 3] = 255;
-    }
-  }
+  return height;
+}
+
+/** A tiling, mipmapped RGBA texture from bytes. Made in code, so it costs
+ *  no request. */
+function dataTexture(data: Uint8Array, size: number): DataTexture {
   const texture = new DataTexture(data, size, size, RGBAFormat);
   texture.wrapS = texture.wrapT = RepeatWrapping;
   texture.magFilter = LinearFilter;
@@ -127,10 +131,93 @@ function waterNormals(size = 64): DataTexture {
   return texture;
 }
 
+/** A height field's slopes as a tangent-space normal map, `strength`
+ *  steep. */
+function normalsOf(height: Float32Array, size: number, strength: number) {
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const h = (dx: number, dy: number) =>
+        height[((y + dy + size) % size) * size + ((x + dx + size) % size)];
+      const nx = (h(-1, 0) - h(1, 0)) * strength;
+      const ny = (h(0, -1) - h(0, 1)) * strength;
+      const length = Math.hypot(nx, ny, 1);
+      const i = (y * size + x) * 4;
+      data[i] = ((nx / length) * 0.5 + 0.5) * 255;
+      data[i + 1] = ((ny / length) * 0.5 + 0.5) * 255;
+      data[i + 2] = ((1 / length) * 0.5 + 0.5) * 255;
+      data[i + 3] = 255;
+    }
+  }
+  return dataTexture(data, size);
+}
+
+/** The water's normals: two octaves of slow swell. */
+function waterNormals() {
+  const size = 64;
+  return normalsOf(
+    valueNoise(
+      size,
+      [
+        [8, 0.65],
+        [16, 0.35],
+      ],
+      7,
+    ),
+    size,
+    3,
+  );
+}
+
+/** The felt's nap: fine fibres over a soft unevenness, so a low sun rakes
+ *  across it. */
+function feltNormals() {
+  const size = 128;
+  return normalsOf(
+    valueNoise(
+      size,
+      [
+        [8, 0.2],
+        [32, 0.35],
+        [64, 0.45],
+      ],
+      29,
+    ),
+    size,
+    2.2,
+  );
+}
+
+/** A mottled roughness, read from green: patches 0.78–1 of a material's
+ *  own, so the sheen breaks up across a surface rather than lying even. */
+function roughnessMottle() {
+  const size = 64;
+  const height = valueNoise(
+    size,
+    [
+      [4, 0.6],
+      [12, 0.4],
+    ],
+    61,
+  );
+  const data = new Uint8Array(size * size * 4);
+  for (let i = 0; i < size * size; i++) {
+    const value = (0.78 + 0.22 * height[i]) * 255;
+    data[i * 4] = data[i * 4 + 1] = data[i * 4 + 2] = value;
+    data[i * 4 + 3] = 255;
+  }
+  return dataTexture(data, size);
+}
+
 /** How much board one tile of the grain covers, in scene units. */
 const GRAIN_TILE = 1.6;
 /** How deep the grain reads: a light tooth, not a texture. */
 const GRAIN_BUMP = 0.6;
+/** How much board one tile of the felt's nap covers, and how deep it is. */
+const FELT_TILE = 1.1;
+const FELT_DEPTH = 0.55;
+/** How much board one tile of the mottle covers. */
+const MOTTLE_TILE = 5;
 
 /** Every material the board makes, repainted together. */
 export function createPaint(palette: Palette) {
@@ -142,6 +229,25 @@ export function createPaint(palette: Palette) {
   let current = palette;
   const normals = waterNormals();
   normals.repeat.set(0.7, 0.7);
+  const nap = feltNormals();
+  nap.repeat.set(1 / FELT_TILE, 1 / FELT_TILE);
+  const mottle = roughnessMottle();
+  mottle.repeat.set(1 / MOTTLE_TILE, 1 / MOTTLE_TILE);
+  /** How far into night the board is, 0 to 1: lamps glow by it. */
+  let night = 0;
+  /** Each material that glows, its strength by day and its extra by
+   *  night, and the tone it glows in. */
+  const glowing = new Map<
+    MeshStandardMaterial,
+    { day: number; night: number; tone: Tone }
+  >();
+
+  function glowOf(made: MeshStandardMaterial) {
+    const glow = glowing.get(made);
+    if (!glow) return;
+    made.emissiveIntensity = glow.day + glow.night * night;
+    toneColour(current, glow.tone, made.emissive);
+  }
 
   function material(tone: Tone, options: MaterialOptions = {}) {
     const made = new MeshStandardMaterial({
@@ -151,15 +257,24 @@ export function createPaint(palette: Palette) {
     });
     if (options.doubleSided) made.side = DoubleSide;
     made.color = toneColour(current, tone);
-    if (options.glow) {
-      made.emissiveIntensity = options.glow;
-      made.userData.glow = true;
-      toneColour(current, tone, made.emissive);
+    if (options.glow || options.lamp) {
+      glowing.set(made, {
+        day: options.glow ?? 0,
+        night: options.lamp ?? 0,
+        tone: options.glow ? tone : TONES.lamp,
+      });
+      glowOf(made);
     }
     painted.set(made, tone);
     if (options.grain) {
+      made.roughnessMap = mottle;
       grained.add(made);
       if (grain) applyGrain(made);
+    }
+    if (options.felt) {
+      made.normalMap = nap;
+      made.normalScale.set(FELT_DEPTH, FELT_DEPTH);
+      made.roughnessMap = mottle;
     }
     return made;
   }
@@ -239,11 +354,42 @@ export function createPaint(palette: Palette) {
   };
   grass.customProgramCacheKey = () => "path-grass";
 
+  /* The pipe loop's flow: by night, a pulse of lamplight runs along the
+     tube, its UVs' u running the pipe's length. */
+  const pipeFlow = material(TONES.warm, { roughness: 0.5, lamp: 1.8 });
+  pipeFlow.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = time;
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec2 vFlowUv;")
+      .replace("#include <uv_vertex>", "#include <uv_vertex>\nvFlowUv = uv;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec2 vFlowUv;\nuniform float uTime;",
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        /* glsl */ `#include <emissivemap_fragment>
+        float pulse = pow( 0.5 + 0.5 * sin( ( vFlowUv.x * 5.0 - uTime * 0.35 ) * 6.2831853 ), 6.0 );
+        totalEmissiveRadiance *= 0.15 + 0.85 * pulse;`,
+      );
+  };
+  pipeFlow.customProgramCacheKey = () => "path-flow";
+
+  /* Window glass: most panes lit by night, a few left dark, as a building
+     at night has them. */
+  const lit = material(TONES.pane, { roughness: 0.22, lamp: 3.2 });
+  const unlit = material(TONES.pane, { roughness: 0.22 });
+
   return {
     material,
     shared,
     water,
     grass,
+    /** The pipe loop's tube, its flow lit by night. */
+    pipeFlow,
+    /** Window glass, by turns: two lit at night to one dark. */
+    panes: [lit, lit, unlit] as const,
     /** Seconds of motion so far; the water and the grass read it. */
     time,
     /** Paints every material from `palette`. */
@@ -251,9 +397,14 @@ export function createPaint(palette: Palette) {
       current = next;
       for (const [made, tone] of painted) {
         toneColour(next, tone, made.color);
-        if (made.userData.glow) toneColour(next, tone, made.emissive);
+        glowOf(made);
       }
       foam.value.copy(next.paper);
+    },
+    /** Lights the lamps `amount` of the way into night. */
+    setNight(amount: number) {
+      night = Math.min(Math.max(amount, 0), 1);
+      for (const made of glowing.keys()) glowOf(made);
     },
     /** Moves the water on by `seconds`. */
     flow(seconds: number) {
@@ -270,6 +421,8 @@ export function createPaint(palette: Palette) {
     dispose() {
       for (const made of painted.keys()) made.dispose();
       normals.dispose();
+      nap.dispose();
+      mottle.dispose();
       grain?.dispose();
     },
   };

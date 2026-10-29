@@ -33,7 +33,7 @@ import {
   tileCentre,
   tileScale,
 } from "./board";
-import type { Paint, ToneName } from "./paint";
+import type { MaterialOptions, Paint, ToneName } from "./paint";
 import { pathSpline } from "./path-spline";
 import {
   grassField,
@@ -119,24 +119,25 @@ function solid(
   geometry: ExtrudeGeometry | RoundedBoxGeometry,
   paint: Paint,
   tone: ToneName,
-  grain = false,
+  options: MaterialOptions = {},
 ) {
-  const mesh = new Mesh(geometry, paint.shared(tone, { grain }));
+  const mesh = new Mesh(geometry, paint.shared(tone, options));
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   return mesh;
 }
 
-/** Each tile's colour band, in the loop's order: the two inks and their
- *  lighter and deeper shades, alternating warm and cool round the loop. */
+/** Each tile's colour band, in the loop's order, as a game board's
+ *  property colours: the three inks and the felt's green, each step a hue
+ *  or a shade of its own, no two neighbours alike. */
 const BANDS: Readonly<Record<PathStepSlug, ToneName>> = {
   home: "warm",
-  turin: "cool",
-  switzerland: "coolLight",
-  "cuneo-2022": "warmLight",
+  turin: "sun",
+  switzerland: "cool",
+  "cuneo-2022": "leaf",
   lille: "warmDeep",
-  now: "coolDeep",
-  next: "warm",
+  now: "sunDeep",
+  next: "coolLight",
 };
 
 /** How deep a tile's band runs in from its front edge, and its inset. */
@@ -155,7 +156,7 @@ export function makeBoard(paint: Paint): Group {
     ),
     paint,
     "boardTop",
-    true,
+    { felt: true, roughness: 0.96 },
   );
   top.position.y = -BOARD.thickness;
   const outline = roundedRect(BOARD.halfWidth, BOARD.halfDepth, BOARD.corner);
@@ -217,7 +218,9 @@ export function makeBoard(paint: Paint): Group {
 export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
   const group = new Group();
   group.add(
-    solid(slab(tileShape(), TILE.thickness, TILE.bevel), paint, "paper", true),
+    solid(slab(tileShape(), TILE.thickness, TILE.bevel), paint, "paper", {
+      grain: true,
+    }),
   );
 
   const w = TILE.width / 2 - TILE.chamfer - BAND.inset;
@@ -229,7 +232,10 @@ export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
   band.closePath();
   /* The shape's y is the board's -z once laid flat: the band runs along
      the front edge. */
-  const strip = solid(slab(band, BAND.height, 0.02, 2), paint, BANDS[slug]);
+  /* A band is printed lacquer: a little glossier than the stock. */
+  const strip = solid(slab(band, BAND.height, 0.02, 2), paint, BANDS[slug], {
+    roughness: 0.55,
+  });
   strip.position.y = TILE.thickness - 0.01;
   group.add(strip);
 

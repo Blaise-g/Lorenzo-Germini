@@ -124,9 +124,11 @@ function gable(
   return solid(geometry, material, at);
 }
 
-/** A row of windows on a front face at `z`, as small dark panes. */
+/** A row of windows on a front face at `z`, as small dark panes; given
+ *  several materials, the panes take them by turns, so some light by
+ *  night and some stay dark. */
 function windows(
-  material: Material,
+  material: Material | readonly Material[],
   rows: number,
   columns: number,
   span: readonly [number, number],
@@ -135,6 +137,7 @@ function windows(
   size: readonly [number, number] = [0.1, 0.14],
 ): Group {
   const group = new Group();
+  const materials = [material].flat();
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < columns; column++) {
       const x =
@@ -145,7 +148,11 @@ function windows(
         rows === 1
           ? heights[0]
           : heights[0] + ((heights[1] - heights[0]) * row) / (rows - 1);
-      group.add(block(material, [size[0], size[1], 0.03], [x, y, z], 0.01));
+      /* Each row cycles through the materials, offset row by row, so a
+         lit building is not lit by column: every row of three or more
+         panes has one of each. */
+      const pick = materials[(column * 2 + row * (row + 1)) % materials.length];
+      group.add(block(pick, [size[0], size[1], 0.03], [x, y, z], 0.01));
     }
   }
   return group;
@@ -443,10 +450,9 @@ const home: Record<string, Builder> = {
       (d + 0.12) * Math.SQRT1_2,
     );
     group.add(roof);
-    const glass = paint.shared("coolDeep");
     group.add(
       windows(
-        glass,
+        paint.panes,
         2,
         6,
         [-w / 2 + 0.14, w / 2 - 0.14],
@@ -784,12 +790,11 @@ const cuneo2022: Record<string, Builder> = {
       block(wall, [0.12, wallHeight, d], [-w / 2 + 0.06, 0, 0], 0.03),
       block(wall, [0.12, wallHeight, d], [w / 2 - 0.06, 0, 0], 0.03),
     );
-    /* Windows down the side walls, cut as dark panes. */
-    const glass = paint.shared("coolDeep");
+    /* Windows down the side walls, cut as dark panes, lit by night. */
     for (const side of [-1, 1]) {
       for (let i = 0; i < 3; i++) {
         const pane = block(
-          glass,
+          paint.panes[(i + (side > 0 ? 1 : 0)) % paint.panes.length],
           [0.03, 0.42, 0.28],
           [side * (w / 2 + 0.005), 0.38, -d / 2 + 0.4 + i * 0.5],
           0.01,
@@ -916,7 +921,7 @@ const lille: Record<string, Builder> = {
     /* Tall slit windows. */
     group.add(
       windows(
-        paint.shared("coolDeep"),
+        paint.panes,
         2,
         2,
         [-0.12, 0.12],
@@ -997,7 +1002,7 @@ const lille: Record<string, Builder> = {
     }
     group.add(
       windows(
-        paint.shared("coolDeep"),
+        paint.panes,
         2,
         8,
         [-w / 2 + 0.18, w / 2 - 0.18],
@@ -1084,8 +1089,9 @@ const lille: Record<string, Builder> = {
       true,
       "centripetal",
     );
-    const pipe = paint.shared("warm", { roughness: 0.5 });
-    group.add(solid(new TubeGeometry(path, 96, 0.055, 12, true), pipe));
+    group.add(
+      solid(new TubeGeometry(path, 96, 0.055, 12, true), paint.pipeFlow),
+    );
     const flange = paint.shared("warmDeep", { roughness: 0.55 });
     const support = paint.shared("cool");
     for (let i = 0; i < 8; i++) {
@@ -1193,7 +1199,7 @@ const now: Record<string, Builder> = {
     const walls = paint.shared("stone");
     const glass = paint.material(
       { base: "ink-cool", toward: "paper", amount: 0.3 },
-      { roughness: 0.25 },
+      { roughness: 0.25, lamp: 2.4 },
     );
     group.add(block(walls, [w, 1.18, d * 0.8], [0, 0, -d * 0.1], 0.04));
     group.add(
@@ -1265,7 +1271,7 @@ const now: Record<string, Builder> = {
     }
     const screen = paint.material(
       { base: "ink-cool", toward: "paper", amount: 0.55 },
-      { roughness: 0.3, glow: 0.35 },
+      { roughness: 0.3, glow: 0.35, lamp: 2.6 },
     );
     group.add(
       block(

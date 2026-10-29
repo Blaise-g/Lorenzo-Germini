@@ -30,10 +30,14 @@
 
   /* The 3D path's scene colours (ADR-0008): not page interface, so not the
      seven roles. Scene code under `src/components/path/scene/` reads them;
-     the overlay above the scene keeps the roles. */
+     the overlay above the scene keeps the roles. `felt` is the board's
+     cloth under the tiles; `ink-sun` a third riso ink, for the tiles' bands
+     and lamplight. */
   --path-paper: #f4ecdc;
   --path-ink-warm: #c4562f;
   --path-ink-cool: #3f6290;
+  --path-ink-sun: #dda23a;
+  --path-felt: #3d6b5c;
   --path-fog: #faf6ef;
 
   /* Motion. Two curves, both stronger than the CSS built-ins: `ease-out` for
@@ -61,9 +65,13 @@
   --color-accent-foreground: #171412;
   --color-border: #6f6258;
 
-  --path-paper: #2e2723;
-  --path-ink-warm: #e0916a;
-  --path-ink-cool: #8fa8cc;
+  /* Dark mode is night on the same board (the benchmark's §4(c)): the
+     board's own colours stay; the light, the grade and the ground change. */
+  --path-paper: #f4ecdc;
+  --path-ink-warm: #c4562f;
+  --path-ink-cool: #3f6290;
+  --path-ink-sun: #dda23a;
+  --path-felt: #3d6b5c;
   --path-fog: #171412;
 }
 
@@ -623,6 +631,8 @@ html {
     --path-paper: #ffffff;
     --path-ink-warm: #7a2f16;
     --path-ink-cool: #2b3f5c;
+    --path-ink-sun: #7a5612;
+    --path-felt: #2a4a3f;
     --path-fog: #ffffff;
   }
 }
