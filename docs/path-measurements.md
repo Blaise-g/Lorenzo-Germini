@@ -8,6 +8,33 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The polish (v3-emil-polish)
+
+v3-emil-polish adds no file to the board's loads: the lid, the confetti and the grass tufts
+are built in code, and the dormant tiles and the night light reuse what was there. So it is
+measured against its own starting commit, `e12e984`, rather than against the figures below.
+
+Measured 2026-10-29 on production builds of both commits (`next build`, then `next start`),
+with muted Chromium on the machine's GPU, a fresh context and the cache disabled. GPU memory
+was counted by a tally written again for this ticket, from wrapping the same calls as v3-harden
+did, once Lille had built under reduced motion and every model had settled. That tally comes
+out higher than v3-toys' on both commits (439.7 MB at 1440×900 ×2 on `e12e984`, against the
+372.0 MB below), so only the difference between the two commits is read from it:
+
+| Viewport (CSS px, pixel ratio) | Before, MB | After, MB | Difference |
+| ------------------------------ | ---------- | --------- | ---------- |
+| 375×812, ×3, touch             | 89.8       | 89.9      | +0.1 MB    |
+| 1440×900, ×2                   | 439.7      | 439.8     | +0.1 MB    |
+| 2560×1440, ×2                  | 496.0      | 496.1     | +0.1 MB    |
+
+The textures are the same to 0.1 MB at every size; the difference is buffers. Against the
+figures below, the worst case is about 417.1 MB, inside the 440 MB budget. The JavaScript the
+page references grew by 34 bytes. Frame time, with motion, on the production build, from
+`requestAnimationFrame` gaps over 300 frames of the tour playing Lille: a median of 8.3 ms
+(the display's 120 Hz) and a 95th percentile of 10.1 ms at 1440×900 ×2 and 9.8 ms at
+2560×1440 ×2, with no frame over 20 ms. On the dev server at 1440×900 ×2 the same held while
+each of the eight moments played (95th percentile 9.6–10.0 ms).
+
 ## The toys (v3-toys)
 
 v3-toys puts the toy props and the duo on the board (`props.json`): thirteen props, the two
