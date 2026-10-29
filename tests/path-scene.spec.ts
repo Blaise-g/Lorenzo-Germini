@@ -15,6 +15,8 @@ import {
   SCENE_FALLBACK_LINES,
 } from "@/components/path/scene/fallback";
 
+import { MAX_DRAWING_PIXELS } from "@/components/path/scene/drawing-buffer";
+
 import { setTheme, themeToggle } from "./support/theme";
 
 /* Turbopack names a module's chunk after its path, so three.js and the scene
@@ -426,6 +428,22 @@ test.describe("rendering on demand", () => {
 
     await page.getByRole("button", { name: "Turn the scene left" }).click();
     await expect.poll(() => draws(page)).toBeGreaterThan(settled);
+  });
+});
+
+test.describe("on a wide, high-density screen", () => {
+  test.use({ viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 2 });
+
+  test("the canvas holds no more pixels than its cap", async ({ page }) => {
+    await page.goto("/path#home");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built");
+    const canvas = page.locator("[data-path-stage] canvas");
+    const size = await canvas.evaluate((element: HTMLCanvasElement) => ({
+      pixels: element.width * element.height,
+      cssWidth: element.clientWidth,
+    }));
+    expect(size.cssWidth).toBeGreaterThan(1600);
+    expect(size.pixels).toBeLessThanOrEqual(MAX_DRAWING_PIXELS + 1);
   });
 });
 

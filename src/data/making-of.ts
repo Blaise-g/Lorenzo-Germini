@@ -45,7 +45,7 @@ export const MAKING_OF = {
   budgets: {
     title: "Budgets and fallbacks",
     lines: [
-      "Each scene has a budget for what it downloads, for the graphics memory it holds and for each still, and the whole walk has one with everything opened, the 3D runtime and its decoders counted. Each scene stays under its download budget, and every still under its own. On a very wide, high-density screen a scene can hold more graphics memory than its budget allows, which is still to fix. The measurements are in the report in the repository.",
+      "Each scene has a budget for what it downloads, for the graphics memory it holds and for each still, and the whole walk has one with everything opened, the 3D runtime and its decoders counted. Each scene stays under its download and graphics-memory budgets, and every still under its own: on a very wide, high-density screen the scene is drawn a little softer to stay within its memory. The measurements are in the report in the repository.",
       "A browser without the WebGL it needs, one that reports WebGL would run slowly, one that asks to save data, or one whose first frames come in too slow gets still images of each scene instead, with a line saying why. Nothing on this page loads 3D code.",
     ],
   },

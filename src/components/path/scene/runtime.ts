@@ -31,6 +31,7 @@ import {
   type BuildState,
 } from "./build-plan";
 import type { SceneDefinition, SceneKit } from "./definition";
+import { drawingPixelRatio } from "./drawing-buffer";
 import {
   decideFallback,
   FRAME_SAMPLE_SIZE,
@@ -129,7 +130,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     antialias: true,
     failIfMajorPerformanceCaveat: true,
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
   const scene = new Scene();
   const camera = new PerspectiveCamera(CAMERA_FOV, 1, 0.1, 80);
@@ -495,6 +495,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function frame() {
     const width = canvas.clientWidth || 1;
     const height = canvas.clientHeight || 1;
+    renderer.setPixelRatio(
+      drawingPixelRatio(width, height, window.devicePixelRatio),
+    );
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
     if (!definition) return camera.updateProjectionMatrix();

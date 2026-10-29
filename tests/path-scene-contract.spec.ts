@@ -17,6 +17,12 @@ import {
   SCENE_FALLBACK_LINES,
   type CapabilitySignals,
 } from "@/components/path/scene/fallback";
+import {
+  DRAWING_BYTES_PER_PIXEL,
+  drawingPixelRatio,
+  MAX_DRAWING_PIXELS,
+  MAX_PIXEL_RATIO,
+} from "@/components/path/scene/drawing-buffer";
 import { SCENES } from "@/components/path/scene/scenes";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
@@ -159,5 +165,48 @@ test.describe("what each step builds", () => {
     expect(litLines(plan, desk.landsAt)).toEqual([0]);
     expect(litLines(plan, office.landsAt)).toEqual([0, 3]);
     expect(litLines(plan, office.landsAt + 10_000)).toEqual([0, 3]);
+  });
+});
+
+/* GH-141's 64 MB GPU budget, against the stage sizes the measurement report
+   estimates (docs/path-measurements.md): CSS width and height of the stage. */
+test.describe("the drawing buffer", () => {
+  const MB = 1024 * 1024;
+  /** The scenes' uploaded buffers and textures, from the report. */
+  const UPLOADS = 1.8 * MB;
+  const bufferBytes = (width: number, height: number, dpr: number) => {
+    const ratio = drawingPixelRatio(width, height, dpr);
+    return (
+      Math.floor(width * ratio) *
+      Math.floor(height * ratio) *
+      DRAWING_BYTES_PER_PIXEL
+    );
+  };
+
+  test("a 2560-wide, ×2 screen stays under the 64 MB budget", () => {
+    expect(bufferBytes(2096, 448, 2) + UPLOADS).toBeLessThanOrEqual(64 * MB);
+  });
+
+  test("no stage holds more than its pixel cap, at any density", () => {
+    for (const [width, height] of [
+      [342, 224],
+      [976, 378],
+      [2096, 448],
+      [3376, 448],
+      [7000, 448],
+    ]) {
+      for (const dpr of [1, 2, 3]) {
+        const ratio = drawingPixelRatio(width, height, dpr);
+        expect(ratio).toBeLessThanOrEqual(Math.min(dpr, MAX_PIXEL_RATIO));
+        expect(width * ratio * height * ratio).toBeLessThanOrEqual(
+          MAX_DRAWING_PIXELS + 1,
+        );
+      }
+    }
+  });
+
+  test("a stage under the cap keeps the device's ratio, up to 1.5", () => {
+    expect(drawingPixelRatio(976, 378, 2)).toBe(MAX_PIXEL_RATIO);
+    expect(drawingPixelRatio(342, 224, 1)).toBe(1);
   });
 });

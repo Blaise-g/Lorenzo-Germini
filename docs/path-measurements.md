@@ -10,16 +10,17 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 
 ## Summary
 
-| Budget                                   | Budget | Measured                                 | Within |
-| ---------------------------------------- | ------ | ---------------------------------------- | ------ |
-| Transfer per scene: home, arriving cold  | 1.5 MB | 592 KB                                   | Yes    |
-| Transfer per scene: Lille, arriving cold | 1.5 MB | 766 KB (183 KB on top of home)           | Yes    |
-| GPU memory, estimated                    | 64 MB  | 13.6–53.7 MB; 74.3 MB on a 2560×2 screen | **No** |
-| Each still                               | 150 KB | Largest 29.7 KB (`lille-light.webp`)     | Yes    |
-| Everything opened                        | 8 MB   | About 1.07 MB, runtime and decoders in   | Yes    |
-| Each voice clip (#150's target)          | ~60 KB | `lille` 82.1 KB and `now` 130.2 KB: over | **No** |
+| Budget                                   | Budget | Measured                                  | Within |
+| ---------------------------------------- | ------ | ----------------------------------------- | ------ |
+| Transfer per scene: home, arriving cold  | 1.5 MB | 592 KB                                    | Yes    |
+| Transfer per scene: Lille, arriving cold | 1.5 MB | 766 KB (183 KB on top of home)            | Yes    |
+| GPU memory, estimated                    | 64 MB  | 13.6–56.6 MB (56.6 MB on a 2560×2 screen) | Yes    |
+| Each still                               | 150 KB | Largest 29.7 KB (`lille-light.webp`)      | Yes    |
+| Everything opened                        | 8 MB   | About 1.07 MB, runtime and decoders in    | Yes    |
+| Each voice clip (#150's target)          | ~60 KB | `lille` 82.1 KB and `now` 130.2 KB: over  | **No** |
 
-GPU memory is over budget on a 2560-wide screen at pixel ratio 2, and only there of the four sizes estimated. Two voice clips are over #150's ~60 KB target for a clip, which is
+GPU memory was over budget on a 2560-wide screen at pixel ratio 2 (74.3 MB) until the runtime capped
+the drawing buffer's pixel count; see [GPU memory](#gpu-memory). Two voice clips are over #150's ~60 KB target for a clip, which is
 not one of #141's budgets. They still count in the 8 MB total.
 
 ## How it was measured
@@ -70,24 +71,29 @@ cold visitor pays for them.
 
 ## GPU memory
 
-The drawing buffer dominates, and it follows the stage's size in device pixels (the runtime caps
-the pixel ratio at 1.5). With `antialias: true` it holds 4× multisampled colour and depth plus the
+The drawing buffer dominates, and it follows the stage's size in device pixels. The runtime caps
+the pixel ratio at 1.5, and lowers it further on a stage that would otherwise hold more than 1.6
+million device pixels (`drawing-buffer.ts`), so the scene is drawn a little softer there instead. With `antialias: true` it holds 4× multisampled colour and depth plus the
 resolved colour: about 36 bytes a pixel. Uploaded buffers and textures for home and Lille together
 add about 1.8 MB (0.6 MB of vertex and index buffers, 1.2 MB of textures counted as RGBA with a
 third more for mipmaps). Those are cumulative uploads, so an upper bound on what is resident.
 
-| Viewport (CSS px, pixel ratio)                                             | Canvas (device px) | Drawing buffer | Total, about | Within 64 MB        |
-| -------------------------------------------------------------------------- | ------------------ | -------------- | ------------ | ------------------- |
-| 390, ×3 (phone)                                                            | 513×672            | 11.8 MB        | 13.6 MB      | Yes                 |
-| 1440, ×2 (the measured run; the other rows are computed from their canvas) | 1464×567           | 28.5 MB        | 30.3 MB      | Yes                 |
-| 3840, ×1                                                                   | 3376×448           | 51.9 MB        | 53.7 MB      | Yes                 |
-| 2560, ×2                                                                   | 3144×672           | 72.5 MB        | 74.3 MB      | **No, over budget** |
+| Viewport (CSS px, pixel ratio)                                             | Canvas (device px) | Drawing buffer | Total, about | Within 64 MB |
+| -------------------------------------------------------------------------- | ------------------ | -------------- | ------------ | ------------ |
+| 390, ×3 (phone)                                                            | 513×672            | 11.8 MB        | 13.6 MB      | Yes          |
+| 1440, ×2 (the measured run; the other rows are computed from their canvas) | 1464×567           | 28.5 MB        | 30.3 MB      | Yes          |
+| 3840, ×1                                                                   | 3376×448           | 51.9 MB        | 53.7 MB      | Yes          |
+| 2560, ×2 (pixel ratio capped at 1.305 by the pixel count)                  | 2735×584           | 54.8 MB        | 56.6 MB      | Yes          |
 
-MB here is 1,024² bytes. On a wide high-density screen the stage grows past what the 1.5 cap
-holds under 64 MB. Capping the stage's device-pixel width, or the pixel ratio by area rather than
-by a fixed factor, would bring it under; that is a change to the runtime, outside #152. This is
-measured in SwiftShader, not on a real GPU, and the browser's own compositing buffers are not
-counted.
+MB here is 1,024² bytes. Before the pixel cap, the 2560×2 stage was drawn at the full 1.5 ratio:
+3144×672 device pixels, 72.5 MB of drawing buffer and 74.3 MB in all, over budget. The cap's
+figures are computed, not re-measured: the stage is 2096×448 CSS px at that size, the ratio is
+√(1,600,000 ÷ (2096 × 448)) ≈ 1.305, three.js floors each side to 2735×584 device pixels, and
+2735 × 584 × 36 bytes is 54.8 MB, plus the 1.8 MB of uploads. `tests/path-scene.spec.ts` checks
+the canvas at a 2560×1440 viewport with a device pixel ratio of 2, and
+`tests/path-scene-contract.spec.ts` checks the arithmetic. The other three rows are under the cap,
+so they are unchanged. This is measured in SwiftShader, not on a real GPU, and the browser's own
+compositing buffers are not counted.
 
 ## Stills
 
@@ -139,8 +145,6 @@ From #149's asset log (`docs/path-assets.md`), which has the full record:
 - **Real-phone frame rate is not measured.** It is not one of #141's acceptance figures. The
   runtime falls back to the stills when the first 60 frames' median is over 33 ms, but no real
   phone has been timed. Left for the owner.
-- GPU memory is over the 64 MB budget on a 2560-wide, ×2 screen (about 74 MB). Fixing it is a
-  runtime change outside #152.
 - GPU memory is an estimate from uploads and canvas size in SwiftShader, not a reading on a real
   GPU.
 - The `lille` and `now` voice clips are over #150's ~60 KB target.
