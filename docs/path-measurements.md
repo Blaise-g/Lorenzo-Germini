@@ -16,10 +16,10 @@ Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun
 | Transfer per scene: Lille, arriving cold | 1.5 MB | 766 KB (183 KB on top of home)           | Yes    |
 | GPU memory, estimated                    | 64 MB  | 13.6–53.7 MB; 74.3 MB on a 2560×2 screen | **No** |
 | Each still                               | 150 KB | Largest 29.7 KB (`lille-light.webp`)     | Yes    |
-| Everything opened                        | 8 MB   | About 1.08 MB, runtime and decoders in   | Yes    |
+| Everything opened                        | 8 MB   | About 1.07 MB, runtime and decoders in   | Yes    |
 | Each voice clip (#150's target)          | ~60 KB | `lille` 82.1 KB and `now` 130.2 KB: over | **No** |
 
-GPU memory is over budget on a 2560-wide screen at pixel ratio 2, and only there of the four sizes measured. Two voice clips are over #150's ~60 KB target for a clip, which is
+GPU memory is over budget on a 2560-wide screen at pixel ratio 2, and only there of the four sizes estimated. Two voice clips are over #150's ~60 KB target for a clip, which is
 not one of #141's budgets. They still count in the 8 MB total.
 
 ## How it was measured
@@ -76,12 +76,12 @@ resolved colour: about 36 bytes a pixel. Uploaded buffers and textures for home 
 add about 1.8 MB (0.6 MB of vertex and index buffers, 1.2 MB of textures counted as RGBA with a
 third more for mipmaps). Those are cumulative uploads, so an upper bound on what is resident.
 
-| Viewport (CSS px, pixel ratio) | Canvas (device px) | Drawing buffer | Total, about | Within 64 MB        |
-| ------------------------------ | ------------------ | -------------- | ------------ | ------------------- |
-| 390, ×3 (phone)                | 513×672            | 11.8 MB        | 13.6 MB      | Yes                 |
-| 1440, ×2 (the measured run)    | 1464×567           | 28.5 MB        | 30.3 MB      | Yes                 |
-| 3840, ×1                       | 3376×448           | 51.9 MB        | 53.7 MB      | Yes                 |
-| 2560, ×2                       | 3144×672           | 72.5 MB        | 74.3 MB      | **No, over budget** |
+| Viewport (CSS px, pixel ratio)                                             | Canvas (device px) | Drawing buffer | Total, about | Within 64 MB        |
+| -------------------------------------------------------------------------- | ------------------ | -------------- | ------------ | ------------------- |
+| 390, ×3 (phone)                                                            | 513×672            | 11.8 MB        | 13.6 MB      | Yes                 |
+| 1440, ×2 (the measured run; the other rows are computed from their canvas) | 1464×567           | 28.5 MB        | 30.3 MB      | Yes                 |
+| 3840, ×1                                                                   | 3376×448           | 51.9 MB        | 53.7 MB      | Yes                 |
+| 2560, ×2                                                                   | 3144×672           | 72.5 MB        | 74.3 MB      | **No, over budget** |
 
 MB here is 1,024² bytes. On a wide high-density screen the stage grows past what the 1.5 cap
 holds under 64 MB. Capping the stage's device-pixel width, or the pixel ratio by area rather than
@@ -108,7 +108,7 @@ File sizes on disk. Each is also checked against the budget by `generate:path-st
 
 ## Everything opened
 
-Home cold (592.1 KB), then Lille (183.4 KB), then every other still in both modes (55.2 KB), then
+Home cold (592.1 KB), then Lille (183.4 KB), then every other still in both modes (55.7 KB, file sizes), then
 every voice clip played (`home` 10.0, `cuneo-2022` 45.8, `lille` 82.1, `now` 130.2: 268.1 KB, file
 sizes) comes to about **1,099 KB, 1.07 MB**, against 8 MB. The three.js runtime and the decoders
 are in it, as above. The voice manifest (1.8 KB) is in the route's data.

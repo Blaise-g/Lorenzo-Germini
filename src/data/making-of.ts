@@ -11,7 +11,7 @@ import type { PathSceneId } from "@/data/path.types";
 export const MAKING_OF_NAMES = ["C2PA", "Hunyuan3D", "3D"] as const;
 
 /** The scenes the prototype builds, in path order. */
-const BUILT_SCENES: PathSceneId[] = ["home", "lille"];
+export const BUILT_SCENES: PathSceneId[] = ["home", "lille"];
 
 export type MakingOfScene = {
   sceneId: PathSceneId;
@@ -52,7 +52,8 @@ export const MAKING_OF = {
   scenes: {
     title: "Inspirations and sources",
     items: BUILT_SCENES.map((sceneId): MakingOfScene => {
-      const step = PATH_STEPS.find((s) => s.sceneId === sceneId)!;
+      const step = PATH_STEPS.find((s) => s.sceneId === sceneId);
+      if (!step) throw new Error(`No step builds the "${sceneId}" scene`);
       return {
         sceneId,
         place: step.place,

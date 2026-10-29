@@ -6,7 +6,7 @@
 
 import { expect, test } from "@playwright/test";
 
-import { MAKING_OF, MAKING_OF_NAMES } from "@/data/making-of";
+import { BUILT_SCENES, MAKING_OF, MAKING_OF_NAMES } from "@/data/making-of";
 import { PATH_STEPS } from "@/data/path";
 
 const section = '[data-flat-site-section="how-this-was-made"]';
@@ -40,7 +40,7 @@ test("names each built scene with its inspirations and sources", async ({
   page,
 }) => {
   await page.goto("/");
-  for (const sceneId of ["home", "lille"] as const) {
+  for (const sceneId of BUILT_SCENES) {
     const step = PATH_STEPS.find((s) => s.sceneId === sceneId)!;
     for (const inspiration of step.illustration.inspirations) {
       await expect(page.locator(section), sceneId).toContainText(inspiration);
@@ -62,4 +62,18 @@ test("states no figures", async ({ page }) => {
   let text = (await page.locator(section).textContent()) ?? "";
   for (const name of MAKING_OF_NAMES) text = text.replaceAll(name, "");
   expect(text).not.toMatch(/\d/);
+});
+
+/* The section says nothing on `/` loads 3D code: the three.js runtime is
+   dynamically imported by `/path`'s stage only. */
+test("/ loads no three.js", async ({ page }) => {
+  const scripts: string[] = [];
+  page.on("response", async (response) => {
+    if (response.request().resourceType() === "script") {
+      scripts.push(await response.text().catch(() => ""));
+    }
+  });
+  await page.goto("/", { waitUntil: "networkidle" });
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const body of scripts) expect(body).not.toContain("WebGLRenderer");
 });

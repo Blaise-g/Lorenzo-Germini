@@ -5,24 +5,20 @@ import { MAKING_OF } from "@/data/making-of";
 export function MakingOf() {
   const { intro, budgets, scenes, assets, voice } = MAKING_OF;
   return (
-    <div className="max-w-[42rem] space-y-8 print:space-y-2">
-      <p className="text-body text-base leading-relaxed text-pretty print:text-[12px]">
-        {intro}
-      </p>
+    <div className="max-w-[42rem] space-y-8">
+      <p className="text-body text-base leading-relaxed text-pretty">{intro}</p>
       <MakingOfPart title={budgets.title} lines={budgets.lines} />
       <div data-making-of-part>
-        <h3 className="font-display text-xl leading-snug print:text-base">
-          {scenes.title}
-        </h3>
+        <h3 className="font-display text-xl leading-snug">{scenes.title}</h3>
         <ul className="mt-3 space-y-4">
           {scenes.items.map((scene) => (
             <li key={scene.sceneId}>
               <p className="text-ink text-base">{scene.place}</p>
-              <p className="text-body mt-1 text-base leading-relaxed text-pretty print:text-[12px]">
+              <p className="text-body mt-1 text-base leading-relaxed text-pretty">
                 {scene.inspirations.join("; ")}.
               </p>
               {scene.sources.length > 0 ? (
-                <ul className="text-faint mt-2 flex flex-col items-start gap-y-5 text-sm leading-relaxed print:gap-y-0">
+                <ul className="text-faint mt-2 flex flex-col items-start gap-y-5 text-sm leading-relaxed">
                   {scene.sources.map((source) => (
                     <li key={source.href}>
                       <a
@@ -56,13 +52,11 @@ function MakingOfPart({
 }) {
   return (
     <div data-making-of-part>
-      <h3 className="font-display text-xl leading-snug print:text-base">
-        {title}
-      </h3>
+      <h3 className="font-display text-xl leading-snug">{title}</h3>
       {lines.map((line) => (
         <p
           key={line}
-          className="text-body mt-3 text-base leading-relaxed text-pretty print:mt-1 print:text-[12px]"
+          className="text-body mt-3 text-base leading-relaxed text-pretty"
         >
           {line}
         </p>
