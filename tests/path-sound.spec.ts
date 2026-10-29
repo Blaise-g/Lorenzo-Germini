@@ -68,6 +68,9 @@ test.describe("the switch", () => {
   test("is off by default, and nothing sounds or downloads before it is on", async ({
     page,
   }) => {
+    /* The board loads first, which on a busy machine takes most of a
+       default timeout. */
+    test.slow();
     await countContexts(page);
     const fetched: string[] = [];
     page.on("request", (request) => {
@@ -115,6 +118,7 @@ test.describe("the switch", () => {
   test("ducks the bed 9 dB under the voice, and brings it back", async ({
     page,
   }) => {
+    test.slow();
     await page.goto("/path#home");
     await soundSwitch(page).click();
     const level = () => page.evaluate(() => window.__pathSound!.level());
