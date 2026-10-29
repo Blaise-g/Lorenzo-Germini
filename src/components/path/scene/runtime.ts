@@ -125,8 +125,10 @@ const MAX_PIECE_DELAY_MS = PROP_DROP_MS * 0.6;
 /** A tile already built, built again, rises from part-way: it stays
  *  standing rather than vanishing and rising from nothing. */
 const REBUILD_FROM = 0.42;
-/** The sun's shadow map, square: crisp contact shadows across the board. */
-const SHADOW_MAP = 2048;
+/** The sun's shadow map, square. 1024 keeps contact shadows a texel or two
+ *  wide across the board; 2048 cost 33.6 MB of the 64 MB GPU budget with its
+ *  depth texture (`docs/path-measurements.md`). */
+const SHADOW_MAP = 1024;
 
 export type SceneSnapshot = {
   buildState: BuildState;
@@ -221,9 +223,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
      terracotta ground, and one sun with soft shadows. Package W4 grades and
      lights the board properly; this is the baseline to judge the models
      by. */
+  /* The room is blurred at 128 (a 384×512 half-float map, 1.6 MB) and the
+     generator freed at once, its ping-pong target with it: a rough board
+     reads no detail in it, and the GPU budget is 64 MB. */
   const pmrem = new PMREMGenerator(renderer);
   const room = new RoomEnvironment();
-  const environment = pmrem.fromScene(room, 0.04);
+  const environment = pmrem.fromScene(room, 0.04, 0.1, 100, { size: 128 });
+  pmrem.dispose();
   room.dispose();
   scene.environment = environment.texture;
   scene.environmentIntensity = 0.35;
@@ -1290,7 +1296,6 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       }
       paintBox.dispose();
       environment.dispose();
-      pmrem.dispose();
       sun.shadow.map?.dispose();
       renderer.dispose();
     },

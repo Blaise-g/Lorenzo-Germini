@@ -102,9 +102,9 @@ export const MAKING_OF = {
   assets: {
     title: "What was generated, and with what",
     lines: [
-      "The scenes are code: three.js, shaded flat in the site's palette. Cuneo's scene has no generated parts, and its stills are renders of the code.",
-      "Lille's belfry and Vieille Bourse began as reference images from OpenAI's gpt-image, through Codex, which Hunyuan3D turned into meshes. Those were simplified and recoloured to the palette. Lille's stills are gpt-image paintings over grey-box renders of the coded scene.",
-      "The generated images carried C2PA metadata naming gpt-image, without a version. Converting them to WebP strips it, so this page says so instead.",
+      "The board is code: three.js, every tile, path and piece modelled from simple solids and coloured in the site's palette. Nothing on it is generated, and its stills are renders of the code.",
+      "Earlier versions were generated. Lille's belfry and Vieille Bourse began as reference images from OpenAI's gpt-image, through Codex, which Hunyuan3D turned into meshes, and a later board stood up die-cut cards that gpt-image drew. Both were retired for the board modelled in code.",
+      "Those generated images carried C2PA metadata naming gpt-image, without a version. Converting them to WebP strips it, so this page says so instead.",
     ],
   },
   voice: {

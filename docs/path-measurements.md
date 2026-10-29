@@ -8,6 +8,80 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The solid board (v3)
+
+v3's board (ticket v3-world) replaced the printed cards with a board modelled in code: thick
+bevelled tiles, solid props and landmark stand-ins, rough `MeshStandardMaterial`s under a
+hemisphere light, a soft-shadowed sun and a small PMREM room (ADR-0010).
+
+Measured 2026-10-29 on a production build of the v3-world tree (`next build`, then
+`next start -p 3264`). Chromium was muted and ran on the machine's GPU (ANGLE Metal, Apple M5).
+The cache was disabled. Units are as below for v2: KB is 1,024 bytes, and an MB is a million
+bytes.
+
+| Budget                   | Budget | Measured                                                 | Within |
+| ------------------------ | ------ | -------------------------------------------------------- | ------ |
+| Transfer per scene, cold | 1.5 MB | 681.5 KB                                                 | Yes    |
+| GPU memory, estimated    | 64 MB  | 29.2–57.9 MB (27.9–55.2 MiB); 53.3 MB at 1440×900 ×2     | Yes    |
+| Each still               | 150 KB | Largest 36.4 KB (`now-dark.webp`)                        | Yes    |
+| Frame time, a build      | 33 ms  | Median 8.3 ms, 95th percentile 8.9–9.1 ms, at every size | Yes    |
+
+**Transfer.** Every landing still loads the same files. `/path#home`, `#lille` and `#next`, cold
+at 1440×900 ×2, came within 1.5 KB of each other. The figures below are `#next`, the largest:
+
+| What                                         | KB    |
+| -------------------------------------------- | ----- |
+| The `/path` HTML                             | 17.2  |
+| Five WOFF2 fonts                             | 255.7 |
+| CSS                                          | 12.3  |
+| JavaScript, Next's and the route's, three.js | 348.3 |
+| `grain.webp` and `landmarks.json`            | 12.0  |
+| The step's still, behind the canvas          | 36.0  |
+| **Total**                                    | 681.5 |
+
+The cards' 735.6 KB is gone. The JavaScript grew 38.8 KB, for `GLTFLoader`, the meshopt
+decoder, `RoomEnvironment` and the board's own code. While `landmarks.json` is `{}`, no model
+is fetched. Each model the landmark package ships adds its own bytes, and it then counts against
+the same 1.5 MB.
+
+**GPU memory** is now counted as what is live once Lille has built. The same wrapped calls as
+before are used, but a deleted texture, buffer or renderbuffer is subtracted, and each texture is
+sized by its own format (half-float targets at 8 bytes a texel). The drawing buffer is unchanged:
+12 bytes a canvas pixel.
+
+| Viewport (CSS px, pixel ratio) | Canvas (device px) | Textures | Buffers | Renderbuffers | Drawing buffer | Total, MB (MiB) |
+| ------------------------------ | ------------------ | -------- | ------- | ------------- | -------------- | --------------- |
+| 375×812, ×3                    | 1125×900           | 10.3     | 6.0     | 0.8           | 12.2           | 29.2 (27.9)     |
+| 1280×720, ×2                   | 2400×750           | 10.3     | 6.0     | 0.8           | 21.6           | 38.7 (36.9)     |
+| 1440×900, ×1                   | 2720×1110          | 10.3     | 6.0     | 0.8           | 36.2           | 53.3 (50.8)     |
+| 1440×900, ×2                   | 2720×1110          | 10.3     | 6.0     | 0.8           | 36.2           | 53.3 (50.8)     |
+| 1920×1080, ×1                  | 2917×1165          | 10.3     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
+| 2560×1440, ×2                  | 2774×1225          | 10.3     | 6.0     | 0.8           | 40.8           | 57.9 (55.2)     |
+
+The first v3 build was over the budget, at 91.9 MB at 1440×900 ×2:
+
+- **The sun's 2048² shadow map** cost 33.6 MB: an RGBA colour target and a depth texture, each
+  16.8 MB. It is now 1024², at 8.4 MB in all. The contact shadows were checked at 1440×900 and
+  still read soft and a texel or two wide.
+- **The PMREM room** was blurred at 256 and its generator was kept until dispose. That cost two
+  768×1024 half-float targets, 12.6 MB, and a depth renderbuffer. It is now blurred at 128 into
+  a 384×512 map, and the generator is freed at once.
+
+The stage is wider than in v2's measurement: 1360×555 at 1440×900, against 920×678. Its
+drawing buffer is therefore 36.2 MB, not 29.9 MB, so a model's textures have about 10 MB of
+headroom at the largest stages. The stage's layout is the overlay's, not this ticket's.
+
+**Frame time.** From `requestAnimationFrame` gaps over a 2.5 s Replay of Lille's build on the
+GPU: a median of 8.3 ms (the display's 120 Hz), and a 95th percentile of 8.9–9.1 ms, at
+375×812 ×3, 1280×720 ×2, 1440×900 ×1 and ×2, and 2560×1440 ×2. Rendering is still on demand: the
+board draws only while something moves, so it costs nothing when settled. The water and the
+grass move only while it draws. Always-on ambient motion is for a later package (W5).
+
+**Stills.** All 14 were rendered again by `generate:path-stills` from the solid board, settled on
+each step, at 1440×900 ×1.5, after the shadow map went to 1024²: 2040×833, 33.4–36.4 KB each
+(494.2 KB in all). The transfer above was measured with the first render, whose `next-light.webp`
+was 36.0 KB, against 35.7 KB now.
+
 ## The board (v2)
 
 The one-scene runtime was replaced by one 3D paper board (v2's board ticket): seven printed tiles

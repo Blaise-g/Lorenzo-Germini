@@ -58,7 +58,7 @@ const SCENE_BYTES = 1.5 * 1024 * 1024;
 /** What a cold `/path` costs before any world file: the HTML, fonts, CSS,
  *  Next's chunks and three.js, measured on a production build
  *  (`docs/path-measurements.md`), rounded up. */
-const PAGE_BYTES = 600 * 1024;
+const PAGE_BYTES = 640 * 1024;
 /** The landmarks shipped: the ids the index lists. */
 async function listedIds(): Promise<string[]> {
   return Object.keys(

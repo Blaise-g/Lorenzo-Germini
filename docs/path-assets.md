@@ -3,8 +3,10 @@
 Every generated asset `/path` ships: the tool that made it, what it was made from, and how long it
 took to make and revise. #152's measurement report reads production and revision time from here.
 The pipeline is #141's decision 11 and research §9 (`docs/research/experience-rethink.md`). Code owns
-the style. GPT Image, through Codex, makes the board's die-cut cards and reference images. v1 also
-used Hunyuan3D for Lille's silhouettes; v2's paper board retired those meshes (see Lille below).
+the style. v1 used Hunyuan3D for Lille's silhouettes, and v2's paper board retired those meshes
+(see Lille below). v2's board stood die-cut cards that GPT Image made through Codex; v3's solid
+board retired them in turn (see "The solid board" below). Since v3 the board is modelled in code,
+and generated landmark models land through `public/path/models/landmarks.json`.
 
 Times are UTC, from a log written as each step started and ended. "Production" is the wall-clock
 time of the generation call itself. "Revision" counts the attempts after the first and the time
@@ -227,6 +229,46 @@ separation by eye) are written by `--preview <dir>`; they are not shipped.
 | `public/path/cards/turin-coils.webp`            | GPT Image via `codex exec -i`, then `generate:path-cards`                                    | comp B + style block; subject: Two coils of copper wire, as used for a rotating magnetic field: two wide flat ellipse-shaped rings of wound copper wire, one tilted left and one tilted right so they cross in an X in the middle, drawn as thick terracotta bands with slate-blue winding lines. Each ring has a large empty open centre. Nothing else.                                                             | 06:55:08–06:56:23 (75 s), 1586×992   | None      | 42.2 KB, 358×270 (budget 60 KB); original 1.32 MB           |
 | `public/path/cards/turin-mole.webp`             | GPT Image via `codex exec -i`, then `generate:path-cards`                                    | comp B + style block; subject: The Mole Antonelliana in Turin, alone: a square base building with a colonnaded front, then the tall four-sided ribbed dome, then the small temple-like colonnade (tempietto), then the lantern and the very tall slender spire with a small star at its tip. Front elevation, tall and narrow, flat bottom edge. No coils, no wires.                                                 | 06:55:56–06:57:01 (65 s), 1024×1536  | None      | 59.1 KB, 320×819 (budget 60 KB); original 1.02 MB           |
 | `public/path/cards/grain.webp`                  | Code (`generate:path-cards`): tileable value noise in three octaves, plus fine tooth, seed 7 | —                                                                                                                                                                                                                                                                                                                                                                                                                    | Under 1 s                            | None      | 11.4 KB, 256×256, one channel stored as grey (budget 20 KB) |
+
+**Retired in v3.** The solid board (ticket v3-world, 2026-10-29) replaced every card with
+geometry modelled in code, so nothing reads them any more. Deleted: the 21 shipped cards in
+`public/path/cards/`, their originals in `vendor/path-cards/` (25 MB),
+`scripts/prepare-path-cards.ts` and its `generate:path-cards` script, the card manifest
+(`card-art.ts`), the ink-separation shader (`ink.ts`) and `tests/path-cards.spec.ts`. The rows
+above stay as the record of how v2 was made. `grain.webp` is kept, moved to
+`public/path/world/grain.webp`, and is now a bump map; nothing regenerates it, since its generator
+went with `prepare-path-cards.ts`. It is 11.4 KB as made.
+
+## The solid board (v3, drawn in code)
+
+No generated asset: the whole board is modelled in code from three.js primitives, so it has no
+production or revision time beyond the code (ticket v3-world, 2026-10-29). Recorded so the log is
+complete.
+
+| Part                    | In code                                 | Made from                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The board and its frame | `world.ts`, `makeBoard`                 | A bevelled rounded slab (`ExtrudeGeometry`) and a raised frame ring, 25.8 × 20.2 units                                                                                                                                                                                                                                                                                                                           |
+| The tiles               | `world.ts`, `makeTileBase`              | A chamfered octagon extruded with a bevel, the card grain as a bump map, and a colour band along the front edge in a second material                                                                                                                                                                                                                                                                             |
+| The path                | `world.ts`, `makePath`                  | Instanced stepping stones, spaced along the CatmullRom spline through the tile centres (`path-spline.ts`), off the tiles, in two tones                                                                                                                                                                                                                                                                           |
+| The pawn                | `world.ts`, `makePawn`                  | A lathe-turned profile with a bevelled rim and a head                                                                                                                                                                                                                                                                                                                                                            |
+| Trees and grass         | `props.ts`, `treeCluster`, `grassField` | Instanced trunks and faceted crowns; instanced three-blade tufts that sway in the vertex shader                                                                                                                                                                                                                                                                                                                  |
+| Water                   | `paint.ts`, `water`                     | A scrolling normal map made in code (64×64 value noise, no request) and a foam line along the banks in the fragment shader                                                                                                                                                                                                                                                                                       |
+| Every prop              | `props.ts`                              | The benchmark table's list: the plateau wedge and its two rivers, the Bisalta's twin crest, Ferraris' coils round a turning rotor, the lake, the Chablais backdrop, Roche's dial, a sailboat, the MVP window (frame, shutters, glass, no label), Lille's pipe loop and clock face, the startup desk (desk, monitor, lamp), the `next` plinth with five empty slots, and Quadrell and the Oracolo as small solids |
+| Landmark stand-ins      | `props.ts`                              | Low-poly solids with each landmark's silhouette: the school, the Mole, the Jet d'Eau and its jetty, the schoolroom, the belfry, the Bourse and the office. Each stands until its model ships                                                                                                                                                                                                                     |
+
+Colour is the path tokens' riso palette, mixed per surface in `paint.ts`. Every material is a
+`MeshStandardMaterial` at high roughness. Nothing in the scene is text: the tile names, plaques
+and the MVP tag are gone, with the canvas label machinery that drew them.
+
+**Landmark models.** `scene-assets.ts` names the seven landmarks a generated model may replace.
+Each entry gives the tile, the prop, the piece whose box it fills, the file under
+`/path/models/`, a scale, the anchor, the turn and the caption line. The board asks for a file
+only when `public/path/models/landmarks.json` lists the id. That index is `{}` until the landmark
+package ships models, so no model is fetched today and every landmark is its stand-in.
+
+**The stills, rendered again (v3).** All 14, made by `generate:path-stills` from the solid board
+settled on each step, at 1440×900 ×1.5: 2040×833, 33.4–36.4 KB each (budget 150 KB). Not timed.
+Rendered twice: the second time after the shadow map went from 2048² to 1024² for the GPU budget.
 
 ## Voice (#150)
 
