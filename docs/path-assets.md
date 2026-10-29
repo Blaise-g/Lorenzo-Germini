@@ -6,7 +6,8 @@ The pipeline is #141's decision 11 and research §9 (`docs/research/experience-r
 the style. v1 used Hunyuan3D for Lille's silhouettes, and v2's paper board retired those meshes
 (see Lille below). v2's board stood die-cut cards that GPT Image made through Codex; v3's solid
 board retired them in turn (see "The solid board" below). Since v3 the board is modelled in code,
-and generated landmark models land through `public/path/models/landmarks.json`.
+and generated landmark models land through `public/path/models/landmarks.json`, the props and
+markers through `props.json` beside it.
 
 Times are UTC, from a log written as each step started and ended. "Production" is the wall-clock
 time of the generation call itself. "Revision" counts the attempts after the first and the time
@@ -264,7 +265,8 @@ and the MVP tag are gone, with the canvas label machinery that drew them.
 Each entry gives the tile, the prop, the piece whose box it fills, the file under
 `/path/models/`, a scale, the anchor, the turn and the caption line. The board asks for a file
 only when `public/path/models/landmarks.json` lists the id. An id the index does not list
-stays its stand-in, with no request; the shipped models are under "Landmarks (v3)" below.
+stays its stand-in, with no request; the shipped models are under "Toy pieces (v3, one style)"
+below.
 
 **The stills, rendered again (v3).** All 14, made by `generate:path-stills` from the solid board
 settled on each step, at 1440×900 ×1.5: 2040×833, 33.2–36.5 KB each (budget 150 KB). Not timed.
@@ -272,6 +274,9 @@ Rendered three times: after the shadow map went from 2048² to 1024² for the GP
 again after the review moved the water's foam before lighting.
 
 ## Landmarks (v3)
+
+This round's photoreal landmarks are superseded by the toy pieces below, which replace their
+files under the same ids. The section stays as the record of the bake-off.
 
 Seven textured landmarks for the 3D path, one per board id, in `public/path/models/` with
 their manifest `landmarks.json`. Each reference went to TRELLIS.2 and Pixal3D (the belfry also to Hunyuan3D-2.1), run in one private paid Space, `Blaise-g/bake-trellis2`, reused as a slot and switched between models and hardware, on the `Blaise-g` account (`sleep_time` 300; every attempt logged, 123
@@ -315,14 +320,19 @@ All times are UTC on 2026-10-29.
   Korea; the owner accepted that exclusion on 2026-10-29. The shipped belfry is the round-one
   output of the public `tencent/Hunyuan3D-2.1` Space on ZeroGPU (no cost to us). Our paid copy
   (Python 3.10, Gradio 5.33.0, `bpy` optional, pydantic 2.11.7, `zero.startup()` guarded) never
-  generated: L40S twice failed to schedule (12:28 and 13:08), and on the A100 attempt (restarted once after a patch, for `spaces.zero` having no `startup`) all six landmarks failed with `tensor does not have a device` from a C++ extension. The
-  rasteriser wheel does carry sm_80, so the architecture was not the cause. The cause is
-  the torch version: upstream leaves torch unpinned (ZeroGPU supplies it), so our build took
-  2.14.1, while the prebuilt `custom_rasterizer` wheel was compiled against torch 2.7. The
-  error's source line, `TensorImpl.h:1265`, is the device check only in torch 2.6–2.8 (2.14.1
-  has it at 1302), and all 17 header assertion lines compiled into the wheel match 2.7.0 and
-  2.7.1 exactly. Against 2.14's `TensorImpl` layout, the wheel's inlined code finds no device.
-  The fix pins `torch==2.7.1` and `torchvision==0.22.1` in our copy.
+  generated in this round: L40S twice failed to schedule (12:28 and 13:08), and on the A100 attempt (restarted once after a patch, for `spaces.zero` having no `startup`) all six landmarks failed with `tensor does not have a device` from a C++ extension. The
+  cause is the torch version: upstream leaves torch unpinned (ZeroGPU supplies it), so our
+  build took 2.14.1, while the prebuilt `custom_rasterizer` wheel was compiled against torch
+  2.7. The error's source line, `TensorImpl.h:1265`, is the device check only in torch 2.6–2.8
+  (2.14.1 has it at 1302), and all 17 header assertion lines compiled into the wheel match
+  2.7.0 and 2.7.1 exactly. Against 2.14's `TensorImpl` layout, the wheel's inlined code finds
+  no device. Pinning `torch==2.7.1` and `torchvision==0.22.1` fixes that, and a second fault
+  follows: the wheel's CUDA code is built for one architecture only, sm_89 (the L40S), as
+  SASS plus PTX. An earlier note here said it carried sm_80; that was read from a string
+  table, not the fatbin, and was wrong. So the A100 (sm_80) fails texturing with "no kernel
+  image is available", while newer GPUs can JIT the sm_89 PTX. The toy round below runs it on
+  RTX PRO 6000 (sm_120), which also needs torch's CUDA 12.8 build for the rest of the model:
+  `torch==2.7.1+cu128` and `torchvision==0.22.1+cu128` from the PyTorch cu128 index.
 - **Hi3DGen** (`Stable-X/Hi3DGen`, A10G large) was dropped: two builds failed, and the third,
   patched, died at startup compiling nvdiffrast. Hi3D v1.0 was not tried (refinement only, a
   custom licence), nor UniForge3D (multi-view input, CC BY-NC).
@@ -346,7 +356,7 @@ Both are cut from the same master: normalised (pitch, then yaw, then Y up, base 
 centred on x/z, height 1), welded, simplified to 10,000 and 2,500 triangles (seams kept where
 the target allows, across them otherwise), with WebP textures at 1024 and 512 (other maps at
 half that) under `EXT_texture_webp`, meshopt compression and a prune. Budgets: 450 KB full,
-160 KB LOD. `--import <glb> <id>` makes a master from a raw output: lossless WebP textures, geometry meshopt-quantized to 16 bits (normals 12), no resize or simplify. No generator double-shaded visibly in the turntables, so no
+160 KB LOD. `--import <glb> <id>` makes a master from a raw output: lossy WebP textures (quality 85, at the generated size), geometry meshopt-quantized to 16 bits (normals 12), no resize or simplify. No generator double-shaded visibly in the turntables, so no
 landmark is de-lit (`flattenShading` 0).
 
 KTX2 is deferred. WebP saves bytes on the wire but decodes to RGBA in GPU memory: a 1024²
@@ -387,6 +397,144 @@ as `tex0.jpeg`.
 The losing candidates are not committed: `/tmp/orch-path-v2/bakeoff/out/trellis2/` and
 `out/pixal3d/` (`*.textured.glb`, the generators' `*.lod.glb`), and TRELLIS.2's 300k-face
 extractions in `out/trellis2/raw300k/`.
+
+## Toy pieces (v3, one style)
+
+Every generated piece, regenerated in one style, a chunky toy board-game piece: the seven
+landmarks under their ids, thirteen props and the two markers that walk the path. All are
+Hunyuan3D-2.1. The landmarks are in `public/path/models/` with `landmarks.json`, as before.
+The props and markers are beside them with `props.json`, kept apart because the scene takes
+every id in `landmarks.json` for a landmark. Nothing under `src/` reads `props.json` yet: the
+scene still builds its props and pawn in code until they are wired in. The props are static
+bodies only. The moving
+parts stay in code: the coils' rotor, the dial's needle, the window's shutters and the
+clock's hands. Side-by-sides (reference, the old piece, the toy at full detail, clay and
+LOD), a contact sheet, and 6 s muted turntables of each marker and of the pair are in
+`/tmp/orch-path-v2/toy/`.
+
+**References.** 23 GPT Image references via `codex exec ... < /dev/null`, 1024×1024, made
+15:33–15:39 UTC. Each is a subject line plus one shared style block: a chunky toy
+board-game piece, matte painted with slightly rounded chunky forms and simplified details,
+a soft clay or vinyl finish, a palette leaning to terracotta, slate blue, cream and
+felt-green, one isolated object on its own small flat base, three-quarter view from about
+20° above, a plain white background with no ground or shadow, and no text, logos or people.
+The markers were drawn as a pair first (`marker-pair`), and each single reference was then
+made from it as an image input. Three references were redrawn after review: the sailboat
+without a stand, the Oracolo without a neck board, and the plinth plain, without arches.
+Prompts, logs and the first drafts are in `/tmp/orch-path-v2/toy/refs/`. The markers' subjects
+are those of the pair, which each single reference was drawn from.
+
+| Reference               | Subject (prompt, abridged)                                                                                                                                                                      |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `home-school`           | A generic Italian liceo (high school) as a toy: a three-storey late-19th-century civic block, ochre-cream walls, pale window surrounds, regular rows of tall windows with slate-blue …          |
+| `turin-mole`            | The Mole Antonelliana in Turin as a toy, keeping its silhouette: a square colonnaded base building, a very tall square-based ribbed dome with steep concave sides, a small colonnaded lantern … |
+| `switzerland-jet-d-eau` | The Jet d'Eau's jetty on Lake Geneva as a toy, without the water jet and without water: a long, straight, narrow stone jetty with a low parapet, its far end widening slightly to carry a …     |
+| `cuneo-2022-schoolroom` | The classroom wing of a generic Italian liceo as a toy: a two-storey block, ochre-cream walls, pale window surrounds, a row of large tall classroom windows with slate-blue shutters, a plain … |
+| `lille-bourse`          | One wing of the Vieille Bourse courtyard in Lille as a toy, keeping its character: at ground level a covered gallery behind a row of round stone arches on columns, above it two storeys of …   |
+| `lille-belfry`          | The belfry of the Chamber of Commerce in Lille as a toy, keeping its silhouette: a tall slender square tower in terracotta brick with cream stone bands and corners, a large round clock face … |
+| `now-office`            | A small generic modern office building as a toy: a compact two-storey block with a glass curtain wall in slim slate-blue mullions, a cream concrete frame around it, a recessed glazed …        |
+| `bisalta`               | The Bisalta, the mountain behind Cuneo, as a toy diorama piece: one broad mountain with two summits of about the same height, side by side, snow caps on their tops, lower shoulders at …       |
+| `ferraris-coils`        | Galileo Ferraris' rotating magnetic field apparatus as a toy, without its rotor: three copper coils, each a short stack of three wound rings stood on edge, set 120 degrees apart around an …   |
+| `chablais`              | The Chablais mountains as a toy diorama backdrop piece: a long row of several pointed mountain peaks of varied heights side by side, snow caps on their tops, on a long flat base.              |
+| `sailboat`              | A small toy sailboat: a single-masted sailing boat with a rounded hull and one triangular sail, cut flat at the waterline.                                                                      |
+| `roche-dial`            | A toy gauge on a post, without its needle: a round dial face with a thick rim and tick marks around its upper arc, no numerals and no needle, mounted upright on a slender post on a small …    |
+| `mvp-window`            | A toy window standing on a short stub of wall, without shutters: a rectangular window frame with glass panes, set in a short stub of wall, on a small base. No shutters, nothing written on …   |
+| `clock-face`            | A toy clock face on a post, without hands: a round clock face with a thick rim and twelve tick marks, no numerals and no hands, mounted upright on a slender post on a small stone base.        |
+| `startup-desk`          | A toy startup desk set as one piece: a simple wooden desk on four legs with a computer monitor on it and a desk lamp with two arms and a conical shade, on the desk top.                        |
+| `next-plinth`           | A toy plinth: a plain low rectangular plinth block with five empty square clue slots in a row along its top, each an empty recess with a rim. The plinth's sides are plain, with no arches …    |
+| `tree-round`            | A single toy tree: a round, lobed deciduous crown on a short trunk, on a small round base.                                                                                                      |
+| `tree-conifer`          | A single toy conifer tree: a stacked triangular crown in tiers on a short trunk, on a small round base.                                                                                         |
+| `quadrell`              | A toy of four rounded building blocks set as a square, two by two, like a studio's building bricks, on a low square base.                                                                       |
+| `oracolo`               | A toy frame of a quiz-show guillotine, kept simple and playful: two upright posts joined by a crossbar at the top, and a slanted blade held between the posts just under the crossbar, on a …   |
+| `marker-lorenzo`        | a cute chunky toy figurine of a tall, slender young man with curly brown hair and a beard, a slightly big head and a simple friendly face, standing upright facing forward, in plain casual …   |
+| `marker-robot`          | a cute small round friendly robot buddy, an original design that resembles no known character (not WALL-E, R2-D2, BB-8, Baymax, EVE or the Android logo): a round body, a round head with a …   |
+
+**Generation.** Hunyuan3D-2.1 (`tencent/Hunyuan3D-2.1@61d23d8c`, the community licence noted
+above) in the private Space `Blaise-g/demo_render`, repurposed with the owner's approval, on
+RTX PRO 6000 ($2.75/h): 30 steps, guidance 5.0, octree resolution 256, seed 1234. The
+references went in as RGBA, the white background cut away by a flood fill from the border,
+with the Space's own background removal off. Through the Space's removal, the first robot
+grew a flat sheet across the whole volume at its base. The cut reference does not have it.
+For the Oracolo, the white opening the frame encloses was cut as well. The Bisalta shipped
+from the plain reference, which gave a clean model. The figure was generated twice. Seed
+4321 ships for its evener eyes and brows and its smile; seed 1234 is kept for comparison in
+`/tmp/orch-path-v2/toy/out/hunyuan21/`. No asset needed the TRELLIS.2 fallback.
+
+**Yaw.** Hunyuan stood most pieces square to the axes with the reference's view toward +Z, so
+most need no turn. Each yaw was picked on front renders at the four quarter turns: the
+entrance, the clock face or the screen toward +Z. Two differ from 0:
+
+- `turin-mole` at -90°, which puts forward the face with the entrance steps, as in the
+  reference.
+- `chablais` at -71.3°, from its footprint's principal axis (it came out turned), so the
+  long side of the range faces +Z.
+
+The jetty lies along Z with the lighthouse at -Z, as the code-built jetty does and its piece's
+box (0.5 wide, 1.1 deep) expects. The photoreal one lay along X.
+
+**Cleanup.** The same `prepare:path-landmarks` steps and normalisation, with a budget per kind.
+The masters keep the generated textures as lossy WebP at quality 85; the open items have their
+size.
+
+| Kind     | Full                                | LOD                               |
+| -------- | ----------------------------------- | --------------------------------- |
+| Landmark | 10,000 triangles, 1024 px, ≤ 450 KB | 2,500 triangles, 512 px, ≤ 160 KB |
+| Prop     | 5,000 triangles, 512 px, ≤ 150 KB   | 2,000 triangles, 256 px, ≤ 60 KB  |
+| Marker   | 8,000 triangles, 1024 px, ≤ 300 KB  | 2,000 triangles, 512 px, ≤ 100 KB |
+
+A marker keeps more triangles and texture than a prop because it is seen close, for the
+face. At 1,500 triangles, the Chablais LOD lost 1.02% of its height at its tallest peak, past
+the 1% the LOD may drift. At 2,000 the peak holds. The 44 shipped models and their two manifests total 4,107,186 B (4.1 MB).
+
+| Asset                   | Kind, step            | Generated (UTC), seed           | Cost   | Yaw    | Raw → master          | Shipped full                | Shipped LOD                |
+| ----------------------- | --------------------- | ------------------------------- | ------ | ------ | --------------------- | --------------------------- | -------------------------- |
+| `home-school`           | landmark, home        | 16:33:40–16:35:23 (103 s), 1234 | $0.079 | 0°     | 5,456,772 → 662,580 B | 207,776 B, 10,000 triangles | 75,856 B, 2,500 triangles  |
+| `turin-mole`            | landmark, turin       | 16:35:26–16:36:43 (77 s), 1234  | $0.059 | -90°   | 8,016,296 → 972,200 B | 291,200 B, 10,000 triangles | 101,228 B, 2,500 triangles |
+| `switzerland-jet-d-eau` | landmark, switzerland | 16:36:44–16:38:07 (83 s), 1234  | $0.063 | 0°     | 5,213,824 → 539,896 B | 176,968 B, 10,000 triangles | 68,756 B, 2,500 triangles  |
+| `cuneo-2022-schoolroom` | landmark, cuneo-2022  | 16:38:28–16:40:14 (106 s), 1234 | $0.081 | 0°     | 6,008,868 → 723,504 B | 234,056 B, 10,000 triangles | 92,904 B, 2,500 triangles  |
+| `lille-bourse`          | landmark, lille       | 16:41:33–16:43:20 (107 s), 1234 | $0.082 | 0°     | 5,782,964 → 737,116 B | 240,804 B, 10,000 triangles | 92,984 B, 2,500 triangles  |
+| `lille-belfry`          | landmark, lille       | 16:40:19–16:41:30 (72 s), 1234  | $0.055 | 0°     | 5,740,052 → 668,888 B | 241,192 B, 10,000 triangles | 95,192 B, 2,500 triangles  |
+| `now-office`            | landmark, now         | 16:43:22–16:45:16 (114 s), 1234 | $0.087 | 0°     | 4,734,220 → 484,304 B | 171,552 B, 10,000 triangles | 68,020 B, 2,500 triangles  |
+| `bisalta`               | prop, home            | 16:28:41–16:30:11 (90 s), 1234  | $0.068 | 0°     | 5,338,736 → 543,200 B | 99,032 B, 5,000 triangles   | 41,592 B, 2,000 triangles  |
+| `ferraris-coils`        | prop, turin           | 16:49:43–16:51:32 (109 s), 1234 | $0.083 | 0°     | 5,487,424 → 564,160 B | 96,556 B, 5,000 triangles   | 41,232 B, 1,990 triangles  |
+| `chablais`              | prop, switzerland     | 16:45:21–16:46:39 (78 s), 1234  | $0.060 | -71.3° | 6,052,332 → 622,964 B | 97,432 B, 5,000 triangles   | 44,192 B, 2,000 triangles  |
+| `sailboat`              | prop, switzerland     | 16:53:02–16:54:26 (84 s), 1234  | $0.064 | 0°     | 3,293,860 → 340,932 B | 64,580 B, 5,000 triangles   | 30,684 B, 2,000 triangles  |
+| `roche-dial`            | prop, switzerland     | 16:51:33–16:53:01 (87 s), 1234  | $0.067 | 0°     | 4,365,380 → 408,920 B | 78,548 B, 5,000 triangles   | 34,512 B, 2,000 triangles  |
+| `mvp-window`            | prop, cuneo-2022      | 16:54:28–16:56:13 (105 s), 1234 | $0.080 | 0°     | 5,068,648 → 566,964 B | 98,364 B, 5,000 triangles   | 46,092 B, 2,000 triangles  |
+| `clock-face`            | prop, lille           | 16:56:17–16:57:43 (86 s), 1234  | $0.066 | 0°     | 4,164,856 → 412,460 B | 81,084 B, 5,000 triangles   | 36,516 B, 2,000 triangles  |
+| `startup-desk`          | prop, now             | 16:57:46–16:59:26 (100 s), 1234 | $0.076 | 0°     | 3,727,248 → 368,696 B | 67,740 B, 5,000 triangles   | 32,560 B, 2,000 triangles  |
+| `next-plinth`           | prop, next            | 16:59:27–17:00:52 (85 s), 1234  | $0.065 | 0°     | 4,299,040 → 382,484 B | 61,880 B, 5,000 triangles   | 31,024 B, 2,000 triangles  |
+| `tree-round`            | prop, —               | 16:46:41–16:48:14 (93 s), 1234  | $0.071 | 0°     | 3,631,412 → 356,252 B | 64,768 B, 5,000 triangles   | 31,040 B, 2,000 triangles  |
+| `tree-conifer`          | prop, —               | 16:48:15–16:49:42 (87 s), 1234  | $0.066 | 0°     | 4,376,772 → 381,604 B | 68,900 B, 5,000 triangles   | 32,216 B, 2,000 triangles  |
+| `quadrell`              | prop, —               | 17:00:53–17:02:32 (99 s), 1234  | $0.076 | 0°     | 4,700,004 → 388,344 B | 66,400 B, 5,000 triangles   | 31,260 B, 2,000 triangles  |
+| `oracolo`               | prop, —               | 17:02:34–17:03:57 (82 s), 1234  | $0.063 | 0°     | 5,189,468 → 491,388 B | 83,168 B, 5,000 triangles   | 37,972 B, 2,000 triangles  |
+| `marker-lorenzo`        | marker, —             | 17:04:27–17:05:43 (76 s), 4321  | $0.058 | 0°     | 5,566,776 → 521,064 B | 153,676 B, 8,000 triangles  | 59,924 B, 2,000 triangles  |
+| `marker-robot`          | marker, —             | 16:27:07–16:28:36 (89 s), 1234  | $0.068 | 0°     | 5,324,036 → 521,956 B | 156,544 B, 8,000 triangles  | 62,344 B, 2,000 triangles  |
+
+Generation costs are the run's seconds at $2.75/h, $1.54 in all. The build and idle
+minutes are in the spend below.
+
+**The markers' scale.** Each marker is one unit tall like everything else; the scene sets their
+relative size. In the approved pair reference, the robot, antenna and base included, is
+590 px tall against the figure's 977: a ratio of **0.60**, with the robot's head at about
+his hip. Matched by their bases instead (306 and 318 px across in the pair), the models give
+0.55, so the two measures agree within about 10%. The pair turntable uses 0.604.
+
+**Spend.** 94.9 GPU-minutes, about $4.11, against the 150-minute cap for this round, build
+and idle minutes included:
+
+| Hardware     | Window (UTC)                 | Minutes | Cost  |
+| ------------ | ---------------------------- | ------- | ----- |
+| A100 large   | 15:23–15:48                  | 25.0    | $1.04 |
+| L40S         | 15:54–16:02, never scheduled | 8.3     | $0.25 |
+| RTX PRO 6000 | 16:03–16:09 and 16:11–17:06  | 61.6    | $2.82 |
+
+The L40S minutes are counted though the Space never scheduled there. The A100 ran the
+torch-pinned build, then failed texturing for want of an sm_80 kernel. The first RTX PRO
+6000 build failed in the image encoder on the CUDA 12.6 torch, and the cu128 pin fixed it.
+At the end `demo_render` was paused. Setting it back to cpu-basic was refused with 402: "Without a PRO
+subscription, you can't downgrade this Space to cpu-basic. Pause it instead to stop hardware
+charges". So it stays paused with RTX PRO 6000 requested, which does not bill while paused.
 
 ## Voice (#150)
 
@@ -453,15 +601,21 @@ silent (`tests/path-sound.spec.ts`), never by playing it aloud.
 - **DINOv3 came from a mirror.** TRELLIS.2 and Pixal3D condition on DINOv3, and our Space
   copies loaded it from `camenduru/dinov3-vitl16-pretrain-lvd1689m`, which skips Meta's licence
   gate. Whether the DINOv3 licence's terms reach the generated landmarks was not checked.
-- **Hunyuan3D-2.1 covers only the belfry so far.** Our paid copy never generated (A100: `tensor
-does not have a device`, traced above to the unpinned torch), so it was not compared on the
-  other six. The owner asked for a retry on the four buildings with the torch pin. It waits
-  on Hugging Face's Space-creation limit (20 a day): a create at 14:40 on 2026-10-29 was
-  refused with "retry in about 22 hours". Its licence excludes the EU,
-  the UK and South Korea; the owner accepted that on 2026-10-29.
-- **Known flaws in the picks.** `home-school` has see-through window holes. `lille-bourse` has
-  pale brick and a crumpled roof. `cuneo-2022-schoolroom` grew an annex the reference does not
-  have, and as Pixal3D output it does not quite match the TRELLIS.2 facade beside it.
+- **Every generated piece is now Hunyuan3D-2.1,** whose licence territory excludes the EU, the
+  UK and South Korea; the owner accepted that on 2026-10-29.
+- **`demo_render` cannot go back to cpu-basic** without a PRO subscription. It is paused with
+  RTX PRO 6000 requested, which does not bill while paused. A restart would bill at
+  $2.75/h until it sleeps (`sleep_time` 300).
+- **Known flaws in the toy pieces.** The sides a reference does not show are plainer: the school
+  has a blank back wall. The Quadrell's block colours bleed across faces.
+  The figure's curls flatten a little at 8,000 triangles, and the LOD faceting shows on the face
+  up close.
+- **The masters are 11.7 MB** (11,659,876 B) for 22 pieces, in plain git. Their textures are
+  lossy WebP at quality 85, at the 2048 px Hunyuan generates; with lossless WebP they were
+  53.1 MB. Re-running `prepare:path-landmarks` from them keeps every model within its budget,
+  with the same triangles and bounds, but no longer reproduces the shipped bytes: each file
+  came out 56–3,856 B smaller. A diff in `public/path/models/` after a rerun is that, not a
+  regression.
 - **The LOD can drift up to 1% of the height** from the full file's bounds, since both share one
   placement and simplifying pulls extremes in. It never sinks below the ground.
 - **KTX2 textures are deferred.**

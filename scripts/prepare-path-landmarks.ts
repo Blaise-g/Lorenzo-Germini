@@ -1,18 +1,20 @@
-/* Turns the image-to-3D landmarks into the GLBs the path scene loads. Each
-   raw generator output is kept in `vendor/path-models/<id>.glb` (textures
-   lossless, geometry meshopt-quantized to 16 bits, nothing simplified or resized:
+/* Turns the image-to-3D landmarks, props and markers into the GLBs the path
+   scene loads. Each raw generator output is kept in `vendor/path-models/<id>.glb` (textures
+   lossy WebP at full size, geometry meshopt-quantized to 16 bits, nothing simplified or resized:
    the master the shipped files are cut from). From it this writes two files under `public/path/models/`:
 
-     <id>.glb       about 10k triangles, 1024 px WebP textures
-     <id>.lod.glb   about 2.5k triangles, 512 px WebP textures
+     <id>.glb       the full model, its triangles and textures per `DETAIL`
+     <id>.lod.glb   the far-away cut of the same master
 
    Both are normalised to one convention: Y up, the base at y = 0, centred on
    x and z, one unit tall. The steps are weld, simplify (seams kept where the
    target allows), WebP
    textures, meshopt and prune; `landmarks.json` beside them records what was
-   applied to each, and the integrating scene reads it.
+   applied to each landmark, and the integrating scene reads it. `props.json`
+   does the same for the props and the two markers, kept apart because the
+   scene takes every id in `landmarks.json` for a landmark.
 
-     bun run prepare:path-landmarks                   every landmark
+     bun run prepare:path-landmarks                   every model
      bun run prepare:path-landmarks --import <glb> <id>
                                                       keep a new raw output */
 
@@ -51,15 +53,34 @@ import sharp from "sharp";
 
 const VENDOR = path.join(process.cwd(), "vendor", "path-models");
 const OUT = path.join(process.cwd(), "public", "path", "models");
-export const MANIFEST = path.join(OUT, "landmarks.json");
+
+export type Kind = "landmark" | "prop" | "marker";
+
+export const MANIFEST: Record<Kind, string> = {
+  landmark: path.join(OUT, "landmarks.json"),
+  prop: path.join(OUT, "props.json"),
+  marker: path.join(OUT, "props.json"),
+};
 
 /** What each shipped file may cost. The bytes are a ceiling, not a target:
- *  the benchmark measured the belfry at about 280 KB and 95 KB. */
+ *  the benchmark measured the belfry at about 280 KB and 95 KB. A prop sits
+ *  small at the edge of a tile; a marker is seen close, so it keeps more
+ *  triangles and texture for the face than a prop. */
 export const DETAIL = {
-  full: { triangles: 10_000, texture: 1024, maxBytes: 450 * 1024 },
-  lod: { triangles: 2_500, texture: 512, maxBytes: 160 * 1024 },
+  landmark: {
+    full: { triangles: 10_000, texture: 1024, maxBytes: 450 * 1024 },
+    lod: { triangles: 2_500, texture: 512, maxBytes: 160 * 1024 },
+  },
+  prop: {
+    full: { triangles: 5_000, texture: 512, maxBytes: 150 * 1024 },
+    lod: { triangles: 2_000, texture: 256, maxBytes: 60 * 1024 },
+  },
+  marker: {
+    full: { triangles: 8_000, texture: 1024, maxBytes: 300 * 1024 },
+    lod: { triangles: 2_000, texture: 512, maxBytes: 100 * 1024 },
+  },
 } as const;
-export type Detail = keyof typeof DETAIL;
+export type Detail = keyof (typeof DETAIL)["landmark"];
 
 /** How far the simplifier may move a vertex, as a share of the mesh's size.
  *  Loose on purpose: the triangle target is what stops it. */
@@ -67,10 +88,12 @@ const SIMPLIFY_ERROR = 0.05;
 /** WebP quality for the shipped colour textures. */
 const WEBP_QUALITY = 78;
 
-export interface Landmark {
+export interface PathModel {
   id: string;
-  /** The `src/data/path.ts` step it stands on. */
-  step: string;
+  kind: Kind;
+  /** The `src/data/path.ts` step it stands on; null for what is not tied to
+   *  one: the side props, the trees and the markers. */
+  step: string | null;
   model: string;
   licence: string;
   /** Turn about Y, in degrees, applied before centring, so its front faces +Z. */
@@ -87,77 +110,69 @@ export interface Landmark {
 const HUNYUAN = "Hunyuan3D-2.1";
 const HUNYUAN_LICENCE =
   "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)";
-const TRELLIS = "TRELLIS.2-4B";
-const PIXAL = "Pixal3D";
-const MIT = "MIT";
 
-/** One per board card that has a landmark (`SceneAsset.id` in
- *  `src/components/path/scene/card-art.ts`). The picks and their reasons are in
- *  `docs/path-assets.md`; the yaw and pitch were measured on each master. */
-export const LANDMARKS: readonly Landmark[] = [
-  {
-    id: "home-school",
-    step: "home",
-    model: TRELLIS,
-    licence: MIT,
-    yaw: 0,
-    pitch: 0,
-    flattenShading: 0,
-  },
-  {
-    id: "turin-mole",
-    step: "turin",
-    model: PIXAL,
-    licence: MIT,
-    yaw: 0,
-    pitch: 0,
-    flattenShading: 0,
-  },
-  {
-    id: "switzerland-jet-d-eau",
-    step: "switzerland",
-    model: TRELLIS,
-    licence: MIT,
-    yaw: 44.1,
-    pitch: 0,
-    flattenShading: 0,
-  },
-  {
-    id: "cuneo-2022-schoolroom",
-    step: "cuneo-2022",
-    model: PIXAL,
-    licence: MIT,
-    yaw: -39.3,
-    pitch: 12,
-    flattenShading: 0,
-  },
-  {
-    id: "lille-bourse",
-    step: "lille",
-    model: TRELLIS,
-    licence: MIT,
-    yaw: 0,
-    pitch: 0,
-    flattenShading: 0,
-  },
-  {
-    id: "lille-belfry",
-    step: "lille",
+/** One toy piece from Hunyuan3D-2.1, standing level as generated, its
+ *  albedo kept: only the yaw that brings its front to +Z differs. */
+function toy(kind: Kind, id: string, step: string | null, yaw = 0): PathModel {
+  return {
+    id,
+    kind,
+    step,
     model: HUNYUAN,
     licence: HUNYUAN_LICENCE,
-    yaw: 0,
+    yaw,
     pitch: 0,
     flattenShading: 0,
-  },
-  {
-    id: "now-office",
-    step: "now",
-    model: TRELLIS,
-    licence: MIT,
-    yaw: 0,
-    pitch: 0,
-    flattenShading: 0,
-  },
+  };
+}
+
+/** One per board landmark (`SceneAsset.id` in
+ *  `src/components/path/scene/scene-assets.ts`). The yaws were picked on
+ *  renders of each master; the reasons are in `docs/path-assets.md`. */
+export const LANDMARKS: readonly PathModel[] = [
+  toy("landmark", "home-school", "home"),
+  toy("landmark", "turin-mole", "turin", -90),
+  toy("landmark", "switzerland-jet-d-eau", "switzerland"),
+  toy("landmark", "cuneo-2022-schoolroom", "cuneo-2022"),
+  toy("landmark", "lille-bourse", "lille"),
+  toy("landmark", "lille-belfry", "lille"),
+  toy("landmark", "now-office", "now"),
+];
+
+/** The board's other pieces, each standing in for a piece `props.ts` builds
+ *  in code: the same name, except `ferraris-coils` for `coils`, `next-plinth`
+ *  for `blank`, and the two trees for the `trees*` clusters. Static bodies
+ *  only: the moving parts (the coils' rotor, the dial's needle, the window's
+ *  shutters, the clock's hands) are left to code. The trees and the side props
+ *  belong to no step. */
+export const PROPS: readonly PathModel[] = [
+  toy("prop", "bisalta", "home"),
+  toy("prop", "ferraris-coils", "turin"),
+  toy("prop", "chablais", "switzerland", -71.3),
+  toy("prop", "sailboat", "switzerland"),
+  toy("prop", "roche-dial", "switzerland"),
+  toy("prop", "mvp-window", "cuneo-2022"),
+  toy("prop", "clock-face", "lille"),
+  toy("prop", "startup-desk", "now"),
+  toy("prop", "next-plinth", "next"),
+  toy("prop", "tree-round", null),
+  toy("prop", "tree-conifer", null),
+  toy("prop", "quadrell", null),
+  toy("prop", "oracolo", null),
+];
+
+/** The two pieces that walk the path: Lorenzo and the robot. Each is one unit
+ *  tall like everything else; their relative size is the scene's to set. */
+export const MARKERS: readonly PathModel[] = [
+  toy("marker", "marker-lorenzo", null),
+  toy("marker", "marker-robot", null),
+];
+
+/** Every model the script prepares, in the order it prepares them. */
+export const MODELS: readonly PathModel[] = [
+  ...LANDMARKS,
+  ...PROPS,
+  ...MARKERS,
 ];
 
 /* ---------- normalisation ---------- */
@@ -488,28 +503,34 @@ async function shippedTextures(
   }
 }
 
-/** Re-encodes each PNG texture as lossless WebP where that is smaller, and
- *  leaves the rest as generated: a palette PNG can grow as WebP, and
- *  re-encoding a JPEG or a lossy WebP losslessly only makes it bigger. */
-async function losslessTextures(document: Document): Promise<void> {
+/** The masters' texture quality: lossy, at full resolution, so the 22
+ *  masters stay small enough for plain git. */
+export const MASTER_WEBP_QUALITY = 85;
+
+/** Re-encodes every texture as lossy WebP at `MASTER_WEBP_QUALITY`, at its
+ *  own size. Every one is converted, whatever its declared type: Hunyuan
+ *  labels a JPEG `image/png`. */
+async function masterTextures(document: Document): Promise<void> {
   for (const texture of document.getRoot().listTextures()) {
     const image = texture.getImage();
-    if (!image || texture.getMimeType() !== "image/png") continue;
+    if (!image) continue;
     const webp = await sharp(image)
-      .webp({ lossless: true, effort: 6 })
+      .webp({ quality: MASTER_WEBP_QUALITY, effort: 6 })
       .toBuffer();
-    if (webp.length < image.length) {
-      document.createExtension(EXTTextureWebP).setRequired(true);
-      texture.setImage(webp).setMimeType("image/webp");
-    }
+    document.createExtension(EXTTextureWebP).setRequired(true);
+    texture.setImage(webp).setMimeType("image/webp");
   }
 }
 
 /** Keeps a raw generator output as the master: meshopt at 16 bits, textures
- *  lossless, nothing simplified or resized. */
-export async function importRaw(file: string, id: string): Promise<number> {
+ *  lossy WebP, nothing simplified or resized. */
+export async function importRaw(
+  file: string,
+  id: string,
+  vendorDir = VENDOR,
+): Promise<number> {
   const document = await readGlb(file);
-  await losslessTextures(document);
+  await masterTextures(document);
   await document.transform(
     dedup(),
     meshopt({
@@ -520,9 +541,9 @@ export async function importRaw(file: string, id: string): Promise<number> {
     }),
     prune(),
   );
-  await mkdir(VENDOR, { recursive: true });
+  await mkdir(vendorDir, { recursive: true });
   const bytes = await (await gltfIO()).writeBinary(document);
-  await writeFile(path.join(VENDOR, `${id}.glb`), bytes);
+  await writeFile(path.join(vendorDir, `${id}.glb`), bytes);
   return bytes.length;
 }
 
@@ -535,11 +556,11 @@ export interface Shipped {
 
 async function ship(
   master: Document,
-  landmark: Landmark,
+  asset: PathModel,
   detail: Detail,
   outDir: string,
 ): Promise<Shipped> {
-  const { triangles, texture } = DETAIL[detail];
+  const { triangles, texture } = DETAIL[asset.kind][detail];
   const welded = cloneDocument(master);
   await welded.transform(weld());
   const document = await simplifyTo(welded, triangles);
@@ -553,8 +574,7 @@ async function ship(
     meshopt({ encoder: MeshoptEncoder, level: "high" }),
     prune(),
   );
-  const name =
-    detail === "full" ? `${landmark.id}.glb` : `${landmark.id}.lod.glb`;
+  const name = detail === "full" ? `${asset.id}.glb` : `${asset.id}.lod.glb`;
   const bytes = await (await gltfIO()).writeBinary(document);
   await writeFile(path.join(outDir, name), bytes);
   return {
@@ -566,7 +586,8 @@ async function ship(
 }
 
 export interface ManifestEntry {
-  step: string;
+  kind: Kind;
+  step: string | null;
   file: string;
   lodFile: string;
   triangles: number;
@@ -578,43 +599,44 @@ export interface ManifestEntry {
   normalisation: Normalisation & { flattenShading: number };
 }
 
-/** Cuts the shipped pair from a master, by default the landmark's own in
+/** Cuts the shipped pair from a master, by default the model's own in
  *  `vendor/path-models/` into `public/path/models/`; the bake-off renders
  *  candidates through the same steps from elsewhere. */
 export async function prepare(
-  landmark: Landmark,
-  source = path.join(VENDOR, `${landmark.id}.glb`),
+  asset: PathModel,
+  source = path.join(VENDOR, `${asset.id}.glb`),
   outDir = OUT,
 ): Promise<ManifestEntry> {
   const master = await readGlb(source);
   // The master is stored quantized; the simplifier weighs UVs as floats in 0–1.
   await master.transform(dequantize());
-  const normalisation = normalise(master, landmark.yaw, landmark.pitch);
-  if (landmark.flattenShading > 0) {
+  const normalisation = normalise(master, asset.yaw, asset.pitch);
+  if (asset.flattenShading > 0) {
     for (const texture of baseColourTextures(master)) {
       const image = texture.getImage();
       if (!image) continue;
       texture
-        .setImage(await flattenShading(image, landmark.flattenShading))
+        .setImage(await flattenShading(image, asset.flattenShading))
         .setMimeType("image/png");
     }
   }
   await mkdir(outDir, { recursive: true });
-  const full = await ship(master, landmark, "full", outDir);
-  const lod = await ship(master, landmark, "lod", outDir);
+  const full = await ship(master, asset, "full", outDir);
+  const lod = await ship(master, asset, "lod", outDir);
   return {
-    step: landmark.step,
+    kind: asset.kind,
+    step: asset.step,
     file: full.file,
     lodFile: lod.file,
     triangles: full.triangles,
     lodTriangles: lod.triangles,
     bytes: full.bytes,
     lodBytes: lod.bytes,
-    model: landmark.model,
-    licence: landmark.licence,
+    model: asset.model,
+    licence: asset.licence,
     normalisation: {
       ...normalisation,
-      flattenShading: landmark.flattenShading,
+      flattenShading: asset.flattenShading,
     },
   };
 }
@@ -633,28 +655,32 @@ async function main() {
   }
 
   await mkdir(OUT, { recursive: true });
-  const manifest: Record<string, ManifestEntry> = {};
+  const manifests = new Map<string, Record<string, ManifestEntry>>();
   let failed = false;
-  for (const landmark of LANDMARKS) {
-    const entry = await prepare(landmark);
-    manifest[landmark.id] = entry;
+  for (const asset of MODELS) {
+    const entry = await prepare(asset);
+    const file = MANIFEST[asset.kind];
+    manifests.set(file, { ...manifests.get(file), [asset.id]: entry });
     const kb = (bytes: number) => `${(bytes / 1024).toFixed(0)} KB`;
     console.log(
-      `${landmark.id}: ${entry.triangles} tris ${kb(entry.bytes)}; ` +
+      `${asset.id}: ${entry.triangles} tris ${kb(entry.bytes)}; ` +
         `LOD ${entry.lodTriangles} tris ${kb(entry.lodBytes)}`,
     );
+    const budget = DETAIL[asset.kind];
     if (
-      entry.bytes > DETAIL.full.maxBytes ||
-      entry.lodBytes > DETAIL.lod.maxBytes
+      entry.bytes > budget.full.maxBytes ||
+      entry.lodBytes > budget.lod.maxBytes
     ) {
-      console.error(`${landmark.id}: over its byte budget`);
+      console.error(`${asset.id}: over its byte budget`);
       failed = true;
     }
   }
-  const previous = await readFile(MANIFEST, "utf8").catch(() => "");
-  // Formatted as `format:check` expects, so a rerun leaves the checked-in manifest alone.
-  const next = await format(JSON.stringify(manifest), { filepath: MANIFEST });
-  if (previous !== next) await writeFile(MANIFEST, next);
+  for (const [file, manifest] of manifests) {
+    const previous = await readFile(file, "utf8").catch(() => "");
+    // Formatted as `format:check` expects, so a rerun leaves the checked-in manifest alone.
+    const next = await format(JSON.stringify(manifest), { filepath: file });
+    if (previous !== next) await writeFile(file, next);
+  }
   if (failed) process.exit(1);
 }
 

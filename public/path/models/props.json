@@ -1,0 +1,355 @@
+{
+  "bisalta": {
+    "kind": "prop",
+    "step": "home",
+    "file": "/path/models/bisalta.glb",
+    "lodFile": "/path/models/bisalta.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 99032,
+    "lodBytes": 41592,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 1.0823079537740399,
+      "offset": [
+        0.004877451506912341, 0.5041560619335124, 0.006637816244577159
+      ],
+      "sourceSize": [
+        1.9868170022964478, 0.9239514470100403, 1.7331820726394653
+      ],
+      "flattenShading": 0
+    }
+  },
+  "ferraris-coils": {
+    "kind": "prop",
+    "step": "turin",
+    "file": "/path/models/ferraris-coils.glb",
+    "lodFile": "/path/models/ferraris-coils.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 1990,
+    "bytes": 96556,
+    "lodBytes": 41232,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 1.0574207629271049,
+      "offset": [0.004098563556790664, 0.5011139898079363, 0.00414772476417353],
+      "sourceSize": [
+        1.9873597025871277, 0.9456973373889923, 1.9876629710197449
+      ],
+      "flattenShading": 0
+    }
+  },
+  "chablais": {
+    "kind": "prop",
+    "step": "switzerland",
+    "file": "/path/models/chablais.glb",
+    "lodFile": "/path/models/chablais.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 97432,
+    "lodBytes": 44192,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": -71.3,
+      "scale": 1.6243294837855966,
+      "offset": [-0.01705925792712105, 0.5075661245930939, 0.104194476508545],
+      "sourceSize": [
+        2.0452768802642822, 0.6156386435031891, 0.8997333347797394
+      ],
+      "flattenShading": 0
+    }
+  },
+  "sailboat": {
+    "kind": "prop",
+    "step": "switzerland",
+    "file": "/path/models/sailboat.glb",
+    "lodFile": "/path/models/sailboat.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 64580,
+    "lodBytes": 30684,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5029837009536121,
+      "offset": [
+        0.003839274897335174, 0.5018751243989464, 0.0019694345024388418
+      ],
+      "sourceSize": [
+        1.7214695811271667, 1.9881359934806824, 0.7902304828166962
+      ],
+      "flattenShading": 0
+    }
+  },
+  "roche-dial": {
+    "kind": "prop",
+    "step": "switzerland",
+    "file": "/path/models/roche-dial.glb",
+    "lodFile": "/path/models/roche-dial.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 78548,
+    "lodBytes": 34512,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5032259194635333,
+      "offset": [0.002448204421132373, 0.501833000133296, 0.001477474113758488],
+      "sourceSize": [
+        1.2385680079460144, 1.9871790409088135, 0.8223562836647034
+      ],
+      "flattenShading": 0
+    }
+  },
+  "mvp-window": {
+    "kind": "prop",
+    "step": "cuneo-2022",
+    "file": "/path/models/mvp-window.glb",
+    "lodFile": "/path/models/mvp-window.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 98364,
+    "lodBytes": 46092,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.50612010702687,
+      "offset": [
+        0.001988299083357304, 0.5017240955410449, -0.0033196414880409288
+      ],
+      "sourceSize": [
+        1.9884989857673645, 1.9758155941963196, 0.9806254804134369
+      ],
+      "flattenShading": 0
+    }
+  },
+  "clock-face": {
+    "kind": "prop",
+    "step": "lille",
+    "file": "/path/models/clock-face.glb",
+    "lodFile": "/path/models/clock-face.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 81084,
+    "lodBytes": 36516,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5032664502821774,
+      "offset": [
+        0.0026154699961276847, 0.5020722090017031, 0.0019315379858088307
+      ],
+      "sourceSize": [
+        1.1689738035202026, 1.9870190024375916, 0.5698421597480774
+      ],
+      "flattenShading": 0
+    }
+  },
+  "startup-desk": {
+    "kind": "prop",
+    "step": "now",
+    "file": "/path/models/startup-desk.glb",
+    "lodFile": "/path/models/startup-desk.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 67740,
+    "lodBytes": 32560,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5028858085935205,
+      "offset": [
+        0.0022634965415618065, 0.5017799656374281, 0.0018835569218521259
+      ],
+      "sourceSize": [1.9872485995292664, 1.988523006439209, 1.3060396909713745],
+      "flattenShading": 0
+    }
+  },
+  "next-plinth": {
+    "kind": "prop",
+    "step": "next",
+    "file": "/path/models/next-plinth.glb",
+    "lodFile": "/path/models/next-plinth.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 61880,
+    "lodBytes": 31024,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 1.7741368919810192,
+      "offset": [
+        0.007006042689348368, 0.5048070379993721, 0.006732845833539098
+      ],
+      "sourceSize": [1.988294005393982, 0.563654363155365, 0.7449655532836914],
+      "flattenShading": 0
+    }
+  },
+  "tree-round": {
+    "kind": "prop",
+    "step": null,
+    "file": "/path/models/tree-round.glb",
+    "lodFile": "/path/models/tree-round.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 64768,
+    "lodBytes": 31040,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5030854178984134,
+      "offset": [
+        0.0017419449421075394, 0.5021506872108709, 0.0009173836548611588
+      ],
+      "sourceSize": [1.4485034346580505, 1.9877340197563171, 1.52323979139328],
+      "flattenShading": 0
+    }
+  },
+  "tree-conifer": {
+    "kind": "prop",
+    "step": null,
+    "file": "/path/models/tree-conifer.glb",
+    "lodFile": "/path/models/tree-conifer.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 68900,
+    "lodBytes": 32216,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5031216109376516,
+      "offset": [
+        0.004187982910459121, 0.5018215544755206, 0.001635896384612312
+      ],
+      "sourceSize": [1.1696136593818665, 1.987591028213501, 1.1543277502059937],
+      "flattenShading": 0
+    }
+  },
+  "quadrell": {
+    "kind": "prop",
+    "step": null,
+    "file": "/path/models/quadrell.glb",
+    "lodFile": "/path/models/quadrell.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 66400,
+    "lodBytes": 31260,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.7641038932908061,
+      "offset": [
+        0.0030082816099908545, 0.5027137248772255, 0.002960528578014905
+      ],
+      "sourceSize": [1.987807035446167, 1.3087225556373596, 1.9879890084266663],
+      "flattenShading": 0
+    }
+  },
+  "oracolo": {
+    "kind": "prop",
+    "step": null,
+    "file": "/path/models/oracolo.glb",
+    "lodFile": "/path/models/oracolo.lod.glb",
+    "triangles": 5000,
+    "lodTriangles": 2000,
+    "bytes": 83168,
+    "lodBytes": 37972,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5033989417806531,
+      "offset": [
+        0.0020113344767006287, 0.5022924805312359, 0.0019660195536630857
+      ],
+      "sourceSize": [1.412620723247528, 1.9864960312843323, 0.5406528413295746],
+      "flattenShading": 0
+    }
+  },
+  "marker-lorenzo": {
+    "kind": "marker",
+    "step": null,
+    "file": "/path/models/marker-lorenzo.glb",
+    "lodFile": "/path/models/marker-lorenzo.lod.glb",
+    "triangles": 8000,
+    "lodTriangles": 2000,
+    "bytes": 153676,
+    "lodBytes": 59924,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5030527747049719,
+      "offset": [
+        0.003092518870682799, 0.5022670066124637, 0.0011965152747278349
+      ],
+      "sourceSize": [0.7108913660049438, 1.987863004207611, 0.6936013996601105],
+      "flattenShading": 0
+    }
+  },
+  "marker-robot": {
+    "kind": "marker",
+    "step": null,
+    "file": "/path/models/marker-robot.glb",
+    "lodFile": "/path/models/marker-robot.lod.glb",
+    "triangles": 8000,
+    "lodTriangles": 2000,
+    "bytes": 156544,
+    "lodBytes": 62344,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5031646601270998,
+      "offset": [
+        0.004030093999737459, 0.5020149270360654, -0.0009494685168644064
+      ],
+      "sourceSize": [1.333155632019043, 1.9874209761619568, 1.2310158610343933],
+      "flattenShading": 0
+    }
+  }
+}

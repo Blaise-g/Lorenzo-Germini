@@ -1,6 +1,6 @@
-/* The path scene's image-to-3D landmarks: the manifest the integrating scene
-   reads, the GLBs it names, and the normalisation that makes them
-   interchangeable. No browser: the files are read with glTF-Transform. */
+/* The path scene's image-to-3D landmarks, props and markers: the manifests
+   the integrating scene reads, the GLBs they name, and the normalisation that
+   makes them interchangeable. No browser: the files are read with glTF-Transform. */
 
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -15,10 +15,12 @@ import { MeshoptDecoder, MeshoptEncoder } from "meshoptimizer";
 import { expect, test } from "@playwright/test";
 import sharp from "sharp";
 
+import { LANDMARK_INDEX } from "@/components/path/scene/scene-assets";
 import {
   DETAIL,
   LANDMARKS,
   MANIFEST,
+  MODELS,
   flattenShading,
   normalise,
   prepare,
@@ -35,11 +37,14 @@ const QUANTISED = 2e-3;
 /** The LOD keeps the full file's placement, so the scene can swap one for the
  *  other without a jump; simplifying may pull its extremes in by this much. */
 const LOD_DRIFT = 0.01;
+/** The masters together, the top of the 10–15 MB the owner set so they stay
+ *  in plain git rather than LFS. */
+const MASTERS_MAX_BYTES = 15_000_000;
 
 const shipped = (file: string) => path.join(process.cwd(), "public", file);
 
-async function manifest(): Promise<Record<string, ManifestEntry>> {
-  return JSON.parse(await readFile(MANIFEST, "utf8"));
+async function manifest(file: string): Promise<Record<string, ManifestEntry>> {
+  return JSON.parse(await readFile(file, "utf8"));
 }
 
 function sceneBounds(document: Document) {
@@ -48,42 +53,78 @@ function sceneBounds(document: Document) {
   return { min, max };
 }
 
-test.describe("the landmark manifest", () => {
-  test("lists exactly the landmarks the script prepares, each with its master", async () => {
-    const entries = await manifest();
-    expect(Object.keys(entries).sort()).toEqual(
-      LANDMARKS.map((landmark) => landmark.id).sort(),
-    );
-    for (const landmark of LANDMARKS) {
+test.describe("the manifests", () => {
+  for (const file of new Set(Object.values(MANIFEST))) {
+    test(`${path.basename(file)} lists exactly the models the script prepares for it`, async () => {
+      const entries = await manifest(file);
+      expect(Object.keys(entries).sort()).toEqual(
+        MODELS.filter((asset) => MANIFEST[asset.kind] === file)
+          .map((asset) => asset.id)
+          .sort(),
+      );
+    });
+  }
+
+  test("only the landmarks are written to the index the scene reads: it takes each id there for one", () => {
+    const index = path.join(process.cwd(), "public", LANDMARK_INDEX);
+    for (const kind of Object.keys(MANIFEST) as (keyof typeof MANIFEST)[]) {
+      expect(MANIFEST[kind] === index, kind).toBe(kind === "landmark");
+    }
+  });
+
+  test("each model has its master, and its entry matches what the script applies", async () => {
+    for (const asset of MODELS) {
+      const entries = await manifest(MANIFEST[asset.kind]);
       const master = path.join(
         process.cwd(),
         "vendor",
         "path-models",
-        `${landmark.id}.glb`,
+        `${asset.id}.glb`,
       );
-      expect((await stat(master)).size, landmark.id).toBeGreaterThan(0);
-      expect(entries[landmark.id].model, landmark.id).toBe(landmark.model);
-      expect(entries[landmark.id].licence, landmark.id).toBe(landmark.licence);
+      expect((await stat(master)).size, asset.id).toBeGreaterThan(0);
+      expect(entries[asset.id].model, asset.id).toBe(asset.model);
+      expect(entries[asset.id].licence, asset.id).toBe(asset.licence);
       // A placement edited without a rerun leaves the shipped files stale.
-      const { step, normalisation } = entries[landmark.id];
-      expect({ step, ...normalisation }, landmark.id).toMatchObject({
-        step: landmark.step,
-        yaw: landmark.yaw,
-        pitch: landmark.pitch,
-        flattenShading: landmark.flattenShading,
+      const { kind, step, normalisation } = entries[asset.id];
+      expect({ kind, step, ...normalisation }, asset.id).toMatchObject({
+        kind: asset.kind,
+        step: asset.step,
+        yaw: asset.yaw,
+        pitch: asset.pitch,
+        flattenShading: asset.flattenShading,
       });
     }
   });
 
-  for (const landmark of LANDMARKS) {
+  test("the masters keep lossy WebP textures, small enough for plain git", async () => {
+    let total = 0;
+    for (const asset of MODELS) {
+      const master = path.join(
+        process.cwd(),
+        "vendor",
+        "path-models",
+        `${asset.id}.glb`,
+      );
+      total += (await stat(master)).size;
+      for (const texture of (await readGlb(master)).getRoot().listTextures()) {
+        expect(texture.getMimeType(), asset.id).toBe("image/webp");
+        // A lossy WebP's first chunk is `VP8 `; a lossless one's is `VP8L`.
+        const chunk = Buffer.from(texture.getImage()!.subarray(12, 16));
+        expect(chunk.toString("latin1"), asset.id).toBe("VP8 ");
+      }
+    }
+    expect(total).toBeLessThanOrEqual(MASTERS_MAX_BYTES);
+  });
+
+  for (const asset of MODELS) {
     for (const detail of ["full", "lod"] as Detail[]) {
-      test(`${landmark.id} (${detail}) exists, fits its budget, parses and is normalised`, async () => {
-        const entry = (await manifest())[landmark.id];
+      test(`${asset.id} (${detail}) exists, fits its budget, parses and is normalised`, async () => {
+        const entry = (await manifest(MANIFEST[asset.kind]))[asset.id];
         const file = detail === "full" ? entry.file : entry.lodFile;
         const recordedBytes = detail === "full" ? entry.bytes : entry.lodBytes;
         const recordedTriangles =
           detail === "full" ? entry.triangles : entry.lodTriangles;
-        const budget = DETAIL[detail];
+        const budget = DETAIL[asset.kind][detail];
 
         const bytes = (await stat(shipped(file))).size;
         expect(bytes).toBe(recordedBytes);
@@ -314,7 +355,8 @@ test.describe("simplifyTo", () => {
     const entry = await prepare(
       {
         id: "grid",
-        step: "",
+        kind: "landmark",
+        step: null,
         model: "",
         licence: "",
         yaw: 0,
@@ -326,8 +368,9 @@ test.describe("simplifyTo", () => {
     );
 
     expect(entry.triangles).toBe(3200);
-    expect(entry.lodTriangles).toBeLessThanOrEqual(DETAIL.lod.triangles);
-    expect(entry.lodTriangles).toBeGreaterThan(DETAIL.lod.triangles * 0.8);
+    const { lod } = DETAIL.landmark;
+    expect(entry.lodTriangles).toBeLessThanOrEqual(lod.triangles);
+    expect(entry.lodTriangles).toBeGreaterThan(lod.triangles * 0.8);
   });
 });
 

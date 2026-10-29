@@ -1,163 +1,166 @@
 {
   "home-school": {
+    "kind": "landmark",
     "step": "home",
     "file": "/path/models/home-school.glb",
     "lodFile": "/path/models/home-school.lod.glb",
-    "triangles": 9586,
-    "lodTriangles": 2436,
-    "bytes": 438472,
-    "lodBytes": 134800,
-    "model": "TRELLIS.2-4B",
-    "licence": "MIT",
-    "normalisation": {
-      "upAxis": "+Y",
-      "pitch": 0,
-      "yaw": 0,
-      "scale": 1.1287700312555675,
-      "offset": [
-        0.0003710320311705256, 0.5006012135147632, 0.006066430056585119
-      ],
-      "sourceSize": [
-        0.9960863292217255, 0.8859200477600098, 0.9750197529792786
-      ],
-      "flattenShading": 0
-    }
-  },
-  "turin-mole": {
-    "step": "turin",
-    "file": "/path/models/turin-mole.glb",
-    "lodFile": "/path/models/turin-mole.lod.glb",
-    "triangles": 9951,
-    "lodTriangles": 2402,
-    "bytes": 349192,
-    "lodBytes": 110304,
-    "model": "Pixal3D",
-    "licence": "MIT",
-    "normalisation": {
-      "upAxis": "+Y",
-      "pitch": 0,
-      "yaw": 0,
-      "scale": 1.2114946157531121,
-      "offset": [
-        -0.00016899110522962933, 0.4612312994128836, 0.016225754713806585
-      ],
-      "sourceSize": [
-        0.40191909670829773, 0.8254266977310181, 0.40141527354717255
-      ],
-      "flattenShading": 0
-    }
-  },
-  "switzerland-jet-d-eau": {
-    "step": "switzerland",
-    "file": "/path/models/switzerland-jet-d-eau.glb",
-    "lodFile": "/path/models/switzerland-jet-d-eau.lod.glb",
-    "triangles": 9659,
-    "lodTriangles": 2499,
-    "bytes": 286848,
-    "lodBytes": 107368,
-    "model": "TRELLIS.2-4B",
-    "licence": "MIT",
-    "normalisation": {
-      "upAxis": "+Y",
-      "pitch": 0,
-      "yaw": 44.1,
-      "scale": 3.2903389091736357,
-      "offset": [0.028396335899720185, 0.5147911352032999, 0.0192629780841382],
-      "sourceSize": [
-        1.307737112045288, 0.30392006039619446, 0.15923374891281128
-      ],
-      "flattenShading": 0
-    }
-  },
-  "cuneo-2022-schoolroom": {
-    "step": "cuneo-2022",
-    "file": "/path/models/cuneo-2022-schoolroom.glb",
-    "lodFile": "/path/models/cuneo-2022-schoolroom.lod.glb",
-    "triangles": 9733,
-    "lodTriangles": 2500,
-    "bytes": 326752,
-    "lodBytes": 111036,
-    "model": "Pixal3D",
-    "licence": "MIT",
-    "normalisation": {
-      "upAxis": "+Y",
-      "pitch": 12,
-      "yaw": -39.3,
-      "scale": 2.1646076687822617,
-      "offset": [
-        -0.010105382794009726, 0.36714702782821057, -0.048610376410066915
-      ],
-      "sourceSize": [0.8153637945652008, 0.461977481842041, 0.5677537024021149],
-      "flattenShading": 0
-    }
-  },
-  "lille-bourse": {
-    "step": "lille",
-    "file": "/path/models/lille-bourse.glb",
-    "lodFile": "/path/models/lille-bourse.lod.glb",
-    "triangles": 9759,
-    "lodTriangles": 2454,
-    "bytes": 407596,
-    "lodBytes": 120752,
-    "model": "TRELLIS.2-4B",
-    "licence": "MIT",
-    "normalisation": {
-      "upAxis": "+Y",
-      "pitch": 0,
-      "yaw": 0,
-      "scale": 1.2471933307646899,
-      "offset": [
-        0.0014657696783156855, 0.5048060593621294, -0.0010524475324333368
-      ],
-      "sourceSize": [
-        0.9955510497093201, 0.8018003106117249, 0.41663843393325806
-      ],
-      "flattenShading": 0
-    }
-  },
-  "lille-belfry": {
-    "step": "lille",
-    "file": "/path/models/lille-belfry.glb",
-    "lodFile": "/path/models/lille-belfry.lod.glb",
     "triangles": 10000,
     "lodTriangles": 2500,
-    "bytes": 252544,
-    "lodBytes": 91752,
+    "bytes": 207776,
+    "lodBytes": 75856,
     "model": "Hunyuan3D-2.1",
     "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
     "normalisation": {
       "upAxis": "+Y",
       "pitch": 0,
       "yaw": 0,
-      "scale": 0.5030441771564634,
+      "scale": 0.5915480483008965,
       "offset": [
-        0.0020403467898791705, 0.5020793294381818, 0.0018137257121347643
+        0.0023744828560814603, 0.5028701892957591, 0.003173945677992707
       ],
-      "sourceSize": [0.4269789308309555, 1.987896978855133, 0.4223075211048126],
+      "sourceSize": [1.9885820150375366, 1.6904797554016113, 1.358756184577942],
       "flattenShading": 0
     }
   },
-  "now-office": {
-    "step": "now",
-    "file": "/path/models/now-office.glb",
-    "lodFile": "/path/models/now-office.lod.glb",
-    "triangles": 8932,
-    "lodTriangles": 2490,
-    "bytes": 357420,
-    "lodBytes": 129444,
-    "model": "TRELLIS.2-4B",
-    "licence": "MIT",
+  "turin-mole": {
+    "kind": "landmark",
+    "step": "turin",
+    "file": "/path/models/turin-mole.glb",
+    "lodFile": "/path/models/turin-mole.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 291200,
+    "lodBytes": 101228,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": -90,
+      "scale": 0.5036479256633998,
+      "offset": [
+        -0.0018420947641433348, 0.5025217645480313, 0.002254326049429869
+      ],
+      "sourceSize": [0.7473172247409821, 1.985513985157013, 0.7301082909107208],
+      "flattenShading": 0
+    }
+  },
+  "switzerland-jet-d-eau": {
+    "kind": "landmark",
+    "step": "switzerland",
+    "file": "/path/models/switzerland-jet-d-eau.glb",
+    "lodFile": "/path/models/switzerland-jet-d-eau.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 176968,
+    "lodBytes": 68756,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
     "normalisation": {
       "upAxis": "+Y",
       "pitch": 0,
       "yaw": 0,
-      "scale": 1.4786924109955764,
+      "scale": 1.7724962663639752,
       "offset": [
-        0.009914105267759571, 0.5001680330682733, -0.00014723275140333833
+        0.007894701533093918, 0.5060743426729876, 0.006911822377812693
       ],
       "sourceSize": [
-        0.9575705826282501, 0.6762731671333313, 0.9997041821479797
+        0.43268460035324097, 0.564176082611084, 1.9873530268669128
       ],
+      "flattenShading": 0
+    }
+  },
+  "cuneo-2022-schoolroom": {
+    "kind": "landmark",
+    "step": "cuneo-2022",
+    "file": "/path/models/cuneo-2022-schoolroom.glb",
+    "lodFile": "/path/models/cuneo-2022-schoolroom.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 234056,
+    "lodBytes": 92904,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.7126160253247485,
+      "offset": [
+        0.0027350222162417104, 0.5030147215732007, -0.0012068060941414092
+      ],
+      "sourceSize": [1.988294005393982, 1.403280258178711, 1.1898695230484009],
+      "flattenShading": 0
+    }
+  },
+  "lille-bourse": {
+    "kind": "landmark",
+    "step": "lille",
+    "file": "/path/models/lille-bourse.glb",
+    "lodFile": "/path/models/lille-bourse.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 240804,
+    "lodBytes": 92984,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.6667547342275211,
+      "offset": [
+        0.002669011425732737, 0.5027383606557376, 0.0037234873323397913
+      ],
+      "sourceSize": [
+        1.9871419668197632, 1.4998018741607666, 0.9697680175304413
+      ],
+      "flattenShading": 0
+    }
+  },
+  "lille-belfry": {
+    "kind": "landmark",
+    "step": "lille",
+    "file": "/path/models/lille-belfry.glb",
+    "lodFile": "/path/models/lille-belfry.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 241192,
+    "lodBytes": 95192,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.5029852239911838,
+      "offset": [
+        0.0020936823926498483, 0.5018937328254358, 0.0020081712086054363
+      ],
+      "sourceSize": [0.495773509144783, 1.98812997341156, 0.48187895119190216],
+      "flattenShading": 0
+    }
+  },
+  "now-office": {
+    "kind": "landmark",
+    "step": "now",
+    "file": "/path/models/now-office.glb",
+    "lodFile": "/path/models/now-office.lod.glb",
+    "triangles": 10000,
+    "lodTriangles": 2500,
+    "bytes": 171552,
+    "lodBytes": 68020,
+    "model": "Hunyuan3D-2.1",
+    "licence": "Tencent Hunyuan 3D 2.1 Community License (its territory excludes the EU, UK and South Korea; the owner accepted that on 2026-10-29)",
+    "normalisation": {
+      "upAxis": "+Y",
+      "pitch": 0,
+      "yaw": 0,
+      "scale": 0.656361335623546,
+      "offset": [
+        0.0013882115860739891, 0.5063476722006953, 0.002421643644239288
+      ],
+      "sourceSize": [1.9824185371398926, 1.5235510468482971, 1.988061010837555],
       "flattenShading": 0
     }
   }
