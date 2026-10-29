@@ -263,13 +263,124 @@ and the MVP tag are gone, with the canvas label machinery that drew them.
 **Landmark models.** `scene-assets.ts` names the seven landmarks a generated model may replace.
 Each entry gives the tile, the prop, the piece whose box it fills, the file under
 `/path/models/`, a scale, the anchor, the turn and the caption line. The board asks for a file
-only when `public/path/models/landmarks.json` lists the id. That index is `{}` until the landmark
-package ships models, so no model is fetched today and every landmark is its stand-in.
+only when `public/path/models/landmarks.json` lists the id. An id the index does not list
+stays its stand-in, with no request; the shipped models are under "Landmarks (v3)" below.
 
 **The stills, rendered again (v3).** All 14, made by `generate:path-stills` from the solid board
 settled on each step, at 1440×900 ×1.5: 2040×833, 33.2–36.5 KB each (budget 150 KB). Not timed.
 Rendered three times: after the shadow map went from 2048² to 1024² for the GPU budget, and
 again after the review moved the water's foam before lighting.
+
+## Landmarks (v3)
+
+Seven textured landmarks for the 3D path, one per board id, in `public/path/models/` with
+their manifest `landmarks.json`. Each reference went to TRELLIS.2 and Pixal3D (the belfry also to Hunyuan3D-2.1), run in one private paid Space, `Blaise-g/bake-trellis2`, reused as a slot and switched between models and hardware, on the `Blaise-g` account (`sleep_time` 300; every attempt logged, 123
+rows, in `/tmp/orch-path-v2/bakeoff/log.jsonl`). The picks were judged on renders (front,
+three-quarter, clay and wire, at full detail and at the LOD); the side-by-sides and 6 s muted
+turntables are in `/tmp/orch-path-v2/landmarks/`.
+
+**References.** GPT Image via `codex exec ... < /dev/null`, 1024×1024, each checked full size
+for text, signage, people and logos (none). Every prompt ends with the same requirements: a
+single isolated object for image-to-3D, three-quarter view from about 20° above, plain white
+background with no ground or shadow, soft even studio light, a crisp stylised architectural
+model look, no text, letters, numbers or signage, no people, vehicles or other buildings.
+Prompts and logs are in `/tmp/orch-path-v2/bakeoff/refs/`.
+
+| Reference               | Subject (prompt, abridged)                                                                                                                        | Made                     | Bytes     |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ | --------- |
+| `lille-belfry`          | The CCI belfry (Cordonnier, neo-Flemish, 1910–21): slender red-brick tower, pale stone bands, round clock with plain ticks, tiered lantern, spire | 10:44:57–10:46:12 (75 s) | 991,868   |
+| `mole-antonelliana`     | The Mole Antonelliana: colonnaded square base, tall ribbed dome, lantern temple, very tall spire with a star; dome and spire dominate             | 10:44:57–10:45:58 (61 s) | 1,044,376 |
+| `jet-deau-jetty`        | The Jet d'Eau's jetty without the jet: long narrow masonry pier, low parapet, small lighthouse at the far end, cut flat at the waterline          | 11:36:24–11:37:19 (55 s) | 971,009   |
+| `liceo-facade`          | A generic Italian liceo, no identifiable building: three storeys, ochre render, stone surrounds, green shutters, portal, terracotta roof          | 11:36:24–11:37:44 (80 s) | 1,519,706 |
+| `liceo-classroom-block` | The classroom wing of the same generic liceo: two storeys, tall shuttered windows, plain side door, terracotta roof                               | 11:36:24–11:37:24 (60 s) | 1,241,813 |
+| `vieille-bourse-arcade` | One wing of the Vieille Bourse courtyard: arched gallery on columns, two storeys of red brick with carved stone, steep roof with dormers          | 11:36:24–11:37:27 (63 s) | 1,583,769 |
+| `office-front`          | A small generic modern office: glass curtain wall in dark mullions, light concrete frame, recessed entrance, flat roof, no logos                  | 11:36:24–11:37:24 (60 s) | 1,088,736 |
+
+All times are UTC on 2026-10-29.
+
+**Models.** Generation used seed 1234, resolution 1024, and extraction to 10,000 faces with a
+2048 texture. Our Space copies were patched to run; the patches and the per-run logs are in
+`/tmp/orch-path-v2/bakeoff/` (`space.py`, `logs-*.txt`).
+
+- **TRELLIS.2-4B** (MIT), from `microsoft/TRELLIS.2@ebf60b20`, on RTX PRO 6000 ($2.75/h).
+  Patches: OpenEXR enabled for OpenCV, a libstdc++ preload, the minimum face slider at 1000,
+  BiRefNet (MIT) in place of the gated RMBG background remover, and DINOv3 loaded from the
+  `camenduru/dinov3-vitl16-pretrain-lvd1689m` mirror (see Open items).
+- **Pixal3D** (MIT), from `TencentARC/Pixal3D@40a1519a`, on RTX PRO 6000. The TRELLIS.2
+  patches, plus `trimesh>=4.10.1`, MoGe pinned at `07444410`, `skip_validation`, and a flat grey
+  HDRI where upstream's `sunset.exr` is missing and OpenCV 5.0 reads no EXR. It builds in its
+  estimated camera's frame, so a model comes out tilted by the reference's view pitch.
+- **Hunyuan3D-2.1** (Tencent Hunyuan 3D 2.1 Community License), from
+  `tencent/Hunyuan3D-2.1@61d23d8c`. Its licence territory excludes the EU, the UK and South
+  Korea; the owner accepted that exclusion on 2026-10-29. The shipped belfry is the round-one
+  output of the public `tencent/Hunyuan3D-2.1` Space on ZeroGPU (no cost to us). Our paid copy
+  (Python 3.10, Gradio 5.33.0, `bpy` optional, pydantic 2.11.7, `zero.startup()` guarded) never
+  generated: L40S twice failed to schedule (12:28 and 13:08), and on the A100 attempt (restarted once after a patch, for `spaces.zero` having no `startup`) all six landmarks failed with `tensor does not have a device` from a C++ extension. The
+  rasteriser wheel does carry sm_80, so the architecture was not the cause.
+- **Hi3DGen** (`Stable-X/Hi3DGen`, A10G large) was dropped: two builds failed, and the third,
+  patched, died at startup compiling nvdiffrast. Hi3D v1.0 was not tried (refinement only, a
+  custom licence), nor UniForge3D (multi-view input, CC BY-NC).
+
+**Spend.** 111.8 GPU-minutes, about $4.45 (totals taken before rounding), under the 140-minute cap the Coordinator set for the A100 attempt (the ticket's was 120). Build minutes on paid
+hardware are counted.
+
+| Model         | Hardware     | Minutes | Cost  |
+| ------------- | ------------ | ------- | ----- |
+| Hunyuan3D-2.1 | L40S         | 27.1    | $0.81 |
+| Hunyuan3D-2.1 | A100 large   | 23.3    | $0.97 |
+| Pixal3D       | RTX PRO 6000 | 35.0    | $1.60 |
+| TRELLIS.2     | RTX PRO 6000 | 19.0    | $0.87 |
+| Hi3DGen       | A10G large   | 7.3     | $0.18 |
+
+Every bake-off Space was deleted by 13:46:28; the account's listing shows only its five
+older CPU Spaces.
+
+**Cleanup.** `bun run prepare:path-landmarks` (`scripts/prepare-path-landmarks.ts`) reads the masters in `vendor/path-models/<id>.glb` and writes `<id>.glb` and `<id>.lod.glb`.
+Both are cut from the same master: normalised (pitch, then yaw, then Y up, base at y=0,
+centred on x/z, height 1), welded, simplified to 10,000 and 2,500 triangles (seams kept where
+the target allows, across them otherwise), with WebP textures at 1024 and 512 (other maps at
+half that) under `EXT_texture_webp`, meshopt compression and a prune. Budgets: 450 KB full,
+160 KB LOD. `--import <glb> <id>` makes a master from a raw output: lossless WebP textures, geometry meshopt-quantized to 16 bits (normals 12), no resize or simplify. No generator double-shaded visibly in the turntables, so no
+landmark is de-lit (`flattenShading` 0).
+
+KTX2 is deferred. WebP saves bytes on the wire but decodes to RGBA in GPU memory: a 1024²
+texture with mips is about 5.6 MB there, against about 1.4 MB as BC7/ASTC (UASTC) or about
+0.7 MB as ETC1S. At 2048² that is about 22 MB against 5.6 MB or 2.8 MB.
+
+| Asset                   | Model, generated (UTC)                                            | Cost   | Turned                                                | Raw → master            | Shipped full                | Shipped LOD                |
+| ----------------------- | ----------------------------------------------------------------- | ------ | ----------------------------------------------------- | ----------------------- | --------------------------- | -------------------------- |
+| `home-school`           | TRELLIS.2, from `liceo-facade`, 13:13:54–13:15:40 (107 s)         | $0.081 | —                                                     | 1,937,852 → 1,559,108 B | 438,472 B, 9,586 triangles  | 134,800 B, 2,436 triangles |
+| `turin-mole`            | Pixal3D, 12:48:13–12:49:27 (73 s)                                 | $0.056 | — (level to 1°)                                       | 1,408,112 → 1,052,360 B | 349,192 B, 9,951 triangles  | 110,304 B, 2,402 triangles |
+| `switzerland-jet-d-eau` | TRELLIS.2, 13:13:17–13:13:54 (37 s)                               | $0.028 | yaw 44.1°, long side to +Z (footprint PCA)            | 1,381,696 → 1,072,508 B | 286,848 B, 9,659 triangles  | 107,368 B, 2,499 triangles |
+| `cuneo-2022-schoolroom` | Pixal3D, from `liceo-classroom-block`, 12:57:39–12:58:25 (46 s)   | $0.035 | pitch 12°, yaw -39.3° (base plane fit; level to 0.2°) | 1,274,704 → 958,852 B   | 326,752 B, 9,733 triangles  | 111,036 B, 2,500 triangles |
+| `lille-bourse`          | TRELLIS.2, from `vieille-bourse-arcade`, 13:11:45–13:13:17 (92 s) | $0.07  | —                                                     | 1,903,284 → 1,485,496 B | 407,596 B, 9,759 triangles  | 120,752 B, 2,454 triangles |
+| `lille-belfry`          | Hunyuan3D-2.1, ZeroGPU, 10:46:39–10:48:48 (129 s)                 | Free   | —                                                     | 6,125,988 → 2,972,376 B | 252,544 B, 10,000 triangles | 91,752 B, 2,500 triangles  |
+| `now-office`            | TRELLIS.2, from `office-front`, 13:16:34–13:18:54 (140 s)         | $0.107 | —                                                     | 1,701,128 → 1,367,616 B | 357,420 B, 8,932 triangles  | 129,444 B, 2,490 triangles |
+
+The six paid picks were generated in the `Blaise-g/bake-trellis2` slot on RTX PRO 6000; the belfry in the public `tencent/Hunyuan3D-2.1` Space on ZeroGPU. Generation costs are the run's seconds at the hardware's rate; the build and idle minutes are
+in the spend table. The belfry's raw base colour is a PNG, though round one saved its sidecar
+as `tex0.jpeg`.
+
+**Why each pick.**
+
+- `lille-belfry`, Hunyuan3D-2.1: the best by a clear margin, with the brick colour, crisp clock
+  faces and the proportions. TRELLIS.2's is yellowed, and Pixal3D's is thin, pale and tilted
+  5.4°.
+- `turin-mole`, Pixal3D: the spire stays joined and the model stands level. TRELLIS.2's spire
+  floats in detached pieces, with a dark patch on the dome.
+- `switzerland-jet-d-eau`, TRELLIS.2: upright and clean. Pixal3D adds a detached stray piece.
+- `lille-bourse`, TRELLIS.2: it keeps the wing, the arcade and the dormers. Pixal3D collapses
+  it into a tall gabled block.
+- `home-school`, TRELLIS.2: upright, with the window grid and the entrance. Pixal3D's has
+  holes through roof and walls, and leans.
+- `cuneo-2022-schoolroom`, Pixal3D: clean walls and roof once levelled. TRELLIS.2's roof is
+  shredded.
+- `now-office`, TRELLIS.2: upright, with the entrance and the mullions. Pixal3D's leans 11.5°
+  and is blurry.
+
+The losing candidates are not committed: `/tmp/orch-path-v2/bakeoff/out/trellis2/` and
+`out/pixal3d/` (`*.textured.glb`, the generators' `*.lod.glb`), and TRELLIS.2's 300k-face
+extractions in `out/trellis2/raw300k/`.
 
 ## Voice (#150)
 
@@ -306,3 +417,18 @@ voice says "m³", "TL;DR" and "SMEs" is unheard.
   the 15–30 s range.
 - **The ElevenLabs path is untested since v3.** It now also decodes through macOS `afconvert`
   to measure the cues.
+- **DINOv3 came from a mirror.** TRELLIS.2 and Pixal3D condition on DINOv3, and our Space
+  copies loaded it from `camenduru/dinov3-vitl16-pretrain-lvd1689m`, which skips Meta's licence
+  gate. Whether the DINOv3 licence's terms reach the generated landmarks was not checked.
+- **Hunyuan3D-2.1 covers only the belfry.** Our paid copy never generated (A100: `tensor does
+not have a device`), so it was not compared on the other six. Its licence excludes the EU,
+  the UK and South Korea; the owner accepted that on 2026-10-29.
+- **Known flaws in the picks.** `home-school` has see-through window holes. `lille-bourse` has
+  pale brick and a crumpled roof. `cuneo-2022-schoolroom` grew an annex the reference does not
+  have, and as Pixal3D output it does not quite match the TRELLIS.2 facade beside it.
+- **The LOD can drift up to 1% of the height** from the full file's bounds, since both share one
+  placement and simplifying pulls extremes in. It never sinks below the ground.
+- **The cleanup imports transitive packages.** The script imports `@gltf-transform/core`,
+  `/extensions`, `/functions` and `meshoptimizer`, which arrive through the direct dev
+  dependency `@gltf-transform/cli`; none is listed in `package.json` itself (outside this
+  ticket's footprint). KTX2 textures are deferred.
