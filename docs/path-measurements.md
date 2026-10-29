@@ -8,6 +8,72 @@ voice) against the budgets in #141's acceptance and research §9 and §11
 Measured 2026-10-29 at `15e2380` plus #152's commit, on a production build (`bun run build`, then
 `next start -p 3211`). KB here is 1,024 bytes.
 
+## The board (v2)
+
+The one-scene runtime was replaced by one 3D paper board (v2's board ticket): seven printed tiles
+whose die-cut cards fold up, drawn through an ink-separation shader (ADR-0009). Measured
+2026-10-29 at `ba7288f`, on a production build (`bun run build`, then `next start -p 3231`), with
+the method below, except that Chromium ran on the machine's GPU (ANGLE Metal, Apple M5) rather than
+SwiftShader. KB is 1,024 bytes and MB is 1,024² bytes.
+
+| Budget                   | Budget | Measured                                        | Within |
+| ------------------------ | ------ | ----------------------------------------------- | ------ |
+| Transfer per scene, cold | 1.5 MB | 1,384 KB, the same whichever step is landed on  | Yes    |
+| GPU memory, estimated    | 64 MB  | 32.1–61.4 MB (61.4 MB on a 2560-wide ×2 screen) | Yes    |
+| Each still               | 150 KB | Largest 62.4 KB (`now-light.webp`)              | Yes    |
+
+Every step is a tile on the one board, so every landing loads the same thing: the page, the
+runtime, every card and one still. `/path#home`, `#lille` and `#next` arriving cold:
+
+| What                                         | KB    |
+| -------------------------------------------- | ----- |
+| The `/path` HTML                             | 16.4  |
+| Five WOFF2 fonts                             | 255.7 |
+| CSS                                          | 11.0  |
+| JavaScript, Next's and the route's, three.js | 303.5 |
+| The 21 card files and `grain.webp`           | 735.6 |
+| The step's still, behind the canvas          | 62.2  |
+| **Total**                                    | 1,384 |
+
+The cards are the tightest part: about 150 KB of headroom is left, so new card art comes out of
+it. `tests/path-lille.spec.ts` checks the cards and the largest still against the budget, with the
+page's 587 KB rounded up to 600 KB.
+
+GPU memory, from wrapping `texStorage2D`, `texImage2D`, `bufferData` and `renderbufferStorage*`
+under `/path#lille` with the whole board built:
+
+| What                                                             | MB   |
+| ---------------------------------------------------------------- | ---- |
+| Seven tile tops, drawn in code (378×361, with mipmaps)           | 4.9  |
+| The sun's shadow map, 1024² colour and depth                     | 8.0  |
+| Cards (at most 384 px a side), labels, the pawn and `grain.webp` | 7.3  |
+| Vertex and index buffers                                         | 0.01 |
+| **Uploads**                                                      | 20.2 |
+
+| Viewport (CSS px, pixel ratio) | Stage (CSS px) | Canvas (device px) | Drawing buffer | Total |
+| ------------------------------ | -------------- | ------------------ | -------------- | ----- |
+| 375, ×3                        | 327×471        | 490×706            | 11.9           | 32.1  |
+| 1440, ×2                       | 976×522        | 1464×783           | 39.4           | 59.6  |
+| 2560, ×2                       | 2096×640       | 1982×605           | 41.2           | 61.4  |
+
+The uploads are eleven times the prototype's 1.8 MB, so the drawing buffer's cap
+(`drawing-buffer.ts`) drops from 1.6 to 1.2 million device pixels: at 1.6 million the 2560×2 stage
+measured 74.7 MB. The stage is also taller than the prototype's (`clamp(18rem, 58vh, 40rem)`), so
+the 1440×2 canvas is near the cap too.
+
+Stills: one per step and mode, all 14 rendered by `generate:path-stills` from the board settled on
+the step, 59.3–62.4 KB each.
+
+The frame-rate fallback is unchanged. In SwiftShader with five test workers sharing the CPU, the
+board draws at 50–75 ms a frame, and the 33 ms sample rightly shows the stills; on the GPU the same
+five draw at the display's 8.3 ms. The WebGL specs run on the GPU for that reason, and the
+fallback's own test fakes the frame clock.
+
+## The prototype (#152)
+
+The rest of this report is #152's, for the prototype's two scenes, kept for the record. Its
+models, its home stills and its token names are gone.
+
 ## Summary
 
 | Budget                                   | Budget | Measured                                  | Within |
