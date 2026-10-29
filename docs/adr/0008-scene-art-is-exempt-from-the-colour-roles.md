@@ -2,6 +2,12 @@
 
 Decided in #141 (Decision 12, Implementation Decision 7). Extends ADR-0001; does not replace it.
 
+**Amended 2026-10-29 (v2 polish).** The six path tokens below are gone. ADR-0009 replaced them
+with four, `--path-paper`, `--path-ink-warm`, `--path-ink-cool` and `--path-fog`, when the board
+became printed cards, and `tests/warm-print-design-system.spec.ts` now counts those four. The
+exemption itself is unchanged: it still covers `src/components/path/scene/`, which now holds the
+ink shader and the board's cards rather than lit scenes.
+
 ADR-0001 holds page colour to seven Warm Print roles, and the design-system guard
 (`tests/support/design-system-guard.ts`) flags anything colour-shaped under `src/` outside the
 token layer. The 3D path's scenes (ADR-0007) need colour that is not page interface: baked

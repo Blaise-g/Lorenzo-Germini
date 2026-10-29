@@ -32,6 +32,15 @@ What ships:
   `--path-[a-z-]+`. `palette.ts` spells each name out whole, because Tailwind emits an `@theme`
   variable only when its scanner finds the name in a source file.
 
+- **A card standing on a tile folds up from a glued tab** (added in v2 polish, 2026-10-29). The
+  tab is one more separation drawn in code (`tabTexture` in `runtime.ts`): stock with chamfered
+  ends, its cut edge ruled and its crease scored in the cool ink as a dashed line. It lies flat in
+  front of the card's foot, fades and grows with the card, and never turns. It stops short of the
+  tile's printed name; a card mounted on another card has none.
+- **Every piece stays paper.** Lille's pipe loop is a printed card, not a modelled terracotta
+  tube as comp B draws it: one shaded mesh would be the only thing on the board not printed by
+  the ink shader, and would read as from another set.
+
 ## Considered options
 
 **Full-colour card art, one set per mode.** Rejected: twice the transfer, against a 1.5 MB

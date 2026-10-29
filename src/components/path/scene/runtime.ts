@@ -119,8 +119,11 @@ const CAMERA_FOV = 26;
  *  table. Steeper, the ring stands taller on a wide stage and fills more of
  *  the room the printed cards leave it. */
 const CAMERA_ELEVATION = 0.8;
-/** How much of the stage's free part the board may fill, either way. */
-const FRAME_FILL = { x: 0.95, y: 0.9 } as const;
+/** How much of the stage's free part the board may fill, either way. The
+ *  board's own labels, such as the MVP window's tag, are not among the
+ *  outlines the camera keeps in view, and reach a little past a tile's
+ *  side, so across it leaves them room. */
+const FRAME_FILL = { x: 0.9, y: 0.9 } as const;
 /** Each card after the first in a prop folds this much later. */
 const CARD_STAGGER_MS = 110;
 /** However many cards a prop has, the last starts with time left to fold. */
