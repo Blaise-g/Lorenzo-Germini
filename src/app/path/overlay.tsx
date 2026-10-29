@@ -368,13 +368,14 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
       </div>
       {/* In the server HTML and of fixed size either way, so the control
           arriving moves nothing. A button: it changes storage and goes
-          nowhere. */}
+          nowhere. Under `lg` its hit area keeps to the row's height, off
+          the steps above it. */}
       <div className="border-border flex h-9 shrink-0 items-center justify-end border-t border-dashed px-3 lg:h-auto lg:w-28 lg:justify-center lg:border-t-0 lg:border-l lg:px-2 print:hidden">
         {seen.size > 0 ? (
           <button
             type="button"
             onClick={onClearSeen}
-            className="path-quiet-control text-faint touch-target font-label text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4"
+            className="path-quiet-control text-faint touch-target font-label text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4 max-lg:after:min-h-9"
           >
             {PATH_COPY.clearSeen}
           </button>

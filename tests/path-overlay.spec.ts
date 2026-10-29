@@ -10,6 +10,7 @@
 
 import { expect, test, type Page } from "@playwright/test";
 
+import { PATH_COPY } from "@/app/path/copy";
 import { narrationFor } from "@/app/path/narration";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
@@ -344,6 +345,104 @@ test.describe("on a touch screen", () => {
     expect(new Set(tops).size).toBe(1);
   });
 });
+
+/* Every control's hit area: its box, or the 44px `.touch-target` lays
+   over it, centred. Each is at least 24px a side (WCAG 2.2 SC 2.5.8), and
+   no two overlap, so a thumb near one never takes its neighbour: the Clear
+   seen row is shorter than 44px under the strip on a phone, and the Sound
+   switch wraps under Voice from `xl`, on a tablet held wide too
+   (v3-harden). Steps scrolled out of the
+   strip are left out, their hit areas clipped with them. */
+for (const [width, height, touch] of [
+  [375, 812, true],
+  [1280, 800, false],
+  [1440, 900, false],
+  [1366, 1024, true],
+] as const) {
+  test.describe(`at ${width}×${height}`, () => {
+    test.use({ hasTouch: touch, viewport: { width, height } });
+
+    test("every hit area is big enough, and none overlaps another", async ({
+      page,
+    }) => {
+      await page.addInitScript(
+        ([key, seen]) => localStorage.setItem(key, JSON.stringify(seen)),
+        [SEEN_STORAGE_KEY, ["home", "lille"]] as const,
+      );
+      await page.goto("/path#lille");
+      await hydrated(page);
+      await expect(page.locator("[data-path-sound-switch]")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: PATH_COPY.clearSeen }),
+      ).toBeVisible();
+
+      const areas = await page.evaluate(() => {
+        const strip = document
+          .querySelector("[data-path-step-link]")!
+          .closest("ol")!.parentElement!;
+        const shown = strip.getBoundingClientRect();
+        return [...document.querySelectorAll("a, button, [role=switch]")]
+          .map((control) => {
+            const box = control.getBoundingClientRect();
+            const after = getComputedStyle(control, "::after");
+            let [w, h] = [box.width, box.height];
+            if (after.content !== "none" && after.position === "absolute") {
+              w = Math.max(
+                w,
+                parseFloat(after.width) || 0,
+                parseFloat(after.minWidth) || 0,
+              );
+              h = Math.max(
+                h,
+                parseFloat(after.height) || 0,
+                parseFloat(after.minHeight) || 0,
+              );
+            }
+            const x = box.left + box.width / 2;
+            const y = box.top + box.height / 2;
+            return {
+              name: (
+                control.getAttribute("aria-label") ??
+                control.textContent ??
+                ""
+              ).trim(),
+              box,
+              left: x - w / 2,
+              right: x + w / 2,
+              top: y - h / 2,
+              bottom: y + h / 2,
+              inStrip: strip.contains(control),
+            };
+          })
+          .filter(({ box, inStrip }) => {
+            if (box.width === 0 || box.height === 0) return false;
+            if (box.bottom <= 0 || box.top >= innerHeight) return false;
+            return (
+              !inStrip ||
+              (box.left >= shown.left - 1 && box.right <= shown.right + 1)
+            );
+          })
+          .map(({ box: _box, inStrip: _inStrip, ...area }) => area);
+      });
+
+      expect(areas.length).toBeGreaterThan(10);
+      const small = areas
+        .filter((a) => a.right - a.left < 24 || a.bottom - a.top < 24)
+        .map((a) => a.name);
+      expect.soft(small).toEqual([]);
+      const overlapping: string[] = [];
+      for (const [i, a] of areas.entries()) {
+        for (const b of areas.slice(i + 1)) {
+          const across = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const down = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (across > 0.5 && down > 0.5)
+            overlapping.push(`${a.name} × ${b.name}`);
+        }
+      }
+      expect.soft(overlapping).toEqual([]);
+    });
+  });
+}
 
 test("a load of /path#lille selects Lille, and a reload keeps it", async ({
   page,

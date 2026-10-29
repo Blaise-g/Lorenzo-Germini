@@ -162,13 +162,16 @@ export function Switch({
   onChange: (on: boolean) => void;
   children: ReactNode;
 } & Record<`data-${string}`, string | boolean>) {
+  /* From `xl` the row wraps 4px apart (`NarrationBar`): under a fine
+     pointer each hit area keeps to its half of the gap there, so Sound's
+     does not lie over Voice's. A finger gets the gap instead. */
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       {...data}
-      className="group touch-target text-faint hover:text-ink font-label transition-refined inline-flex items-center gap-2 text-xs tracking-[0.12em] uppercase"
+      className="group touch-target text-faint hover:text-ink font-label transition-refined inline-flex items-center gap-2 text-xs tracking-[0.12em] uppercase xl:pointer-fine:after:min-h-7"
       onClick={() => onChange(!checked)}
     >
       <span
@@ -307,7 +310,7 @@ export function NarrationBar({
           href={hydrated ? `/${fragmentForStep(selected)}` : undefined}
           data-path-read-step
           className={cn(
-            "path-quiet-control text-faint font-label mt-1 inline-block text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4",
+            "path-quiet-control text-faint touch-target font-label mt-1 text-[0.6875rem] tracking-[0.12em] uppercase underline-offset-4",
             !hydrated && "invisible",
           )}
         >
@@ -325,9 +328,10 @@ export function NarrationBar({
           data-voice-state={state}
           className="flex shrink-0 flex-col xl:w-56"
         >
-          {/* Three switches overrun the column's width from \`xl\`: Sound
-              wraps under the other two there. */}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:gap-x-6">
+          {/* Three switches overrun the column's width from `xl`: Sound
+              wraps under the other two there, 20px down for a finger, so
+              their 44px hit areas do not meet. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 sm:gap-x-6 xl:pointer-coarse:gap-y-5">
             <Switch
               checked={voiceOn}
               onChange={setVoiceOn}
