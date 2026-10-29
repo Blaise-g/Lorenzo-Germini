@@ -9,7 +9,7 @@ import type { PathStepSlug } from "@/data/path.types";
    selected step; the stage follows it, moves the pawn and builds that step's
    tile, and reports here when the step has settled, so the tour starts its
    dwell only once there is something to look at. Without a runtime — no
-   WebGL, a fallback, reduced motion, a scene not built yet — the stage
+   WebGL, a fallback, reduced motion, a tile whose cards did not load — the stage
    reports a step settled as soon as its stills or text are showing. */
 
 /** The step the stage last showed, and whether its pawn move and build have

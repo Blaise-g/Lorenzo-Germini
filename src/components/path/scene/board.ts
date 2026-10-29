@@ -57,29 +57,48 @@ export function pawnSpot(slug: PathStepSlug): readonly [number, number] {
   return [x + PAWN_SPOT.x * scale, z + PAWN_SPOT.z * scale];
 }
 
-/** What the camera keeps in view, on the table: every tile's footprint,
- *  the top corners of every card standing on it, and the top of the pawn's
- *  hop over it. */
-export function framePoints(): (readonly [number, number, number])[] {
-  return LOOP.flatMap((slug) => {
+/** A point on the table, `[x, y, z]`. */
+export type FramePoint = readonly [number, number, number];
+
+/** What the camera keeps in view, as outlines on the table: every tile's
+ *  footprint, every card standing on it and the top of the pawn's hop over
+ *  it, tile by tile. Each outline is convex and in order round its edge, so
+ *  the camera can tell whether a card the page lays over the stage covers
+ *  any of it, and keep the selected tile clear of more cards than the rest. */
+export function frameShapes(): {
+  slug: PathStepSlug;
+  outlines: (readonly FramePoint[])[];
+}[] {
+  return LOOP.map((slug) => {
     const [cx, cz] = tileCentre(slug);
     const scale = tileScale(slug);
     const at = (x: number, y: number, z: number) =>
       [cx + x * scale, y * scale, cz + z * scale] as const;
     const w = TILE.width / 2;
     const d = TILE.depth / 2;
-    const footprint = [at(-w, 0, -d), at(w, 0, -d), at(-w, 0, d), at(w, 0, d)];
-    const cards = cardsForStep(slug).flatMap((card) => {
-      const top = TILE.thickness + card.position.y + card.height;
+    const footprint = [at(-w, 0, -d), at(w, 0, -d), at(w, 0, d), at(-w, 0, d)];
+    const cards = cardsForStep(slug).map((card) => {
+      const foot = TILE.thickness + card.position.y;
+      const top = foot + card.height;
       const left = card.position.x - card.anchor.u * card.width;
+      const right = left + card.width;
+      const z = card.position.z;
       return [
-        at(left, top, card.position.z),
-        at(left + card.width, top, card.position.z),
+        at(left, foot, z),
+        at(right, foot, z),
+        at(right, top, z),
+        at(left, top, z),
       ];
     });
-    const hop = at(PAWN_SPOT.x, TILE.thickness + PAWN_HOP_TOP, PAWN_SPOT.z);
-    return [...footprint, ...cards, hop];
+    const hop = [at(PAWN_SPOT.x, TILE.thickness + PAWN_HOP_TOP, PAWN_SPOT.z)];
+    return { slug, outlines: [footprint, ...cards, hop] };
   });
+}
+
+/** Every point the camera keeps in view: the tiles' footprints, the top
+ *  corners of every card and the top of the pawn's hop. */
+export function framePoints(): FramePoint[] {
+  return frameShapes().flatMap(({ outlines }) => outlines.flat());
 }
 
 /** The pawn's cone, and how high its foot rises at the top of a hop. */

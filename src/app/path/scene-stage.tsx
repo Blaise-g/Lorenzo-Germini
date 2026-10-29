@@ -10,6 +10,7 @@ import {
   type BuildState,
 } from "@/components/path/scene/build-plan";
 import { probeCapabilities } from "@/components/path/scene/capabilities";
+import type { StageFrame, StageRect } from "@/components/path/scene/frame";
 import {
   decideFallback,
   FALLBACK_REASON_LINES,
@@ -22,6 +23,7 @@ import type {
 } from "@/components/path/scene/runtime";
 import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
+import { pushStep } from "@/lib/path-state";
 import { useSelectedStep } from "@/lib/use-path-state";
 import { cn } from "@/lib/utils";
 
@@ -39,12 +41,46 @@ import { useSetStageStatus } from "./stage-status";
 
 type Mode = "pending" | "webgl" | "fallback";
 
-/** The stage's text controls, shared with the voice's beside them. */
+/** The voice's text controls, printed in the accent like a link. */
 export const CONTROL_CLASS_NAME =
   "touch-target text-accent decoration-border hover:decoration-accent font-label text-xs tracking-[0.12em] uppercase underline underline-offset-4 disabled:text-faint disabled:no-underline aria-disabled:text-faint aria-disabled:no-underline aria-disabled:cursor-default";
 
-const TURN_CLASS_NAME =
-  "border-border text-faint hover:border-ink hover:text-ink transition-refined inline-flex size-9 items-center justify-center rounded-md border disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50";
+/** The board's own controls are tabs cut from the same card as the tour's. */
+const TAB_CLASS_NAME = "path-tab press transition-refined";
+
+/** Room left between a card laid over the stage and the board. */
+const FRAME_GAP_PX = 24;
+
+/** The cards laid over the stage, as the board must keep clear of them. A
+ *  card marked `data-path-cover="board"` — the step list, the board's tabs —
+ *  no tile goes under; one marked `"step"` — the text panel — the selected
+ *  tile does not go under. A card in the page's flow, as on a phone, covers
+ *  nothing. */
+function measureFrame(stage: HTMLElement): StageFrame {
+  const box = stage.getBoundingClientRect();
+  const frame = {
+    safe: { left: 0, top: 0, right: box.width, bottom: box.height },
+    clear: [] as StageRect[],
+    avoid: [] as StageRect[],
+  };
+  for (const card of document.querySelectorAll<HTMLElement>(
+    "[data-path-cover]",
+  )) {
+    const style = getComputedStyle(card);
+    if (style.position !== "absolute" || style.display === "none") continue;
+    const rect = card.getBoundingClientRect();
+    const covered = {
+      left: rect.left - box.left - FRAME_GAP_PX,
+      top: rect.top - box.top - FRAME_GAP_PX,
+      right: rect.right - box.left + FRAME_GAP_PX,
+      bottom: rect.bottom - box.top + FRAME_GAP_PX,
+    };
+    (card.dataset.pathCover === "step" ? frame.avoid : frame.clear).push(
+      covered,
+    );
+  }
+  return frame;
+}
 
 const IDLE: SceneSnapshot = { buildState: "idle", lit: [], shown: [], turn: 0 };
 
@@ -52,12 +88,19 @@ function stepNamed(slug: string) {
   return PATH_STEPS.find((step) => step.slug === slug)!;
 }
 
-export function SceneStage({ children }: { children: ReactNode }) {
+export function SceneStage({
+  className,
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
   const { selected } = useSelectedStep();
   const step = stepNamed(selected);
   const setLitLines = useSetLitLines();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const runtimeRef = useRef<SceneRuntime | null>(null);
+  const stageBoxRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<Mode>("pending");
   const [reason, setReason] = useState<FallbackReason | null>(null);
   const [snapshot, setSnapshot] = useState<SceneSnapshot>(IDLE);
@@ -124,6 +167,9 @@ export function SceneStage({ children }: { children: ReactNode }) {
         return fallBack("context-failed");
       }
       setMode("webgl");
+      if (stageBoxRef.current) {
+        runtimeRef.current.setFrame(measureFrame(stageBoxRef.current));
+      }
       show(selectedRef.current);
     }
     void start();
@@ -171,6 +217,34 @@ export function SceneStage({ children }: { children: ReactNode }) {
      all, so Esc on the voice controls or anywhere else leaves focus there.
      Only while a scene is on the stage. */
   const stageRef = useRef<HTMLDivElement>(null);
+
+  /* The board keeps clear of the cards laid over it, measured again as the
+     stage changes size. */
+  useEffect(() => {
+    const box = stageBoxRef.current;
+    if (mode !== "webgl" || !box) return;
+    const observer = new ResizeObserver(() => {
+      runtimeRef.current?.setFrame(measureFrame(box));
+    });
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, [mode]);
+
+  /* A click on a tile, or on a card standing on it, selects its step, as
+     its row in the list does; the list is the keyboard's way to it. A click
+     on the tile being built, or off the tiles, skips the build. */
+  const [pointing, setPointing] = useState(false);
+  const pointFrame = useRef(0);
+  function tileAt(event: React.PointerEvent | React.MouseEvent) {
+    const box = event.currentTarget.getBoundingClientRect();
+    return (
+      runtimeRef.current?.pick(
+        event.clientX - box.left,
+        event.clientY - box.top,
+      ) ?? null
+    );
+  }
+
   useEffect(() => {
     if (!live) return;
     function onKeyDown(event: KeyboardEvent) {
@@ -203,8 +277,9 @@ export function SceneStage({ children }: { children: ReactNode }) {
   const loading = buildState === "loading";
 
   return (
-    <div ref={stageRef} className="print:hidden">
+    <div ref={stageRef} className={cn("print:hidden", className)}>
       <div
+        ref={stageBoxRef}
         data-path-stage
         data-scene-mode={mode}
         data-build-state={buildState}
@@ -212,70 +287,99 @@ export function SceneStage({ children }: { children: ReactNode }) {
         data-scene-step={snapshot.step}
         data-stage-settled={settled ? "" : undefined}
         data-fallback-reason={reason ?? sceneStills}
-        className="relative h-[clamp(18rem,58vh,40rem)] w-full overflow-hidden"
+        className="relative h-[clamp(15rem,72vw,26rem)] w-full overflow-hidden lg:h-full"
       >
         {children}
         {/* The scene is an illustration of the text beside it, which carries
             every word, so it is hidden from the accessibility tree. A click
-            on it skips the build; Skip and Esc do the same from the keyboard. */}
+            on a tile selects its step; elsewhere it skips the build, as Skip
+            and Esc do from the keyboard. */}
         <canvas
           ref={canvasRef}
           aria-hidden
-          onClick={() => runtimeRef.current?.skip()}
+          onClick={(event) => {
+            const slug = tileAt(event);
+            if (slug && slug !== selected) pushStep(slug);
+            else runtimeRef.current?.skip();
+          }}
+          onPointerMove={(event) => {
+            if (event.pointerType !== "mouse") return;
+            const { clientX, clientY, currentTarget } = event;
+            cancelAnimationFrame(pointFrame.current);
+            pointFrame.current = requestAnimationFrame(() => {
+              const box = currentTarget.getBoundingClientRect();
+              const slug = runtimeRef.current?.pick(
+                clientX - box.left,
+                clientY - box.top,
+              );
+              setPointing(Boolean(slug && slug !== selected));
+            });
+          }}
+          onPointerLeave={() => {
+            cancelAnimationFrame(pointFrame.current);
+            setPointing(false);
+          }}
           className={cn(
             "absolute inset-0 size-full",
             live ? "visible" : "invisible",
-            buildState === "building" && "cursor-pointer",
+            (pointing || buildState === "building") && "cursor-pointer",
           )}
         />
       </div>
 
-      {/* One row of fixed height, whatever it holds, so the panel under it
-          never moves when the controls arrive or the reason replaces them. */}
-      <div className="flex h-11 items-center gap-6">
+      {/* One row of fixed height, whatever it holds, so nothing under it
+          moves when the controls arrive or the reason replaces them. Tabs
+          cut from the tour's card: the board's own controls. */}
+      <div
+        data-path-board-controls
+        data-path-cover="board"
+        className="mt-3 flex min-h-11 items-center gap-3 max-lg:px-6 md:max-lg:px-10 lg:absolute lg:bottom-0 lg:left-0 lg:mt-0 lg:max-w-[19rem]"
+      >
         {live && buildState !== "idle" ? (
           <>
             <button
               type="button"
               data-path-build-control
               aria-disabled={loading || undefined}
-              className={CONTROL_CLASS_NAME}
+              className={TAB_CLASS_NAME}
               onClick={() => {
                 if (loading) return;
                 if (buildState === "building") runtimeRef.current?.skip();
                 else runtimeRef.current?.replay();
               }}
             >
-              {buildState === "building" ? STAGE_COPY.skip : STAGE_COPY.replay}
+              <span className="path-tab-face">
+                {buildState === "building"
+                  ? STAGE_COPY.skip
+                  : STAGE_COPY.replay}
+              </span>
             </button>
-            <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                aria-label={STAGE_COPY.turnLeft}
-                title={STAGE_COPY.turnLeft}
-                disabled={turn <= -TURN_LIMIT}
-                aria-disabled={loading || undefined}
-                className={TURN_CLASS_NAME}
-                onClick={() => {
-                  if (!loading) runtimeRef.current?.turn(-1);
-                }}
-              >
-                <RotateCcw aria-hidden className="size-4" />
-              </button>
-              <button
-                type="button"
-                aria-label={STAGE_COPY.turnRight}
-                title={STAGE_COPY.turnRight}
-                disabled={turn >= TURN_LIMIT}
-                aria-disabled={loading || undefined}
-                className={TURN_CLASS_NAME}
-                onClick={() => {
-                  if (!loading) runtimeRef.current?.turn(1);
-                }}
-              >
-                <RotateCw aria-hidden className="size-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              aria-label={STAGE_COPY.turnLeft}
+              title={STAGE_COPY.turnLeft}
+              aria-disabled={turn <= -TURN_LIMIT || loading || undefined}
+              data-shape="square"
+              className={TAB_CLASS_NAME}
+              onClick={() => {
+                if (!loading) runtimeRef.current?.turn(-1);
+              }}
+            >
+              <RotateCcw aria-hidden className="path-tab-face size-4" />
+            </button>
+            <button
+              type="button"
+              aria-label={STAGE_COPY.turnRight}
+              title={STAGE_COPY.turnRight}
+              aria-disabled={turn >= TURN_LIMIT || loading || undefined}
+              data-shape="square"
+              className={TAB_CLASS_NAME}
+              onClick={() => {
+                if (!loading) runtimeRef.current?.turn(1);
+              }}
+            >
+              <RotateCw aria-hidden className="path-tab-face size-4" />
+            </button>
           </>
         ) : null}
         {mode === "fallback" && reason && withScene ? (

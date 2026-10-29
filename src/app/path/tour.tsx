@@ -401,26 +401,54 @@ export function TourProgress() {
   );
 }
 
-/** The text panel, holding the tour while the pointer is over it or focus is
- *  in it. Only a mouse or a pen hovers; a finger's tap is not reading. */
-export function TourHoldPanel({ children }: { children: ReactNode }) {
+/** The text panel. Its text holds the tour while the pointer is over it or
+ *  focus is in it; only a mouse or a pen hovers, and a finger's tap is not
+ *  reading. The voice's controls at its foot do not hold: pressing Stop is
+ *  not reading. The text scrolls inside the panel where it is laid over the
+ *  board, so the longest step's does not push it off the screen, and
+ *  `footer` stays put under it. The scrolling part takes focus, so the keys
+ *  can scroll it too. */
+export function TourHoldPanel({
+  className,
+  footer,
+  children,
+  ...rest
+}: {
+  className?: string;
+  footer?: ReactNode;
+  children: ReactNode;
+  "data-path-cover"?: string;
+}) {
   const { setHold } = useTour();
   return (
     <div
-      data-path-text-panel
-      onPointerEnter={(event) => {
-        if (event.pointerType !== "touch") setHold("pointer", true);
-      }}
-      onPointerLeave={() => setHold("pointer", false)}
-      onFocus={() => setHold("focus", true)}
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-          setHold("focus", false);
-        }
-      }}
-      className="path-card max-w-[46rem] px-6 py-6 md:px-8"
+      {...rest}
+      className={cn("path-card flex max-w-[46rem] flex-col", className)}
     >
-      {children}
+      <div
+        data-path-text-panel
+        tabIndex={0}
+        onPointerEnter={(event) => {
+          if (event.pointerType !== "touch") setHold("pointer", true);
+        }}
+        onPointerLeave={() => setHold("pointer", false)}
+        onFocus={() => setHold("focus", true)}
+        onBlur={(event) => {
+          if (
+            !event.currentTarget.contains(event.relatedTarget as Node | null)
+          ) {
+            setHold("focus", false);
+          }
+        }}
+        className="path-panel-text min-h-0 flex-1 px-6 pt-6 pb-5 md:px-8 print:px-0 print:pt-0"
+      >
+        {children}
+      </div>
+      {footer ? (
+        <div className="border-border border-t border-dashed px-6 pt-1 pb-2 md:px-8 print:hidden">
+          {footer}
+        </div>
+      ) : null}
     </div>
   );
 }

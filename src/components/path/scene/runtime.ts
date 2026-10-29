@@ -13,10 +13,12 @@ import {
   PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
+  Raycaster,
   Scene,
   ShadowMaterial,
   Shape,
   ShapeGeometry,
+  Vector2,
   Vector3,
   WebGLRenderer,
   type Material,
@@ -34,7 +36,7 @@ import {
   pawnSpot,
   TILE,
   tileCentre,
-  framePoints,
+  frameShapes,
   HOP_HEIGHT,
   PAWN_HEIGHT,
   tileName,
@@ -50,6 +52,19 @@ import {
 } from "./build-plan";
 import { cardsForStep, type CardArt } from "./card-art";
 import { drawingPixelRatio } from "./drawing-buffer";
+import {
+  centreOf,
+  filled,
+  framed,
+  inRect,
+  middleOf,
+  toClip,
+  wholeStage,
+  type ClipPoint,
+  type ClipRect,
+  type StageFrame,
+  type StageRect,
+} from "./frame";
 import {
   decideFallback,
   FRAME_SAMPLE_SIZE,
@@ -100,9 +115,11 @@ const CONTEXT_RESTORE_MS = 3000;
  *  the build's clock does not jump across them. */
 const MAX_STEP_MS = 100;
 const CAMERA_FOV = 26;
-/** A high three-quarter view: the camera's angle above the table. */
-const CAMERA_ELEVATION = 0.64;
-/** How much of the stage the board may fill, either way. */
+/** A high three-quarter view, as comp B's: the camera's angle above the
+ *  table. Steeper, the ring stands taller on a wide stage and fills more of
+ *  the room the printed cards leave it. */
+const CAMERA_ELEVATION = 0.8;
+/** How much of the stage's free part the board may fill, either way. */
 const FRAME_FILL = { x: 0.95, y: 0.9 } as const;
 /** Each card after the first in a prop folds this much later. */
 const CARD_STAGGER_MS = 110;
@@ -149,6 +166,12 @@ export type SceneRuntime = {
   replay(): void;
   turn(direction: -1 | 1): void;
   setReducedMotion(reduced: boolean): void;
+  /** The part of the stage the page leaves the board, in CSS pixels; the
+   *  whole stage until the host says otherwise. */
+  setFrame(frame: StageFrame): void;
+  /** The step whose tile, or a card standing on it, is under a point on the
+   *  canvas, in CSS pixels from its top-left corner; null for none. */
+  pick(x: number, y: number): PathStepSlug | null;
   dispose(): void;
 };
 
@@ -687,6 +710,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const [x, z] = tileCentre(slug);
     group.position.set(x, 0, z);
     group.scale.setScalar(tileScale(slug));
+    group.userData.slug = slug;
     return { slug, group, props };
   }
 
@@ -966,7 +990,13 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   /* ─── The camera ─── */
 
-  const framed = framePoints().map(([x, y, z]) => new Vector3(x, y, z));
+  const shapes = frameShapes().map(({ slug, outlines }) => ({
+    slug,
+    outlines: outlines.map((outline) =>
+      outline.map(([x, y, z]) => new Vector3(x, y, z)),
+    ),
+  }));
+  let stageFrame: StageFrame | undefined;
 
   const BOARD_TARGET = new Vector3(0, 1, 0);
   const focus = new Vector3();
@@ -983,51 +1013,84 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     camera.updateMatrixWorld();
   }
 
-  /** Whether the whole board, turned as it is, fits the stage from
-   *  `distance` back. */
-  function fits(distance: number) {
+  type ClipFrame = { safe: ClipRect; clear: ClipRect[]; avoid: ClipRect[] };
+
+  /** The stage's free part and the cards laid over it, in clip space. */
+  function clipFrame(): ClipFrame {
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    const frame = stageFrame ?? wholeStage(width, height);
+    const clip = (rect: StageRect) => toClip(rect, width, height);
+    return {
+      safe: filled(clip(frame.safe), FRAME_FILL),
+      clear: frame.clear.map(clip),
+      avoid: frame.avoid.map(clip),
+    };
+  }
+
+  /** Every tile's outlines, turned as the board is and seen from `distance`
+   *  back, in clip space; null if any point is behind the camera. */
+  function projected(distance: number) {
     placeCamera(distance);
-    for (const point of framed) {
-      probe
-        .copy(point)
-        .applyMatrix4(board.matrixWorld)
-        .applyMatrix4(camera.matrixWorldInverse);
-      if (probe.z > -camera.near) return false;
-      probe.applyMatrix4(camera.projectionMatrix);
-      if (
-        Math.abs(probe.x) > FRAME_FILL.x ||
-        Math.abs(probe.y) > FRAME_FILL.y
-      ) {
-        return false;
+    const out: { slug: PathStepSlug; outlines: ClipPoint[][] }[] = [];
+    for (const { slug, outlines } of shapes) {
+      const clipped: ClipPoint[][] = [];
+      for (const outline of outlines) {
+        const points: ClipPoint[] = [];
+        for (const point of outline) {
+          probe
+            .copy(point)
+            .applyMatrix4(board.matrixWorld)
+            .applyMatrix4(camera.matrixWorldInverse);
+          if (probe.z > -camera.near) return null;
+          probe.applyMatrix4(camera.projectionMatrix);
+          points.push([probe.x, probe.y]);
+        }
+        clipped.push(points);
       }
+      out.push({ slug, outlines: clipped });
     }
-    return true;
+    return out;
+  }
+
+  /** Whether, from `distance` back, the board stands inside the free part
+   *  and clear of the cards over it: the selected tile clear of the panel
+   *  too, any other tile's middle at least. With `selected` false only the
+   *  stage's edge and the list count. */
+  function fits(distance: number, frame: ClipFrame, selected = true) {
+    const tiles = projected(distance);
+    if (tiles === null) return false;
+    return tiles.every(({ slug, outlines }) => {
+      if (!framed(outlines, frame.safe, frame.clear)) return false;
+      if (!selected) return true;
+      if (slug === current) return framed(outlines, frame.safe, frame.avoid);
+      const middle = middleOf(outlines[0]);
+      return frame.avoid.every((rect) => !inRect(rect, middle));
+    });
   }
 
   /** Where the board, seen from `distance` back, sits on the stage: the
    *  centre of its projected bounds, in clip space. */
-  function boundsCentre(distance: number) {
-    placeCamera(distance);
-    let left = Infinity;
-    let right = -Infinity;
-    let bottom = Infinity;
-    let top = -Infinity;
-    for (const point of framed) {
-      probe.copy(point).applyMatrix4(board.matrixWorld).project(camera);
-      left = Math.min(left, probe.x);
-      right = Math.max(right, probe.x);
-      bottom = Math.min(bottom, probe.y);
-      top = Math.max(top, probe.y);
-    }
-    return { x: (left + right) / 2, y: (bottom + top) / 2 };
+  function boundsCentre(distance: number): ClipPoint {
+    const points = (projected(distance) ?? []).flatMap(({ outlines }) =>
+      outlines.flat(),
+    );
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    return [
+      (Math.min(...xs) + Math.max(...xs)) / 2,
+      (Math.min(...ys) + Math.max(...ys)) / 2,
+    ];
   }
 
-  function fitDistance() {
+  /** The closest the camera can come and keep the board framed: found by
+   *  bisection, since how much fits only grows with distance. */
+  function fitDistance(frame: ClipFrame, selected = true) {
     let near = 5;
     let far = 300;
     for (let i = 0; i < 24; i++) {
       const middle = (near + far) / 2;
-      if (fits(middle)) far = middle;
+      if (fits(middle, frame, selected)) far = middle;
       else near = middle;
     }
     return far;
@@ -1037,33 +1100,108 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const right = new Vector3();
   const up = new Vector3();
 
-  /* The camera looks at the board, leaning toward the selected tile, from
-     as close as keeps every tile and card in view: the distance found by
-     bisection, since how much fits only grows with it, and the aim moved
-     until the board's bounds sit centred on the stage, not its middle. */
+  /** Points the camera so the board's bounds are centred on `target`, in
+   *  clip space, from as close as keeps it framed; returns that distance. */
+  function aimAt(frame: ClipFrame, target: ClipPoint) {
+    centring.set(0, 0, 0);
+    let distance = 0;
+    for (let pass = 0; pass < 3; pass++) {
+      lookAt.copy(BOARD_TARGET).add(centring).add(focus);
+      distance = fitDistance(frame);
+      const [x, y] = boundsCentre(distance);
+      const halfHeight = distance * Math.tan((CAMERA_FOV * Math.PI) / 360);
+      right.setFromMatrixColumn(camera.matrixWorld, 0);
+      up.setFromMatrixColumn(camera.matrixWorld, 1);
+      centring
+        .addScaledVector(right, (x - target[0]) * halfHeight * camera.aspect)
+        .addScaledVector(up, (y - target[1]) * halfHeight);
+    }
+    lookAt.copy(BOARD_TARGET).add(centring).add(focus);
+    return fitDistance(frame);
+  }
+
+  /* Where on the stage the board is centred once the camera rests. With
+     nothing laid over it, the middle. With cards laid over it the board
+     may stand larger off the middle, tucked past them: a grid of places
+     round the middle is tried, at the lean and the turn the camera is
+     heading for, and the one that lets it come closest kept. */
+  const TARGET_SHIFTS = [-0.3, -0.15, 0, 0.15, 0.3]
+    .flatMap((sx) => [-0.3, -0.15, 0, 0.15, 0.3].map((sy) => [sx, sy]))
+    .sort(([ax, ay], [bx, by]) => ax * ax + ay * ay - (bx * bx + by * by));
+  let restTarget: ClipPoint = [0, 0];
+  let restKey = "";
+
+  function chooseTarget(frame: ClipFrame) {
+    const key = JSON.stringify([frame, turnStep, current]);
+    if (key === restKey) return;
+    restKey = key;
+    const [cx, cy] = centreOf(frame.safe);
+    restTarget = [cx, cy];
+    if (frame.clear.length + frame.avoid.length === 0) return;
+    const leaning = focus.clone();
+    const turned = board.rotation.y;
+    focus.copy(focusTo);
+    board.rotation.y = turnStep * TURN_RADIANS;
+    board.updateMatrixWorld();
+    const width = frame.safe.x1 - frame.safe.x0;
+    const height = frame.safe.y1 - frame.safe.y0;
+    let closest = Infinity;
+    for (const [sx, sy] of TARGET_SHIFTS) {
+      const candidate: ClipPoint = [cx + sx * width, cy + sy * height];
+      const distance = aimAt(frame, candidate);
+      /* Near-ties go to the place nearest the middle, tried first. */
+      if (distance < closest * 0.995) {
+        closest = distance;
+        restTarget = candidate;
+      }
+    }
+    focus.copy(leaning);
+    board.rotation.y = turned;
+    board.updateMatrixWorld();
+  }
+
+  /* What the camera last showed, and what it eases from when the selected
+     tile, the turn or the stage changes: the panel's corner only clears the
+     selected tile, so the rest the camera comes to differs between steps,
+     and a cut would jump. */
+  let shownTarget: ClipPoint = [0, 0];
+  let shownDistance = 0;
+  let fromTarget: ClipPoint = [0, 0];
+  let fromDistance = 0;
+
+  function easeCamera(instant: boolean) {
+    focusFrom = focus.clone();
+    fromTarget = shownTarget;
+    fromDistance = shownDistance;
+    focusElapsed = instant || shownDistance === 0 ? FOCUS_MS : 0;
+  }
+
+  /* The camera leans toward the selected tile and comes as close as keeps
+     the board framed. While it eases between two rests, it is never closer
+     than keeps every tile inside the stage and clear of the list, so the
+     move crops nothing on the way. */
   function aim() {
     const t = easeInOut(focusElapsed / FOCUS_MS);
     focus.lerpVectors(focusFrom, focusTo, t);
     board.updateMatrixWorld();
     camera.far = 1000;
     camera.updateProjectionMatrix();
-    centring.set(0, 0, 0);
-    let distance = 0;
-    for (let pass = 0; pass < 3; pass++) {
-      lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-      distance = fitDistance();
-      const off = boundsCentre(distance);
-      const halfHeight = distance * Math.tan((CAMERA_FOV * Math.PI) / 360);
-      right.setFromMatrixColumn(camera.matrixWorld, 0);
-      up.setFromMatrixColumn(camera.matrixWorld, 1);
-      centring
-        .addScaledVector(right, off.x * halfHeight * camera.aspect)
-        .addScaledVector(up, off.y * halfHeight);
-    }
-    lookAt.copy(BOARD_TARGET).add(centring).add(focus);
-    distance = fitDistance();
-    placeCamera(distance);
-    camera.far = distance * 2.5;
+    const frame = clipFrame();
+    chooseTarget(frame);
+    shownTarget = [
+      fromTarget[0] + (restTarget[0] - fromTarget[0]) * t,
+      fromTarget[1] + (restTarget[1] - fromTarget[1]) * t,
+    ];
+    const resting = aimAt(frame, shownTarget);
+    shownDistance =
+      t >= 1
+        ? resting
+        : Math.max(
+            fromDistance + (resting - fromDistance) * t,
+            fitDistance(frame, false),
+          );
+    placeCamera(shownDistance);
+    camera.far = shownDistance * 2.5;
     camera.updateProjectionMatrix();
   }
 
@@ -1085,12 +1223,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     const [x, z] = tileCentre(slug);
     const target = new Vector3(x * FOCUS_SHARE, 0, z * FOCUS_SHARE);
     if (target.equals(focusTo)) return;
-    focusFrom = focus.clone();
     focusTo = target;
-    focusElapsed = instant ? FOCUS_MS : 0;
+    easeCamera(instant);
     /* An instant lean is no frame's job: aim now. */
     if (instant) aim();
   }
+
+  const raycaster = new Raycaster();
+  const pointer = new Vector2();
 
   /* ─── The frame loop: runs only while something is moving ─── */
 
@@ -1424,6 +1564,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       turnFrom = board.rotation.y / TURN_RADIANS;
       turnStep = next;
       emit();
+      easeCamera(reducedMotion);
       if (reducedMotion) {
         board.rotation.y = turnStep * TURN_RADIANS;
         turnElapsed = TURN_MS;
@@ -1433,6 +1574,33 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       }
       turnElapsed = 0;
       requestFrame();
+    },
+    pick(x, y) {
+      const width = canvas.clientWidth || 1;
+      const height = canvas.clientHeight || 1;
+      pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(
+        [...tiles.values()].map((tile) => tile.group),
+        true,
+      );
+      for (const { object } of hits) {
+        /* A card not standing yet is not there to point at. */
+        let node: Object3D | null = object;
+        let shown = true;
+        while (node && node.userData.slug === undefined) {
+          shown &&= node.visible;
+          node = node.parent;
+        }
+        if (node && shown) return node.userData.slug as PathStepSlug;
+      }
+      return null;
+    },
+    setFrame(frame) {
+      stageFrame = frame;
+      easeCamera(true);
+      aim();
+      if (prepared) render();
     },
     setReducedMotion(reduced) {
       reducedMotion = reduced;

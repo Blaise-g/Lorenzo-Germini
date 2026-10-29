@@ -9,8 +9,9 @@ STORY: Watch the path play from home, or pick a step like a track on a tape,
 read what happened there, go back to the flat site at the same step.
 FIRST VIEWPORT: The name, "Flat site", the path in small and the selected
 step's text — all HTML, painted before any 3D.
-FORM: Masthead row, then the step list card and the tour's tabs beside the
-stage and, under it, the step's text panel card.
+FORM: Masthead row, then the board filling the first screen with the cards
+lying on it — the step list and the tabs top-left, the text panel
+bottom-right. On a phone: the board, the steps as a strip, the panel.
 */
 
 import type { Metadata } from "next";
@@ -30,7 +31,7 @@ import { cn } from "@/lib/utils";
 
 import { stillsFor } from "@/components/path/scene/build-plan";
 
-import { PATH_COPY, STAGE_COPY } from "./copy";
+import { PATH_COPY } from "./copy";
 import { PATH_OVERLAY_INSET } from "./inset";
 import {
   CAPTION_LIT_CSS,
@@ -73,11 +74,11 @@ function stepNode(step: PathStep): PathStepNode {
 }
 
 /* What the stage shows before the scene renders, and as the fallback: the
-   step's still, one per mode, or a line for a step whose scene is not built
-   yet. Server HTML for every step, shown by the same CSS as the panels, so a
-   load of `/path#lille` paints Lille's before any JavaScript. Lazy, so only
-   the shown step's still in the current mode downloads: Chromium does not
-   fetch a lazy image that is `display: none`. */
+   step's still, one per mode. Server HTML for every step, shown by the same
+   CSS as the panels, so a load of `/path#lille` paints Lille's before any
+   JavaScript. Lazy, so only the shown step's still in the current mode
+   downloads: Chromium does not fetch a lazy image that is `display: none`.
+   Contained, so a phone's narrower stage shows the whole board. */
 function StageBackdrop({ step }: { step: PathStep }) {
   const stills = stillsFor(step);
   return (
@@ -92,7 +93,7 @@ function StageBackdrop({ step }: { step: PathStep }) {
             alt=""
             data-path-still="light"
             loading="lazy"
-            className="size-full object-cover dark:hidden"
+            className="size-full object-contain dark:hidden"
           />
           {/* eslint-disable-next-line @next/next/no-img-element -- as above. */}
           <img
@@ -100,14 +101,10 @@ function StageBackdrop({ step }: { step: PathStep }) {
             alt=""
             data-path-still="dark"
             loading="lazy"
-            className="hidden size-full object-cover dark:block"
+            className="hidden size-full object-contain dark:block"
           />
         </>
-      ) : (
-        <p className="text-faint font-label flex size-full items-center justify-center text-xs tracking-[0.12em] uppercase">
-          {STAGE_COPY.notBuilt}
-        </p>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -131,7 +128,10 @@ export default function PathPage() {
       <StageStatusProvider>
         <TourProvider>
           <OverlayRoot
-            className={cn(PATH_OVERLAY_INSET, "flex min-h-dvh flex-col pb-12")}
+            className={cn(
+              PATH_OVERLAY_INSET,
+              "flex min-h-dvh flex-col pb-12 lg:pb-6",
+            )}
           >
             <header className="border-ink flex items-center justify-between gap-6 border-b-2 py-3 lg:py-4">
               <div className="flex items-baseline gap-x-4">
@@ -161,9 +161,37 @@ export default function PathPage() {
               dangerouslySetInnerHTML={{ __html: OVERLAY_FIRST_PAINT_SCRIPT }}
             />
 
-            <div className="mt-8 grid flex-1 content-start gap-x-12 gap-y-8 lg:mt-10 lg:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
+            {/* The board is the hero (comp B). On a wide screen it fills the
+                first screen and the printed cards lie on it: the step list and
+                the tour's tabs down the left, the board's tabs under them, the
+                text panel in the bottom-right corner. The camera keeps the
+                board clear of the list and the selected tile clear of the
+                panel too (`data-path-cover`). Long steps scroll
+                inside the panel rather than push it off the screen: the
+                longest runs past a whole screen.
+
+                On a phone the cards cannot lie on a board 375px wide without
+                hiding it, so they leave it (impeccable adapt: rethink, not
+                scale). The board comes first, full width, with its tabs under
+                it; then the steps as a strip that scrolls sideways, with the
+                tour's tabs; then the panel, in the page's flow, which a pick
+                scrolls into view. Print keeps only the selected step's text. */}
+            <div
+              data-path-world
+              className="relative mt-4 flex flex-1 flex-col gap-y-5 lg:mt-6 lg:block lg:min-h-[36rem] print:mt-6 print:block"
+            >
+              <SceneStage className="max-lg:order-first max-lg:-mx-6 md:max-lg:-mx-10 lg:absolute lg:inset-0">
+                {PATH_STEPS.map((step) => (
+                  <StageBackdrop key={step.slug} step={step} />
+                ))}
+              </SceneStage>
+
               {/* The tour's keys work with focus anywhere in here. */}
-              <div data-path-tour-keys className="space-y-6">
+              <div
+                data-path-tour-keys
+                data-path-cover="board"
+                className="space-y-4 lg:absolute lg:top-0 lg:left-0 lg:w-[19rem] print:hidden"
+              >
                 <nav aria-labelledby="path-heading">
                   <h2 id="path-heading" className="sr-only">
                     {PATH_COPY.stepListHeading}
@@ -180,30 +208,27 @@ export default function PathPage() {
                 <TourTransport />
               </div>
 
-              <div className="min-w-0 space-y-6">
-                <SceneStage>
-                  {PATH_STEPS.map((step) => (
-                    <StageBackdrop key={step.slug} step={step} />
-                  ))}
-                </SceneStage>
-
-                <VoiceControls
-                  clips={voiceClips}
-                  providerName={voiceManifest.providerName}
-                />
-
-                {/* The text panel. Its sections are not anchored: the fragment
-                    selects here rather than scrolling, and focus stays on the
-                    step that was selected (storyboard §7.7). Pointing at it
-                    or focusing in it holds the tour. */}
-                <TourHoldPanel>
-                  {PATH_STEPS.map((step) => (
-                    <div key={step.slug} data-path-panel={step.slug}>
-                      <StepSection step={step} anchored={false} />
-                    </div>
-                  ))}
-                </TourHoldPanel>
-              </div>
+              {/* The text panel. Its sections are not anchored: the fragment
+                  selects here rather than scrolling, and focus stays on the
+                  step that was selected (storyboard §7.7). Pointing at it
+                  or focusing in it holds the tour. The voice reads it, so
+                  its controls are printed at its foot. */}
+              <TourHoldPanel
+                data-path-cover="step"
+                footer={
+                  <VoiceControls
+                    clips={voiceClips}
+                    providerName={voiceManifest.providerName}
+                  />
+                }
+                className="lg:absolute lg:right-0 lg:bottom-0 lg:max-h-[min(30rem,55%)] lg:w-[22rem] xl:w-[27rem] print:static print:max-h-none print:w-auto"
+              >
+                {PATH_STEPS.map((step) => (
+                  <div key={step.slug} data-path-panel={step.slug}>
+                    <StepSection step={step} anchored={false} />
+                  </div>
+                ))}
+              </TourHoldPanel>
             </div>
           </OverlayRoot>
         </TourProvider>

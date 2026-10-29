@@ -24,6 +24,7 @@ import {
   MAX_PIXEL_RATIO,
 } from "@/components/path/scene/drawing-buffer";
 import {
+  frameShapes,
   framePoints,
   LOOP,
   MVP_INK_STRENGTH,
@@ -33,6 +34,15 @@ import {
   tileScale,
 } from "@/components/path/scene/board";
 import { CARD_ART, cardsForStep } from "@/components/path/scene/card-art";
+import {
+  framed,
+  inConvex,
+  middleOf,
+  overlaps,
+  toClip,
+  type ClipPoint,
+  type ClipRect,
+} from "@/components/path/scene/frame";
 import {
   FOLD_FROM,
   foldPose,
@@ -341,9 +351,83 @@ test.describe("the board", () => {
   test("the camera frames every tile and every card's top", () => {
     const points = framePoints();
     const cards = CARD_ART.length;
-    /* Four footprint corners and a hop top per tile, two corners a card. */
-    expect(points).toHaveLength(LOOP.length * 5 + cards * 2);
+    /* Four footprint corners and a hop top per tile, four corners a card. */
+    expect(points).toHaveLength(LOOP.length * 5 + cards * 4);
     for (const [, y] of points) expect(y).toBeGreaterThanOrEqual(0);
+  });
+
+  test("the camera's outlines go tile by tile, footprint first", () => {
+    const shapes = frameShapes();
+    expect(shapes.map(({ slug }) => slug)).toEqual([...LOOP]);
+    for (const { slug, outlines } of shapes) {
+      const [footprint, ...rest] = outlines;
+      /* The footprint lies on the table, round the tile's centre. */
+      expect(footprint).toHaveLength(4);
+      for (const [, y] of footprint) expect(y).toBe(0);
+      const [cx, cz] = tileCentre(slug);
+      const x = footprint.reduce((sum, [px]) => sum + px, 0) / 4;
+      const z = footprint.reduce((sum, [, , pz]) => sum + pz, 0) / 4;
+      expect(x).toBeCloseTo(cx, 6);
+      expect(z).toBeCloseTo(cz, 6);
+      /* A card's outline stands: its top above its foot. */
+      expect(rest).toHaveLength(cardsForStep(slug).length + 1);
+      for (const card of rest.slice(0, -1)) {
+        expect(card).toHaveLength(4);
+        expect(card[2][1]).toBeGreaterThan(card[1][1]);
+      }
+    }
+  });
+});
+
+/* Where the board may stand under the printed cards: clip-space arithmetic,
+   so a wrong sign or a missed edge shows here rather than as a tile under
+   the panel. */
+test.describe("the frame", () => {
+  const square = (x0: number, y0: number, size: number): ClipPoint[] => [
+    [x0, y0],
+    [x0 + size, y0],
+    [x0 + size, y0 + size],
+    [x0, y0 + size],
+  ];
+  const panel: ClipRect = { x0: 0.4, x1: 1, y0: -1, y1: 0 };
+
+  test("a stage rectangle turns into clip space, up the right way", () => {
+    expect(
+      toClip({ left: 0, top: 0, right: 400, bottom: 100 }, 800, 200),
+    ).toEqual({ x0: -1, x1: 0, y0: 0, y1: 1 });
+  });
+
+  test("inside a convex outline is inside, wound either way", () => {
+    const outline = square(0, 0, 1);
+    expect(inConvex(outline, [0.5, 0.5])).toBe(true);
+    expect(inConvex([...outline].reverse(), [0.5, 0.5])).toBe(true);
+    expect(inConvex(outline, [1.5, 0.5])).toBe(false);
+    expect(middleOf(outline)).toEqual([0.5, 0.5]);
+  });
+
+  test("an outline overlaps a card by a corner, by the card's corner, or by an edge alone", () => {
+    /* A corner of the outline under the card. */
+    expect(overlaps(square(0.3, -0.3, 0.2), panel)).toBe(true);
+    /* The card's corner inside a large outline. */
+    expect(overlaps(square(0, -0.5, 1), { ...panel, x1: 0.6 })).toBe(true);
+    /* A thin card crossed by the outline's edges, no corner in either. */
+    const thin: ClipRect = { x0: 0.45, x1: 0.55, y0: -1, y1: 1 };
+    const wide: ClipPoint[] = [
+      [0, 0],
+      [1, 0],
+      [1, 0.2],
+      [0, 0.2],
+    ];
+    expect(overlaps(wide, thin)).toBe(true);
+    /* Beside the card, clear of it. */
+    expect(overlaps(square(-0.5, -0.5, 0.5), panel)).toBe(false);
+  });
+
+  test("framed means inside the free part and clear of every card", () => {
+    const safe: ClipRect = { x0: -1, x1: 1, y0: -1, y1: 1 };
+    expect(framed([square(-0.5, 0.2, 0.3)], safe, [panel])).toBe(true);
+    expect(framed([square(0.5, -0.5, 0.2)], safe, [panel])).toBe(false);
+    expect(framed([square(0.9, 0.5, 0.3)], safe, [])).toBe(false);
   });
 });
 

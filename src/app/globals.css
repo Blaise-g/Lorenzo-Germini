@@ -292,6 +292,12 @@ html {
     background-color: var(--color-accent);
   }
 
+  /* The board's icon tabs: a square of the same bevelled card. */
+  .path-tab[data-shape="square"] {
+    min-width: 2.75rem;
+    padding-inline: 0;
+  }
+
   .path-tab[aria-disabled="true"] {
     color: var(--color-faint);
     cursor: default;
@@ -329,6 +335,46 @@ html {
   /* The step link fills its row, so the whole row is the target. */
   .path-step-link {
     height: 100%;
+  }
+
+  /* The step list: rows beside the drawn line on a wide screen, the line's
+     gutter to their left. On a phone, a strip of the same rows that scrolls
+     sideways under the board, its ends fading into the card. */
+  .path-step-strip {
+    padding-left: 2.25rem;
+  }
+
+  @media (width < 64rem) {
+    .path-step-strip {
+      display: flex;
+      padding-left: 0;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      mask-image: linear-gradient(
+        to right,
+        transparent,
+        black 1rem,
+        black calc(100% - 1rem),
+        transparent
+      );
+    }
+  }
+
+  /* Laid over the board, the panel's text scrolls inside it; the scrollbar
+     is printed in the card's own hairline. */
+  @media (width >= 64rem) {
+    .path-panel-text {
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-width: thin;
+      scrollbar-color: var(--color-border) transparent;
+    }
+  }
+
+  .path-panel-text:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: -4px;
   }
 
   /* The pawn rides the step list's drawn line. On-screen movement, so
@@ -413,6 +459,10 @@ html {
     .dark .path-card {
       border: 0;
       box-shadow: none;
+    }
+
+    .path-panel-text {
+      overflow: visible;
     }
   }
 }

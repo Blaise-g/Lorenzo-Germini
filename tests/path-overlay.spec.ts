@@ -403,6 +403,9 @@ test.describe("on a phone", () => {
   test("selecting a step brings its text into view and keeps focus on it", async ({
     page,
   }) => {
+    /* A short phone: on a tall one the panel's top shows under the board
+       already. */
+    await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/path");
     await expect(stepLink(page, "now")).toBeVisible();
     expect(await panelInView(page)).toBe(false);

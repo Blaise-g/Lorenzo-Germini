@@ -323,6 +323,22 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
     if (fromFragment) markSeen(fromFragment);
   }, [fromFragment]);
 
+  /* On a phone the list is a strip that scrolls sideways: the selected step
+     is brought into it, the strip alone scrolling, never the page. */
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list || list.scrollWidth <= list.clientWidth) return;
+    const row = list.querySelector<HTMLElement>(
+      `li:has([data-path-step-link="${selected}"])`,
+    );
+    if (!row) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    list.scrollTo({
+      left: row.offsetLeft - (list.clientWidth - row.offsetWidth) / 2,
+      behavior: reduce.matches ? "instant" : "smooth",
+    });
+  }, [selected]);
+
   function onStepKeyDown(event: KeyboardEvent<HTMLAnchorElement>) {
     if (hasModifier(event)) return;
     /* Enter already follows a link; Space would scroll the page instead. */
@@ -358,14 +374,14 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
   const selectedIndex = steps.findIndex((step) => step.slug === selected);
 
   return (
-    <div className="path-card px-4 pt-3 pb-1">
+    <div className="path-card px-1 lg:px-4 lg:pt-3 lg:pb-1">
       <div className="relative">
         <svg
           aria-hidden
           width={GUTTER_PX}
           height={height}
           viewBox={`0 0 ${GUTTER_PX} ${height}`}
-          className="absolute top-0 left-0 overflow-visible"
+          className="absolute top-0 left-0 overflow-visible max-lg:hidden"
         >
           <path
             d={line}
@@ -384,7 +400,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
           <span
             aria-hidden
             data-path-piece={selected}
-            className="path-pawn"
+            className="path-pawn max-lg:hidden"
             style={{
               offsetPath: `path("${line}")`,
               offsetDistance: `${(selectedIndex / (steps.length - 1)) * 100}%`,
@@ -393,7 +409,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
             <Pawn />
           </span>
         ) : null}
-        <ol ref={listRef} style={{ paddingLeft: GUTTER_PX + 8 }}>
+        <ol ref={listRef} className="path-step-strip">
           {steps.map((step) => {
             const current = hydrated && step.slug === selected;
             const isSeen = seen.has(step.slug);
@@ -401,7 +417,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
               <li
                 key={step.slug}
                 data-path-seen={isSeen ? "" : undefined}
-                className="relative flex items-center"
+                className="relative flex items-center max-lg:shrink-0 max-lg:px-3"
                 style={{ height: ROW_PX }}
               >
                 <a
@@ -438,7 +454,7 @@ export function PathStepList({ steps }: { steps: readonly PathStepMark[] }) {
       {/* In the server HTML and of fixed height either way, so the control
           arriving moves nothing. A button: it changes storage and goes
           nowhere. */}
-      <div className="border-border flex h-11 items-center justify-end border-t border-dashed print:hidden">
+      <div className="border-border flex h-11 items-center justify-end border-t border-dashed max-lg:px-3 print:hidden">
         {seen.size > 0 ? (
           <button
             type="button"

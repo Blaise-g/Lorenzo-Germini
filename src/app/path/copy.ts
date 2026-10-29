@@ -23,7 +23,6 @@ export const STAGE_COPY = {
   replay: "Replay",
   turnLeft: "Turn the scene left",
   turnRight: "Turn the scene right",
-  notBuilt: "This step’s scene is not built yet",
   showing: (place: string) => `Showing: ${place}`,
 };
 
