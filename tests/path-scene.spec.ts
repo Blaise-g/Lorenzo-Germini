@@ -421,7 +421,8 @@ test.describe("the build", () => {
    with the rest of the canvas. */
 test.describe("picking on the board", () => {
   /** Sweeps the canvas for a point the board says is a tile other than the
-   *  selected one: the pointer shows it as clickable there. */
+   *  selected one: the pointer shows it as clickable there, as a step and
+   *  not a piece that answers a click (`path-life.spec.ts`). */
   async function findTile(page: Page) {
     const canvas = stage(page).locator("canvas");
     const box = (await canvas.boundingBox())!;
@@ -439,7 +440,8 @@ test.describe("picking on the board", () => {
         const cursor = await canvas.evaluate(
           (element) => getComputedStyle(element).cursor,
         );
-        if (cursor === "pointer") return { x, y };
+        const pointing = await canvas.getAttribute("data-path-pointing");
+        if (cursor === "pointer" && pointing === "step") return { x, y };
       }
     }
     return null;
@@ -466,13 +468,10 @@ test.describe("picking on the board", () => {
     await expect(overlay(page)).toHaveAttribute("data-path-shown", picked);
     expect(await page.evaluate(() => history.length)).toBe(before + 1);
     await expect(stepLink(page, picked)).toHaveAttribute("aria-current", /./);
-    /* The tile just picked is the selected one: no longer a link. */
+    /* The tile just picked is the selected one: no longer a link, though a
+       piece on it may still answer a click. */
     await page.mouse.move(tile!.x, tile!.y);
-    await expect
-      .poll(() =>
-        canvas.evaluate((element) => getComputedStyle(element).cursor),
-      )
-      .not.toBe("pointer");
+    await expect(canvas).not.toHaveAttribute("data-path-pointing", "step");
   });
 });
 

@@ -53,7 +53,7 @@ type RestPose = { position: Vector3; rotation: Euler; scale: Vector3 };
 /** A part's pose as built, kept the first time a beat moves it. */
 const rests = new WeakMap<Object3D, RestPose>();
 
-function restOf(node: Object3D): RestPose {
+export function restOf(node: Object3D): RestPose {
   let rest = rests.get(node);
   if (!rest) {
     rest = {
@@ -66,7 +66,7 @@ function restOf(node: Object3D): RestPose {
   return rest;
 }
 
-function parts(root: Object3D, name: string): Object3D[] {
+export function parts(root: Object3D, name: string): Object3D[] {
   const found: Object3D[] = [];
   root.traverse((node) => {
     if (node.name === name) found.push(node);
@@ -88,13 +88,22 @@ function materialsOf(node: Object3D): MeshStandardMaterial[] {
 
 /** Lights `nodes` by `amount`: through a generated model's grade
  *  (`grade.ts`), or as a glow lent to a code-built material. */
-function glow(paint: Paint, nodes: Object3D[], amount: number) {
+export function glow(paint: Paint, nodes: Object3D[], amount: number) {
   for (const node of nodes) {
     for (const made of materialsOf(node)) {
       const lit = made.userData.inkLit as IUniform<number> | undefined;
       if (lit) lit.value = Math.min(amount, 1.5);
       else paint.boost(made, amount);
     }
+  }
+}
+
+/** Lights a generated model under `node` through its grade, and nothing
+ *  else. */
+export function glint(node: Object3D, amount: number) {
+  for (const made of materialsOf(node)) {
+    const lit = made.userData.inkLit as IUniform<number> | undefined;
+    if (lit) lit.value = Math.min(amount, 1.5);
   }
 }
 

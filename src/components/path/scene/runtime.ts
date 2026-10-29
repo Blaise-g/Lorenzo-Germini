@@ -90,13 +90,18 @@ import { buildPiece, jetPlume, type Built } from "./props";
 import { pawnPathPoint } from "./path-spline";
 import { assetsForStep, SCENE_ASSETS } from "./scene-assets";
 import {
+  type BuddyParts,
   makeBoard,
+  makeBuddy,
   makePath,
   makePawn,
   makeTileBase,
+  MARKER,
   PHONE_GRASS_SHARE,
   type PawnParts,
 } from "./world";
+import { createMoments, type MomentName, type MomentStage } from "./moments";
+import { createPlay, type Reactor } from "./play";
 
 /* The 3D path's board (GH-148; v3, a solid tabletop board): vanilla
    three.js, imported dynamically by the host on `/path` only, after the
@@ -155,6 +160,12 @@ export type SceneSnapshot = {
   /** The narration's last beat on the board, `<step>:<prop>:<nth>`, as
    *  the stage carries it (`data-scene-beat`); absent before any. */
   beat?: string;
+  /** A piece's answer to the last click on it, `<piece>:<answer>:<count>`
+   *  (`data-scene-reaction`); absent before any. */
+  reaction?: string;
+  /** The board's last moment (`moments.ts`), `<name>:<count>`
+   *  (`data-scene-moment`). */
+  moment?: string;
   /** Set when the shown step's tile shows its stills instead, and why; the
    *  board keeps running for the other steps. It names its step, so the host
    *  never pairs it with a step selected since. */
@@ -215,6 +226,18 @@ export type SceneRuntime = {
   /** The step whose tile, or a piece standing on it, is under a point on
    *  the canvas, in CSS pixels from its top-left corner; null for none. */
   pick(x: number, y: number): PathStepSlug | null;
+  /** Plays the answer of the piece under a point, on the shown step's tile
+   *  or the marker, even while the tour is paused; returns its name, or
+   *  null with no such piece there. Decorative: the step does not change. */
+  react(x: number, y: number): string | null;
+  /** A fine pointer is over a point, or has left (null): lights the piece
+   *  under it that answers a click, and says whether there is one. */
+  hover(x: number | null, y?: number): boolean;
+  /** Plays a moment now, on the shown step: for the clips. */
+  moment(name: MomentName): void;
+  /** Where a piece of the shown step's tile, or the marker's `figure` or
+   *  `buddy`, is on the canvas, in CSS pixels; null if it is not shown. */
+  locate(piece: string): { x: number; y: number } | null;
   dispose(): void;
 };
 
@@ -385,7 +408,16 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       const riser = new Group();
       const sinker = new Group();
       const beater = new Group();
-      beater.add(built.object);
+      /* The handle inside the beater is a click's (`play.ts`): its own
+         springs, apart from the beats'. */
+      const handle = new Group();
+      handle.add(built.object);
+      handle.userData.reactor = {
+        piece: piece.id,
+        handle,
+        root: beater,
+      } satisfies Reactor;
+      beater.add(handle);
       sinker.add(beater);
       riser.add(sinker);
       riser.position.set(piece.x, TILE.thickness + (piece.y ?? 0), piece.z);
@@ -465,6 +497,35 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   const pawnParts = pawn.userData.pawn as PawnParts;
   pawn.visible = false;
   board.add(pawn);
+  /* The marker is two (the owner's ask): the figure, and its buddy
+     travelling alongside, a beat behind and bouncier. Each is a handle a
+     generated model goes inside (`MARKER`). */
+  const figure = pawnParts.body.getObjectByName(MARKER.figure) as Group;
+  figure.userData.reactor = {
+    piece: "figure",
+    handle: figure,
+    root: figure,
+  } satisfies Reactor;
+  const buddy = makeBuddy(paintBox);
+  const buddyParts = buddy.userData.buddy as BuddyParts;
+  const buddyHandle = buddyParts.body.getObjectByName(MARKER.buddy) as Group;
+  buddyHandle.userData.reactor = {
+    piece: "buddy",
+    handle: buddyHandle,
+    root: buddyHandle,
+  } satisfies Reactor;
+  buddy.visible = false;
+  board.add(buddy);
+  /** The buddy follows the figure this far behind, in ms of its move. */
+  const BUDDY_LAG_MS = 130;
+  /** Where the buddy stands beside the figure, in the board's frame, before
+   *  the tile's scale: to its left and a little in front. */
+  const BUDDY_SIDE = new Vector3(-0.98, 0, 0.32);
+  /** Its hop, against the figure's: higher for its size, so bouncier. */
+  const BUDDY_HOP = 0.82;
+  /** The move the buddy is still finishing after the figure has landed. */
+  let trail: Move | undefined;
+  const buddyFoot = new Vector3();
 
   /** A move of the pawn, timed by the camera's transit: it leaves at
    *  `hopStartMs` and lands at `landMs`. An opening drops it onto its tile
@@ -677,6 +738,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       settled,
       shot,
       beat: lastBeat,
+      reaction: lastReaction,
+      moment: lastMoment,
       stills,
     });
   }
@@ -765,6 +828,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   function posePawn() {
     if (!pawnAt) {
       pawn.visible = false;
+      buddy.visible = false;
       return;
     }
     const { body, contact, ring } = pawnParts;
@@ -797,10 +861,36 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       flat.material.opacity = flat.userData.opacity * (1 - 0.7 * away);
       flat.scale.setScalar(1 - 0.25 * away);
     }
+    poseBuddy();
+  }
+
+  /** The buddy: on the figure's path a beat behind it, hopping higher and
+   *  stretching in the air; at rest, beside it. */
+  function poseBuddy() {
+    buddy.visible = pawn.visible;
+    if (!buddy.visible || !pawnAt) return;
+    const following = move ?? trail;
+    let lift = 0;
+    if (following) {
+      const ms = Math.max(following.elapsed - BUDDY_LAG_MS, 0);
+      pawnFoot(following, ms, buddyFoot);
+      lift = moveAt(following, ms).lift;
+    } else {
+      pawnPathPoint(stepIndex(pawnAt), 0, buddyFoot).y += liftOf(pawnAt);
+    }
+    buddyFoot.addScaledVector(BUDDY_SIDE, tileScale(pawnAt));
+    buddy.position.copy(buddyFoot);
+    const { body, contact } = buddyParts;
+    body.position.y = lift * HOP_HEIGHT * BUDDY_HOP;
+    const stretch = 1 + 0.1 * Math.min(lift, 1);
+    body.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
+    const away = Math.min(lift / 2, 1);
+    contact.material.opacity = contact.userData.opacity * (1 - 0.7 * away);
   }
 
   function finish() {
     move = undefined;
+    trail = undefined;
     if (current) pawnAt = current;
     landingElapsed = LANDING_MS;
     for (const slug of catchingUp.keys()) built.add(slug);
@@ -880,6 +970,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
      tour's own motion; a theme change or a turn, the visitor's, plays on. */
   function moving() {
     if (themeElapsed < THEME_MS || turnElapsed < TURN_MS) return true;
+    if (reactions.active()) return true;
     if (frozen) return false;
     return (
       buildState === "building" ||
@@ -888,6 +979,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       lifting() ||
       rig.moving(tourState === "playing") ||
       life.active() ||
+      gestures.active() ||
+      moments.active() ||
+      trail !== undefined ||
       arrivals.size > 0 ||
       alive()
     );
@@ -945,6 +1039,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         move.elapsed += step;
         sound(takeOffs(move, move.elapsed) - before);
         if (move.elapsed >= move.transit.landMs) {
+          trail = move;
           move = undefined;
           pawnAt = current;
           landingElapsed = 0;
@@ -962,6 +1057,14 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       landingElapsed = Math.min(landingElapsed + step, LANDING_MS);
       posed = true;
     }
+    if (trail) {
+      trail.elapsed += step;
+      if (trail.elapsed - BUDDY_LAG_MS >= trail.transit.landMs) {
+        trail = undefined;
+        buddyLanded();
+      }
+      posed = true;
+    }
     if (liftTiles(step)) posed = true;
     if (arrive(step)) posed = true;
     if (posed) pose();
@@ -977,6 +1080,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     if (turning && frozen && turnElapsed >= TURN_MS) rig.place();
     if (isSettled() !== settled || rig.shot() !== shot) emit();
     stepLife(step);
+    /* A click's answer runs on while the tour is paused: it was asked
+       for. */
+    reactions.tick(free);
     if (themeElapsed < THEME_MS) {
       themeElapsed = Math.min(themeElapsed + free, THEME_MS);
       const t = easeInOut(themeElapsed / THEME_MS);
@@ -1109,6 +1215,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       pawnAt = wrap(stepIndex(move.from) + Math.round(along));
       move = undefined;
     }
+    trail = undefined;
   }
 
   /* This step's tile shows its stills: the canvas is see-through over them,
@@ -1175,6 +1282,7 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     /* A selection plays its move even when paused: the visitor asked for
        it. */
     frozen = false;
+    trail = undefined;
     if (first) {
       /* The opening: a visit entering at the first step swoops the whole
          way down; one entering at a fragment takes the shorter variant. */
@@ -1238,6 +1346,71 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
 
   function event(name: SceneEvent) {
     options.onEvent?.(name);
+  }
+
+  /* Play: a click's answer, on the free clock; the duo's gestures and the
+     moments, on the living one (`play.ts`, `moments.ts`). */
+  const reactions = createPlay({ paint: paintBox, board });
+  const gestures = createPlay({ paint: paintBox, board });
+  const moments = createMoments({ board, paint: paintBox, play: gestures });
+  let lastReaction: string | undefined;
+  let reactionCount = 0;
+  let lastMoment: string | undefined;
+  let momentCount = 0;
+
+  /** The buddy has landed beside the figure: a high five. */
+  function buddyLanded() {
+    if (reducedMotion) return;
+    gestures.gestures.highFive(figure, buddyHandle, Math.sign(BUDDY_SIDE.x));
+    gestures.kick(buddyHandle, "squash", -1.6);
+  }
+
+  /** A piece's click handle on `slug`'s tile, if it stands. */
+  function handleOf(slug: PathStepSlug, piece: string): Group | undefined {
+    if (piece === "figure") return figure;
+    if (piece === "buddy") return buddyHandle;
+    let found: Group | undefined;
+    tiles.get(slug)?.group.traverse((node) => {
+      const reactor = node.userData.reactor as Reactor | undefined;
+      if (!found && reactor?.piece === piece) found = reactor.handle;
+    });
+    return found;
+  }
+
+  function momentStage(): MomentStage {
+    const [x, z] = current ? tileCentre(current) : [0, 0];
+    return {
+      figure,
+      buddy: buddyHandle,
+      piece: (slug, id) => handleOf(slug, id),
+      centre: new Vector3(x, liftOf(current ?? LOOP[0]), z),
+    };
+  }
+
+  /** The piece under a point that answers a click: on the shown step's
+   *  tile, standing, or the marker. */
+  function reactorAt(x: number, y: number): Reactor | null {
+    const tile = current && tiles.get(current);
+    if (!tile || stills) return null;
+    const width = canvas.clientWidth || 1;
+    const height = canvas.clientHeight || 1;
+    pointer.set((x / width) * 2 - 1, 1 - (y / height) * 2);
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects([tile.group, pawn, buddy], true);
+    for (const { object } of hits) {
+      let node: Object3D | null = object;
+      let shown = true;
+      while (node && !node.userData.reactor) {
+        shown &&= node.visible;
+        node = node.parent;
+      }
+      if (!node) continue;
+      for (let up: Object3D | null = node; up; up = up.parent) {
+        shown &&= up.visible;
+      }
+      if (shown) return node.userData.reactor as Reactor;
+    }
+    return null;
   }
 
   /** The beat last played, for the snapshot. */
@@ -1327,6 +1500,24 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
     }
     if (move) life.passing(pawn.getWorldPosition(footWorld));
     life.tick(step);
+    /* Gestures and a flock under way play out on the board's clock, so
+       they freeze on Pause and finish after the end; a new moment waits
+       for the board to be living, and quiet. */
+    gestures.tick(step);
+    const played = moments.tick(
+      step,
+      living > 0 &&
+        !life.active() &&
+        !move &&
+        !trail &&
+        buildState !== "building",
+      current,
+      momentStage(),
+    );
+    if (played) {
+      lastMoment = `${played}:${++momentCount}`;
+      emit();
+    }
     for (const tile of tiles.values()) {
       for (const risers of tile.props.values()) {
         for (const piece of risers) {
@@ -1423,6 +1614,40 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       else requestFrame();
     },
     arriveTile,
+    react(x, y) {
+      const on = reactorAt(x, y);
+      if (!on) return null;
+      const answer = reactions.react(on, reducedMotion);
+      lastReaction = `${on.piece}:${answer}:${++reactionCount}`;
+      event(answer === "chime" ? "beat-low" : "beat-high");
+      emit();
+      requestFrame();
+      return answer;
+    },
+    hover(x, y) {
+      const on = x === null || y === undefined ? null : reactorAt(x, y);
+      reactions.hover(on);
+      requestFrame();
+      return on !== null;
+    },
+    moment(name) {
+      if (!current || reducedMotion) return;
+      moments.play(name, current, momentStage());
+      lastMoment = `${name}:${++momentCount}`;
+      emit();
+      requestFrame();
+    },
+    locate(piece) {
+      const handle = current && handleOf(current, piece);
+      if (!handle) return null;
+      const centre = new Box3().setFromObject(handle).getCenter(new Vector3());
+      centre.project(camera);
+      if (Math.abs(centre.x) > 1 || Math.abs(centre.y) > 1) return null;
+      return {
+        x: ((centre.x + 1) / 2) * canvas.clientWidth,
+        y: ((1 - centre.y) / 2) * canvas.clientHeight,
+      };
+    },
     replay() {
       const step = current && stepNamed(current);
       if (step && plan && !stills) buildOrFail(step);
@@ -1481,6 +1706,9 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       rig.setReducedMotion(reduced);
       if (!reduced || !plan) return;
       life.finish();
+      reactions.settle();
+      gestures.settle();
+      moments.finish();
       arrivals.clear();
       /* Reduced motion's designed state is the whole board built. */
       for (const tile of tiles.keys()) built.add(tile);

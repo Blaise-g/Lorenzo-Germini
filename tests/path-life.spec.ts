@@ -5,7 +5,16 @@
    and the board coming to rest under reduced motion and on Pause. */
 
 import { expect, test, type Page } from "@playwright/test";
-import { Color, ShaderChunk } from "three";
+import {
+  BoxGeometry,
+  Color,
+  Group,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  type PlaneGeometry,
+  ShaderChunk,
+} from "three";
 
 import { pieceOf } from "@/components/path/scene/board";
 import {
@@ -32,7 +41,19 @@ import {
   landmarkSink,
 } from "@/components/path/scene/motion";
 import { inject, SUN_ANCHOR, VIEW_ANCHOR } from "@/components/path/scene/paint";
+import {
+  type MomentName,
+  momentsFor,
+  momentWait,
+  nextMoment,
+} from "@/components/path/scene/moments";
+import type { Paint } from "@/components/path/scene/paint";
 import type { Palette } from "@/components/path/scene/palette";
+import {
+  createPlay,
+  type Play,
+  type Reactor,
+} from "@/components/path/scene/play";
 import { grassCount, PHONE_GRASS_SHARE } from "@/components/path/scene/world";
 import { PATH_STEPS } from "@/data/path";
 import { PATH_NARRATION } from "@/data/path-narration";
@@ -377,5 +398,160 @@ test.describe("with motion", () => {
     const frozen = await draws(page);
     await page.waitForTimeout(1500);
     expect(await draws(page)).toBe(frozen);
+  });
+});
+
+/* ─── Play: a click's answer, the duo's gestures, the moments ─── */
+
+test.describe("play", () => {
+  /* A stand-in for the board's paint: play reads its lamp colour and lends
+     glow through it. */
+  const paint = {
+    lampColour: { value: new Color(1, 0.8, 0.5) },
+    boost() {},
+  } as unknown as Paint;
+
+  function reactor(piece: string) {
+    const handle = new Group();
+    handle.add(new Mesh(new BoxGeometry(1, 1, 1), new MeshStandardMaterial()));
+    const root = new Group();
+    root.add(handle);
+    return { piece, handle, root } satisfies Reactor;
+  }
+
+  /** Runs `play` for `ms`, a frame at a time, recording `read` each frame. */
+  function run(play: Play, ms: number, read: () => number) {
+    const seen: number[] = [];
+    for (let t = 0; t < ms; t += 16) {
+      play.tick(16);
+      seen.push(read());
+    }
+    return seen;
+  }
+
+  test("the figure waves: it leans both ways, then stands upright", () => {
+    const play = createPlay({ paint, board: new Group() });
+    const figure = reactor("figure");
+    expect(play.react(figure, false)).toBe("wave");
+    const leans = run(play, 2000, () => figure.handle.rotation.z);
+    expect(Math.max(...leans)).toBeGreaterThan(0.08);
+    expect(Math.min(...leans)).toBeLessThan(-0.04);
+    /* Quick: over within a second and a half. */
+    expect(Math.abs(leans[Math.round(1500 / 16)])).toBeLessThan(0.01);
+    expect(figure.handle.rotation.z).toBe(0);
+    expect(play.active()).toBe(false);
+  });
+
+  test("the buddy spins once round and lands facing front, then jabs", () => {
+    const play = createPlay({ paint, board: new Group() });
+    const buddy = reactor("buddy");
+    expect(play.react(buddy, false)).toBe("spin");
+    const turns = run(play, 2500, () => buddy.handle.rotation.y);
+    expect(Math.max(...turns)).toBeGreaterThan(Math.PI * 1.8);
+    expect(buddy.handle.rotation.y).toBe(0);
+    expect(play.react(buddy, false)).toBe("jab");
+    const reach = run(play, 1500, () => buddy.handle.position.x);
+    expect(Math.max(...reach)).toBeGreaterThan(0.05);
+    expect(buddy.handle.position.x).toBe(0);
+  });
+
+  /* A second click mid-motion adds to the first rather than restarting
+     it: no jump back to rest, and a little more. */
+  test("a quick second click retargets mid-motion, a little harder", () => {
+    const once = createPlay({ paint, board: new Group() });
+    const twice = createPlay({ paint, board: new Group() });
+    const [a, b] = [reactor("mole"), reactor("mole")];
+    once.react(a, false);
+    twice.react(b, false);
+    run(once, 64, () => 0);
+    run(twice, 64, () => 0);
+    const before = b.handle.scale.y;
+    twice.react(b, false);
+    twice.tick(1);
+    /* Continuous: the second click starts from where the first had got. */
+    expect(Math.abs(b.handle.scale.y - before)).toBeLessThan(0.01);
+    const peak = (play: Play, r: Reactor) =>
+      Math.max(...run(play, 900, () => Math.abs(r.handle.position.y)));
+    expect(peak(twice, b)).toBeGreaterThan(peak(once, a));
+  });
+
+  test("under reduced motion, a click lights the piece and moves nothing", () => {
+    const board = new Group();
+    const play = createPlay({ paint, board });
+    const mole = reactor("mole");
+    board.add(mole.root);
+    expect(play.react(mole, true)).toBe("highlight");
+    const halo = board.children.find(
+      (node) =>
+        node instanceof Mesh && node.material instanceof MeshBasicMaterial,
+    ) as Mesh<PlaneGeometry, MeshBasicMaterial>;
+    const levels = run(play, 1200, () => halo.material.opacity);
+    expect(Math.max(...levels)).toBeGreaterThan(0.2);
+    expect(levels.at(-1)).toBe(0);
+    expect(mole.handle.position.y).toBe(0);
+    expect(mole.handle.scale.y).toBe(1);
+    expect(mole.handle.rotation.z).toBe(0);
+  });
+
+  test("moments come every 20 to 40 s, never the same twice running", () => {
+    expect(momentWait(0)).toBe(20_000);
+    expect(momentWait(0.999)).toBeLessThan(40_000);
+    const names = momentsFor("switzerland");
+    expect(names).toEqual(expect.arrayContaining(["wave", "spin", "jab"]));
+    let last: MomentName | undefined;
+    for (let i = 0; i < 200; i++) {
+      const next = nextMoment(names, last, Math.random());
+      expect(next).not.toBe(last);
+      expect(names).toContain(next);
+      last = next;
+    }
+  });
+});
+
+/* A click on a piece of the shown step's tile, or on the marker, plays its
+   answer and leaves the step where it is; a click on another step's tile
+   still goes there (`path-scene.spec.ts`, "picking on the board"). */
+test.describe("clicking the board's pieces", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("answers on the shown tile, and does not change the step", async ({
+    page,
+  }) => {
+    await page.goto("/path#switzerland");
+    await expect(stage(page)).toHaveAttribute("data-build-state", "built", {
+      timeout: 20_000,
+    });
+    /* Paused, so the tour does not move on while the test clicks: the
+       answers run anyway. */
+    await playTab(page).click();
+    const canvas = stage(page).locator("canvas");
+    const box = (await canvas.boundingBox())!;
+    const history = await page.evaluate(() => window.history.length);
+    let count = 0;
+    for (const piece of ["buddy", "figure", "roche-dial"]) {
+      const at = await page.evaluate(
+        (each) => window.__pathScene!.locate(each),
+        piece,
+      );
+      expect(at, piece).not.toBeNull();
+      await page.mouse.move(box.x + at!.x, box.y + at!.y);
+      await expect(canvas).toHaveAttribute("data-path-pointing", "piece");
+      await page.mouse.click(box.x + at!.x, box.y + at!.y);
+      count += 1;
+      await expect(stage(page)).toHaveAttribute(
+        "data-scene-reaction",
+        new RegExp(`^${piece}:\\w+:${count}$`),
+      );
+      await expect(page).toHaveURL(/#switzerland$/);
+      await expect(stage(page)).toHaveAttribute(
+        "data-scene-step",
+        "switzerland",
+      );
+    }
+    expect(await page.evaluate(() => window.history.length)).toBe(history);
+    await expect(page.locator("[data-path-tour]")).toHaveAttribute(
+      "data-path-tour",
+      "paused",
+    );
   });
 });

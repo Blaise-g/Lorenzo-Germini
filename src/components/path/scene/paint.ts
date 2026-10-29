@@ -644,6 +644,9 @@ export function createPaint(palette: Palette) {
     /** Where a beat's water runs the pipe loop (`pipeFlow`), 0 to 1; -1
      *  for none. */
     pipeBeat,
+    /** The lamps' colour in the current mode, for light drawn outside the
+     *  board's materials. */
+    lampColour,
     /** A tile's own grass, grown out from `grow` (x, z in the tile's
      *  frame, radius). */
     tileGrass: makeGrass,

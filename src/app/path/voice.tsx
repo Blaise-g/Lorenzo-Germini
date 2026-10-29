@@ -325,7 +325,9 @@ export function NarrationBar({
           data-voice-state={state}
           className="flex shrink-0 flex-col xl:w-56"
         >
-          <div className="flex items-center gap-x-6">
+          {/* Three switches overrun the column's width from \`xl\`: Sound
+              wraps under the other two there. */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
             <Switch
               checked={voiceOn}
               onChange={setVoiceOn}
