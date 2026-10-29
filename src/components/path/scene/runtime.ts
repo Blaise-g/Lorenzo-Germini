@@ -1139,7 +1139,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
        from there. */
     const again = rebuild && tile.slug === current;
     /* The lid lifts from the first piece's wake, on its own clock; over a
-       tile built again it is already gone. */
+       tile built again it is already gone. Under reduced motion every tile
+       is in `built`, posed "up", so no lid shows. */
     let lifted = again ? VEIL_MS : 0;
     for (const [prop, risers] of tile.props) {
       const elapsed = at(prop);
