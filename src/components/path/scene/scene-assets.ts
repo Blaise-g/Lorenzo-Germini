@@ -13,8 +13,9 @@ import { pieceOf } from "./board";
    request, so a missing file is never a missing landmark. No three.js
    here.
 
-   A file is a glTF binary, its meshes and textures compressed with
-   `EXT_meshopt_compression` (and KTX2 where it has textures). Its origin is
+   A file is a glTF binary, its meshes compressed with
+   `EXT_meshopt_compression`, its textures, if any, WebP or PNG: the loader
+   wires no KTX2 transcoder, so a KTX2 texture fails its tile. Its origin is
    the landmark's foot, centred, +y up and its front facing +z, in whatever
    units the generator left: the board fits it into its piece's box and
    then applies `scale`. */

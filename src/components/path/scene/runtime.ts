@@ -4,6 +4,7 @@ import {
   DirectionalLight,
   Group,
   HemisphereLight,
+  InstancedMesh,
   Mesh,
   PCFSoftShadowMap,
   PerspectiveCamera,
@@ -402,16 +403,26 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
   /** The one `prepare` in flight: a second show while it runs waits on it. */
   let preparing: Promise<void> | undefined;
 
+  /** Loads in flight, by file: a second ask while one runs waits on it,
+   *  so a quick reselection never fetches, or orphans, a model twice. */
+  const loading = new Map<string, Promise<void>>();
+
   /** Fetches the landmarks of `files` not yet loaded or known absent. */
   async function loadModels(files: readonly string[]) {
     await Promise.all(
       SCENE_ASSETS.filter((asset) => files.includes(asset.file)).map(
-        async (asset) => {
+        (asset) => {
           const known = models.get(asset.file);
-          if (known && known.status !== "failed") return;
-          const result = await loadModel(asset);
-          if (disposed) return;
-          models.set(asset.file, result);
+          if (known && known.status !== "failed") return undefined;
+          let load = loading.get(asset.file);
+          if (!load) {
+            load = loadModel(asset).then((result) => {
+              loading.delete(asset.file);
+              if (!disposed) models.set(asset.file, result);
+            });
+            loading.set(asset.file, load);
+          }
+          return load;
         },
       ),
     );
@@ -513,10 +524,12 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
         const progress = again
           ? REBUILD_FROM + (1 - REBUILD_FROM) * Math.max(local, 0)
           : local;
-        const pose = risePose(progress, PROP_DROP_MS);
+        const pose = risePose(progress, PROP_DROP_MS - delay);
         piece.riser.visible = pose.visible;
         piece.riser.scale.set(pose.width, pose.height, pose.width);
-        piece.sinker.position.y = -pose.sink;
+        /* The sinker sits inside the riser's scale: undo its height, so the
+           sink is in the tile's units. */
+        piece.sinker.position.y = pose.visible ? -pose.sink / pose.height : 0;
         piece.motion?.(Math.min(Math.max(local, 0), 1));
       }
     }
@@ -1280,6 +1293,8 @@ export function createSceneRuntime(options: SceneRuntimeOptions): SceneRuntime {
       ];
       for (const root of owned) {
         root.traverse((node) => {
+          /* An instanced mesh's matrices are freed only by its own dispose. */
+          if (node instanceof InstancedMesh) node.dispose();
           if (!(node instanceof Mesh)) return;
           geometries.add(node.geometry);
           for (const material of [node.material].flat())

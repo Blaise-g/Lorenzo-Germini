@@ -13,18 +13,22 @@ What ships:
 
 - **Everything on the board is solid geometry, modelled in code** (`world.ts`, `props.ts`).
   - The board is a thick bevelled slab with a raised frame.
-  - Each tile is a chamfered octagon extruded with a bevel. A colour band in a second material
-    runs along its front edge, and the card grain is a bump map on its top.
+  - Each tile is a chamfered octagon extruded with a bevel. A colour band, a thin strip of its
+    own in the tile's colour, runs along its front edge, and the card grain is a bump map on its
+    top.
   - Stepping stones follow the path between the tiles.
   - The pawn is lathe-turned.
   - The trees and grass are instanced, and the grass sways in the vertex shader.
   - The water's normals scroll and it foams at its banks.
+  - The board renders on demand, so the grass and the water move only while something else
+    does. Motion that never stops is a later package's.
   - Every prop the steps name is a solid.
 - **No text in the scene.** The tile names, plaques, the MVP tag, and the canvas label machinery
   that drew them are gone. A step's figure is in its line, which the overlay shows and the voice
   reads. `tests/path-scene-contract.spec.ts` fails if a scene module draws glyphs.
-- **One material treatment.** Every surface is a `MeshStandardMaterial` at high roughness, and
-  only the water and the pawn are smoother. Its colour is a tone (`paint.ts`): a path token mixed
+- **One material treatment.** Every surface is a `MeshStandardMaterial`, rough by default
+  (0.82). Only what would shine is smoother: the water, the pawn, glass and screens, the
+  Jet d'Eau, and the copper and pipe. Its colour is a tone (`paint.ts`): a path token mixed
   toward another and shaded. A theme change repaints every material from one palette, and
   the colours stay in `globals.css` under ADR-0008. The tokens are ADR-0009's four, unchanged.
 - **One baseline light.** A hemisphere light, a sun with PCF soft shadows (1024²), a small PMREM
@@ -41,7 +45,9 @@ What ships:
 - **One layout, read by everything.** `board.ts` places every piece as a box on its tile. The
   camera frames those boxes, the pawn keeps clear of them, and the spec checks that each built
   piece stays inside its own box. `path-spline.ts` gives the closed CatmullRom spline through the
-  tile centres and each tile's anchors, for the camera rig.
+  tile centres and each tile's anchors. Today only the stepping stones follow it; the pawn
+  hops straight between its spots, and the camera reads `board.ts`. It is the seam the camera
+  rig takes up.
 - **Nothing from any commercial board game's trade dress.** There is no corner-square layout,
   colour-group bar or deed card, and no named game's fonts or logo. The colour band is the path's
   two inks, and the tiles are octagons on a loop.

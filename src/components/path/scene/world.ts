@@ -159,21 +159,7 @@ export function makeBoard(paint: Paint): Group {
     BOARD.corner - BOARD.frameWidth * 0.6,
   );
   outline.holes.push(inner);
-  const frame = solid(
-    new ExtrudeGeometry(outline, {
-      depth: BOARD.frameHeight - 0.08,
-      bevelEnabled: true,
-      bevelThickness: 0.04,
-      bevelSize: 0.04,
-      bevelOffset: -0.04,
-      bevelSegments: 3,
-      curveSegments: 10,
-    }),
-    paint,
-    "frame",
-  );
-  frame.geometry.rotateX(-Math.PI / 2);
-  frame.geometry.translate(0, 0.04, 0);
+  const frame = solid(slab(outline, BOARD.frameHeight, 0.04), paint, "frame");
   group.add(top, frame);
 
   /* Grass between the tiles and round the path, not under either. */
@@ -284,9 +270,16 @@ export function makeTileBase(paint: Paint, slug: PathStepSlug): Group {
   return group;
 }
 
+let laidStones: readonly { at: Vector3; tangent: Vector3 }[] | undefined;
+
 /** Where the path's stepping stones lie: evenly along the spline, wherever
- *  it is off the tiles, each with the way it runs. */
+ *  it is off the tiles, each with the way it runs. Worked out once: the
+ *  board's grass keeps off them, and the path lays them. */
 function stonePoints() {
+  return (laidStones ??= layStones());
+}
+
+function layStones() {
   const spline = pathSpline();
   const count = Math.round(spline.getLength() / 0.78);
   const points: { at: Vector3; tangent: Vector3 }[] = [];

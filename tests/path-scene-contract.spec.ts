@@ -44,6 +44,7 @@ import {
   tileCentre,
   tileScale,
 } from "@/components/path/scene/board";
+import { HAND_END_ANGLE, handAngle } from "@/components/path/scene/lille";
 import { createPaint } from "@/components/path/scene/paint";
 import { PALETTE_ROLES, type Palette } from "@/components/path/scene/palette";
 import { pathSpline, tileAnchors } from "@/components/path/scene/path-spline";
@@ -552,7 +553,7 @@ test.describe("the pieces", () => {
     }
   });
 
-  test("a piece's motion ends where its rise ends, and starts still", () => {
+  test("a piece's motion starts still and ends where its rise ends", () => {
     const clock = buildPiece(
       paint,
       "lille",
@@ -560,15 +561,22 @@ test.describe("the pieces", () => {
       0,
     );
     expect(clock.motion).toBeDefined();
-    const hand = () => {
-      const angles: number[] = [];
-      clock.object.traverse((node) => angles.push(node.rotation.z));
-      return angles;
+    /* The hand is the one node the motion turns. */
+    const angles = () => {
+      const turned: number[] = [];
+      clock.object.traverse((node) => turned.push(node.rotation.z));
+      return turned;
     };
     clock.motion!(0);
-    const atStart = hand();
+    const atStart = angles();
     clock.motion!(1);
-    expect(hand()).not.toEqual(atStart);
+    const atEnd = angles();
+    const moved = atStart.flatMap((angle, i) =>
+      angle === atEnd[i] ? [] : [i],
+    );
+    expect(moved).toHaveLength(1);
+    expect(atStart[moved[0]]).toBeCloseTo(handAngle(0), 9);
+    expect(atEnd[moved[0]]).toBeCloseTo(HAND_END_ANGLE, 9);
   });
 });
 

@@ -23,7 +23,7 @@ bytes.
 | ------------------------ | ------ | -------------------------------------------------------- | ------ |
 | Transfer per scene, cold | 1.5 MB | 681.5 KB                                                 | Yes    |
 | GPU memory, estimated    | 64 MB  | 29.2–57.9 MB (27.9–55.2 MiB); 53.3 MB at 1440×900 ×2     | Yes    |
-| Each still               | 150 KB | Largest 36.4 KB (`now-dark.webp`)                        | Yes    |
+| Each still               | 150 KB | Largest 36.5 KB (`cuneo-2022-dark.webp`)                 | Yes    |
 | Frame time, a build      | 33 ms  | Median 8.3 ms, 95th percentile 8.9–9.1 ms, at every size | Yes    |
 
 **Transfer.** Every landing still loads the same files. `/path#home`, `#lille` and `#next`, cold
@@ -78,8 +78,8 @@ board draws only while something moves, so it costs nothing when settled. The wa
 grass move only while it draws. Always-on ambient motion is for a later package (W5).
 
 **Stills.** All 14 were rendered again by `generate:path-stills` from the solid board, settled on
-each step, at 1440×900 ×1.5, after the shadow map went to 1024²: 2040×833, 33.4–36.4 KB each
-(494.2 KB in all). The transfer above was measured with the first render, whose `next-light.webp`
+each step, at 1440×900 ×1.5, after the shadow map went to 1024²: 2040×833, 33.2–36.5 KB each
+(492.9 KB in all), last rendered after the review's fixes to the water and the rise. The transfer above was measured with the first render, whose `next-light.webp`
 was 36.0 KB, against 35.7 KB now.
 
 ## The board (v2)

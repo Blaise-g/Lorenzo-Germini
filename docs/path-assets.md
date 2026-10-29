@@ -267,8 +267,9 @@ only when `public/path/models/landmarks.json` lists the id. That index is `{}` u
 package ships models, so no model is fetched today and every landmark is its stand-in.
 
 **The stills, rendered again (v3).** All 14, made by `generate:path-stills` from the solid board
-settled on each step, at 1440×900 ×1.5: 2040×833, 33.4–36.4 KB each (budget 150 KB). Not timed.
-Rendered twice: the second time after the shadow map went from 2048² to 1024² for the GPU budget.
+settled on each step, at 1440×900 ×1.5: 2040×833, 33.2–36.5 KB each (budget 150 KB). Not timed.
+Rendered three times: after the shadow map went from 2048² to 1024² for the GPU budget, and
+again after the review moved the water's foam before lighting.
 
 ## Voice (#150)
 

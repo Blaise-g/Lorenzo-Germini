@@ -167,7 +167,11 @@ export function createPaint(palette: Palette) {
   const cache = new Map<string, MeshStandardMaterial>();
   /** One shared material per tone and finish. */
   function shared(name: ToneName, options: MaterialOptions = {}) {
-    const key = `${name}:${JSON.stringify(options)}`;
+    /* Only the options set count, so `{ grain: false }` and `{}` share. */
+    const set = Object.entries(options).filter(
+      ([, value]) => value !== undefined && value !== false,
+    );
+    const key = `${name}:${JSON.stringify(Object.fromEntries(set))}`;
     let made = cache.get(key);
     if (!made) {
       made = material(TONES[name], options);
@@ -184,7 +188,9 @@ export function createPaint(palette: Palette) {
 
   /* Water: a calm surface whose normals scroll, with a pale foam line where
      it meets its banks. A river's or the lake's UVs run 0–1 across it, so the
-     foam follows the banks however the water is shaped. */
+     foam follows the banks however the water is shaped. The foam is mixed
+     into the surface's colour before it is lit, so it is lit, tone-mapped
+     and encoded as the paper is. */
   const water = material(TONES.water, { roughness: 0.28 });
   water.normalMap = normals;
   water.normalScale.set(0.35, 0.35);
@@ -200,13 +206,12 @@ export function createPaint(palette: Palette) {
         "#include <common>\nvarying vec2 vWaterUv;\nuniform float uTime;\nuniform vec3 uFoam;",
       )
       .replace(
-        "#include <dithering_fragment>",
-        /* glsl */ `
+        "#include <color_fragment>",
+        /* glsl */ `#include <color_fragment>
         float bank = min( min( vWaterUv.y, 1.0 - vWaterUv.y ), min( vWaterUv.x, 1.0 - vWaterUv.x ) * 3.0 );
         float ripple = 0.5 + 0.5 * sin( vWaterUv.x * 40.0 + uTime * 1.6 + sin( vWaterUv.y * 9.0 ) * 2.0 );
         float foamLine = 1.0 - smoothstep( 0.04, 0.12 + 0.05 * ripple, bank );
-        gl_FragColor.rgb = mix( gl_FragColor.rgb, uFoam, foamLine * 0.75 );
-        #include <dithering_fragment>`,
+        diffuseColor.rgb = mix( diffuseColor.rgb, uFoam, foamLine * 0.75 );`,
       );
   };
   water.customProgramCacheKey = () => "path-water";
