@@ -1,16 +1,12 @@
 import { Color } from "three";
 
-/* The scene's colours are the path tokens in `globals.css` (ADR-0008), read
-   from the page so the CSS stays their one source. */
+/* The board's colours are the path tokens in `globals.css` (ADR-0008), read
+   from the page so the CSS stays their one source. The board is printed in
+   two risograph inks on card stock (comp B), so its palette is the stock, the
+   two inks and the table it lies on; every card, tile and the pawn is coloured
+   from these in the ink shader, so one texture serves light and dark. */
 
-export const PALETTE_ROLES = [
-  "ground",
-  "tile",
-  "prop",
-  "accent",
-  "outline",
-  "fog",
-] as const;
+export const PALETTE_ROLES = ["paper", "ink-1", "ink-2", "fog"] as const;
 
 export type PaletteRole = (typeof PALETTE_ROLES)[number];
 export type Palette = Record<PaletteRole, Color>;
