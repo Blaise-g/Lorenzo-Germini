@@ -12,16 +12,12 @@ import { PATH_STEPS } from "@/data/path";
 import type { PathStepSlug } from "@/data/path.types";
 import { SEEN_STORAGE_KEY } from "@/lib/path-state";
 
+import { hydrated, seenSlugs } from "./support/path-stage";
+
 const path = (page: Page) => page.getByRole("navigation", { name: "The path" });
 const stepLink = (page: Page, slug: PathStepSlug) =>
   page.locator(`[data-path-step-link="${slug}"]`);
 const piece = (page: Page) => page.locator("[data-path-piece]");
-
-/** The piece only exists once the leaf has hydrated, so waiting for it is
- *  waiting for the key handlers too. */
-async function hydrated(page: Page) {
-  await expect(piece(page)).toHaveCount(1);
-}
 
 /** Selected means all of it at once: the link is current, the piece is on the
  *  step, and its section — the step panel — is marked and on screen with its
@@ -54,14 +50,6 @@ function markerOpacity(page: Page, slug: PathStepSlug) {
   return page
     .locator(`section#${slug} h3`)
     .evaluate((heading) => getComputedStyle(heading, "::before").opacity);
-}
-
-async function seenSlugs(page: Page) {
-  return page
-    .locator("[data-path-seen] [data-path-step-link]")
-    .evaluateAll((links) =>
-      links.map((link) => link.getAttribute("data-path-step-link")),
-    );
 }
 
 test("every step can be selected in any order by click, Enter and Space", async ({

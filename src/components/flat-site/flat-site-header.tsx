@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FLAT_SITE_INSET } from "@/components/flat-site/inset";
+import { PathDoor } from "@/components/flat-site/path-door";
 import {
   FLAT_SITE_LINK_CLASS_NAME,
   FLAT_SITE_LINK_ROW_CLASS_NAME,
@@ -15,7 +16,8 @@ const routeLinkClassName =
 
 /** The masthead row: the name, which is the page's `<h1>`, the role beside it
  *  from `lg`, the route links and the theme toggle. Its own full-bleed rule, so
- *  the row stays a separate box from the body inset. */
+ *  the row stays a separate box from the body inset. Under the row, the door
+ *  to `/path` when its switch is on. */
 export function FlatSiteMasthead() {
   return (
     <div
@@ -63,6 +65,9 @@ export function FlatSiteMasthead() {
             <ThemeToggle />
           </div>
         </div>
+        {/* The door to `/path`, behind its off switch: inside the header, so
+            the header still comes first with it on (GH-151). */}
+        <PathDoor />
       </header>
     </div>
   );

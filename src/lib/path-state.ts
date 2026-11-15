@@ -68,6 +68,36 @@ export function pushStep(slug: PathStepSlug) {
   );
 }
 
+let replacing = false;
+
+/** Replace the current history entry with `#slug`, for a step the visitor did
+ *  not pick: `/path`'s tour advances this way, so Back skips its auto-steps
+ *  rather than walking through each one. Dispatches a `hashchange` as
+ *  `pushStep` does; listeners that run inside it can tell it from a pick with
+ *  `isReplacingStep`. */
+export function replaceStep(slug: PathStepSlug) {
+  const fragment = fragmentForStep(slug);
+  if (window.location.hash === fragment) return;
+  const oldURL = window.location.href;
+  window.history.replaceState(window.history.state, "", fragment);
+  replacing = true;
+  try {
+    window.dispatchEvent(
+      new HashChangeEvent("hashchange", {
+        oldURL,
+        newURL: window.location.href,
+      }),
+    );
+  } finally {
+    replacing = false;
+  }
+}
+
+/** True only inside the `hashchange` that `replaceStep` dispatches. */
+export function isReplacingStep(): boolean {
+  return replacing;
+}
+
 /* Storage can throw — disabled, full, or a private window — and a tick is
    never worth an error, so every access degrades to "nothing seen". */
 export function readStorage(key: string): string | null {
@@ -78,12 +108,14 @@ export function readStorage(key: string): string | null {
   }
 }
 
-function writeStorage(key: string, value: string | null) {
+/** Sets `key`, or removes it for null. Unavailable storage: the value
+ *  lasts as long as nothing. */
+export function writeStorage(key: string, value: string | null) {
   try {
     if (value === null) window.localStorage.removeItem(key);
     else window.localStorage.setItem(key, value);
   } catch {
-    /* Unavailable storage: the tick lasts as long as nothing. */
+    /* Nothing to keep it in. */
   }
 }
 

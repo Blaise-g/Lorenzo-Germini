@@ -1,0 +1,435 @@
+"use client";
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import type { ReactNode } from "react";
+
+import { PATH_STEPS } from "@/data/path";
+import type { PathStepSlug } from "@/data/path.types";
+import { pushStep, replaceStep, stepFromFragment } from "@/lib/path-state";
+import { useSelectedStep } from "@/lib/use-path-state";
+import { cn } from "@/lib/utils";
+
+import { TOUR_COPY } from "./copy";
+import { cueIndexAt, cueProgress, narrationFor } from "./narration";
+import {
+  NarrationCueContext,
+  useStageStatus,
+  type NarrationCue,
+} from "./stage-status";
+import {
+  dwellMs,
+  FIRST_STEP,
+  LAST_STEP,
+  playheadMs,
+  startClock,
+  stepAfter,
+  stepBefore,
+  timingReducer,
+  type StepClock,
+  type Timing,
+} from "./tour-clock";
+
+/* The tour on `/path`: the board plays itself, step by step, and the visitor
+   can skip to any step like a tape. It drives the selection, the one thing
+   the stage and the voice already follow, and the narration's cue, which the
+   captions, the voice and the board follow.
+
+   - Playing: at each step it waits for the stage to report the step settled
+     (`stage-status.tsx`), at most `SETTLE_MAX_WAIT_MS`, then dwells for the
+     step's narration and a beat (`tour-clock.ts`), then replaces the history
+     entry with the next step, so Back skips the auto-steps. It stops at the
+     last. The narration's cues run on the dwell's clock, with the voice on
+     or off, and the voice follows that clock rather than leading it.
+   - Picking a step — the list, Back, Forward, Previous, Next — pushes as
+     before, and the tour carries on from there, after the end too.
+   - Paused: one click on the middle tab or the K key (WCAG 2.2.2), and on the
+     tab going hidden, where it stays when the tab returns. Under reduced
+     motion it starts paused and plays nothing until asked. A pause holds
+     the captions and the voice where they are.
+
+   Keys, with focus in the step list or on the tabs and no modifier: K plays
+   or pauses, J goes to the previous step, L to the next. */
+
+export type TourStatus = "playing" | "paused" | "ended";
+
+type TourContextValue = {
+  status: TourStatus;
+  /** The selected step's clock, and whether it is running. */
+  clock: StepClock;
+  running: boolean;
+  togglePlay: () => void;
+  previous: () => void;
+  next: () => void;
+  /** How far into the selected step's narration the tour is now, read
+   *  live. */
+  playhead: () => number;
+};
+
+const TourContext = createContext<TourContextValue | null>(null);
+
+function useTour(): TourContextValue {
+  const tour = useContext(TourContext);
+  if (!tour) throw new Error("The tour's leaves need a TourProvider");
+  return tour;
+}
+
+/** For the stage: whether the tour plays, is paused or has ended, which the
+ *  board's camera follows. */
+export function useTourStatus(): TourStatus {
+  return useTour().status;
+}
+
+/** For the voice: how far into the selected step's narration the tour is,
+ *  in milliseconds, read live. */
+export function useNarrationPlayhead(): () => number {
+  return useTour().playhead;
+}
+
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+function subscribeToMotion(onChange: () => void) {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+/** Whether the visitor allows motion. False on the server and through
+ *  hydration, so the tour hydrates paused and plays from the next render. */
+function useMotionAllowed() {
+  return useSyncExternalStore(
+    subscribeToMotion,
+    () => !window.matchMedia(REDUCED_MOTION).matches,
+    () => false,
+  );
+}
+
+/** The tour's keys work only with focus in the step list or on the tabs —
+ *  `data-path-tour-keys` — so a single-letter key typed anywhere else on the
+ *  page is never taken from it (WCAG 2.1.4). */
+function inKeyScope(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    target.closest("[data-path-tour-keys]") !== null
+  );
+}
+
+export function TourProvider({ children }: { children: ReactNode }) {
+  const { selected } = useSelectedStep();
+  const stage = useStageStatus();
+  const motionAllowed = useMotionAllowed();
+  /* Play or pause as the visitor or a hidden tab last chose; until then the
+     tour plays where motion is allowed and waits where it is not. */
+  const [chosen, setChosen] = useState<"playing" | "paused" | null>(null);
+
+  /* Each step gets a new clock, whatever selected it (`timingReducer`). Until
+     the new step's clock has started, this render shows a fresh one and
+     nothing acts on it. */
+  const [timing, dispatch] = useReducer(
+    timingReducer,
+    selected,
+    (slug): Timing => ({ slug, clock: startClock(dwellMs(slug)) }),
+  );
+  const timed = timing.slug === selected;
+  const clock = timed ? timing.clock : startClock(dwellMs(selected));
+  useLayoutEffect(() => {
+    dispatch({ type: "start", slug: selected, dwell: dwellMs(selected) });
+  }, [selected]);
+
+  /* The stage settling this step starts its dwell; once dwelling, a later or
+     repeated report changes nothing. The stage reports on every change of
+     step, from what it shows then, so a report naming this step is this
+     visit's: back on a step built before, it reports it unsettled until it
+     has built it again. */
+  useEffect(() => {
+    if (stage.slug === selected && stage.settled) {
+      dispatch({ type: "settle", slug: selected });
+    }
+  }, [stage, selected, timing.slug]);
+
+  const playing =
+    (chosen ?? (motionAllowed ? "playing" : "paused")) === "playing";
+  /* The last step, played to its end. Picking any step starts a new clock,
+     so the tour plays on from there. */
+  const atEnd = clock.phase === "done" && selected === LAST_STEP;
+  const status: TourStatus = !playing ? "paused" : atEnd ? "ended" : "playing";
+  const running = status === "playing";
+  const statusRef = useRef(status);
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  /* On entering, the tour plays from the fragment's step. The first-paint
+     script has already put a bare `/path` on the first step's fragment; a
+     client-side arrival, which runs no inline script, gets it here. */
+  useLayoutEffect(() => {
+    if (window.matchMedia(REDUCED_MOTION).matches) return;
+    if (!stepFromFragment(window.location.hash)) replaceStep(FIRST_STEP);
+  }, []);
+
+  /* The clock as it runs: the clock last set and when it started running,
+     for reading the playhead between its timer's reports. Null while it is
+     stopped, when the clock alone says where it is. */
+  const clockRef = useRef(clock);
+  const liveRef = useRef<{ clock: StepClock; since: number } | null>(null);
+  useLayoutEffect(() => {
+    clockRef.current = clock;
+  }, [clock]);
+  const playhead = useCallback(() => {
+    const live = liveRef.current;
+    if (live && live.clock === clockRef.current) {
+      return playheadMs(live.clock, performance.now() - live.since);
+    }
+    return playheadMs(clockRef.current);
+  }, []);
+
+  /* The clock runs only while the tour plays. Stopping it keeps what is
+     left of the phase, so a pause resumes where it was. The identity checks
+     leave alone a clock that a new step or a settle has already replaced. */
+  useEffect(() => {
+    if (!running || !timed || clock.phase === "done") return;
+    const started = performance.now();
+    liveRef.current = { clock, since: started };
+    const timer = window.setTimeout(() => {
+      dispatch({ type: "elapse", from: clock, ms: clock.remaining });
+    }, clock.remaining);
+    return () => {
+      window.clearTimeout(timer);
+      liveRef.current = null;
+      const elapsed = performance.now() - started;
+      dispatch({ type: "elapse", from: clock, ms: elapsed });
+    };
+  }, [running, timed, clock]);
+
+  /* A finished step moves on. */
+  useEffect(() => {
+    if (!running || !timed || clock.phase !== "done") return;
+    const after = stepAfter(selected);
+    if (after) replaceStep(after);
+  }, [clock.phase, running, timed, selected]);
+
+  /* Where the narration is, as of the last cue boundary the clock crossed:
+     each cue's start and the narration's end. A timer per boundary, so the
+     tour re-renders as a cue changes and not as it plays. Between
+     boundaries, and whenever the clock is replaced, the clock alone says
+     where it is. */
+  const narration = narrationFor(selected);
+  const [crossed, setCrossed] = useState<{ clock: StepClock; ms: number }>({
+    clock,
+    ms: 0,
+  });
+  const at = crossed.clock === clock ? crossed.ms : playheadMs(clock);
+  useEffect(() => {
+    if (!running || !timed || clock.phase !== "dwelling") return;
+    const boundaries = [
+      ...narration.cues.map((cue) => cue.startMs),
+      narration.durationMs,
+    ];
+    let timer = 0;
+    function schedule() {
+      const now = playhead();
+      const next = boundaries.find((boundary) => boundary > now);
+      if (next === undefined) return;
+      timer = window.setTimeout(() => {
+        setCrossed({ clock, ms: next });
+        schedule();
+      }, next - now);
+    }
+    schedule();
+    return () => window.clearTimeout(timer);
+  }, [running, timed, clock, narration, playhead]);
+
+  const index = cueIndexAt(narration.cues, at);
+  const cue = narration.cues[index];
+  const speaking =
+    running && clock.phase === "dwelling" && at < narration.durationMs;
+  const narrationCue = useMemo<NarrationCue>(
+    () => ({
+      slug: selected,
+      index,
+      prop: cue.prop ?? null,
+      running: speaking,
+      progress: () => cueProgress(cue, playhead()),
+    }),
+    [selected, index, cue, speaking, playhead],
+  );
+
+  /* A hidden tab pauses the tour, and it stays paused when the tab returns:
+     the visitor comes back to the step they left, not three steps on. */
+  useEffect(() => {
+    function onVisibilityChange() {
+      if (document.visibilityState !== "hidden") return;
+      if (statusRef.current === "playing") setChosen("paused");
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  const togglePlay = useCallback(() => {
+    if (status === "playing") return setChosen("paused");
+    /* From the end — reached, or reached while paused — it plays again from
+       the start, a step the visitor chose. */
+    if (status === "ended" || atEnd) pushStep(FIRST_STEP);
+    setChosen("playing");
+  }, [status, atEnd]);
+
+  const previous = useCallback(() => {
+    const before = stepBefore(selected);
+    if (before) pushStep(before);
+  }, [selected]);
+
+  const next = useCallback(() => {
+    const after = stepAfter(selected);
+    if (after) pushStep(after);
+  }, [selected]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.repeat) return;
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+        return;
+      }
+      if (!inKeyScope(event.target)) return;
+      const action = { k: togglePlay, j: previous, l: next }[
+        event.key.toLowerCase()
+      ];
+      if (!action) return;
+      event.preventDefault();
+      action();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [togglePlay, previous, next]);
+
+  const value = useMemo(
+    () => ({ status, clock, running, togglePlay, previous, next, playhead }),
+    [status, clock, running, togglePlay, previous, next, playhead],
+  );
+
+  return (
+    <TourContext value={value}>
+      <NarrationCueContext value={narrationCue}>{children}</NarrationCueContext>
+    </TourContext>
+  );
+}
+
+const PLAY_LABEL: Record<TourStatus, string> = {
+  playing: TOUR_COPY.pause,
+  paused: TOUR_COPY.play,
+  ended: TOUR_COPY.restart,
+};
+
+const PLAY_NAME: Record<TourStatus, string> = {
+  playing: TOUR_COPY.pauseName,
+  paused: TOUR_COPY.playName,
+  ended: TOUR_COPY.restartName,
+};
+
+/** Previous, play or pause, and next, as die-cut card tabs. Previous and
+ *  Next stay focusable at the ends, marked unavailable rather than
+ *  `disabled`, so focus is not dropped to the page. */
+export function TourTransport({ className }: { className?: string }) {
+  const { status, clock, previous, next, togglePlay } = useTour();
+  const { selected } = useSelectedStep();
+  const atStart = selected === FIRST_STEP;
+  const atEnd = selected === LAST_STEP;
+
+  return (
+    <div
+      data-path-tour={status}
+      data-path-tour-phase={clock.phase}
+      role="group"
+      aria-label={TOUR_COPY.transport}
+      className={cn("print:hidden", className)}
+    >
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          data-path-tour-previous
+          data-shape="back"
+          aria-label={TOUR_COPY.previousName}
+          aria-keyshortcuts="J"
+          title={TOUR_COPY.previousTitle}
+          aria-disabled={atStart || undefined}
+          className="path-tab press transition-refined"
+          onClick={previous}
+        >
+          <span className="path-tab-face">{TOUR_COPY.previous}</span>
+        </button>
+        <button
+          type="button"
+          data-path-tour-play
+          data-shape="primary"
+          aria-label={PLAY_NAME[status]}
+          aria-keyshortcuts="K"
+          title={TOUR_COPY.playTitle}
+          className="path-tab press transition-refined"
+          onClick={togglePlay}
+        >
+          <span className="path-tab-face">{PLAY_LABEL[status]}</span>
+        </button>
+        <button
+          type="button"
+          data-path-tour-next
+          data-shape="on"
+          aria-label={TOUR_COPY.nextName}
+          aria-keyshortcuts="L"
+          title={TOUR_COPY.nextTitle}
+          aria-disabled={atEnd || undefined}
+          className="path-tab press transition-refined"
+          onClick={next}
+        >
+          <span className="path-tab-face">{TOUR_COPY.next}</span>
+        </button>
+      </div>
+      <p className="text-faint font-label mt-3 hidden text-[0.6875rem] tracking-[0.12em] uppercase [@media(hover:hover)_and_(pointer:fine)]:block">
+        {TOUR_COPY.keys}
+      </p>
+    </div>
+  );
+}
+
+/** The selected step's dwell, as a printed line that runs out under its row:
+ *  how long until the tour moves on. Only while dwelling, and never under
+ *  reduced motion, where the tour shows no progress at all. Linear, because
+ *  it is a measure of time. */
+export function TourProgress() {
+  const { clock, running } = useTour();
+  const lineRef = useRef<HTMLSpanElement>(null);
+  const motionAllowed = useMotionAllowed();
+  const dwelling = clock.phase === "dwelling" && motionAllowed;
+
+  useEffect(() => {
+    const line = lineRef.current;
+    if (!line || !dwelling) return;
+    const from = 1 - clock.remaining / clock.dwell;
+    const animation = line.animate(
+      [{ transform: `scaleX(${from})` }, { transform: "scaleX(1)" }],
+      { duration: clock.remaining, easing: "linear", fill: "both" },
+    );
+    if (!running) animation.pause();
+    return () => animation.cancel();
+  }, [clock, dwelling, running]);
+
+  if (!dwelling) return null;
+  return (
+    <span
+      aria-hidden
+      data-path-tour-progress
+      className="path-tour-progress print:hidden"
+    >
+      <span ref={lineRef} className="path-tour-progress-line" />
+    </span>
+  );
+}

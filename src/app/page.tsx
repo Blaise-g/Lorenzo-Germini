@@ -7,7 +7,7 @@ STORY: Read what he does, pick a step, read what happened there.
 FIRST VIEWPORT: The name, the role and a subhead that names Complaion and the
 systems behind it — the fold is where the technical claim is made.
 FORM: Masthead rule, intro, the drawn path, a section per step and side
-project, then the writing.
+project, then the writing, and how the 3D path was made.
 */
 
 import type { Metadata } from "next";
@@ -20,12 +20,14 @@ import {
   FlatSiteMasthead,
 } from "@/components/flat-site/flat-site-header";
 import { FLAT_SITE_INSET } from "@/components/flat-site/inset";
+import { MakingOf } from "@/components/flat-site/making-of";
 import {
   SidePropSection,
   StepSection,
 } from "@/components/flat-site/step-section";
 import { RouteFrame } from "@/components/route-frame";
 import { StructuredData } from "@/components/structured-data";
+import { MAKING_OF } from "@/data/making-of";
 import { PATH_SIDE_PROPS, PATH_STEPS } from "@/data/path";
 import { RESUME_DATA } from "@/data/resume-data";
 import { markdownAlternate } from "@/lib/markdown-negotiation";
@@ -81,6 +83,14 @@ export default function Page() {
             <FlatSiteSection id="writing" heading="Writing">
               <WritingTeaser />
             </FlatSiteSection>
+
+            <FlatSiteSection
+              id="how-this-was-made"
+              heading={MAKING_OF.heading}
+              className="print:hidden"
+            >
+              <MakingOf />
+            </FlatSiteSection>
           </div>
         </div>
         <BackToTop />
@@ -91,10 +101,12 @@ export default function Page() {
 
 function FlatSiteSection({
   children,
+  className,
   heading,
   id,
 }: {
   children: ReactNode;
+  className?: string;
   heading: string;
   id: string;
 }) {
@@ -103,7 +115,7 @@ function FlatSiteSection({
       id={id}
       aria-labelledby={`${id}-heading`}
       data-flat-site-section={id}
-      className="scroll-mt-8"
+      className={cn("scroll-mt-8", className)}
     >
       <h2
         id={`${id}-heading`}

@@ -14,8 +14,9 @@
 // This surface cannot confirm a signup — the copy promises a handoff, never
 // success, and there is deliberately no disabled or spinner state.
 
-import { useId, useState, useSyncExternalStore } from "react";
+import { useId, useState } from "react";
 import { RESUME_DATA } from "@/data/resume-data";
+import { useHydrated } from "@/lib/use-hydrated";
 
 type Copy = {
   heading: string;
@@ -61,23 +62,6 @@ const IT: Copy = {
 const LOOKS_LIKE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const meta = "font-label text-xs uppercase tracking-[0.12em]";
-
-/* False on the server and through hydration, true once React is driving the
-   client — so the server markup stays the no-JS-safe variant and only then does
-   the submit handler take over validation. `useSyncExternalStore` rather than a
-   mount-effect `setState`: it costs the same one extra render, but expresses
-   "read a value that lives outside React" instead of tripping
-   `react-hooks/set-state-in-effect`. Hoisted to module scope because an inline
-   subscribe re-subscribes on every render; there is nothing to subscribe to. */
-const noopSubscribe = () => () => {};
-
-function useHydrated() {
-  return useSyncExternalStore(
-    noopSubscribe,
-    () => true,
-    () => false,
-  );
-}
 
 export function SubscribeModule({ lang = "en" }: { lang?: "en" | "it" }) {
   const c = lang === "it" ? IT : EN;

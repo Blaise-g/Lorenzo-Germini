@@ -10,10 +10,11 @@
    Print values, all decimal. So the citation convention moved to `GH-100`
    (ADR-0004) and the guard explains itself rather than bending.
 
-   The two exemptions are the whole reason this is a function rather than four
+   The exemptions are the whole reason this is a function rather than four
    regexes: `globals.css` legitimately holds colour values inside its token
-   blocks, and `warm-print.ts` is where the palette is declared. Both are
-   scoped as narrowly as the file allows, and both are pinned by tests. */
+   blocks, `warm-print.ts` is where the palette is declared, and the 3D path's
+   scene art lives in one directory (ADR-0008). Each is scoped as narrowly as
+   it allows, and each is pinned by tests. */
 
 const colorSyntax =
   /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|color-mix)\(/g;
@@ -22,6 +23,11 @@ const retiredUtility =
 const builtInPalette =
   /(?:bg|text|border|ring|outline|decoration)-(?:black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-[0-9]+)?(?:\/[0-9]+)?\b/g;
 const retiredEffects = /\b(?:BORDER_SHIM|GRAIN_URL)\b|feTurbulence|mix-blend-/g;
+/* Scene art: shader colours, fog, outlines and bakes, which are not page
+   interface (ADR-0008). The trailing slash keeps a sibling such as
+   `src/components/path/scene-host.tsx` under the guard. */
+const sceneArtDirectory = "src/components/path/scene/";
+
 const primaryHoverMix =
   /color-mix\(\s*in srgb,\s*var\(--color-accent\)\s*92%,\s*var\(--color-ink\)\s*\)/g;
 
@@ -88,10 +94,12 @@ export function scanSource(relativePath: string, source: string): string[] {
     searchable = searchable.replace(primaryHoverMix, "");
   }
 
-  const patterns =
-    relativePath === "src/lib/warm-print.ts"
-      ? [retiredUtility, builtInPalette, retiredEffects]
-      : [colorSyntax, retiredUtility, builtInPalette, retiredEffects];
+  const colourExempt =
+    relativePath === "src/lib/warm-print.ts" ||
+    relativePath.startsWith(sceneArtDirectory);
+  const patterns = colourExempt
+    ? [retiredUtility, builtInPalette, retiredEffects]
+    : [colorSyntax, retiredUtility, builtInPalette, retiredEffects];
 
   for (const pattern of patterns) {
     for (const match of searchable.matchAll(pattern)) {

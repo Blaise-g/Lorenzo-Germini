@@ -179,22 +179,55 @@ A city on the path other than home: Turin, Lausanne/Switzerland or Lille.
 _Avoid_: city, property, world
 
 **Scene**:
-The small 3D model a step shows on the 3D path: its place's landmark blended with the work done
-there. Home's three steps share one scene.
+What a step shows on the 3D path: its tile on the board, with its place's landmark and its props
+around it. Home's three steps share one scene.
 _Avoid_: world, level, diorama, pop-up
 
+**Board**:
+The 3D path's tabletop, one scene of its own: a slab with a frame, the seven tiles around a loop
+and the path's stepping stones between them, modelled in code (ADR-0010).
+_Avoid_: map, game board as a name in copy, and anything "-opoly"
+
+**Tile**:
+A step's place on the board, a banded slab its scene stands on. A tile belongs to a step; it is
+not another word for one.
+_Avoid_: space, square, property
+
+**Landmark**:
+The building or place that names a tile's scene: the Mole, the belfry, the jetty. A toy since
+v3 (ADR-0012).
+_Avoid_: building, monument, prop
+
 **Prop**:
-One object in a scene. Props drop into place when a scene builds.
-_Avoid_: piece (that is the marker), asset, model
+One object in a scene beside its landmark. A toy, with its moving parts in code; props rise into
+place when a scene builds.
+_Avoid_: piece (retired as ambiguous), asset, model
+
+**Toy**:
+A generated model of a landmark, a prop or the marker, in one chunky board-game style
+(Hunyuan3D, ADR-0012). It replaces its stand-in when its file arrives.
+_Avoid_: mesh, GLB in prose, asset
+
+**Stand-in**:
+The code-modelled version of a landmark, prop or marker. It stands while the toy loads, and for
+good if the toy's file is unlisted or fails, so a missing file is never a missing landmark.
+_Avoid_: placeholder, fallback (that is the stills)
 
 **Build**:
-The 2–3 second animation in which a scene's props drop into place, with each prop's caption line
-highlighted as it lands. Skippable; under reduced motion, the finished scene.
+The animation in which a step's landmark and props rise onto its tile as the tour plays it.
+Under reduced motion, the finished scene.
 _Avoid_: intro, reveal, assembly animation
 
-**Piece**:
-The single marker that sits on the selected step and travels along the path to the next one.
-_Avoid_: token, avatar, player
+**Marker**:
+The duo, a figure and the robot that walks with it, which stands on the played step and hops along
+the path to the next one. The code says `MARKER`; older notes and identifiers say "piece" or
+"pawn", from before v3.
+_Avoid_: piece, pawn, token, avatar, player
+
+**Beat**:
+The small motion a prop plays when the narration's cue names it: the coils turn, the shutters
+close. One table, keyed by step and prop (`beats.ts`).
+_Avoid_: animation, effect
 
 **Seen**:
 The tick on a step the visitor has already selected, kept in local storage.

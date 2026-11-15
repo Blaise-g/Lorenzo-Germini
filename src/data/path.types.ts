@@ -60,10 +60,8 @@ export type PathStepBase = {
   links: readonly PathLink[];
   props: readonly PathProp[];
   illustration: PathIllustration;
-  /** `lines` joined: what the text panel shows. */
+  /** `lines` joined: the step's text, as the flat site and print show it. */
   text: string;
-  /** Word for word the step's text (GH-141, decision 9). */
-  voiceScript: string;
 };
 
 export type PathStep = PathStepBase & PathStepScene;

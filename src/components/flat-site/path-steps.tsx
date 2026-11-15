@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 
 import type { PathStepSlug } from "@/data/path.types";
 import { clearSeen, fragmentForStep, markSeen } from "@/lib/path-state";
+import { useHydrated } from "@/lib/use-hydrated";
 import { useSeenSteps, useSelectedStep } from "@/lib/use-path-state";
 
 /** What the path draws for a step: home is a square, a place a dot, and "?"
@@ -92,19 +93,6 @@ function SeenTick() {
       </svg>
       <span className="sr-only">, seen</span>
     </>
-  );
-}
-
-const subscribeToNothing = () => () => {};
-
-/** True once hydrated: what only JavaScript adds — the piece and the
- *  selection — stays out of the server HTML, so the page without it is
- *  GH-144's, whole. */
-function useHydrated() {
-  return useSyncExternalStore(
-    subscribeToNothing,
-    () => true,
-    () => false,
   );
 }
 
